@@ -19,6 +19,7 @@ export interface UserMessageProps {
   mentions?: MentionItem[];
   command?: Command;
   onFileClick?: (attachment: MessageFileAttachment) => void;
+  onMentionClick?: (mention: MentionItem) => void;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   compact?: boolean;
 }
@@ -32,6 +33,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({
   mentions,
   command,
   onFileClick,
+  onMentionClick,
   onRequestFilePreviewUrl,
   compact = false,
 }) => {
@@ -112,7 +114,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({
               <div
                 className={command || (attachments && attachments.length > 0) ? 'mt-2' : undefined}
               >
-                <MessageMentionPreview mentions={mentions} />
+                <MessageMentionPreview mentions={mentions} onMentionClick={onMentionClick} />
               </div>
             )}
             {/* Text content - render markdown using TiptapViewer */}

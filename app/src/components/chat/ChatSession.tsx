@@ -31,14 +31,13 @@ import {
   usePanelResize,
 } from "@vonlabs/design-components";
 import type { ConversationMode } from "@vonlabs/design-components";
-import type { FileArtifact } from "@vonlabs/design-components";
+import type { FileArtifact, MentionItem } from "@vonlabs/design-components";
+import { MentionItemType } from "@vonlabs/design-components";
 
 import type {
   Conversation,
   MessageWithStreaming,
 } from "../../types/conversation";
-import type { MessageReference } from "../../types/conversation";
-import { ReferenceType } from "../../types/conversation";
 import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
 import { useChatMentions } from "../../hooks/useChatMentions";
 import { useChatV2 } from "../../hooks/useChatV2";
@@ -46,8 +45,7 @@ import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
 import { useMessages } from "../../hooks/useMessages";
 import { useCurrentConversation } from "../../hooks/useCurrentConversation";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
-import { useReferenceStack } from "../../hooks/useReferenceStack";
-import type { ReferenceStackLayer } from "../../hooks/useReferenceStack";
+
 import { useDashboardPane } from "../../hooks/useDashboardPane";
 import { useTeamMembers } from "../../hooks/useTeam";
 import { useIntegrations } from "../../hooks/useIntegrations";
@@ -211,26 +209,16 @@ function ExistingChatInner(
     isLoading: isFetchingNextMessagePage,
   });
 
-  // ── Reference stack (dashboard context) ───────────────────────────
+  // ── Dashboard @ mention (replaces orange referenceContext tag) ─────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
-  const dashboardBaseLayer: ReferenceStackLayer | null = useMemo(
+  const dashboardMention = useMemo(
     () =>
       hasDashboard
         ? {
-            display: {
-              type: ReferenceType.Dashboard,
-              name: props.dashboardTitle!,
-              id: props.dashboardId!,
-            },
-            reference: {
-              refId: `dashboard-${props.dashboardId}`,
-              type: ReferenceType.Dashboard,
-              context: {
-                dashboardId: props.dashboardId!,
-                dashboardVersion: props.dashboardVersion ?? 0,
-                dashboardName: props.dashboardTitle!,
-              },
-            },
+            id: props.dashboardId!,
+            name: props.dashboardTitle!,
+            type: MentionItemType.Dashboard,
+            version: props.dashboardVersion ?? 0,
           }
         : null,
     [
@@ -240,9 +228,10 @@ function ExistingChatInner(
       props.dashboardVersion,
     ],
   );
-  const refStack = useReferenceStack(dashboardBaseLayer);
 
   // ── Chat engine ───────────────────────────────────────────────────
+  // Dashboard references are now driven solely by @ mentions (selectedMentions)
+  // so the user controls which dashboards are sent as context.
   const chatV2 = useChatV2({
     conversationId,
     user: base.user,
@@ -268,7 +257,6 @@ function ExistingChatInner(
     isSourcesEnabled: base.features.isSourcesEnabled,
     isFileUploadEnabled: base.features.isFileUploadEnabled,
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
-    references: refStack.references,
   });
 
   // ── Dashboard version invalidation (sidebar context) ──────────────
@@ -442,6 +430,13 @@ function ExistingChatInner(
     ],
   );
 
+  const handleMentionClick = useCallback(
+    (mention: MentionItem) => {
+      navigate(`/dashboard/${mention.id}?conversationId=${conversationId}`);
+    },
+    [navigate, conversationId],
+  );
+
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (props.compact) return;
@@ -545,6 +540,7 @@ function ExistingChatInner(
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
       onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
+      onMentionClick={handleMentionClick}
       // Artifacts
       onArtifactClick={chatV2.handleArtifactClick}
       showArtifacts={base.features.isArtifactsEnabled}
@@ -558,14 +554,12 @@ function ExistingChatInner(
       // Salesforce / deep links
       salesforceInstanceUrl={props.salesforceInstanceUrl}
       enableDeepLinks={base.features.isDeepLinksEnabled}
-      // Reference context
-      referenceContext={refStack.activeContext}
-      onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
       // Mentions
       enableMentions={enableMentions}
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
+      dashboardMention={dashboardMention}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -674,26 +668,16 @@ function NewChatInner(props: ChatSessionProps) {
     onMentionsActivated,
   } = useChatMentions();
 
-  // ── Reference stack ───────────────────────────────────────────────
+  // ── Dashboard @ mention ────────────────────────────────────────────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
-  const dashboardBaseLayer: ReferenceStackLayer | null = useMemo(
+  const dashboardMention = useMemo(
     () =>
       hasDashboard
         ? {
-            display: {
-              type: ReferenceType.Dashboard,
-              name: props.dashboardTitle!,
-              id: props.dashboardId!,
-            },
-            reference: {
-              refId: `dashboard-${props.dashboardId}`,
-              type: ReferenceType.Dashboard,
-              context: {
-                dashboardId: props.dashboardId!,
-                dashboardVersion: props.dashboardVersion ?? 0,
-                dashboardName: props.dashboardTitle!,
-              },
-            },
+            id: props.dashboardId!,
+            name: props.dashboardTitle!,
+            type: MentionItemType.Dashboard,
+            version: props.dashboardVersion ?? 0,
           }
         : null,
     [
@@ -703,18 +687,12 @@ function NewChatInner(props: ChatSessionProps) {
       props.dashboardVersion,
     ],
   );
-  const refStack = useReferenceStack(dashboardBaseLayer);
 
-  const references: MessageReference[] = useMemo(
-    () => (dashboardBaseLayer ? [dashboardBaseLayer.reference] : []),
-    [dashboardBaseLayer],
-  );
-
+  // Dashboard references are now driven solely by @ mentions (selectedMentions)
   const createFlow = useCreateAndSendMessage({
     agentVersion: "v2",
     isAgentV2: true,
     title: props.dashboardTitle ?? props.title ?? "",
-    references,
     onCreated: props.onCreated,
   });
 
@@ -759,9 +737,7 @@ function NewChatInner(props: ChatSessionProps) {
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
-      // Reference context
-      referenceContext={refStack.activeContext}
-      onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
+      dashboardMention={dashboardMention}
     >
       {slots.emptyState && (
         <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>

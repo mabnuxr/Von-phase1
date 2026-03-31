@@ -2,7 +2,7 @@
  * Type definitions for Chat component with backend integration
  */
 
-import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
+import type { ConversationMode } from './StandardChatInput/types';
 import type { FileArtifact } from './ArtifactCards/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -1314,6 +1314,11 @@ export interface ChatProps {
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
 
   /**
+   * Callback when a mention chip is clicked in a sent message (e.g. navigate to dashboard)
+   */
+  onMentionClick?: (mention: MentionItem) => void;
+
+  /**
    * Enable slash commands feature
    * When enabled, typing '/' in the input will show a commands popover
    * @default false
@@ -1485,16 +1490,6 @@ export interface ChatProps {
    */
   onFilesSelected?: (files: File[]) => void;
 
-  /**
-   * Reference context shown above the input (e.g. dashboard/widget context)
-   */
-  referenceContext?: ReferenceContext;
-
-  /**
-   * Callback when the reference context is removed
-   */
-  onRemoveReference?: () => void;
-
   // ============================================================================
   // @ Mention Props
   // ============================================================================
@@ -1525,6 +1520,12 @@ export interface ChatProps {
    * Called when the user first types "@" — use to lazy-load mention items
    */
   onMentionsActivated?: () => void;
+
+  /**
+   * Dashboard mention to auto-add when chat opens alongside a dashboard.
+   * Updates on dashboard switch without reloading the chat.
+   */
+  dashboardMention?: MentionItem | null;
 
   // ============================================================================
   // Data Tables Props (Deep Research Approval Flow)

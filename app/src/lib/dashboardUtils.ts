@@ -95,6 +95,12 @@ export function transformMessagesToChatFormat(
           | "text"
           | "image",
       })),
+      mentions: streamingMsg.references?.map((ref) => ({
+        id: ref.context.dashboardId,
+        name: ref.context.dashboardName,
+        type: ref.type,
+        version: ref.context.dashboardVersion,
+      })),
       // Map the quick command so ChatMessage can render CommandPreview
       command: streamingMsg.command
         ? {

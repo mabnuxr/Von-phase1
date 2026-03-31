@@ -158,6 +158,8 @@ export interface ChatEmptyStateProps {
   onSelectMention?: (item: MentionItem) => void;
   /** Called when the user first types "@" — use to lazy-load mention items */
   onMentionsActivated?: () => void;
+  /** Dashboard mention to auto-add when chat opens alongside a dashboard */
+  dashboardMention?: MentionItem | null;
 }
 
 /**
@@ -221,6 +223,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   isLoadingMentions,
   onSelectMention,
   onMentionsActivated,
+  dashboardMention,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -440,6 +443,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           isLoadingMentions={isLoadingMentions}
           onSelectMention={onSelectMention}
           onMentionsActivated={onMentionsActivated}
+          dashboardMention={dashboardMention}
         />
       </motion.div>
 

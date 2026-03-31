@@ -58,6 +58,7 @@ export interface ChatMessageProps {
   onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
   onRejectPlan?: (runId: string, executionId: string) => void;
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+  onMentionClick?: (mention: MentionItem) => void;
   // V2 Thinking Process
   thinkingProcessVersion?: 'v1' | 'v2';
   timelineSteps?: TimelineStep[];
@@ -168,6 +169,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onApprovePlan,
   onRejectPlan,
   onDashboardPreview,
+  onMentionClick,
   dataTablesInfo,
   isDataTablesLoading = false,
   onDataTablesClick,
@@ -211,6 +213,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   mentions={mentions}
                   command={command}
                   onFileClick={onFileClick}
+                  onMentionClick={onMentionClick}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   compact={compact}
                 />

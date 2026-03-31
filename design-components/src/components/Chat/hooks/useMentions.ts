@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { Editor, Extension, JSONContent } from '@tiptap/react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import type { MentionItem } from '../../Mentions/types';
@@ -16,6 +16,8 @@ export interface UseMentionsOptions {
   onSelectMention?: (item: MentionItem) => void;
   /** Called when the user first types "@" — use to lazy-load mention items */
   onMentionsActivated?: () => void;
+  /** Dashboard mention to auto-add (e.g. current dashboard context). Updated on dashboard switch. */
+  dashboardMention?: MentionItem | null;
 }
 
 export interface UseMentionsReturn {
@@ -87,11 +89,46 @@ export function useMentions({
   mentionItems,
   onSelectMention,
   onMentionsActivated,
+  dashboardMention,
 }: UseMentionsOptions): UseMentionsReturn {
   const [suggestionState, setSuggestionState] =
     useState<MentionSuggestionState>(INITIAL_SUGGESTION_STATE);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>([]);
+  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>(() =>
+    dashboardMention ? [dashboardMention] : []
+  );
+
+  // Sync dashboard mention into selectedMentions on dashboard switch
+  const prevDashboardIdRef = useRef(dashboardMention?.id);
+  useEffect(() => {
+    const prevId = prevDashboardIdRef.current;
+
+    if (!dashboardMention) {
+      // Dashboard mention cleared — remove the previous dashboard mention
+      prevDashboardIdRef.current = undefined;
+      if (prevId) {
+        setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
+      }
+      return;
+    }
+
+    prevDashboardIdRef.current = dashboardMention.id;
+
+    if (prevId !== dashboardMention.id) {
+      // Dashboard changed — replace old with new
+      setSelectedMentions((prev) => {
+        const withoutOld = prev.filter((m) => m.id !== prevId && m.id !== dashboardMention.id);
+        return [dashboardMention, ...withoutOld];
+      });
+    } else {
+      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
+      setSelectedMentions((prev) => {
+        const exists = prev.some((m) => m.id === dashboardMention.id);
+        if (!exists) return [dashboardMention, ...prev];
+        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
+      });
+    }
+  }, [dashboardMention, selectedMentions.length]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
@@ -106,11 +143,12 @@ export function useMentions({
   // Keep highlightedIndexRef in sync
   highlightedIndexRef.current = highlightedIndex;
 
-  // Filter items by current query
-  const filteredItems = useMemo(
-    () => filterItems(mentionItems, suggestionState.query),
-    [mentionItems, suggestionState.query]
-  );
+  // Filter items by current query, excluding already-selected mentions
+  const filteredItems = useMemo(() => {
+    const selectedIds = new Set(selectedMentions.map((m) => m.id));
+    const available = mentionItems.filter((item) => !selectedIds.has(item.id));
+    return filterItems(available, suggestionState.query);
+  }, [mentionItems, suggestionState.query, selectedMentions]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight when query changes
