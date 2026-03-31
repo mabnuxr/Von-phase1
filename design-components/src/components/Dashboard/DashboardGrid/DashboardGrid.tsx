@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, memo } from 'react';
 import { GridLayout, verticalCompactor, type Layout } from 'react-grid-layout';
 import { WidgetRenderer } from '../WidgetRenderer';
+import { WidgetSkeleton } from '../WidgetSkeleton';
 import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 import type { DashboardGridProps } from '../types';
 import 'react-grid-layout/css/styles.css';
@@ -24,6 +25,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     onTableSortChange,
     tableSortStates,
     isEditMode,
+    isLoading,
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -78,17 +80,21 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                     : ''
                 }`}
               >
-                <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
-                  <WidgetRenderer
-                    widget={widget}
-                    onTablePageChange={onTablePageChange}
-                    isTableLoading={loadingTablePanels?.has(widget.id)}
-                    onDrillDown={onDrillDown}
-                    onPointDrillDown={onPointDrillDown}
-                    onTableSortChange={onTableSortChange}
-                    tableSortState={tableSortStates?.[widget.id]}
-                  />
-                </WidgetErrorBoundary>
+                {isLoading ? (
+                  <WidgetSkeleton widget={widget} />
+                ) : (
+                  <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
+                    <WidgetRenderer
+                      widget={widget}
+                      onTablePageChange={onTablePageChange}
+                      isTableLoading={loadingTablePanels?.has(widget.id)}
+                      onDrillDown={onDrillDown}
+                      onPointDrillDown={onPointDrillDown}
+                      onTableSortChange={onTableSortChange}
+                      tableSortState={tableSortStates?.[widget.id]}
+                    />
+                  </WidgetErrorBoundary>
+                )}
               </div>
             );
           })}

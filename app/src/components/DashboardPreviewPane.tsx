@@ -31,7 +31,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
     savePhase,
@@ -173,6 +173,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onDeleteSchedule={handleDeleteSchedule}
             onEditModeChange={editModeMutation.mutate}
             editModePhase={editModePhase}
+            isRefetchingData={isFetching && !isLoading}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}

@@ -114,6 +114,8 @@ interface AnalyticsViewProps {
   onPauseSchedule: () => void;
   onResumeSchedule: () => void;
   onDeleteSchedule: () => void;
+  /** Whether widget data is being refetched (e.g. after filter change) */
+  isRefetchingData?: boolean;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -158,6 +160,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onPauseSchedule,
   onResumeSchedule,
   onDeleteSchedule,
+  isRefetchingData,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -526,6 +529,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTableSortChange={onTableSortChange}
               tableSortStates={tableSortStates}
               isEditMode={isEditMode}
+              isLoading={isRefetchingData}
             />
           </ErrorBoundary>
 

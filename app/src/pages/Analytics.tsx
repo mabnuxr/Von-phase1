@@ -44,7 +44,7 @@ function DashboardCanvas({
   isChatOpen,
   collapseOnMount,
 }: DashboardCanvasProps) {
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
 
   const {
     handleSave,
@@ -194,6 +194,7 @@ function DashboardCanvas({
         onPauseSchedule={handlePauseSchedule}
         onResumeSchedule={handleResumeSchedule}
         onDeleteSchedule={handleDeleteSchedule}
+        isRefetchingData={isFetching && !isLoading}
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}
