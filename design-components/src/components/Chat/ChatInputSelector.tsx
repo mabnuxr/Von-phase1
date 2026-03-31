@@ -307,6 +307,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       selectedMentions,
       removeSelectedMention,
       clearSelectedMentions,
+      isDashboardLimitReached,
     } = useMentions({
       enableMentions,
       mentionItems,
@@ -493,6 +494,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             highlightedIndex={mentionHighlightedIndex}
             onHoverIndex={setMentionHighlightedIndex}
             anchorRect={mentionSuggestionState.anchorRect}
+            disabled={isDashboardLimitReached}
+            disabledTooltip="Only one dashboard can be mentioned per message"
           />
         )}
         {chatInput}
