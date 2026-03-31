@@ -81,8 +81,6 @@ export function useChatV2(props: UseChatV2Props) {
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
 
-  const chatType = currentConversation.mode || "auto";
-
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
     () => ({
@@ -164,6 +162,10 @@ export function useChatV2(props: UseChatV2Props) {
 
   // Keep ref in sync with latest processor value
   v2ProcessorRef.current = v2Processor;
+
+  const chatType = v2Processor.isDashboardBuilderMode
+    ? ("dashboard-builder" as const)
+    : currentConversation.mode || "auto";
 
   // User message + error processing (writes to chatStore)
   useUserMessageProcessor(channel, conversationId);
@@ -377,7 +379,7 @@ export function useChatV2(props: UseChatV2Props) {
     useDeepResearchArtifacts(
       conversationId,
       dataTablesRunId,
-      v2Processor.isDashboardBuilderMode && !!v2Processor.executionId,
+      v2Processor.isDashboardBuilderMode || !!v2Processor.executionId,
     );
 
   const handleDataTablesClick = useCallback(() => {

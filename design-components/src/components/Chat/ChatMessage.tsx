@@ -288,7 +288,7 @@ export interface ChatMessageProps {
   /**
    * Callback when "Create Dashboard" is clicked for workflow execution approval.
    */
-  onApprovePlan?: (runId: string, executionId: string) => void;
+  onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
 
   /**
    * Callback when "Skip" is clicked for workflow execution approval.
@@ -758,10 +758,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               isStreaming={false}
                               primaryAction={{
                                 label: 'Create Dashboard',
-                                onClick: () => {
+                                onClick: async () => {
                                   if (!isApproving && executionId && runId && onApprovePlan) {
                                     setIsApproving(true);
-                                    onApprovePlan(runId, executionId);
+                                    try {
+                                      await onApprovePlan(runId, executionId);
+                                    } catch {
+                                      setIsApproving(false);
+                                    }
                                   }
                                 },
                                 disabled: !executionId || !onApprovePlan || isApproving,
