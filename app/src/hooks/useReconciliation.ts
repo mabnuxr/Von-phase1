@@ -52,7 +52,6 @@ export interface UseReconciliationConfig {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
     options?: {
-      phase?: "plan-proposed" | "ask" | null;
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
     },
@@ -152,7 +151,7 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 5b: Extract phase and dashboard from RUN_FINISHED event (if present)
+      // Step 5b: Extract dashboard and executionId from RUN_FINISHED event (if present)
       type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
           dashboard?: DashboardMetadata | null;
@@ -162,10 +161,6 @@ export function useReconciliation({
       const runFinishedEvent = mergedEvents.find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
-      const reconciledPhase = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result?.phase ??
-          null)
-        : undefined;
       const reconciledDashboard = runFinishedEvent
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.dashboard ?? null)
@@ -175,9 +170,8 @@ export function useReconciliation({
             ?.execution_id ?? null)
         : undefined;
 
-      // Step 6: Update state (including phase/dashboard/executionId from RUN_FINISHED)
+      // Step 6: Update state (including dashboard/executionId from RUN_FINISHED)
       onStateUpdate(result, runId, {
-        phase: reconciledPhase,
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
       });

@@ -218,10 +218,6 @@ export type {
   MentionStripProps,
 } from './Mentions';
 
-// Deep Research Chat - specialized chat UI for deep research mode
-export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
-export type { DeepResearchChatProps } from './Chat';
-
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
 export type {
   AguiEventWrapper,

@@ -8,6 +8,11 @@ import { MessageActions } from './MessageActions';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
 import { MessageMentionPreview } from './FileAttachment/MessageMentionPreview';
 import { SalesforceLink } from './SalesforceLink';
+import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
+import { DataTablesCard } from './DeepResearch/DataTablesCard';
+import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
+import { DashboardArtifactCard } from './ArtifactCards';
+import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
 import { TiptapViewer } from '../TiptapEditor';
 import { Tooltip } from '../Tooltip';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
@@ -261,6 +266,41 @@ export interface ChatMessageProps {
   enableDeepLinks?: boolean;
 
   // ============================================================================
+  // Dashboard Builder / Plan Approval Props
+  // ============================================================================
+
+  /**
+   * Dashboard metadata from RUN_FINISHED event.
+   * Present when a dashboard was created during this run.
+   */
+  dashboard?: import('./types').DashboardMetadata | null;
+
+  /**
+   * execution_id from RUN_FINISHED for workflow execution approval.
+   */
+  executionId?: string | null;
+
+  /**
+   * Whether this run is a dashboard builder response.
+   */
+  isDashboardBuilderMode?: boolean;
+
+  /**
+   * Callback when "Create Dashboard" is clicked for workflow execution approval.
+   */
+  onApprovePlan?: (runId: string, executionId: string) => void;
+
+  /**
+   * Callback when "Skip" is clicked for workflow execution approval.
+   */
+  onRejectPlan?: (runId: string, executionId: string) => void;
+
+  /**
+   * Callback when dashboard expand button is clicked (opens preview pane).
+   */
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+
+  // ============================================================================
   // V2 Thinking Process Props (TimelineThinkingProcess component)
   // ============================================================================
 
@@ -377,6 +417,43 @@ export interface ChatMessageProps {
    * @default false
    */
   compact?: boolean;
+
+  /**
+   * Information for the DataTablesCard (number of tables, records processed, etc.)
+   * Shown as beforeActions in the MarkdownActionCard during plan-proposed phase.
+   */
+  dataTablesInfo?: {
+    tableCount: number;
+    processedRecords?: number;
+    totalRecords?: number;
+  };
+
+  /**
+   * Whether data tables info is still loading
+   */
+  isDataTablesLoading?: boolean;
+
+  /**
+   * Callback when user clicks the DataTablesCard to review source data
+   */
+  onDataTablesClick?: () => void;
+
+  /**
+   * Research results from deep research workflow.
+   * When streaming/completed, renders the DeepResearchResults card.
+   */
+  researchResults?: {
+    isStreaming: boolean;
+    isCompleted: boolean;
+    content: string;
+    metadata: import('./DeepResearch/types').ResearchResultsMetadata | null;
+    messageId: string | null;
+  } | null;
+
+  /**
+   * Callback when sources button is clicked after research completes
+   */
+  onSourcesClick?: () => void;
 }
 
 /**
@@ -431,6 +508,20 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onIntegrate,
   getIntegrationMetadata,
   compact = false,
+  // Dashboard builder / plan approval props
+  dashboard,
+  executionId,
+  isDashboardBuilderMode = false,
+  onApprovePlan,
+  onRejectPlan,
+  onDashboardPreview,
+  // Data tables props (deep research approval flow)
+  dataTablesInfo,
+  isDataTablesLoading = false,
+  onDataTablesClick,
+  // Research results
+  researchResults,
+  onSourcesClick,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -440,6 +531,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [isSingleLine, setIsSingleLine] = useState(true);
   const [copiedUser, setCopiedUser] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // State for skip confirmation modal (dashboard builder approval flow)
+  const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -617,7 +711,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         v2FinalResponse &&
                         status !== 'timeout' &&
                         status !== 'expired' &&
-                        !(status === 'failed' && errorMessage) && (
+                        !(status === 'failed' && errorMessage) &&
+                        // When dashboard builder approval pending on latest message, render inside MarkdownActionCard instead
+                        !(
+                          isDashboardBuilderMode &&
+                          executionId &&
+                          isLatestMessage &&
+                          !isStreaming
+                        ) && (
                           <div className="markdown-content max-w-none">
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
@@ -628,6 +729,137 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                               {v2FinalResponse}
                             </Streamdown>
                           </div>
+                        )}
+
+                      {/* V2 Dashboard Builder Approval Card - "Create Dashboard" / "Skip" */}
+                      {thinkingProcessVersion === 'v2' &&
+                        isDashboardBuilderMode &&
+                        executionId &&
+                        isLatestMessage &&
+                        v2FinalResponse &&
+                        !isStreaming &&
+                        status !== 'failed' && (
+                          <>
+                            <MarkdownActionCard
+                              variant="analysis-request"
+                              markdown={v2FinalResponse}
+                              isStreaming={false}
+                              primaryAction={{
+                                label: 'Create Dashboard',
+                                onClick: () => {
+                                  if (executionId && runId && onApprovePlan) {
+                                    onApprovePlan(runId, executionId);
+                                  }
+                                },
+                                disabled: !executionId || !onApprovePlan,
+                              }}
+                              secondaryAction={{
+                                label: 'Skip',
+                                onClick: () => setShowSkipConfirmModal(true),
+                              }}
+                              beforeActions={
+                                (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
+                                  <DataTablesCard
+                                    tableCount={dataTablesInfo?.tableCount ?? 0}
+                                    processedRecords={dataTablesInfo?.processedRecords}
+                                    totalRecords={dataTablesInfo?.totalRecords}
+                                    onClick={onDataTablesClick}
+                                    isLoading={isDataTablesLoading}
+                                  />
+                                ) : undefined
+                              }
+                            />
+                            <ExpensiveOperationModal
+                              isOpen={showSkipConfirmModal}
+                              onConfirm={() => {
+                                setShowSkipConfirmModal(false);
+                                if (executionId && runId && onRejectPlan) {
+                                  onRejectPlan(runId, executionId);
+                                }
+                              }}
+                              onCancel={() => setShowSkipConfirmModal(false)}
+                              operationName="Skip Dashboard Creation"
+                            />
+                          </>
+                        )}
+
+                      {/* V2 Dashboard Artifact Card - shown when dashboard was created */}
+                      {thinkingProcessVersion === 'v2' &&
+                        dashboard &&
+                        !isStreaming &&
+                        !(isDashboardBuilderMode && executionId && isLatestMessage) && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-600">
+                              The dashboard is currently saved as a <strong>draft</strong>. Save it
+                              to make it accessible from the side panel.
+                            </p>
+                            <DashboardArtifactCard
+                              title={dashboard.dashboard_name}
+                              onPreview={
+                                onDashboardPreview
+                                  ? () =>
+                                      onDashboardPreview(
+                                        dashboard.dashboard_id,
+                                        dashboard.dashboard_version
+                                      )
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        )}
+
+                      {/* V2 Deep Research Results - shown when research results are streaming/completed */}
+                      {thinkingProcessVersion === 'v2' &&
+                        isLatestMessage &&
+                        researchResults &&
+                        (researchResults.isStreaming || researchResults.isCompleted) &&
+                        researchResults.content && (
+                          <>
+                            {researchResults.isCompleted && (
+                              <p className="text-sm text-gray-700">
+                                I have completed the comprehensive analysis. Click on the card below
+                                to see the full details.
+                              </p>
+                            )}
+                            <DeepResearchResults
+                              state={{
+                                status: researchResults.isStreaming
+                                  ? 'streaming'
+                                  : researchResults.isCompleted
+                                    ? 'completed'
+                                    : 'idle',
+                                messageId: researchResults.messageId,
+                                metadata: researchResults.metadata,
+                                content: researchResults.content,
+                                totalLength: null,
+                                checksum: null,
+                                error: null,
+                                startedAt: null,
+                                completedAt: null,
+                              }}
+                            />
+                            {/* Dashboard Card after research completes */}
+                            {researchResults.isCompleted && dashboard && (
+                              <div className="space-y-2">
+                                <p className="text-sm text-gray-600">
+                                  The dashboard is currently saved as a <strong>draft</strong>. Save
+                                  it to make it accessible from the side panel.
+                                </p>
+                                <DashboardArtifactCard
+                                  title={dashboard.dashboard_name}
+                                  onPreview={
+                                    onDashboardPreview
+                                      ? () =>
+                                          onDashboardPreview(
+                                            dashboard.dashboard_id,
+                                            dashboard.dashboard_version
+                                          )
+                                      : undefined
+                                  }
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
 
                       {/* V1 Thinking Process - Original ThinkingBlock components */}
@@ -937,7 +1169,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
                   {!isUser &&
                     !isStreaming &&
-                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
+                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') &&
+                    !(isDashboardBuilderMode && executionId && isLatestMessage) && (
                       <MessageActions
                         messageContent={
                           // For v2 thinking process, only use the final response (not intermediate steps)
