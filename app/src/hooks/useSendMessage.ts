@@ -128,6 +128,7 @@ export function useSendMessage() {
         status: "completed",
         fileAttachments: payload.fileAttachments,
         command: payload.command,
+        references: payload.references,
       };
 
       // Create optimistic assistant message with streaming state

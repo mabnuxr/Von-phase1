@@ -51,16 +51,6 @@ export interface ChatPaneProps {
   isStreaming?: boolean;
 
   /**
-   * Reference context shown above the input
-   */
-  referenceContext?: ReferenceContext;
-
-  /**
-   * Callback when the reference is removed
-   */
-  onRemoveReference?: () => void;
-
-  /**
    * Whether the pane is collapsed
    * @default false
    */

@@ -157,6 +157,21 @@ export function useCreateAndSendMessage({
           }
         : undefined;
 
+      const mentionRefsForOptimistic: MessageReference[] = (
+        options?.mentions ?? []
+      ).map((m) => ({
+        refId: `${ReferenceType.Dashboard}-${m.id}`,
+        type: ReferenceType.Dashboard,
+        context: {
+          dashboardId: m.id,
+          dashboardVersion: m.version,
+          dashboardName: m.name,
+        },
+      }));
+      const optimisticReferences =
+        mentionRefsForOptimistic.length > 0
+          ? [...(references ?? []), ...mentionRefsForOptimistic]
+          : references;
       const tempId = `temp-${Date.now()}`;
       setPendingMessages([
         {
@@ -171,6 +186,9 @@ export function useCreateAndSendMessage({
           isStreaming: false,
           status: "completed",
           ...(command ? { command } : {}),
+          ...(optimisticReferences?.length
+            ? { references: optimisticReferences }
+            : {}),
         },
         {
           id: `${tempId}-assistant`,
@@ -226,6 +244,7 @@ export function useCreateAndSendMessage({
           status: "completed",
           ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
           ...(command ? { command } : {}),
+          ...(mentions?.length ? { mentions } : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,

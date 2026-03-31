@@ -73,6 +73,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onApprovePlan,
   onRejectPlan,
   onDashboardPreview,
+  onMentionClick,
   enableCommands = false,
   commands,
   isLoadingCommands,
@@ -113,14 +114,13 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   fileErrorMessage,
   onDismissFileError,
   // Reference context
-  referenceContext,
-  onRemoveReference,
   // @ Mention props
   enableMentions = false,
   mentionItems,
   isLoadingMentions,
   onSelectMention,
   onMentionsActivated,
+  dashboardMention,
   children,
   compact = false,
 }) => {
@@ -281,6 +281,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
               isLoadingMentions={isLoadingMentions}
               onSelectMention={onSelectMention}
               onMentionsActivated={onMentionsActivated}
+              dashboardMention={dashboardMention}
             />
           )
         ) : (
@@ -314,6 +315,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   onApprovePlan={onApprovePlan}
                   onRejectPlan={onRejectPlan}
                   onDashboardPreview={onDashboardPreview}
+                  onMentionClick={onMentionClick}
                   runId={message.runId}
                   dashboard={message.dashboard}
                   executionId={message.executionId}
@@ -411,13 +413,12 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           onDismissFileError={onDismissFileError}
           availableAgentModes={availableAgentModes}
           enableFileUpload={enableFileUpload}
-          referenceContext={referenceContext}
-          onRemoveReference={onRemoveReference}
           enableMentions={enableMentions}
           mentionItems={mentionItems}
           isLoadingMentions={isLoadingMentions}
           onSelectMention={onSelectMention}
           onMentionsActivated={onMentionsActivated}
+          dashboardMention={dashboardMention}
         />
       )}
     </div>

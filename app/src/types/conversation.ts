@@ -123,6 +123,8 @@ export interface Message {
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
   command?: MessageCommand;
+  /** References returned by the backend (e.g. dashboard references) */
+  references?: MessageReference[];
   /**
    * Dashboard metadata from RUN_FINISHED event (assistant messages only)
    * Present when a dashboard was created during this run
