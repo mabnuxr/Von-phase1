@@ -244,7 +244,7 @@ export function useCreateAndSendMessage({
           status: "completed",
           ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
           ...(command ? { command } : {}),
-          ...(mentions?.length ? { mentions } : {}),
+          ...(options?.mentions?.length ? { mentions: options.mentions } : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,

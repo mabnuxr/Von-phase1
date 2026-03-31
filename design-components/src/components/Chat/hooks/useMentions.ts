@@ -101,9 +101,17 @@ export function useMentions({
   // Sync dashboard mention into selectedMentions on dashboard switch
   const prevDashboardIdRef = useRef(dashboardMention?.id);
   useEffect(() => {
-    if (!dashboardMention) return;
-
     const prevId = prevDashboardIdRef.current;
+
+    if (!dashboardMention) {
+      // Dashboard mention cleared — remove the previous dashboard mention
+      prevDashboardIdRef.current = undefined;
+      if (prevId) {
+        setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
+      }
+      return;
+    }
+
     prevDashboardIdRef.current = dashboardMention.id;
 
     if (prevId !== dashboardMention.id) {

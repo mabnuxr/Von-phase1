@@ -11,7 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   MicrophoneIcon,
-  X,
   UploadSimpleIcon,
   LineVerticalIcon,
 } from '@phosphor-icons/react';
@@ -24,7 +23,7 @@ import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
-import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
+import { SecondaryIconButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
