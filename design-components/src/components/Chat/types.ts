@@ -1563,11 +1563,4 @@ export interface ChatProps {
    * @default false
    */
   compact?: boolean;
-
-  /**
-   * Compact mode for the chat's internal message layout.
-   * Stacks agent avatar above content and hides user avatars.
-   * Defaults to `compact` when omitted.
-   */
-  effectiveCompact?: boolean;
 }

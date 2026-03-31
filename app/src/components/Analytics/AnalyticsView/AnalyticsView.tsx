@@ -46,6 +46,10 @@ interface AnalyticsViewProps {
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
+  /** Whether to show the inline save success toast */
+  showSaveToast: boolean;
+  /** Whether the last save was the first publish (for toast message) */
+  isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
   onShare: (isSharedWithTenant: boolean) => void;
@@ -107,6 +111,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onRefresh,
   onSave,
   savePhase,
+  showSaveToast,
+  isFirstSave,
   onRevert,
   revertPhase,
   onShare,
@@ -199,15 +205,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onEditModeChange?.(false);
   }, [onEditModeChange]);
 
-  // ── Inline save toast (top-center inside canvas) ───────────────
-  const [showSaveToast, setShowSaveToast] = useState(false);
-  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const isFirstSaveToastRef = useRef(false);
-
   const handleSaveFromEditMode = useCallback(() => {
-    // Capture before the mutation fires — reading dashboardVersion after
-    // onSuccess races with the query refetch that bumps the version.
-    isFirstSaveToastRef.current = dashboard.dashboardVersion < 1;
     onSave({
       isFirstSave: dashboard.dashboardVersion < 1,
       onSuccess: exitEditMode,
@@ -219,16 +217,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [onRevert, exitEditMode]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
-  useEffect(() => {
-    if (savePhase === "success") {
-      setShowSaveToast(true);
-      clearTimeout(saveToastTimerRef.current);
-      saveToastTimerRef.current = setTimeout(
-        () => setShowSaveToast(false),
-        3000,
-      );
-    }
-  }, [savePhase]);
 
   return (
     <DashboardCustomizationProvider
@@ -483,7 +471,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               >
                 <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
                   <CheckCircleIcon size={16} weight="fill" />
-                  {isFirstSaveToastRef.current
+                  {isFirstSave
                     ? "Dashboard is created. You can access the dashboard from the side panel."
                     : "Dashboard is updated. You can access the dashboard from the side panel."}
                 </div>

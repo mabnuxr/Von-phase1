@@ -34,6 +34,8 @@ export function DashboardPreviewPane({
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
@@ -124,6 +126,8 @@ export function DashboardPreviewPane({
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}
+            showSaveToast={showSaveToast}
+            isFirstSave={isFirstSave}
             onRevert={handleRevert}
             revertPhase={revertPhase}
             onShare={handleShare}

@@ -49,6 +49,8 @@ function DashboardCanvas({
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
@@ -165,6 +167,8 @@ function DashboardCanvas({
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
+        showSaveToast={showSaveToast}
+        isFirstSave={isFirstSave}
         onRevert={handleRevert}
         revertPhase={revertPhase}
         onShare={handleShare}

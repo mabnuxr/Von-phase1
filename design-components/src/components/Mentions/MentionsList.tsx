@@ -40,12 +40,14 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
   </div>
 );
 
-const SkeletonRow: React.FC = () => (
+const SKELETON_WIDTHS = [100, 72, 120, 88, 64];
+
+const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
   <div className="flex items-center gap-2.5 px-2 h-8">
     <div className="w-4 h-4 rounded bg-gray-100 animate-pulse flex-shrink-0" />
     <div
       className="h-3.5 rounded bg-gray-100 animate-pulse"
-      style={{ width: `${60 + Math.random() * 80}px` }}
+      style={{ width: `${SKELETON_WIDTHS[index % SKELETON_WIDTHS.length]}px` }}
     />
   </div>
 );
@@ -53,7 +55,7 @@ const SkeletonRow: React.FC = () => (
 const SkeletonLoading: React.FC = () => (
   <>
     {Array.from({ length: 5 }).map((_, i) => (
-      <SkeletonRow key={i} />
+      <SkeletonRow key={i} index={i} />
     ))}
   </>
 );
