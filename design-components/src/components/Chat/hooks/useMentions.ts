@@ -98,6 +98,10 @@ export function useMentions({
     dashboardMention ? [dashboardMention] : []
   );
 
+  // Tracks whether the user explicitly dismissed the current dashboard's mention chip.
+  // Prevents the effect below from re-adding it until the dashboard changes or a send clears it.
+  const userDismissedDashboardRef = useRef(false);
+
   // Sync dashboard mention into selectedMentions on dashboard switch
   const prevDashboardIdRef = useRef(dashboardMention?.id);
   useEffect(() => {
@@ -106,6 +110,7 @@ export function useMentions({
     if (!dashboardMention) {
       // Dashboard mention cleared — remove the previous dashboard mention
       prevDashboardIdRef.current = undefined;
+      userDismissedDashboardRef.current = false;
       if (prevId) {
         setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
       }
@@ -115,20 +120,23 @@ export function useMentions({
     prevDashboardIdRef.current = dashboardMention.id;
 
     if (prevId !== dashboardMention.id) {
-      // Dashboard changed — replace old with new
+      // Dashboard changed — replace old with new, reset dismissed flag
+      userDismissedDashboardRef.current = false;
       setSelectedMentions((prev) => {
         const withoutOld = prev.filter((m) => m.id !== prevId && m.id !== dashboardMention.id);
         return [dashboardMention, ...withoutOld];
       });
     } else {
-      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
-      setSelectedMentions((prev) => {
-        const exists = prev.some((m) => m.id === dashboardMention.id);
-        if (!exists) return [dashboardMention, ...prev];
-        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
-      });
+      // Same dashboard — only re-add if the user hasn't explicitly dismissed it
+      if (!userDismissedDashboardRef.current) {
+        setSelectedMentions((prev) => {
+          const exists = prev.some((m) => m.id === dashboardMention.id);
+          if (!exists) return [dashboardMention, ...prev];
+          return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
+        });
+      }
     }
-  }, [dashboardMention, selectedMentions.length]);
+  }, [dashboardMention]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
@@ -195,10 +203,15 @@ export function useMentions({
   }, []);
 
   const removeSelectedMention = useCallback((id: string) => {
+    if (id === prevDashboardIdRef.current) {
+      userDismissedDashboardRef.current = true;
+    }
     setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
   const clearSelectedMentions = useCallback(() => {
+    // Reset dismissed state on send so the context dashboard re-attaches for the next message
+    userDismissedDashboardRef.current = false;
     setSelectedMentions([]);
   }, []);
 
