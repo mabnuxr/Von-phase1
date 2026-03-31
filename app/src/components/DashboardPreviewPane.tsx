@@ -6,7 +6,7 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -24,7 +24,7 @@ interface DashboardPreviewPaneProps {
   onClose: () => void;
 }
 
-export function DashboardPreviewPane({
+export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   dashboardId,
   conversationId,
   onClose,
@@ -41,6 +41,8 @@ export function DashboardPreviewPane({
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
@@ -153,6 +155,8 @@ export function DashboardPreviewPane({
             onPauseSchedule={handlePauseSchedule}
             onResumeSchedule={handleResumeSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            onEditModeChange={editModeMutation.mutate}
+            editModePhase={editModePhase}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}
@@ -170,4 +174,4 @@ export function DashboardPreviewPane({
       )}
     </div>
   );
-}
+});
