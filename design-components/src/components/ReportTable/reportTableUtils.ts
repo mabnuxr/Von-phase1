@@ -504,7 +504,7 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
         if (value === null || value === undefined) return '<span style="color:#9ca3af">—</span>';
 
         const num = typeof value === 'number' ? value : Number(value);
-        if (isNaN(num)) return `<span style="color:#111827">${String(value)}</span>`;
+        if (isNaN(num)) return `<span style="color:#111827">${escapeHtml(String(value))}</span>`;
 
         const formatted = formatD3Pattern(num, d3Format);
 
