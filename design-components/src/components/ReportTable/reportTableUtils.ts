@@ -495,7 +495,8 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
     if (!col.format || typeof col.format !== 'string') continue;
 
     const d3Format = col.format;
-    const cellTemplate = col.cells?.format as string | undefined;
+    const rawTemplate = col.cells?.format;
+    const cellTemplate = typeof rawTemplate === 'string' ? rawTemplate : undefined;
 
     col.cells = {
       ...col.cells,
