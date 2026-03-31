@@ -540,7 +540,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     executionId &&
     isLatestMessage &&
     status !== 'expired' &&
-    status !== 'timeout';
+    status !== 'timeout' &&
+    status !== 'failed';
 
   // Whether research results are actively being shown on this message
   const showResearchResults =
@@ -743,13 +744,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {/* V2 Dashboard Builder Approval Card - "Create Dashboard" / "Skip" */}
                       {thinkingProcessVersion === 'v2' &&
                         showDashboardBuilderApproval &&
-                        v2FinalResponse &&
-                        !isStreaming &&
-                        status !== 'failed' && (
+                        !isStreaming && (
                           <>
                             <MarkdownActionCard
                               variant="analysis-request"
-                              markdown={v2FinalResponse}
+                              markdown={
+                                v2FinalResponse ||
+                                'Your dashboard is ready to be created. Please review and approve.'
+                              }
                               isStreaming={false}
                               primaryAction={{
                                 label: 'Create Dashboard',
