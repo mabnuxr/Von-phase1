@@ -475,15 +475,12 @@ export function autoSizeGridColumns(options: GridOptions): GridOptions {
 // Apply column-level format (d3-format) to backend-generated gridOptions
 // ============================================================================
 
+const CELL_NULL_HTML = '<span style="color:#9ca3af">—</span>';
+const ESCAPED_VALUE_PLACEHOLDER = escapeHtml('{value}');
+
 /**
- * Process gridOptions columns that have a `format` field (d3-format string)
- * and inject a `cells.formatter` that applies the format to numeric values.
- *
- * This bridges the backend's column-level `format` (e.g., "$,.2f") with
- * Grid Lite's cell rendering. If a column also has `cells.format` (a template
- * like "{value}%"), the d3-formatted number is injected into the template.
- *
- * Columns without `format` are left untouched.
+ * Inject `cells.formatter` for columns that have a `format` field (d3-format string).
+ * Columns without `format` or with an existing formatter are left untouched.
  */
 export function applyColumnFormats(options: GridOptions): GridOptions {
   const columns = options.columns as
@@ -493,18 +490,20 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
 
   for (const col of columns) {
     if (!col.format || typeof col.format !== 'string') continue;
-    // Skip if a custom formatter already exists (don't overwrite)
     if (col.cells?.formatter) continue;
 
-    const d3Format = col.format;
-    const rawTemplate = col.cells?.format;
-    const cellTemplate = typeof rawTemplate === 'string' ? rawTemplate : undefined;
+    const format = col.format;
+    const cellTemplate = typeof col.cells?.format === 'string' ? col.cells.format : undefined;
+
+    // Precompute static template values outside the per-cell formatter
+    const escapedTemplate = cellTemplate ? escapeHtml(cellTemplate) : undefined;
+    const hasPlaceholder = escapedTemplate?.includes(ESCAPED_VALUE_PLACEHOLDER) ?? false;
 
     col.cells = {
       ...col.cells,
       formatter: function (this: { value: unknown }): string {
         const value = this.value;
-        if (value === null || value === undefined) return '<span style="color:#9ca3af">—</span>';
+        if (value === null || value === undefined) return CELL_NULL_HTML;
 
         const num = typeof value === 'number' ? value
           : (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
@@ -512,17 +511,14 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
 
         let formatted: string;
         try {
-          formatted = escapeHtml(formatD3Pattern(num, d3Format));
+          formatted = escapeHtml(formatD3Pattern(num, format));
         } catch {
-          // Invalid format string — fall back to plain number display
           formatted = escapeHtml(String(value));
         }
 
-        // If there's a cell template like "{value}%", inject the formatted number
-        if (cellTemplate && cellTemplate.includes('{value}')) {
-          // Escape template parts around {value} to prevent XSS from backend config
-          const display = escapeHtml(cellTemplate).replaceAll(escapeHtml('{value}'), formatted);
-          return `<span style="color:#111827">${display}</span>`;
+        if (hasPlaceholder) {
+          // Escape template to prevent XSS from backend config
+          return `<span style="color:#111827">${escapedTemplate!.replaceAll(ESCAPED_VALUE_PLACEHOLDER, formatted)}</span>`;
         }
 
         return `<span style="color:#111827">${formatted}</span>`;
