@@ -535,7 +535,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
 
   // Shared condition: dashboard builder approval is pending on this message
-  const showDashboardBuilderApproval = isDashboardBuilderMode && executionId && isLatestMessage;
+  const showDashboardBuilderApproval =
+    isDashboardBuilderMode &&
+    executionId &&
+    isLatestMessage &&
+    status !== 'expired' &&
+    status !== 'timeout';
 
   // Whether research results are actively being shown on this message
   const showResearchResults =
