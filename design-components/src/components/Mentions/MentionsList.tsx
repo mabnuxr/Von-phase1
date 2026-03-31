@@ -1,6 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { ChartBar } from '@phosphor-icons/react';
+import { ChalkboardTeacher, Chalkboard } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getMentionIcon(item: MentionItem) {
+  const Icon = item.dashboardVariant === 'user' ? ChalkboardTeacher : Chalkboard;
+  return <Icon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -20,13 +29,33 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
   isHighlighted,
 }) => (
   <div
-    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-100 ${isHighlighted ? 'bg-gray-100' : ''}`}
+    className={`flex items-center gap-2.5 px-2 h-8 rounded-xl border border-transparent transition-colors duration-150 cursor-pointer hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs ${
+      isHighlighted ? 'bg-gray-50 border-gray-200 shadow-xs' : ''
+    }`}
     onClick={() => onSelect(item)}
     onMouseEnter={onMouseEnter}
   >
-    <ChartBar size={16} className="text-gray-400 shrink-0" />
-    <span className="text-sm text-gray-900 truncate">{item.name}</span>
+    {getMentionIcon(item)}
+    <span className="text-sm text-gray-800 truncate">{item.name}</span>
   </div>
+);
+
+const SkeletonRow: React.FC = () => (
+  <div className="flex items-center gap-2.5 px-2 h-8">
+    <div className="w-4 h-4 rounded bg-gray-100 animate-pulse flex-shrink-0" />
+    <div
+      className="h-3.5 rounded bg-gray-100 animate-pulse"
+      style={{ width: `${60 + Math.random() * 80}px` }}
+    />
+  </div>
+);
+
+const SkeletonLoading: React.FC = () => (
+  <>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <SkeletonRow key={i} />
+    ))}
+  </>
 );
 
 const EmptyState: React.FC = () => (
@@ -60,18 +89,12 @@ export const MentionsList: React.FC<MentionsListProps> = ({
     itemRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
   }, [highlightedIndex]);
 
-  if (isLoading && items.length === 0) {
-    return (
-      <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
-        Loading dashboards…
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-0.5" style={{ maxHeight }}>
-        {items.length === 0 ? (
+      <div className="overflow-y-auto px-1.5 py-1.5 flex flex-col gap-0.5" style={{ maxHeight }}>
+        {isLoading && items.length === 0 ? (
+          <SkeletonLoading />
+        ) : items.length === 0 ? (
           <EmptyState />
         ) : (
           items.map((item, index) => (

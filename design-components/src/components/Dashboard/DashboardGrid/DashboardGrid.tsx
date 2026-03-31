@@ -49,9 +49,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
   }));
 
   return (
-    <div ref={containerRef} className="w-full">
+    <div ref={containerRef} className="w-full pb-12">
       <GridLayout
-        className="layout"
+        className="layout "
         layout={gridLayout}
         width={containerWidth}
         gridConfig={{
@@ -72,7 +72,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
             <div
               key={item.i}
               className={`h-full ${
-                isEditMode ? 'rounded-2xl border-2 border-dashed border-gray-300 shadow-sm' : ''
+                isEditMode
+                  ? 'rounded-[18px] border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
+                  : ''
               }`}
             >
               <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>

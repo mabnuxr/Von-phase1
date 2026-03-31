@@ -55,6 +55,7 @@ export interface Dashboard {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  createdByName?: string;
   analysisId: string;
   isEditable: boolean;
   uiConfig?: {

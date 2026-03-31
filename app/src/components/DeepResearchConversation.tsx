@@ -137,8 +137,10 @@ export interface DeepResearchConversationProps {
   enableFileUpload?: boolean;
   /** Callback when a file attachment is clicked */
   onFileClick?: (attachment: MessageFileAttachment) => void;
-  /** Compact mode for narrow sidepane layout */
+  /** Whether the parent shell owns the outer border/radius styling */
   compact?: boolean;
+  /** Compact mode for the internal deep research message layout */
+  effectiveCompact?: boolean;
 }
 
 export const DeepResearchConversation: React.FC<
@@ -172,6 +174,7 @@ export const DeepResearchConversation: React.FC<
   enableFileUpload = false,
   onFileClick,
   compact = false,
+  effectiveCompact,
 }) => {
   // ── Mentions ──────────────────────────────────────────────────────
   const {
@@ -319,10 +322,11 @@ export const DeepResearchConversation: React.FC<
     },
     [onBeforeSend, onSendMessage],
   );
+  const layoutCompact = effectiveCompact ?? compact;
 
   return (
     <div
-      className={`relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full ${compact ? "chat-container" : "rounded-xl border border-gray-100 shadow-xs"}`}
+      className={`relative flex flex-col overflow-hidden bg-white antialiased font-sf w-full h-full chat-container ${compact ? "" : "rounded-xl border border-gray-100 shadow-xs"}`}
     >
       {/* Messages area */}
       <div
@@ -364,7 +368,7 @@ export const DeepResearchConversation: React.FC<
           onDislike={onDislike}
           onDashboardPreview={onDashboardPreview}
           onFileClick={onFileClick}
-          compact={compact}
+          compact={layoutCompact}
         />
 
         {/* Scroll to bottom button */}

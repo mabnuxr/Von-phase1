@@ -92,6 +92,10 @@ export interface BaseArtifactCardProps {
   className?: string;
   children?: React.ReactNode;
   onClick?: () => void;
+  /** Direct icon prop — used as fallback when no Icon slot is provided */
+  icon?: React.ReactNode;
+  /** Direct actions prop — used as fallback when no Actions slot is provided */
+  actions?: React.ReactNode;
 }
 
 const BaseArtifactCardRoot: React.FC<BaseArtifactCardProps> = ({
@@ -101,6 +105,8 @@ const BaseArtifactCardRoot: React.FC<BaseArtifactCardProps> = ({
   className,
   children,
   onClick,
+  icon,
+  actions,
 }) => {
   if (isPending) {
     return <ArtifactCardSkeleton />;
@@ -108,16 +114,18 @@ const BaseArtifactCardRoot: React.FC<BaseArtifactCardProps> = ({
 
   const iconSlot = findSlot(children, Icon);
   const actionsSlot = findSlot(children, Actions);
+  const iconContent = iconSlot || icon;
+  const actionsContent = actionsSlot || actions;
 
   return (
     <div
       onClick={onClick}
-      className={`border border-gray-100 rounded-2xl px-3 py-3 flex items-center gap-3 hover:border-gray-200 shadow-xs transition-colors ${onClick ? 'cursor-pointer' : ''} ${className ?? ''}`}
+      className={`border border-gray-200 rounded-2xl px-3 py-3 flex items-center gap-3 hover:border-gray-200 shadow-xs transition-colors ${onClick ? 'cursor-pointer' : ''} ${className ?? ''}`}
     >
-      {/* Icon slot */}
-      {iconSlot && (
-        <div className="shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center">
-          {iconSlot}
+      {/* Icon slot or direct icon prop */}
+      {iconContent && (
+        <div className="shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
+          {iconContent}
         </div>
       )}
 
@@ -127,8 +135,8 @@ const BaseArtifactCardRoot: React.FC<BaseArtifactCardProps> = ({
         <p className="text-xs text-gray-500 truncate mt-0.5">{description}</p>
       </div>
 
-      {/* Actions slot */}
-      {actionsSlot && <div className="flex items-center gap-1.5 shrink-0">{actionsSlot}</div>}
+      {/* Actions slot or direct actions prop */}
+      {actionsContent && <div className="flex items-center gap-1.5 shrink-0">{actionsContent}</div>}
     </div>
   );
 };

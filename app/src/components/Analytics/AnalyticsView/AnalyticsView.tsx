@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
+  CheckCircleIcon,
   ClockCounterClockwiseIcon,
+  InfoIcon,
   SpinnerGapIcon,
   XIcon,
   PencilSimpleIcon,
@@ -13,7 +15,6 @@ import {
   DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
-  TruncateWithText,
   Tooltip,
 } from "@vonlabs/design-components";
 import { chartThemeIds } from "@vonlabs/design-components";
@@ -211,12 +212,34 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
+  // ── Inline save toast (top-center inside canvas) ───────────────
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const isFirstSaveToastRef = useRef(false);
+  useEffect(() => {
+    if (savePhase === "success") {
+      isFirstSaveToastRef.current = dashboard.dashboardVersion <= 1;
+      setShowSaveToast(true);
+      clearTimeout(saveToastTimerRef.current);
+      saveToastTimerRef.current = setTimeout(
+        () => setShowSaveToast(false),
+        3000,
+      );
+    }
+  }, [savePhase, dashboard.dashboardVersion]);
+
   return (
     <DashboardCustomizationProvider
       defaultColorTheme={validatedColorTheme}
       onColorThemeChange={onColorThemeChange}
     >
-      <DashboardLayout>
+      <DashboardLayout
+        className={
+          isEditMode
+            ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
+            : "transition-all duration-200"
+        }
+      >
         <DashboardLayout.Header>
           {/* Title row: name + description | chat + close */}
           <DashboardLayout.HeaderRow>
@@ -242,6 +265,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     <h1 className="text-base font-semibold text-gray-900 truncate">
                       {dashboard.title}
                     </h1>
+                    {dashboard.description && (
+                      <Tooltip
+                        content={
+                          <span className="block max-w-[240px] whitespace-normal">
+                            {dashboard.description}
+                          </span>
+                        }
+                      >
+                        <button className="text-gray-700 hover:text-gray-600 transition-colors">
+                          <InfoIcon size={16} />
+                        </button>
+                      </Tooltip>
+                    )}
                     {dashboard.isOwner && onRename && (
                       <Tooltip
                         content={
@@ -255,35 +291,40 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             isSaved ? () => setIsRenamingTitle(true) : undefined
                           }
                           disabled={!isSaved}
-                          className={`opacity-0 group-hover:opacity-100 transition-opacity ${
+                          className={`transition-opacity ${
+                            isEditMode
+                              ? "opacity-100"
+                              : "opacity-0 group-hover:opacity-100"
+                          } ${
                             isSaved
-                              ? "text-gray-400 hover:text-gray-600 cursor-pointer"
-                              : "text-gray-300 cursor-not-allowed"
+                              ? "text-gray-700 hover:text-gray-900 cursor-pointer"
+                              : "text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          <PencilSimpleIcon size={14} />
+                          <PencilSimpleIcon size={16} />
                         </button>
                       </Tooltip>
                     )}
                   </div>
                 )}
-                {dashboard.description && (
-                  <TruncateWithText
-                    className="text-xs text-gray-700 max-w-[60%]"
-                    tooltipMaxWidth={400}
-                  >
-                    {dashboard.description}
-                  </TruncateWithText>
-                )}
               </div>
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
+              {/* Created by indicator */}
+              <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
+                <span className="text-gray-800">Created by</span>
+                <span className="text-gray-800 font-medium">
+                  {dashboard.isOwner
+                    ? "me"
+                    : dashboard.createdByName || "someone"}
+                </span>
+              </span>
               {onExpand && (
                 <button
                   onClick={isSaved ? onExpand : undefined}
                   disabled={!isSaved}
-                  className={`flex items-center gap-1.5 h-[34px] px-2.5 text-xs font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
                     !isSaved
                       ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
                       : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
@@ -304,7 +345,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   transition={{ duration: 0.15 }}
                   onClick={handleEnterEditMode}
                   title="Ask Von"
-                  className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-xs font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                 >
                   <img
                     src={vonFilledLogo}
@@ -348,25 +389,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               />
               {dashboard.isOwner && (
                 <>
-                  {/* Edit / Save toggle */}
-                  {isEditMode || dashboard.dashboardVersion < 1 ? (
-                    <SaveButton
-                      savePhase={savePhase}
-                      onSave={handleSaveFromEditMode}
-                      isSaved={false}
-                    />
-                  ) : (
-                    <Tooltip content="Edit dashboard">
-                      <button
-                        onClick={handleEnterEditMode}
-                        className="flex items-center gap-1.5 h-[34px] px-2.5 text-xs font-medium rounded-xl border text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
-                      >
-                        <PencilSimpleIcon size={13} />
-                        Edit
-                      </button>
-                    </Tooltip>
-                  )}
-
                   {/* Revert — only in edit mode when there's a previous version */}
                   {isEditMode && dashboard.dashboardVersion >= 1 && (
                     <Tooltip content="Reverts to previous saved version">
@@ -415,6 +437,25 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     onShare={onShare}
                     onCopyLink={handleCopyLink}
                   />
+
+                  {/* Edit / Save toggle */}
+                  {isEditMode || dashboard.dashboardVersion < 1 ? (
+                    <SaveButton
+                      savePhase={savePhase}
+                      onSave={handleSaveFromEditMode}
+                      isSaved={false}
+                    />
+                  ) : (
+                    <Tooltip content="Edit dashboard">
+                      <button
+                        onClick={handleEnterEditMode}
+                        className="flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border border-gray-900 bg-gray-900 text-white hover:bg-gray-800 transition-colors cursor-pointer whitespace-nowrap"
+                      >
+                        <PencilSimpleIcon size={13} />
+                        Edit
+                      </button>
+                    </Tooltip>
+                  )}
                 </>
               )}
             </DashboardLayout.HeaderRow.Right>
@@ -422,26 +463,27 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </DashboardLayout.Header>
 
         <DashboardLayout.Canvas
-          className={
+          className={`relative ${
             isEditMode
               ? "bg-gray-50 transition-colors duration-200"
               : "transition-colors duration-200"
-          }
+          }`}
         >
-          {/* Edit mode banner — sticky so it stays visible while scrolling */}
+          {/* Save toast — absolute top-center, no layout impact */}
           <AnimatePresence>
-            {isEditMode && (
+            {showSaveToast && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.2 }}
-                className="sticky top-0 z-10 overflow-hidden"
+                className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
               >
-                <div className="bg-gray-900 text-white text-sm px-4 py-2.5 rounded-xl mb-3">
-                  You are currently in edit mode. To save your changes, click{" "}
-                  <span className="font-semibold">Save</span> in the toolbar
-                  above.
+                <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
+                  <CheckCircleIcon size={16} weight="fill" />
+                  {isFirstSaveToastRef.current
+                    ? "Dashboard is created. You can access the dashboard from the side panel."
+                    : "Dashboard is updated. You can access the dashboard from the side panel."}
                 </div>
               </motion.div>
             )}
@@ -461,6 +503,25 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               isEditMode={isEditMode}
             />
           </ErrorBoundary>
+
+          {/* Edit mode banner — full-width sticky bottom */}
+          <AnimatePresence>
+            {isEditMode && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.2 }}
+                className="sticky bottom-0 z-10 -mx-4"
+              >
+                <div className="bg-gray-900 text-white text-sm px-6 pt-3 pb-4 items-center text-center rounded-t-2xl">
+                  You're in edit mode. Use the chat to make changes, then click{" "}
+                  <span className="font-semibold">Save</span> in the toolbar to
+                  save them.
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </DashboardLayout.Canvas>
       </DashboardLayout>
     </DashboardCustomizationProvider>

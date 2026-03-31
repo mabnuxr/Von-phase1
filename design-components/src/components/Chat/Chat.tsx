@@ -114,6 +114,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onMentionsActivated,
   children,
   compact = false,
+  effectiveCompact,
 }) => {
   // Extract custom empty state from Chat.EmptyState child (compound component pattern)
   let customEmptyState: React.ReactNode = null;
@@ -212,6 +213,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
 
   // Determine effective showFromIndex (use prop)
   const effectiveShowFromIndex = showMessagesFromIndex || 0;
+  const layoutCompact = effectiveCompact ?? compact;
 
   // FIX: Memoize visible messages to avoid O(N) filtering on every render
   const visibleMessages = useMemo(() => {
@@ -434,7 +436,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}
-                  compact={compact}
+                  compact={layoutCompact}
                 />
               </div>
             ))}

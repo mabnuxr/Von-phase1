@@ -27,12 +27,6 @@ export function useAnalyticsTools(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: sidebarDashboardKeys.all,
       });
-      showToast({
-        message: isFirstSaveRef.current
-          ? "Dashboard is created. You can access the dashboard from the side panel."
-          : "Dashboard is updated. You can access the dashboard from the side panel.",
-        variant: "success",
-      });
     },
     onMutate: async () => {
       await queryClient.cancelQueries({

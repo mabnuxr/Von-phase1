@@ -284,9 +284,11 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               className={`max-w-4xl mx-auto w-full ${compact ? 'px-6' : 'px-4'}`}
             >
               <div className={compact ? 'flex flex-col gap-1.5' : 'flex gap-2'}>
-                <div className="flex-shrink-0 mt-0.5 mb-1">
-                  <VonLogoAvatar compact={compact} />
-                </div>
+                {!compact && (
+                  <div className="flex-shrink-0 mt-0.5 mb-1">
+                    <VonLogoAvatar compact={compact} />
+                  </div>
+                )}
                 <div className={`${compact ? 'w-full' : 'flex-1'} space-y-3 min-w-0`}>
                   {message.timelineSteps && message.timelineSteps.length > 0 && (
                     <TimelineThinkingProcess
@@ -346,9 +348,11 @@ export const DeepResearchChat: React.FC<DeepResearchChatProps> = ({
               className={`max-w-4xl mx-auto w-full ${compact ? 'px-6' : 'px-4'}`}
             >
               <div className={compact ? 'flex flex-col gap-1.5' : 'flex gap-2'}>
-                <div className="flex-shrink-0 mt-0.5">
-                  <VonLogoAvatar compact={compact} />
-                </div>
+                {!compact && (
+                  <div className="flex-shrink-0 mt-0.5">
+                    <VonLogoAvatar compact={compact} />
+                  </div>
+                )}
                 <div className={`${compact ? 'w-full' : 'flex-1'} space-y-3 min-w-0`}>
                   {message.timelineSteps && message.timelineSteps.length > 0 && (
                     <TimelineThinkingProcess

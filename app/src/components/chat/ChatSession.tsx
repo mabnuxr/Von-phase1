@@ -409,6 +409,11 @@ function ExistingChatInner(
   // ── Dashboard preview pane ────────────────────────────────────────
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
+
+  // The outer shell only becomes compact when the parent owns the border/radius.
+  // The internal chat layout can also become compact when the preview pane squeezes it.
+  const shellCompact = !!props.compact;
+  const effectiveCompact = shellCompact || dashboardPaneState.isOpen;
   const {
     containerRef: splitContainerRef,
     ratios: splitRatios,
@@ -499,7 +504,8 @@ function ExistingChatInner(
         onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
         enableFileUpload={base.features.isFileUploadEnabled}
         onFileClick={chatV2.handleFileClick}
-        compact={props.compact}
+        compact={shellCompact}
+        effectiveCompact={effectiveCompact}
       />
     );
 
@@ -562,7 +568,8 @@ function ExistingChatInner(
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
       isLoading={false}
-      compact={props.compact}
+      compact={shellCompact}
+      effectiveCompact={effectiveCompact}
       height="100%"
       width="100%"
       showMessagesFromIndex={chatV2.showMessagesFromIndex}

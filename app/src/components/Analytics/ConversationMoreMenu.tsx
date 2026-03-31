@@ -92,24 +92,25 @@ export function ConversationMoreMenu({
             setIsOpen((v) => !v);
           }}
           disabled={!conversationId}
-          className="inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           title="More options"
         >
           <DotsThreeVerticalIcon size={16} weight="bold" />
         </button>
 
         {isOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden w-48">
+          <div className="absolute top-full right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden p-1 min-w-[10rem]">
             <button
               onClick={() => {
                 close();
                 onStartRename();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <PencilSimpleIcon
                 size={14}
-                className="flex-shrink-0 text-gray-400"
+                weight="regular"
+                className="flex-shrink-0"
               />
               Rename
             </button>
@@ -118,11 +119,12 @@ export function ConversationMoreMenu({
                 close();
                 setIsPendingAddToFolder(true);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <ArrowBendUpRightIcon
                 size={14}
-                className="flex-shrink-0 text-gray-400"
+                weight="regular"
+                className="flex-shrink-0"
               />
               Add to Folder
             </button>
@@ -131,9 +133,9 @@ export function ConversationMoreMenu({
                 close();
                 setIsPendingDelete(true);
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
-              <TrashIcon size={14} className="flex-shrink-0" />
+              <TrashIcon size={14} weight="regular" className="flex-shrink-0" />
               Delete
             </button>
           </div>
