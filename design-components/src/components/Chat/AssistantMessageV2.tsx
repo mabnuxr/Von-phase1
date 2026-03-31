@@ -25,6 +25,8 @@ export interface AssistantMessageV2Props {
   salesforceInstanceUrl?: string;
   onApprove?: (toolCallId: string, runId: string) => void;
   onReject?: (toolCallId: string, runId: string) => void;
+  /** Callback when an approval expires (TTL reached) */
+  onExpire?: (stepId: string) => void;
   onArtifactClick?: (
     artifactId: string,
     toolName: string,
@@ -69,6 +71,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
   salesforceInstanceUrl,
   onApprove,
   onReject,
+  onExpire,
   onArtifactClick,
   dashboard,
   executionId,
@@ -130,6 +133,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
             elapsedTime={thinkingElapsedTime}
             onApprove={onApprove ? (stepId) => onApprove(stepId, runId) : undefined}
             onReject={onReject ? (stepId) => onReject(stepId, runId) : undefined}
+            onExpire={onExpire}
             onArtifactClick={handleArtifactClick}
             salesforceInstanceUrl={salesforceInstanceUrl}
           />

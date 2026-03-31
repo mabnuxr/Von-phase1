@@ -523,6 +523,7 @@ function ExistingChatInner(
       enableActions={base.features.isActionsEnabled}
       onApprove={chatV2.handleApproval}
       onReject={chatV2.handleRejection}
+      onExpire={chatV2.handleExpire}
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
       onDashboardPreview={props.compact ? undefined : handleDashboardPreview}

@@ -70,6 +70,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onInputWhileDisabled,
   onApprove,
   onReject,
+  onExpire,
   onApprovePlan,
   onRejectPlan,
   onDashboardPreview,
@@ -312,6 +313,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isLatestMessage={message.isLatestMessage}
                   onApprove={onApprove}
                   onReject={onReject}
+                  onExpire={onExpire}
                   onApprovePlan={onApprovePlan}
                   onRejectPlan={onRejectPlan}
                   onDashboardPreview={onDashboardPreview}

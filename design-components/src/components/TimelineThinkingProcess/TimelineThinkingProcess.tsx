@@ -39,6 +39,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onExpandStep,
   onApprove,
   onReject,
+  onExpire,
   onArtifactClick,
   onApproveRecord,
   onRejectRecord,
@@ -274,6 +275,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                               }
                             : undefined
                         }
+                        onExpire={onExpire ? () => onExpire(step.id) : undefined}
                         onArtifactClick={onArtifactClick}
                         isLocallyApproved={isLocallyApproved}
                         isLocallyRejected={isLocallyRejected}
