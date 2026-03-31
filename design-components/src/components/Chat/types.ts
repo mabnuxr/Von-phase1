@@ -1300,7 +1300,7 @@ export interface ChatProps {
    * Callback when user approves a workflow execution plan
    * Called with the run ID and execution ID
    */
-  onApprovePlan?: (runId: string, executionId: string) => void;
+  onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
 
   /**
    * Callback when user rejects a workflow execution plan
