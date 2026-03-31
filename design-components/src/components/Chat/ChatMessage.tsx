@@ -521,7 +521,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onDataTablesClick,
   // Research results
   researchResults,
-  onSourcesClick,
 }) => {
   const isUser = type === 'user';
   const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
@@ -534,6 +533,16 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   // State for skip confirmation modal (dashboard builder approval flow)
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
+
+  // Shared condition: dashboard builder approval is pending on this message
+  const showDashboardBuilderApproval = isDashboardBuilderMode && executionId && isLatestMessage;
+
+  // Whether research results are actively being shown on this message
+  const showResearchResults =
+    isLatestMessage &&
+    researchResults &&
+    (researchResults.isStreaming || researchResults.isCompleted) &&
+    researchResults.content;
 
   useEffect(() => {
     return () => {
@@ -713,12 +722,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         status !== 'expired' &&
                         !(status === 'failed' && errorMessage) &&
                         // When dashboard builder approval pending on latest message, render inside MarkdownActionCard instead
-                        !(
-                          isDashboardBuilderMode &&
-                          executionId &&
-                          isLatestMessage &&
-                          !isStreaming
-                        ) && (
+                        !(showDashboardBuilderApproval && !isStreaming) && (
                           <div className="markdown-content max-w-none">
                             <Streamdown
                               parseIncompleteMarkdown={isStreaming}
@@ -733,9 +737,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
                       {/* V2 Dashboard Builder Approval Card - "Create Dashboard" / "Skip" */}
                       {thinkingProcessVersion === 'v2' &&
-                        isDashboardBuilderMode &&
-                        executionId &&
-                        isLatestMessage &&
+                        showDashboardBuilderApproval &&
                         v2FinalResponse &&
                         !isStreaming &&
                         status !== 'failed' && (
@@ -787,7 +789,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       {thinkingProcessVersion === 'v2' &&
                         dashboard &&
                         !isStreaming &&
-                        !(isDashboardBuilderMode && executionId && isLatestMessage) && (
+                        !showDashboardBuilderApproval &&
+                        !showResearchResults && (
                           <div className="space-y-2">
                             <p className="text-sm text-gray-600">
                               The dashboard is currently saved as a <strong>draft</strong>. Save it
@@ -809,58 +812,54 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         )}
 
                       {/* V2 Deep Research Results - shown when research results are streaming/completed */}
-                      {thinkingProcessVersion === 'v2' &&
-                        isLatestMessage &&
-                        researchResults &&
-                        (researchResults.isStreaming || researchResults.isCompleted) &&
-                        researchResults.content && (
-                          <>
-                            {researchResults.isCompleted && (
-                              <p className="text-sm text-gray-700">
-                                I have completed the comprehensive analysis. Click on the card below
-                                to see the full details.
+                      {thinkingProcessVersion === 'v2' && showResearchResults && (
+                        <>
+                          {researchResults.isCompleted && (
+                            <p className="text-sm text-gray-700">
+                              I have completed the comprehensive analysis. Click on the card below
+                              to see the full details.
+                            </p>
+                          )}
+                          <DeepResearchResults
+                            state={{
+                              status: researchResults.isStreaming
+                                ? 'streaming'
+                                : researchResults.isCompleted
+                                  ? 'completed'
+                                  : 'idle',
+                              messageId: researchResults.messageId,
+                              metadata: researchResults.metadata,
+                              content: researchResults.content,
+                              totalLength: null,
+                              checksum: null,
+                              error: null,
+                              startedAt: null,
+                              completedAt: null,
+                            }}
+                          />
+                          {/* Dashboard Card after research completes */}
+                          {researchResults.isCompleted && dashboard && (
+                            <div className="space-y-2">
+                              <p className="text-sm text-gray-600">
+                                The dashboard is currently saved as a <strong>draft</strong>. Save
+                                it to make it accessible from the side panel.
                               </p>
-                            )}
-                            <DeepResearchResults
-                              state={{
-                                status: researchResults.isStreaming
-                                  ? 'streaming'
-                                  : researchResults.isCompleted
-                                    ? 'completed'
-                                    : 'idle',
-                                messageId: researchResults.messageId,
-                                metadata: researchResults.metadata,
-                                content: researchResults.content,
-                                totalLength: null,
-                                checksum: null,
-                                error: null,
-                                startedAt: null,
-                                completedAt: null,
-                              }}
-                            />
-                            {/* Dashboard Card after research completes */}
-                            {researchResults.isCompleted && dashboard && (
-                              <div className="space-y-2">
-                                <p className="text-sm text-gray-600">
-                                  The dashboard is currently saved as a <strong>draft</strong>. Save
-                                  it to make it accessible from the side panel.
-                                </p>
-                                <DashboardArtifactCard
-                                  title={dashboard.dashboard_name}
-                                  onPreview={
-                                    onDashboardPreview
-                                      ? () =>
-                                          onDashboardPreview(
-                                            dashboard.dashboard_id,
-                                            dashboard.dashboard_version
-                                          )
-                                      : undefined
-                                  }
-                                />
-                              </div>
-                            )}
-                          </>
-                        )}
+                              <DashboardArtifactCard
+                                title={dashboard.dashboard_name}
+                                onPreview={
+                                  onDashboardPreview
+                                    ? () =>
+                                        onDashboardPreview(
+                                          dashboard.dashboard_id,
+                                          dashboard.dashboard_version
+                                        )
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
 
                       {/* V1 Thinking Process - Original ThinkingBlock components */}
                       {thinkingProcessVersion === 'v1' && (
@@ -1170,7 +1169,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   {!isUser &&
                     !isStreaming &&
                     !timelineSteps?.some((s) => s.status === 'awaiting-approval') &&
-                    !(isDashboardBuilderMode && executionId && isLatestMessage) && (
+                    !showDashboardBuilderApproval && (
                       <MessageActions
                         messageContent={
                           // For v2 thinking process, only use the final response (not intermediate steps)
