@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
@@ -82,6 +83,17 @@ function DashboardCanvas({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    activeCount: filterActiveCount,
+    handleFilterChange,
+    handleClearFilter,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
   const { collapseSidebar } = useAppShell();
 
   const {
@@ -145,7 +157,11 @@ function DashboardCanvas({
       <AnalyticsView
         dashboard={dashboard}
         refreshInfo={refreshInfo}
-        activeFilters={activeFilters}
+        filterDefinitions={filterDefinitions}
+        filterState={filterState}
+        filterActiveCount={filterActiveCount}
+        onFilterChange={handleFilterChange}
+        onClearFilter={handleClearFilter}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
