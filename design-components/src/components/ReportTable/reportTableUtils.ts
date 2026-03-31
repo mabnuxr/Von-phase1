@@ -506,11 +506,12 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
         const num = typeof value === 'number' ? value : Number(value);
         if (isNaN(num)) return `<span style="color:#111827">${escapeHtml(String(value))}</span>`;
 
-        const formatted = formatD3Pattern(num, d3Format);
+        const formatted = escapeHtml(formatD3Pattern(num, d3Format));
 
         // If there's a cell template like "{value}%", inject the formatted number
         if (cellTemplate && cellTemplate.includes('{value}')) {
-          const display = cellTemplate.replace('{value}', formatted);
+          // Escape template parts around {value} to prevent XSS from backend config
+          const display = escapeHtml(cellTemplate).replace(escapeHtml('{value}'), formatted);
           return `<span style="color:#111827">${display}</span>`;
         }
 
