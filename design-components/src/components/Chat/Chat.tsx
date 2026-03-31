@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
-import { AUTO_SCROLL_THRESHOLD_PX, SCROLL_LOCK_DURATION_MS } from '../../constants';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
 import { useEscapeToStopStreaming } from './hooks/useEscapeToStopStreaming';
+import { useAutoScroll } from './hooks/useAutoScroll';
+import { useChatInput } from './hooks/useChatInput';
+import { useVisibleMessages } from './hooks/useVisibleMessages';
 import type { ChatProps, SendMessageOptions } from './types';
 import { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -132,128 +134,34 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   const hasCustomEmptyState = customEmptyState !== null;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Input value state - use external control if provided, otherwise internal
-  const [internalInputValue, setInternalInputValue] = useState('');
-  const isInputControlled = externalInputValue !== undefined;
-  const inputValue = isInputControlled ? externalInputValue : internalInputValue;
-  const setInputValue = isInputControlled
-    ? onInputValueChange || (() => {})
-    : setInternalInputValue;
-
-  const shouldAutoScrollRef = useRef(true);
-  const scrollOnNewUserMessage = useRef(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    // ChatGPT-style scroll: scroll to absolute bottom
-    const container = containerRef.current;
-    if (!container) return;
-
-    const targetScroll = container.scrollHeight - container.clientHeight;
-
-    if (behavior === 'smooth') {
-      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
-    } else {
-      container.scrollTop = targetScroll;
-    }
-  }, []);
 
   // Chat now always receives messages as prop (controlled mode only)
-  // Wrap in useMemo to prevent unnecessary re-renders when controlledMessages is undefined
   const messages = useMemo(() => controlledMessages || [], [controlledMessages]);
   const isLoading = controlledIsLoading;
 
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+  // Extracted hooks
+  const { inputValue, setInputValue } = useChatInput({
+    externalInputValue,
+    onInputValueChange,
+  });
 
-    const handleScroll = () => {
-      if (scrollOnNewUserMessage.current) return;
+  const {
+    containerRef,
+    messagesEndRef,
+    showScrollButton,
+    isStreaming,
+    scrollToBottom,
+    prepareForNewMessage,
+  } = useAutoScroll({ messages });
 
-      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-      // Within threshold distance of bottom → enable auto-scroll
-      shouldAutoScrollRef.current = distanceFromBottom < AUTO_SCROLL_THRESHOLD_PX;
-      // Show scroll-to-bottom button when scrolled up more than 150px
-      setShowScrollButton(distanceFromBottom > 150);
-    };
-
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Track previous message count to detect initial load vs incremental updates
-  const prevMessageCountRef = useRef(0);
-
-  const isStreaming = useMemo(
-    () => messages.some((m) => m.type === 'assistant' && m.isStreaming),
-    [messages]
-  );
-  // Auto-scroll to bottom when new messages arrive or content updates
-  useEffect(() => {
-    if (messages.length === 0) return;
-
-    const isInitialLoad = prevMessageCountRef.current === 0 && messages.length > 0;
-    const isNewMessage = messages.length > prevMessageCountRef.current;
-    prevMessageCountRef.current = messages.length;
-
-    // Always scroll to bottom when new messages are added or streaming, unless user has scrolled up
-    if (shouldAutoScrollRef.current) {
-      if (isInitialLoad || scrollOnNewUserMessage.current) {
-        // Instant scroll for initial load and new message sends — no animation lag
-        scrollToBottom('auto');
-        if (isInitialLoad) {
-          // Scroll again after lazy content loads (markdown, images)
-          setTimeout(() => scrollToBottom('auto'), 100);
-        }
-      } else if (isStreaming || isNewMessage) {
-        // Smooth scroll for streaming updates
-        requestAnimationFrame(() => {
-          scrollToBottom('smooth');
-        });
-      }
-    }
-  }, [messages, scrollToBottom, isStreaming]);
-
-  // Determine effective showFromIndex (use prop)
-  const effectiveShowFromIndex = showMessagesFromIndex || 0;
-  const layoutCompact = compact;
-
-  // FIX: Memoize visible messages to avoid O(N) filtering on every render
-  const visibleMessages = useMemo(() => {
-    // Filter messages first
-    const filtered = messages
-      .map((message, index) => ({
-        ...message,
-        // Mark messages before showMessagesFromIndex as compressed
-        isCompressed: index < effectiveShowFromIndex,
-        originalIndex: index,
-      }))
-      .filter((message) => {
-        // Hide empty assistant messages when typing indicator is showing
-        if (
-          isLoading &&
-          message.type === 'assistant' &&
-          !message.content &&
-          !message.reasoningContent
-        ) {
-          return false;
-        }
-        return true;
-      });
-
-    // Then mark the latest message
-    return filtered.map((message, visibleIndex) => ({
-      ...message,
-      isLatestMessage: visibleIndex === filtered.length - 1,
-    }));
-  }, [messages, isLoading, effectiveShowFromIndex]);
+  const visibleMessages = useVisibleMessages({
+    messages,
+    isLoading,
+    showMessagesFromIndex: showMessagesFromIndex || 0,
+  });
 
   // Handle stop streaming
   const handleStop = useCallback(() => {
-    // Get conversationId from the last message if available
     const lastMessage = messages[messages.length - 1];
     const conversationId = lastMessage?.conversationId;
 
@@ -268,19 +176,10 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   // Handle sending a message
   const handleSendMessage = useCallback(
     async (content: string, attachments?: FileAttachment[], options?: SendMessageOptions) => {
-      // Scroll to the bottom before calling onSendMessage
-      shouldAutoScrollRef.current = true;
-      scrollOnNewUserMessage.current = true;
-
-      setTimeout(() => {
-        scrollOnNewUserMessage.current = false;
-      }, SCROLL_LOCK_DURATION_MS);
-
-      // Pass original attachments with file property intact for upload pipeline
-      // The app layer (useSendMessage) needs the File object to build multipart payload
+      prepareForNewMessage();
       onSendMessage?.(content, attachments, options);
     },
-    [onSendMessage]
+    [onSendMessage, prepareForNewMessage]
   );
 
   // Generate container class names
@@ -452,7 +351,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}
-                  compact={layoutCompact}
+                  compact={compact}
                 />
               </div>
             ))}
