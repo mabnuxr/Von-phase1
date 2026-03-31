@@ -509,6 +509,7 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
       formatter: function (this: { value: unknown }): string {
         const value = this.value;
         if (value === null || value === undefined) return CELL_NULL_HTML;
+        if (typeof value === 'string' && value.trim() === '') return CELL_NULL_HTML;
 
         const num =
           typeof value === 'number'

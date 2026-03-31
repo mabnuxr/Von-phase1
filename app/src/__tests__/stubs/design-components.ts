@@ -35,6 +35,7 @@ export type { ReportColumn } from "../../../../design-components/src/components/
 export {
   buildGridOptions,
   autoSizeGridColumns,
+  applyColumnFormats,
   getDataTableColumns,
   formatValue,
 } from "../../../../design-components/src/components/ReportTable/reportTableUtils";
