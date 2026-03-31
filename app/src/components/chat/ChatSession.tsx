@@ -417,6 +417,7 @@ function ExistingChatInner(
       window.open(
         `/dashboard/${mention.id}?conversationId=${conversationId}`,
         "_blank",
+        "noopener,noreferrer",
       );
     },
     [conversationId],
