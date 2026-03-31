@@ -121,12 +121,14 @@ export function useMentions({
         return [dashboardMention, ...withoutOld];
       });
     } else {
-      // Same dashboard, name or version may have changed — update in place
-      setSelectedMentions((prev) =>
-        prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m))
-      );
+      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
+      setSelectedMentions((prev) => {
+        const exists = prev.some((m) => m.id === dashboardMention.id);
+        if (!exists) return [dashboardMention, ...prev];
+        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
+      });
     }
-  }, [dashboardMention]);
+  }, [dashboardMention, selectedMentions.length]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
