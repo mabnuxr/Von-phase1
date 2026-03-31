@@ -1025,6 +1025,7 @@ export function transformAguiToTimelineSteps(
                 step.status === "awaiting-approval"
               ) {
                 step.status = "expired" as StepStatus;
+                step.errorMessage = DEFAULT_EXPIRED_APPROVAL_MESSAGE;
               }
             }
           }
