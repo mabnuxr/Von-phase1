@@ -414,9 +414,12 @@ function ExistingChatInner(
 
   const handleMentionClick = useCallback(
     (mention: MentionItem) => {
-      navigate(`/dashboard/${mention.id}?conversationId=${conversationId}`);
+      window.open(
+        `/dashboard/${mention.id}?conversationId=${conversationId}`,
+        "_blank",
+      );
     },
-    [navigate, conversationId],
+    [conversationId],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
