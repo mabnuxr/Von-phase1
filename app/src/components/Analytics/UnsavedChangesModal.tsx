@@ -51,16 +51,16 @@ export function UnsavedChangesModal({
               <p className="text-sm text-gray-900">{body}</p>
               <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-100">
                 <button
-                  onClick={onCancel}
+                  onClick={onConfirm}
                   className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  {confirmLabel}
                 </button>
                 <button
-                  onClick={onConfirm}
+                  onClick={onCancel}
                   className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
                 >
-                  {confirmLabel}
+                  Cancel
                 </button>
               </div>
             </div>
