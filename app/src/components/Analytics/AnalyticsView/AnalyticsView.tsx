@@ -308,7 +308,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     : dashboard.createdByName || "someone"}
                 </span>
               </span>
-              {onExpand && (
+              {onExpand && !isEditMode && (
                 <button
                   onClick={isSaved ? onExpand : undefined}
                   disabled={!isSaved}
