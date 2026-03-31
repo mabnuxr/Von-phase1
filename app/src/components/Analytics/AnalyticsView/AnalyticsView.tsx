@@ -349,7 +349,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {dashboard.isOwner && (
                 <>
                   {/* Edit / Save toggle */}
-                  {isEditMode ? (
+                  {isEditMode || dashboard.dashboardVersion < 1 ? (
                     <SaveButton
                       savePhase={savePhase}
                       onSave={handleSaveFromEditMode}
