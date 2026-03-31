@@ -80,6 +80,8 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
             ref={popoverRef}
             className="fixed z-[10000] w-[360px] bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden"
             style={{ top: position.top, left: position.left }}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
               <span className="text-xs font-medium text-gray-700">Query</span>
