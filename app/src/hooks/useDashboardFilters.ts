@@ -14,17 +14,52 @@ import type {
 
 /**
  * Extract the raw UI value from a server state entry.
- * Server may return either a raw value or {operator, value} shape.
+ * Server may return a raw value, {operator, value}, or an array of
+ * {operator, value} pairs (for range / date-range filters with two bounds).
  */
 function extractRawValue(entry: unknown): unknown {
-  if (
-    typeof entry === "object" &&
-    entry !== null &&
-    !Array.isArray(entry) &&
-    "operator" in entry
-  ) {
-    return (entry as { operator: string; value?: unknown }).value ?? null;
+  if (Array.isArray(entry)) {
+    // Array of {operator, value} — reconstruct the UI shape
+    const items = entry as { operator: string; value?: unknown }[];
+    const dateResult: { start?: string; end?: string } = {};
+    const rangeResult: { min?: number; max?: number } = {};
+    let isDate = false;
+    let isRange = false;
+
+    for (const item of items) {
+      if (item.operator === "on_or_after") {
+        dateResult.start = item.value as string;
+        isDate = true;
+      } else if (item.operator === "on_or_before") {
+        dateResult.end = item.value as string;
+        isDate = true;
+      } else if (item.operator === "greater_than_or_equal") {
+        rangeResult.min = item.value as number;
+        isRange = true;
+      } else if (item.operator === "less_than_or_equal") {
+        rangeResult.max = item.value as number;
+        isRange = true;
+      }
+    }
+
+    if (isDate) return dateResult;
+    if (isRange) return rangeResult;
+    // Fallback: return the first item's value
+    return items[0]?.value ?? null;
   }
+
+  if (typeof entry === "object" && entry !== null && "operator" in entry) {
+    const item = entry as { operator: string; value?: unknown };
+    // Single-bound date/range — wrap in the UI shape so inputs populate correctly
+    if (item.operator === "on_or_after") return { start: item.value as string };
+    if (item.operator === "on_or_before") return { end: item.value as string };
+    if (item.operator === "greater_than_or_equal")
+      return { min: item.value as number };
+    if (item.operator === "less_than_or_equal")
+      return { max: item.value as number };
+    return item.value ?? null;
+  }
+
   return entry;
 }
 
@@ -130,12 +165,13 @@ export function useDashboardFilters(
     setLocalState(normaliseServerState(serverState));
   }, [serverState]);
 
-  // Cleanup debounce on unmount
+  // Clear debounce + pending payload on dashboardId change and unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      pendingPayloadRef.current = {};
     };
-  }, []);
+  }, [dashboardId]);
 
   const safeDefinitions = Array.isArray(definitions) ? definitions : [];
   const definitionsRef = useRef(safeDefinitions);
