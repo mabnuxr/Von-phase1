@@ -20,49 +20,52 @@ import {
   useMemo,
   useRef,
   type ReactNode,
-} from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+} from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Chat,
   ChatSkeleton,
   FilePreviewModal,
   ArtifactViewerPanel,
   usePanelResize,
-} from '@vonlabs/design-components';
-import type { ConversationMode } from '@vonlabs/design-components';
-import type { FileArtifact } from '@vonlabs/design-components';
+} from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
+import type { FileArtifact } from "@vonlabs/design-components";
 
-import type { Conversation, MessageWithStreaming } from '../../types/conversation';
-import type { MessageReference } from '../../types/conversation';
-import { ReferenceType } from '../../types/conversation';
-import { useBaseChatConfig } from '../../hooks/useBaseChatConfig';
-import { useChatMentions } from '../../hooks/useChatMentions';
-import { useChatV2 } from '../../hooks/useChatV2';
-import { useCreateAndSendMessage } from '../../hooks/useCreateAndSendMessage';
-import { useMessages } from '../../hooks/useMessages';
-import { useCurrentConversation } from '../../hooks/useCurrentConversation';
-import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
-import { useReferenceStack } from '../../hooks/useReferenceStack';
-import type { ReferenceStackLayer } from '../../hooks/useReferenceStack';
-import { useDashboardPane } from '../../hooks/useDashboardPane';
-import { useTeamMembers } from '../../hooks/useTeam';
-import { useIntegrations } from '../../hooks/useIntegrations';
-import { AuthenticationStatus } from '../../services/integrationsService';
-import usePreferencesStore from '../../store/preferencesStore';
-import useChatStore from '../../store/chatStore';
-import { dashboardKeys } from '../../hooks/useDashboardQuery';
+import type {
+  Conversation,
+  MessageWithStreaming,
+} from "../../types/conversation";
+import type { MessageReference } from "../../types/conversation";
+import { ReferenceType } from "../../types/conversation";
+import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
+import { useChatMentions } from "../../hooks/useChatMentions";
+import { useChatV2 } from "../../hooks/useChatV2";
+import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
+import { useMessages } from "../../hooks/useMessages";
+import { useCurrentConversation } from "../../hooks/useCurrentConversation";
+import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
+import { useReferenceStack } from "../../hooks/useReferenceStack";
+import type { ReferenceStackLayer } from "../../hooks/useReferenceStack";
+import { useDashboardPane } from "../../hooks/useDashboardPane";
+import { useTeamMembers } from "../../hooks/useTeam";
+import { useIntegrations } from "../../hooks/useIntegrations";
+import { AuthenticationStatus } from "../../services/integrationsService";
+import usePreferencesStore from "../../store/preferencesStore";
+import useChatStore from "../../store/chatStore";
+import { dashboardKeys } from "../../hooks/useDashboardQuery";
 import {
   getFrontendIntegrationId,
   INTEGRATION_METADATA,
-} from '../../constants/integrationMetadata';
-import { MESSAGES_PAGE_LIMIT } from '../../config/constants';
-import { config as appConfig } from '../../config';
-import { DashboardPreviewPane } from '../DashboardPreviewPane';
-import { SingleArtifactDrawerContainer } from '../SingleArtifactDrawerContainer';
-import { LazyTransparencyDrawer } from '../LazyTransparencyDrawer';
-import { WriteBlockedBanner } from '../WriteBlockedBanner';
-import { GmailDraftCardContainer } from '../GmailDraftCardContainer';
+} from "../../constants/integrationMetadata";
+import { MESSAGES_PAGE_LIMIT } from "../../config/constants";
+import { config as appConfig } from "../../config";
+import { DashboardPreviewPane } from "../DashboardPreviewPane";
+import { SingleArtifactDrawerContainer } from "../SingleArtifactDrawerContainer";
+import { LazyTransparencyDrawer } from "../LazyTransparencyDrawer";
+import { WriteBlockedBanner } from "../WriteBlockedBanner";
+import { GmailDraftCardContainer } from "../GmailDraftCardContainer";
 
 // ─── Split-pane constants ───────────────────────────────────────────
 
@@ -89,7 +92,7 @@ function collectSlots(children: ReactNode): ChatSessionSlots {
   const slots: ChatSessionSlots = {};
   const childArray = Array.isArray(children) ? children : [children];
   for (const child of childArray) {
-    if (child && typeof child === 'object' && 'type' in child) {
+    if (child && typeof child === "object" && "type" in child) {
       if (child.type === EmptyState) {
         slots.emptyState = child.props.children;
       }
@@ -166,7 +169,9 @@ function ChatSessionRoot(props: ChatSessionProps) {
 
 // ─── Existing conversation inner ────────────────────────────────────
 
-function ExistingChatInner(props: ChatSessionProps & { conversationId: string }) {
+function ExistingChatInner(
+  props: ChatSessionProps & { conversationId: string },
+) {
   const { conversationId } = props;
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
@@ -175,24 +180,30 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
   // ── Conversation & messages ───────────────────────────────────────
   // Use page-provided data if available, otherwise fetch at the leaf
   const { data: fetchedConversation } = useCurrentConversation(
-    props.currentConversation ? null : conversationId
+    props.currentConversation ? null : conversationId,
   );
   const currentConversation = props.currentConversation ?? fetchedConversation;
 
   const storeMessages = useChatStore((s) => s.messages);
   const fallbackMessages = useMemo(
     () => storeMessages[conversationId] || [],
-    [conversationId, storeMessages]
+    [conversationId, storeMessages],
   );
   const conversationMessages = props.conversationMessages ?? fallbackMessages;
 
   const selfFetchMessages = !props.fetchNextMessagePage;
-  const msgQuery = useMessages(selfFetchMessages ? conversationId : null, MESSAGES_PAGE_LIMIT);
-  const fetchNextMessagePage = props.fetchNextMessagePage ?? msgQuery.fetchNextPage;
+  const msgQuery = useMessages(
+    selfFetchMessages ? conversationId : null,
+    MESSAGES_PAGE_LIMIT,
+  );
+  const fetchNextMessagePage =
+    props.fetchNextMessagePage ?? msgQuery.fetchNextPage;
   const hasNextMessagePage = props.hasNextMessagePage ?? !!msgQuery.hasNextPage;
-  const isFetchingNextMessagePage = props.isFetchingNextMessagePage ?? msgQuery.isFetchingNextPage;
+  const isFetchingNextMessagePage =
+    props.isFetchingNextMessagePage ?? msgQuery.isFetchingNextPage;
   const isLoadingMessages = props.isLoadingMessages ?? msgQuery.isLoading;
-  const refetchMessages = (props.refetchMessages ?? msgQuery.refetch) as () => Promise<unknown>;
+  const refetchMessages = (props.refetchMessages ??
+    msgQuery.refetch) as () => Promise<unknown>;
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextMessagePage,
@@ -222,7 +233,12 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
             },
           }
         : null,
-    [hasDashboard, props.dashboardId, props.dashboardTitle, props.dashboardVersion]
+    [
+      hasDashboard,
+      props.dashboardId,
+      props.dashboardTitle,
+      props.dashboardVersion,
+    ],
   );
   const refStack = useReferenceStack(dashboardBaseLayer);
 
@@ -232,11 +248,11 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
     user: base.user,
     currentConversation: currentConversation ?? {
       conversationId,
-      userId: base.user?.id ?? '',
-      tenantId: base.user?.tenantId ?? '',
-      title: props.title ?? props.dashboardTitle ?? '',
-      agentVersion: 'v2' as const,
-      mode: 'auto' as ConversationMode,
+      userId: base.user?.id ?? "",
+      tenantId: base.user?.tenantId ?? "",
+      title: props.title ?? props.dashboardTitle ?? "",
+      agentVersion: "v2" as const,
+      mode: "auto" as ConversationMode,
       createdAt: new Date().toISOString(),
       createdBy: null,
       updatedAt: null,
@@ -267,7 +283,12 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
         queryKey: dashboardKeys.detail(props.dashboardId),
       });
     }
-  }, [chatV2.dashboard, props.dashboardId, props.dashboardVersion, queryClient]);
+  }, [
+    chatV2.dashboard,
+    props.dashboardId,
+    props.dashboardVersion,
+    queryClient,
+  ]);
 
   // ── Integration metadata ──────────────────────────────────────────
   const { data: integrationsData } = useIntegrations();
@@ -276,8 +297,9 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
     if (integrationsData?.integrations) {
       for (const integration of integrationsData.integrations) {
         if (
-          integration.accessLevel === 'user' &&
-          integration.authenticationStatus === AuthenticationStatus.AUTHENTICATED
+          integration.accessLevel === "user" &&
+          integration.authenticationStatus ===
+            AuthenticationStatus.AUTHENTICATED
         ) {
           connected.add(integration.type.toLowerCase());
         }
@@ -287,34 +309,41 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
   }, [integrationsData]);
 
   const setConfiguringPersonalIntegration = usePreferencesStore(
-    (s) => s.setConfiguringPersonalIntegration
+    (s) => s.setConfiguringPersonalIntegration,
   );
   const handleIntegrate = useCallback(
     (integrationType: string) => {
       const frontendId = getFrontendIntegrationId(integrationType);
       setConfiguringPersonalIntegration(frontendId);
-      navigate('/settings?tab=integrations');
+      navigate("/settings?tab=integrations");
     },
-    [setConfiguringPersonalIntegration, navigate]
+    [setConfiguringPersonalIntegration, navigate],
   );
-  const handleGetIntegrationMetadata = useCallback((integrationType: string) => {
-    const frontendId = getFrontendIntegrationId(integrationType);
-    const metadata = INTEGRATION_METADATA[frontendId];
-    if (!metadata) return null;
-    return {
-      name: metadata.name,
-      logoPath: metadata.logoPath,
-      description: metadata.description,
-    };
-  }, []);
+  const handleGetIntegrationMetadata = useCallback(
+    (integrationType: string) => {
+      const frontendId = getFrontendIntegrationId(integrationType);
+      const metadata = INTEGRATION_METADATA[frontendId];
+      if (!metadata) return null;
+      return {
+        name: metadata.name,
+        logoPath: metadata.logoPath,
+        description: metadata.description,
+      };
+    },
+    [],
+  );
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const { enableMentions, mentionItems, isLoadingMentions, onMentionsActivated } =
-    useChatMentions();
+  const {
+    enableMentions,
+    mentionItems,
+    isLoadingMentions,
+    onMentionsActivated,
+  } = useChatMentions();
 
   // ── Scheduled commands ────────────────────────────────────────────
   const { data: teamMembersData } = useTeamMembers(
-    base.features.isScheduledCommandsEnabled ? base.user?.tenantId : undefined
+    base.features.isScheduledCommandsEnabled ? base.user?.tenantId : undefined,
   );
   const teamMembersForSchedule = base.features.isScheduledCommandsEnabled
     ? (teamMembersData ?? []).map((m) => ({
@@ -329,24 +358,36 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       ? {
           id: base.user.id,
           email: base.user.email,
-          firstName: base.user.firstName ?? base.user.name?.split(' ')[0] ?? '',
-          lastName: base.user.lastName ?? base.user.name?.split(' ').slice(1).join(' ') ?? '',
+          firstName: base.user.firstName ?? base.user.name?.split(" ")[0] ?? "",
+          lastName:
+            base.user.lastName ??
+            base.user.name?.split(" ").slice(1).join(" ") ??
+            "",
         }
       : undefined;
 
   // ── Artifact card renderer ────────────────────────────────────────
   const renderArtifactCard = useCallback(
     (artifact: FileArtifact) => {
-      if (artifact.artifactType === 'email_draft' || artifact.fileName?.endsWith('.eml')) {
-        return <GmailDraftCardContainer conversationId={conversationId} artifact={artifact} />;
+      if (
+        artifact.artifactType === "email_draft" ||
+        artifact.fileName?.endsWith(".eml")
+      ) {
+        return (
+          <GmailDraftCardContainer
+            conversationId={conversationId}
+            artifact={artifact}
+          />
+        );
       }
       return null;
     },
-    [conversationId]
+    [conversationId],
   );
 
   // ── Dashboard preview pane ────────────────────────────────────────
-  const { dashboardPaneState, openDashboardPane, closeDashboardPane } = useDashboardPane();
+  const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
+    useDashboardPane();
 
   // Invalidate preview pane dashboard when agent updates it (version changes)
   const prevDashboardVersionRef = useRef<number | null>(null);
@@ -365,7 +406,12 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
     if (chatV2.dashboard) {
       prevDashboardVersionRef.current = chatV2.dashboard.dashboard_version;
     }
-  }, [chatV2.dashboard, dashboardPaneState.isOpen, dashboardPaneState.dashboardId, queryClient]);
+  }, [
+    chatV2.dashboard,
+    dashboardPaneState.isOpen,
+    dashboardPaneState.dashboardId,
+    queryClient,
+  ]);
 
   // The outer shell only becomes compact when the parent owns the border/radius.
   // The internal chat layout can also become compact when the preview pane squeezes it.
@@ -390,7 +436,13 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       openDashboardPane(dashboardId);
       onCollapseSidebar?.();
     },
-    [props.compact, navigate, conversationId, openDashboardPane, onCollapseSidebar]
+    [
+      props.compact,
+      navigate,
+      conversationId,
+      openDashboardPane,
+      onCollapseSidebar,
+    ],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
@@ -399,7 +451,7 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
     const key = chatV2.liveDashboardKey;
     if (key && key !== prevLiveDashboardKeyRef.current) {
       prevLiveDashboardKeyRef.current = key;
-      handleDashboardPreview(key.split(':')[0]);
+      handleDashboardPreview(key.split(":")[0]);
     }
   }, [props.compact, chatV2.liveDashboardKey, handleDashboardPreview]);
 
@@ -417,7 +469,7 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
           )}
         </>
       ) : undefined,
-    [props.banner, chatV2.writeBlocked, chatV2.dismissWriteBlocked]
+    [props.banner, chatV2.writeBlocked, chatV2.dismissWriteBlocked],
   );
 
   // ── Loading ───────────────────────────────────────────────────────
@@ -428,9 +480,9 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
   // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
-      title={props.title ?? props.dashboardTitle ?? 'von AI'}
+      title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
-      userName={base.user?.firstName || base.user?.name?.split(' ')[0]}
+      userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
       userEmail={base.user?.email}
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId={conversationId}
@@ -447,7 +499,7 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? 'Ask von anything'}
+      placeholder={props.placeholder ?? "Ask von anything"}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
       banner={fullBanner}
@@ -460,7 +512,9 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       onFilesSelected={chatV2.handleFilesSelected}
       onRemoveAttachment={chatV2.handleRemoveAttachment}
       onFileClick={chatV2.handleFileClick}
-      onFileError={(_error: string, message: string) => chatV2.setFileErrorMessage(message)}
+      onFileError={(_error: string, message: string) =>
+        chatV2.setFileErrorMessage(message)
+      }
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       // Commands
@@ -473,11 +527,13 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
-      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === 'admin')}
+      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
       teamMembers={teamMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={
-        base.features.isScheduledCommandsEnabled ? base.commands.handleSendTest : undefined
+        base.features.isScheduledCommandsEnabled
+          ? base.commands.handleSendTest
+          : undefined
       }
       // Data tables (deep research approval flow)
       dataTablesInfo={chatV2.dataTablesInfo ?? undefined}
@@ -524,7 +580,9 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextMessagePage}
     >
-      {slots.emptyState && <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>}
+      {slots.emptyState && (
+        <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>
+      )}
     </Chat>
   );
 
@@ -571,25 +629,33 @@ function ExistingChatInner(props: ChatSessionProps & { conversationId: string })
           chatV2.fileArtifactPanel.fileName && (
             <ArtifactViewerPanel
               fileName={chatV2.fileArtifactPanel.fileName}
-              artifactType={chatV2.fileArtifactPanel.artifactType ?? 'document'}
+              artifactType={chatV2.fileArtifactPanel.artifactType ?? "document"}
               mimeType={chatV2.fileArtifactPanel.mimeType}
               downloadUrl={chatV2.fileArtifactPanel.downloadUrl}
               pdfDownloadUrl={chatV2.fileArtifactPanel.pdfDownloadUrl}
               onClose={chatV2.closeFileArtifactPanel}
               onDownload={
                 chatV2.fileArtifactPanel.fileId
-                  ? () => chatV2.handleArtifactDownload(chatV2.fileArtifactPanel.fileId!)
+                  ? () =>
+                      chatV2.handleArtifactDownload(
+                        chatV2.fileArtifactPanel.fileId!,
+                      )
                   : undefined
               }
               onGoogleDriveClick={
                 props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
-                  ? () => props.onGoogleDriveClick!(chatV2.fileArtifactPanel.fileId!)
+                  ? () =>
+                      props.onGoogleDriveClick!(
+                        chatV2.fileArtifactPanel.fileId!,
+                      )
                   : undefined
               }
               isDriveEnabled={props.isDriveEnabled}
               isDriveConnected={props.isDriveConnected}
               driveTooltip={props.driveTooltip}
-              isDriveLoading={props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId}
+              isDriveLoading={
+                props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
+              }
             />
           )}
       </div>
@@ -605,8 +671,12 @@ function NewChatInner(props: ChatSessionProps) {
   const slots = useContext(SlotsContext);
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const { enableMentions, mentionItems, isLoadingMentions, onMentionsActivated } =
-    useChatMentions();
+  const {
+    enableMentions,
+    mentionItems,
+    isLoadingMentions,
+    onMentionsActivated,
+  } = useChatMentions();
 
   // ── Reference stack ───────────────────────────────────────────────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
@@ -630,28 +700,33 @@ function NewChatInner(props: ChatSessionProps) {
             },
           }
         : null,
-    [hasDashboard, props.dashboardId, props.dashboardTitle, props.dashboardVersion]
+    [
+      hasDashboard,
+      props.dashboardId,
+      props.dashboardTitle,
+      props.dashboardVersion,
+    ],
   );
   const refStack = useReferenceStack(dashboardBaseLayer);
 
   const references: MessageReference[] = useMemo(
     () => (dashboardBaseLayer ? [dashboardBaseLayer.reference] : []),
-    [dashboardBaseLayer]
+    [dashboardBaseLayer],
   );
 
   const createFlow = useCreateAndSendMessage({
-    agentVersion: 'v2',
+    agentVersion: "v2",
     isAgentV2: true,
-    title: props.dashboardTitle ?? props.title ?? '',
+    title: props.dashboardTitle ?? props.title ?? "",
     references,
     onCreated: props.onCreated,
   });
 
   return (
     <Chat
-      title={props.title ?? props.dashboardTitle ?? 'von AI'}
+      title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
-      userName={base.user?.firstName || base.user?.name?.split(' ')[0]}
+      userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
       userEmail={base.user?.email}
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId=""
@@ -663,7 +738,7 @@ function NewChatInner(props: ChatSessionProps) {
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? 'Make changes to this dashboard...'}
+      placeholder={props.placeholder ?? "Make changes to this dashboard..."}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}
@@ -682,7 +757,7 @@ function NewChatInner(props: ChatSessionProps) {
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
-      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === 'admin')}
+      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
       // Mentions
       enableMentions={enableMentions}
       mentionItems={mentionItems}
@@ -692,7 +767,9 @@ function NewChatInner(props: ChatSessionProps) {
       referenceContext={refStack.activeContext}
       onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
     >
-      {slots.emptyState && <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>}
+      {slots.emptyState && (
+        <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>
+      )}
     </Chat>
   );
 }
@@ -701,7 +778,13 @@ function NewChatInner(props: ChatSessionProps) {
 
 type ChatV2Return = ReturnType<typeof useChatV2>;
 
-function Overlays({ conversationId, chatV2 }: { conversationId: string; chatV2: ChatV2Return }) {
+function Overlays({
+  conversationId,
+  chatV2,
+}: {
+  conversationId: string;
+  chatV2: ChatV2Return;
+}) {
   return (
     <>
       <LazyTransparencyDrawer
