@@ -219,6 +219,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
 
   // Determine effective showFromIndex (use prop)
   const effectiveShowFromIndex = showMessagesFromIndex || 0;
+  const layoutCompact = compact;
 
   // FIX: Memoize visible messages to avoid O(N) filtering on every render
   const visibleMessages = useMemo(() => {
@@ -451,7 +452,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}
-                  compact={compact}
+                  compact={layoutCompact}
                 />
               </div>
             ))}

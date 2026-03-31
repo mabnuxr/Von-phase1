@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ArrowLineRightIcon, PlusCircleIcon } from "@phosphor-icons/react";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
@@ -49,6 +49,8 @@ function DashboardCanvas({
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
@@ -165,6 +167,8 @@ function DashboardCanvas({
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
+        showSaveToast={showSaveToast}
+        isFirstSave={isFirstSave}
         onRevert={handleRevert}
         revertPhase={revertPhase}
         onShare={handleShare}
@@ -369,7 +373,7 @@ const Analytics = () => {
   } = useResizablePane();
 
   return (
-    <div className="flex h-full w-full gap-1">
+    <div className="flex h-full w-full gap-1.5">
       <div className="flex-1 min-w-0 h-full relative">
         {/* key={dashboardId} resets all dashboard-specific state on navigation */}
         <DashboardCanvas
@@ -401,7 +405,7 @@ const Analytics = () => {
         </div>
 
         {/* Chat picker — persistent header that lets users switch conversations */}
-        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
+        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-gray-100">
           <ChatPicker
             activeChatId={activeChatId}
             onSelect={guardedSetActiveChatId}
@@ -411,9 +415,9 @@ const Analytics = () => {
           <Tooltip content="New chat">
             <button
               onClick={guardedNewChat}
-              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <PlusCircleIcon size={16} weight="fill" />
+              <PlusIcon size={14} weight="bold" />
             </button>
           </Tooltip>
           <ConversationMoreMenu
@@ -427,7 +431,7 @@ const Analytics = () => {
           <Tooltip content="Collapse chat">
             <button
               onClick={closeChatPanel}
-              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLineRightIcon size={14} weight="bold" />
             </button>

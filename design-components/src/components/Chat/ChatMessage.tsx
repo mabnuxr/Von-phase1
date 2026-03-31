@@ -620,8 +620,8 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     : `flex gap-3 ${isUser ? `flex-row-reverse ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`
                 }
               >
-                {/* Avatar — hidden for compact user messages */}
-                {!(compact && isUser) && (
+                {/* Avatar — hidden in compact mode */}
+                {!compact && (
                   <div
                     className={`flex items-start gap-2 shrink-0 ${!compact ? '@max-[550px]/chat:hidden' : ''}`}
                   >

@@ -1558,7 +1558,8 @@ export interface ChatProps {
 
   /**
    * Compact mode for narrow sidepane layout.
-   * Stacks agent avatar above content and hides user avatars.
+   * Removes the Chat component's own outer border/radius because the parent
+   * shell owns that styling.
    * @default false
    */
   compact?: boolean;

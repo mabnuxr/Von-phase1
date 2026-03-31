@@ -125,7 +125,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
-      <div className="flex flex-col items-start pb-2 border-b border-gray-100 mb-2">
+      <div className="flex flex-col items-start pb-2">
         <TertiaryIconButton
           size="large"
           icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}

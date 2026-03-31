@@ -50,7 +50,7 @@ HeaderRowRight.displayName = 'DashboardLayout.HeaderRow.Right';
 
 const HeaderRowBase: React.FC<HeaderRowProps> = ({ children, className = '', bordered = true }) => (
   <div
-    className={`flex items-center justify-between px-4 py-2 ${
+    className={`flex items-center justify-between px-4 py-2.5 ${
       bordered ? 'border-b border-gray-100' : ''
     } ${className}`}
   >
@@ -65,7 +65,7 @@ const HeaderRow = Object.assign(HeaderRowBase, {
 });
 
 const Canvas: React.FC<CanvasProps> = ({ children, className = '' }) => (
-  <div className={`flex-1 overflow-y-auto p-4 ${className}`}>{children}</div>
+  <div className={`flex-1 overflow-y-auto px-4 pt-4 ${className}`}>{children}</div>
 );
 Canvas.displayName = 'DashboardLayout.Canvas';
 

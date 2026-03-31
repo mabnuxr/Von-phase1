@@ -1,10 +1,13 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useVisibilityToggle } from "@vonlabs/design-components";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
 import { sidebarDashboardKeys } from "./useSidebarDashboards";
 import { useMutationPhase } from "./useMutationPhase";
 import { useToast } from "./useToast";
+
+const SAVE_TOAST_DURATION_MS = 3000;
 
 /**
  * Hook that provides all action handlers for AnalyticsView toolbar.
@@ -16,6 +19,13 @@ export function useAnalyticsTools(dashboardId: string) {
 
   // ─── Save ─────────────────────────────────────────────────────
   const isFirstSaveRef = useRef(false);
+  const {
+    isVisible: showSaveToast,
+    show: showToastNow,
+    hide: hideToastNow,
+  } = useVisibilityToggle(false);
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(saveToastTimerRef.current), []);
 
   const saveMutation = useMutation({
     mutationFn: (version?: number) =>
@@ -26,12 +36,6 @@ export function useAnalyticsTools(dashboardId: string) {
       });
       queryClient.invalidateQueries({
         queryKey: sidebarDashboardKeys.all,
-      });
-      showToast({
-        message: isFirstSaveRef.current
-          ? "Dashboard is created. You can access the dashboard from the side panel."
-          : "Dashboard is updated. You can access the dashboard from the side panel.",
-        variant: "success",
       });
     },
     onMutate: async () => {
@@ -49,7 +53,16 @@ export function useAnalyticsTools(dashboardId: string) {
       isFirstSaveRef.current = isFirstSave ?? false;
 
       saveMutation.mutate(undefined, {
-        onSuccess,
+        onSuccess: () => {
+          onSuccess?.();
+          // Show inline save toast
+          showToastNow();
+          clearTimeout(saveToastTimerRef.current);
+          saveToastTimerRef.current = setTimeout(
+            hideToastNow,
+            SAVE_TOAST_DURATION_MS,
+          );
+        },
         onError: (error) => {
           console.error("[useAnalyticsTools] Save failed:", error);
           showToast({
@@ -163,6 +176,9 @@ export function useAnalyticsTools(dashboardId: string) {
     handleSave,
     savePhase,
     saveMutation,
+    // Save toast state (consumed by AnalyticsView for inline toast rendering)
+    showSaveToast,
+    isFirstSave: isFirstSaveRef.current,
     handleRevert,
     revertPhase,
     revertMutation,

@@ -412,6 +412,8 @@ function ExistingChatInner(
     dashboardPaneState.dashboardId,
     queryClient,
   ]);
+
+  const isCompact = !!props.compact || dashboardPaneState.isOpen;
   const {
     containerRef: splitContainerRef,
     ratios: splitRatios,
@@ -487,7 +489,7 @@ function ExistingChatInner(
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
       isLoading={false}
-      compact={props.compact}
+      compact={isCompact}
       height="100%"
       width="100%"
       showMessagesFromIndex={chatV2.showMessagesFromIndex}

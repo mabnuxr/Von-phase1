@@ -571,12 +571,12 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 className="rounded-2xl p-px transition-all duration-200"
                 style={gradientBorderStyle}
               >
-                <div className="flex flex-col bg-white rounded-[15px] gap-1">
+                <div className="flex flex-col bg-white rounded-[15px] gap-2">
                   {/* Drag-and-drop overlay */}
                   <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
                   {/* File & mention previews - shown above the input */}
                   {(hasAttachments || (selectedMentions && selectedMentions.length > 0)) && (
-                    <div className="px-4 pt-3 pb-1">
+                    <div className="px-2 pt-2 pb-1">
                       <div className="flex flex-wrap gap-1.5">
                         {attachments.map((attachment) => (
                           <FilePreview
@@ -612,7 +612,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                   {showPlusMenu ? (
                     <>
                       {/* Text input area - Tiptap Editor */}
-                      <div className="px-4 py-3">
+                      <div className="px-3 py-2">
                         <div className="flex items-start gap-2">
                           <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
                             <TiptapEditor
