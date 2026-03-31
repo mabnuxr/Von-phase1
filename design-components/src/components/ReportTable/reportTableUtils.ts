@@ -2,6 +2,7 @@ import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { IndividualColumnOptions } from '@highcharts/grid-lite/es-modules/Grid/Core/Options';
 import type { DataTableValue } from '@highcharts/grid-lite/es-modules/Data/DataTableOptions';
 import type { ColumnType, DataSourceType, ReportColumn, AIReasoningData } from './ReportTable';
+import { formatD3Pattern } from '../../utils/formatKpiValue';
 
 // ============================================================================
 // Value Formatting Utility
@@ -466,6 +467,80 @@ export function autoSizeGridColumns(options: GridOptions): GridOptions {
       resizing: { enabled: true, mode: 'independent' as const, ...existingResizing },
     },
   } as GridOptions['rendering'];
+
+  return options;
+}
+
+// ============================================================================
+// Apply column-level format (d3-format) to backend-generated gridOptions
+// ============================================================================
+
+const CELL_NULL_HTML = '<span style="color:#9ca3af">—</span>';
+const ESCAPED_VALUE_PLACEHOLDER = escapeHtml('{value}');
+
+/**
+ * Inject `cells.formatter` for columns that have a `format` field (d3-format string).
+ * Columns without `format` or with an existing formatter are left untouched.
+ */
+export function applyColumnFormats(options: GridOptions): GridOptions {
+  const columns = options.columns as
+    | Array<{
+        id: string;
+        format?: string;
+        cells?: Record<string, unknown>;
+        [key: string]: unknown;
+      }>
+    | undefined;
+  if (!columns || columns.length === 0) return options;
+
+  for (const col of columns) {
+    if (!col.format || typeof col.format !== 'string') continue;
+    if (col.cells?.formatter) continue;
+
+    const format = col.format;
+    const cellTemplate = typeof col.cells?.format === 'string' ? col.cells.format : undefined;
+
+    // Precompute static template values outside the per-cell formatter
+    const escapedTemplate = cellTemplate ? escapeHtml(cellTemplate) : undefined;
+    const hasPlaceholder = escapedTemplate?.includes(ESCAPED_VALUE_PLACEHOLDER) ?? false;
+
+    col.cells = {
+      ...col.cells,
+      formatter: function (this: { value: unknown }): string {
+        const value = this.value;
+        if (value === null || value === undefined) return CELL_NULL_HTML;
+        if (typeof value === 'string' && value.trim() === '') return CELL_NULL_HTML;
+
+        const num =
+          typeof value === 'number'
+            ? value
+            : typeof value === 'string' && value.trim() !== ''
+              ? Number(value)
+              : NaN;
+        if (isNaN(num)) {
+          const escaped = escapeHtml(String(value));
+          if (hasPlaceholder) {
+            return `<span style="color:#111827">${escapedTemplate!.replaceAll(ESCAPED_VALUE_PLACEHOLDER, escaped)}</span>`;
+          }
+          return `<span style="color:#111827">${escaped}</span>`;
+        }
+
+        let formatted: string;
+        try {
+          formatted = escapeHtml(formatD3Pattern(num, format));
+        } catch {
+          formatted = escapeHtml(String(value));
+        }
+
+        if (hasPlaceholder) {
+          // Escape template to prevent XSS from backend config
+          return `<span style="color:#111827">${escapedTemplate!.replaceAll(ESCAPED_VALUE_PLACEHOLDER, formatted)}</span>`;
+        }
+
+        return `<span style="color:#111827">${formatted}</span>`;
+      },
+    };
+  }
 
   return options;
 }

@@ -432,6 +432,7 @@ export {
   ReportTable,
   buildGridOptions,
   autoSizeGridColumns,
+  applyColumnFormats,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
