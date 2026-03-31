@@ -388,13 +388,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             ? handleRevertFromEditMode
                             : undefined
                         }
-                        disabled={revertPhase !== "idle"}
+                        disabled={revertPhase !== "idle" || dashboard.status !== "draft"}
                         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                          revertPhase === "pending"
-                            ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                            : revertPhase === "success"
-                              ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
-                              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                          dashboard.status !== "draft"
+                            ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                            : revertPhase === "pending"
+                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                              : revertPhase === "success"
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
                         }`}
                       >
                         {revertPhase === "pending" ? (
