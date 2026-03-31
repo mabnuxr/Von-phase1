@@ -33,6 +33,7 @@ function formatDisplay(remainingMs: number): string {
 
 function getPhase(remainingMs: number, totalMs: number): CountdownPhase {
   if (remainingMs <= 0) return 'expired';
+  if (totalMs <= 0) return 'expired';
   const ratio = remainingMs / totalMs;
   if (ratio > 2 / 3) return 'safe';
   if (ratio > 1 / 3) return 'warning';
