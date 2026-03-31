@@ -64,6 +64,8 @@ interface AnalyticsViewProps {
   isChatOpen?: boolean;
   /** Toggle edit mode via PATCH API (is_editable) */
   onEditModeChange?: (isEditable: boolean) => void;
+  /** Edit mode mutation phase (pending while API + refetch in flight) */
+  editModePhase?: MutationPhase;
   /** Server-side table pagination handler */
   onTablePageChange?: (panelId: string, page: number) => void;
   /** Set of panel IDs currently loading a new page */
@@ -122,6 +124,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   isChatOpen,
   onEditModeChange,
+  editModePhase = "idle",
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -201,20 +204,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onChatClick?.();
   }, [dashboard.isOwner, onEditModeChange, onChatClick]);
 
-  const exitEditMode = useCallback(() => {
-    onEditModeChange?.(false);
-  }, [onEditModeChange]);
-
   const handleSaveFromEditMode = useCallback(() => {
     onSave({
       isFirstSave: dashboard.dashboardVersion < 1,
-      onSuccess: exitEditMode,
     });
-  }, [onSave, dashboard.dashboardVersion, exitEditMode]);
+  }, [onSave, dashboard.dashboardVersion]);
 
   const handleRevertFromEditMode = useCallback(() => {
-    onRevert({ onSuccess: exitEditMode });
-  }, [onRevert, exitEditMode]);
+    onRevert();
+  }, [onRevert]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
@@ -333,7 +331,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.15 }}
-                  onClick={handleEnterEditMode}
+                  onClick={onChatClick}
                   title="Ask Von"
                   className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                 >
@@ -434,7 +432,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   />
 
                   {/* Edit / Save toggle */}
-                  {isEditMode || dashboard.dashboardVersion < 1 ? (
+                  {isEditMode ||
+                  savePhase !== "idle" ||
+                  dashboard.dashboardVersion < 1 ? (
                     <SaveButton
                       savePhase={savePhase}
                       onSave={handleSaveFromEditMode}
@@ -443,10 +443,23 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   ) : (
                     <Tooltip content="Edit dashboard">
                       <button
-                        onClick={handleEnterEditMode}
-                        className="flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border border-gray-900 bg-gray-900 text-white hover:bg-gray-800 transition-colors cursor-pointer whitespace-nowrap"
+                        onClick={
+                          editModePhase === "idle"
+                            ? handleEnterEditMode
+                            : undefined
+                        }
+                        disabled={editModePhase !== "idle"}
+                        className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                          editModePhase === "pending"
+                            ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
+                            : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                        }`}
                       >
-                        <PencilSimpleIcon size={13} />
+                        {editModePhase === "pending" ? (
+                          <SpinnerGapIcon size={13} className="animate-spin" />
+                        ) : (
+                          <PencilSimpleIcon size={13} />
+                        )}
                         Edit
                       </button>
                     </Tooltip>

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, memo } from 'react';
 import Highcharts from 'highcharts';
 import 'highcharts/modules/xrange';
 import 'highcharts/modules/funnel';
@@ -147,7 +147,7 @@ export interface ChartWidgetProps {
  * the active dashboard theme (patterns, colors) from context.
  * Falls back gracefully if no provider is present.
  */
-const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointClick }) => {
+const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
 
@@ -486,6 +486,6 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config, drilldown, onPointCli
       </div>
     </div>
   );
-};
+});
 
 export { ChartWidget };

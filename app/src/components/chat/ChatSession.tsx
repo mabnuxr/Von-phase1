@@ -259,26 +259,8 @@ function ExistingChatInner(
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
   });
 
-  // ── Dashboard version invalidation (sidebar context) ──────────────
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (
-      props.dashboardId &&
-      chatV2.dashboard &&
-      chatV2.dashboard.dashboard_version !== props.dashboardVersion
-    ) {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(props.dashboardId),
-      });
-    }
-  }, [
-    chatV2.dashboard,
-    props.dashboardId,
-    props.dashboardVersion,
-    queryClient,
-  ]);
-
   // ── Integration metadata ──────────────────────────────────────────
+  const queryClient = useQueryClient();
   const { data: integrationsData } = useIntegrations();
   const connectedIntegrationTypes = useMemo(() => {
     const connected = new Set<string>();

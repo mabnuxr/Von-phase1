@@ -19,7 +19,6 @@ import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { ChatSession } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
-import { useToast } from "../hooks/useToast";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
@@ -56,28 +55,11 @@ function DashboardCanvas({
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
-  const { handleUpdate, updateMutation } = useDashboardUpdate(dashboardId);
-  const { showToast } = useToast();
-
-  const handleEditModeChange = useCallback(
-    (isEditable: boolean) => {
-      updateMutation.mutate(
-        { is_editable: isEditable },
-        {
-          onError: (error: unknown) => {
-            console.error("[Analytics] Edit mode toggle failed:", error);
-            showToast({
-              message: "Failed to toggle edit mode. Please try again.",
-              variant: "error",
-            });
-          },
-        },
-      );
-    },
-    [updateMutation, showToast],
-  );
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
@@ -175,7 +157,8 @@ function DashboardCanvas({
         sharePhase={sharePhase}
         onChatClick={onChatClick}
         isChatOpen={isChatOpen}
-        onEditModeChange={handleEditModeChange}
+        onEditModeChange={editModeMutation.mutate}
+        editModePhase={editModePhase}
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}
