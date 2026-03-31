@@ -1010,7 +1010,7 @@ export function transformAguiToTimelineSteps(
 
             // Populate approval expiry from ttl_seconds in event data
             const ttlSeconds = (event as { ttl_seconds?: number }).ttl_seconds;
-            if (step.approval && ttlSeconds) {
+            if (step.approval && ttlSeconds != null) {
               const eventTime = new Date(wrapper.timestamp).getTime();
               step.approval.expiresAt = eventTime + ttlSeconds * 1000;
               step.approval.ttlSeconds = ttlSeconds;
