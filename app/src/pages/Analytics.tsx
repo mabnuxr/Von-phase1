@@ -312,7 +312,7 @@ const Analytics = () => {
   const { guard } = useNavigationGuard({
     when: isEditable,
     title: "Dashboard in edit mode",
-    body: `${dashboardTitle || "This dashboard"} is currently in edit mode. You can continue editing when you return.`,
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
     confirmLabel: "Switch Anyway",
   });
 
