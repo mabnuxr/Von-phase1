@@ -86,7 +86,27 @@ export function useCountdown(
       }
     }, 1000);
 
-    return () => clearInterval(intervalId);
+    // Browsers throttle setInterval to ~1/min in background tabs.
+    // Recalculate immediately when the tab regains focus so the display
+    // is accurate and onExpire fires without delay.
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const next = computeState();
+        setState(next);
+        if (next.phase === 'expired' && !expiredCalledRef.current) {
+          expiredCalledRef.current = true;
+          onExpireRef.current?.();
+          clearInterval(intervalId);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [computeState]);
 
   return state;
