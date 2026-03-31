@@ -535,8 +535,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
 
   // Shared condition: dashboard builder approval is pending on this message
+  // Fallback: treat presence of executionId as dashboard-builder mode
+  // for rolling deploys or older RUN_FINISHED payloads that omit isDashboardBuilderMode
   const showDashboardBuilderApproval =
-    isDashboardBuilderMode &&
+    (isDashboardBuilderMode || executionId) &&
     executionId &&
     isLatestMessage &&
     status !== 'expired' &&

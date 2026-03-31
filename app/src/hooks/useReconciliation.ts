@@ -54,6 +54,7 @@ export interface UseReconciliationConfig {
     options?: {
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
+      isDashboardBuilderMode?: boolean;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
@@ -156,6 +157,7 @@ export function useReconciliation({
         result: RunFinishedEvent["result"] & {
           dashboard?: DashboardMetadata | null;
           execution_id?: string | null;
+          is_dashboard_builder_mode?: boolean;
         };
       };
       const runFinishedEvent = mergedEvents.find(
@@ -169,11 +171,16 @@ export function useReconciliation({
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.execution_id ?? null)
         : undefined;
+      const reconciledIsDashboardBuilderMode = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.is_dashboard_builder_mode ?? false)
+        : undefined;
 
-      // Step 6: Update state (including dashboard/executionId from RUN_FINISHED)
+      // Step 6: Update state (including dashboard/executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
+        isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
       });
 
       // Step 7: Handle run completion
