@@ -249,6 +249,9 @@ interface DetectedApprovalData {
     record_count: number;
     description?: string;
   }>;
+  // Approval expiry (populated from TOOL_CALL_END event data, not from tool args)
+  expiresAt?: number;
+  ttlSeconds?: number;
 }
 
 /**
@@ -1002,6 +1005,26 @@ export function transformAguiToTimelineSteps(
                   "[transformAguiToTimelineSteps] Failed to parse tool args:",
                   e,
                 );
+              }
+            }
+
+            // Populate approval expiry from ttl_seconds in event data
+            const ttlSeconds = (event as { ttl_seconds?: number }).ttl_seconds;
+            if (step.approval && ttlSeconds) {
+              const eventTime = new Date(wrapper.timestamp).getTime();
+              step.approval.expiresAt = eventTime + ttlSeconds * 1000;
+              step.approval.ttlSeconds = ttlSeconds;
+
+              // On replay (page refresh), if TTL has already passed, mark as expired
+              // so buttons don't reappear for a dead approval.
+              // This covers the case where the latest message has an expired approval
+              // but goes through the live V2 path in dashboardUtils (which skips
+              // the unconditional awaiting-approval → expired cleanup).
+              if (
+                Date.now() >= step.approval.expiresAt &&
+                step.status === "awaiting-approval"
+              ) {
+                step.status = "expired" as StepStatus;
               }
             }
           }

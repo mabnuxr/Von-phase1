@@ -102,6 +102,10 @@ export interface ApprovalData {
   recordCount?: number;
   /** Multiple records for bulk approvals */
   bulkRecords?: BulkApprovalRecord[];
+  /** Approval expiry - epoch ms, derived from wrapper.timestamp + ttl_seconds */
+  expiresAt?: number;
+  /** Total TTL in seconds from backend (for countdown phase calculation) */
+  ttlSeconds?: number;
   /** Deep research specific fields */
   researchQuery?: string;
   estimatedTime?: string;
@@ -258,6 +262,11 @@ export interface TimelineThinkingProcessProps {
   onReject?: (stepId: string) => void;
 
   /**
+   * Callback when an approval expires (TTL reached)
+   */
+  onExpire?: (stepId: string) => void;
+
+  /**
    * Callback when an artifact is clicked in a step
    * Opens the transparency drawer with the artifact data
    */
@@ -299,6 +308,7 @@ export interface StepRowProps {
   isLast: boolean;
   onApprove?: () => void;
   onReject?: () => void;
+  onExpire?: () => void;
   onArtifactClick?: (
     artifactId: string,
     toolName: string,
@@ -344,6 +354,8 @@ export interface CompactApprovalCardProps {
   isExpired?: boolean;
   /** Whether the approval tool encountered a system/validation error (not a user rejection) */
   isError?: boolean;
+  /** Callback when approval TTL expires */
+  onExpire?: () => void;
   /** Whether the card should be expanded by default (defaults to true) */
   defaultExpanded?: boolean;
   /** Whether to hide individual approve/reject buttons (used in bulk approval context) */

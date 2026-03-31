@@ -35,6 +35,7 @@ export interface UseTimelineStateReturn {
   focusOnStep: (stepId: string) => void;
   markAsApproved: (stepId: string) => void;
   markAsRejected: (stepId: string) => void;
+  clearLocalApproval: (toolCallId: string) => void;
   // Derived
   completedCount: number;
   totalCount: number;
@@ -169,6 +170,15 @@ export function useTimelineState({
   // Mark a step as locally rejected (for optimistic UI updates)
   const markAsRejected = useCallback((toolCallId: string) => {
     setLocalApprovalState((prev) => new Map(prev).set(toolCallId, 'rejected'));
+  }, []);
+
+  // Clear local approval state (for retry on API failure)
+  const clearLocalApproval = useCallback((toolCallId: string) => {
+    setLocalApprovalState((prev) => {
+      const next = new Map(prev);
+      next.delete(toolCallId);
+      return next;
+    });
   }, []);
 
   // Helper functions
@@ -323,6 +333,7 @@ export function useTimelineState({
     focusOnStep,
     markAsApproved,
     markAsRejected,
+    clearLocalApproval,
     // Derived
     completedCount,
     totalCount,

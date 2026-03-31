@@ -1297,6 +1297,11 @@ export interface ChatProps {
   onReject?: (toolCallId: string, runId: string) => void;
 
   /**
+   * Callback when an approval expires (TTL reached)
+   */
+  onExpire?: (stepId: string) => void;
+
+  /**
    * Callback when user approves a workflow execution plan
    * Called with the run ID and execution ID
    */
