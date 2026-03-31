@@ -211,7 +211,7 @@ export const StepRow = React.memo<StepRowProps>(
                         }
                         isExpired={step.status === 'expired'}
                         isError={step.status === 'error'}
-                        onExpire={onExpire}
+                        onExpire={step.status === 'awaiting-approval' ? onExpire : undefined}
                       />
                     ) : (
                       <CompactApprovalCard
@@ -233,7 +233,7 @@ export const StepRow = React.memo<StepRowProps>(
                         isExpired={step.status === 'expired'}
                         isError={step.status === 'error'}
                         defaultExpanded={defaultApprovalExpanded}
-                        onExpire={onExpire}
+                        onExpire={step.status === 'awaiting-approval' ? onExpire : undefined}
                       />
                     ))}
 

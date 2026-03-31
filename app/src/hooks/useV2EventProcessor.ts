@@ -322,10 +322,17 @@ export function useV2EventProcessor(
           : step,
       );
       timelineStepsRef.current = next;
+
+      // Derive flags from updated steps rather than unconditionally resetting
+      const stillAwaiting = next.some((s) => s.status === "awaiting-approval");
+      const stillThinking = next.some(
+        (s) => s.status === "in-progress" || s.status === "pending",
+      );
+      setIsAwaitingApproval(stillAwaiting);
+      setIsThinking(stillThinking || stillAwaiting);
+
       return next;
     });
-    setIsAwaitingApproval(false);
-    setIsThinking(false);
   }, []);
 
   const invalidateApproval = useCallback(

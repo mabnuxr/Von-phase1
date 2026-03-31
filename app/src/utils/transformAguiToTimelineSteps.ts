@@ -1066,7 +1066,13 @@ export function transformAguiToTimelineSteps(
                 const result = JSON.parse(accumulated);
 
                 // Parse and update step (same logic as content handling)
-                if (step.status === "awaiting-approval") {
+                // Also match 'expired' — on replay, the TTL check in TOOL_CALL_END may
+                // have already marked the step expired before this event is processed.
+                // The backend's TOOL_CALL_RESULT is authoritative and should override.
+                if (
+                  step.status === "awaiting-approval" ||
+                  step.status === "expired"
+                ) {
                   // Handle approval results — check expired first so a malformed
                   // response with both approved:true and status:"expired" is
                   // treated as expired (the more restrictive outcome).
@@ -1185,7 +1191,11 @@ export function transformAguiToTimelineSteps(
               }
 
               // Handle approval tool results that were accepted
-              if (step.status === "awaiting-approval") {
+              // Also match 'expired' — backend TOOL_CALL_RESULT overrides client-side TTL expiry.
+              if (
+                step.status === "awaiting-approval" ||
+                step.status === "expired"
+              ) {
                 try {
                   const result = JSON.parse(event.content);
 
@@ -1460,7 +1470,11 @@ export function transformAguiToTimelineSteps(
           const result = JSON.parse(accumulatedResult);
 
           // Handle approval results
-          if (step.status === "awaiting-approval") {
+          // Also match 'expired' — backend TOOL_CALL_RESULT overrides client-side TTL expiry.
+          if (
+            step.status === "awaiting-approval" ||
+            step.status === "expired"
+          ) {
             if (result.success === false && result.retry === true) {
               // Validation error — agent sent bad args, will retry.
               ({ currentStep, currentStepNumber } = removeRetriedStep(
