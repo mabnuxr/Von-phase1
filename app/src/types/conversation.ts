@@ -98,14 +98,6 @@ export interface MessageReference {
 }
 
 /**
- * Conversation phase from RUN_FINISHED event
- * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
- * - "ask": Normal conversation mode (hide approval buttons)
- * - null/undefined: Normal conversation mode (hide approval buttons)
- */
-export type ConversationPhase = "plan-proposed" | "ask" | null;
-
-/**
  * Dashboard metadata from RUN_FINISHED event
  * Sent by backend when a dashboard is created
  */
@@ -130,7 +122,6 @@ export interface Message {
   createdAt: string;
   createdBy: string | null;
   fileAttachments?: MessageFileAttachment[];
-  phase?: ConversationPhase;
   command?: MessageCommand;
   /**
    * Dashboard metadata from RUN_FINISHED event (assistant messages only)

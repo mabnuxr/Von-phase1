@@ -14,6 +14,7 @@ import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 import { DrilldownPanel } from "./Analytics/DrilldownPanel";
 
@@ -41,6 +42,7 @@ export function DashboardPreviewPane({
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
+  const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
   const {
     schedule,
     isScheduled,
@@ -109,7 +111,7 @@ export function DashboardPreviewPane({
       }}
       className="h-full flex-1 min-w-0"
     >
-      {isLoading ? (
+      {isLoading || isRefreshing ? (
         <AnalyticsSkeleton />
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />

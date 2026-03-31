@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useMemo, useState, Profiler } from "react";
-import { Chat, ConversationMode } from "@vonlabs/design-components";
+import { Chat } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
@@ -35,11 +35,11 @@ const NewConversation = () => {
   const {
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
-    isDeepResearchEnabled,
     isTenantDisabled,
     isSlashCommandsEnabled,
     isFileUploadEnabled,
     isScheduledCommandsEnabled,
+    isDeepResearchEnabled,
   } = useFeatureFlag();
 
   const {
@@ -124,12 +124,6 @@ const NewConversation = () => {
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
 
-  const availableAgentModes = useMemo(() => {
-    const modes: ConversationMode[] = [ConversationMode.Auto];
-    if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
-    return modes;
-  }, [isDeepResearchEnabled]);
-
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
       setShouldShakeSubscriptionBanner(true);
@@ -171,9 +165,6 @@ const NewConversation = () => {
         disableSubmit={!canSubmit || isCreating}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
-        availableAgentModes={availableAgentModes}
-        isAgentLocked={false}
-        lockedConversationMode={ConversationMode.Auto}
         thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}
         useStandardInput={isAgentV2Flag}
         enableFileUpload={isFileUploadEnabled}
@@ -195,10 +186,7 @@ const NewConversation = () => {
         teamMembers={teamMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
-        enableMentions={
-          availableAgentModes?.includes(ConversationMode.DashboardBuilder) ??
-          false
-        }
+        enableMentions={isDeepResearchEnabled}
         mentionItems={mentionItems}
         isLoadingMentions={isLoadingMentions}
         onMentionsActivated={handleMentionsActivated}

@@ -5,7 +5,6 @@
 import type { ConversationMode, ReferenceContext } from './StandardChatInput/types';
 import type { FileArtifact } from './ArtifactCards/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
-import type { ResearchResultsMetadata } from './DeepResearch/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { MentionItem } from '../Mentions/types';
 
@@ -215,25 +214,31 @@ export interface Message {
    */
   v2FinalResponseStreaming?: boolean;
   /**
-   * Conversation phase from RUN_FINISHED event (assistant messages only)
-   * Controls whether approval buttons are shown
-   * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
-   * - "ask": Normal conversation mode (hide approval buttons)
-   * - null/undefined: Normal conversation mode (hide approval buttons)
-   */
-  phase?: 'plan-proposed' | 'ask' | null;
-  /**
    * Dashboard metadata from RUN_FINISHED event (assistant messages only)
-   * Only present when a dashboard was created during this specific run.
-   * Use this (not a global prop) to conditionally render the DashboardArtifactCard.
+   * Only present when a dashboard was created/updated during this specific run.
    */
   dashboard?: DashboardMetadata | null;
   /**
    * execution_id from RUN_FINISHED for workflow execution approval (dry_run completed).
-   * When present alongside phase="plan-proposed", use the resume API with this
-   * execution_id instead of sending a new chat message.
+   * When present with isDashboardBuilderMode, shows "Create Dashboard" / "Skip" buttons.
    */
   executionId?: string | null;
+  /**
+   * Whether this run is a dashboard builder response (from RUN_FINISHED is_dashboard_builder_mode).
+   * When true with executionId, show "Create Dashboard" / "Skip" approval buttons.
+   */
+  isDashboardBuilderMode?: boolean;
+  /**
+   * Research results from deep research workflow (assistant messages only).
+   * When present and streaming/completed, renders the DeepResearchResults card.
+   */
+  researchResults?: {
+    isStreaming: boolean;
+    isCompleted: boolean;
+    content: string;
+    metadata: import('./DeepResearch/types').ResearchResultsMetadata | null;
+    messageId: string | null;
+  } | null;
   /**
    * The slash command that was active when this message was sent.
    * Populated for user messages when the user selected a command before sending.
@@ -445,13 +450,6 @@ export interface RunFinishedEvent {
     stopped_by_user?: boolean;
     error_occurred?: boolean;
     error_message?: string;
-    /**
-     * Conversation phase for approval button control (nested inside result)
-     * - "plan-proposed": Show approval buttons (Skip/Create Dashboard)
-     * - "ask": Normal conversation mode (hide approval buttons)
-     * - null/undefined: Normal conversation mode (hide approval buttons)
-     */
-    phase?: 'plan-proposed' | 'ask' | null;
   };
 }
 
@@ -1302,13 +1300,18 @@ export interface ChatProps {
    * Callback when user approves a workflow execution plan
    * Called with the run ID and execution ID
    */
-  onApprovePlan?: (runId: string, executionId: string) => void;
+  onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
 
   /**
    * Callback when user rejects a workflow execution plan
    * Called with the run ID and execution ID
    */
   onRejectPlan?: (runId: string, executionId: string) => void;
+
+  /**
+   * Callback when dashboard expand button is clicked (opens preview pane)
+   */
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
 
   /**
    * Enable slash commands feature
@@ -1524,25 +1527,8 @@ export interface ChatProps {
   onMentionsActivated?: () => void;
 
   // ============================================================================
-  // Deep Research Results Props (V2 only)
+  // Data Tables Props (Deep Research Approval Flow)
   // ============================================================================
-
-  /**
-   * Research results state from the transform/Pusher hook
-   * When present and isCompleted or isStreaming, shows the research results UI
-   */
-  researchResults?: {
-    isStreaming: boolean;
-    isCompleted: boolean;
-    content: string;
-    metadata: ResearchResultsMetadata | null;
-    messageId: string | null;
-  };
-
-  /**
-   * Whether deep research is currently running (for UI state)
-   */
-  isDeepResearchRunning?: boolean;
 
   /**
    * Callback when user clicks the DataTablesCard to review source data
@@ -1557,6 +1543,11 @@ export interface ChatProps {
     processedRecords?: number;
     totalRecords?: number;
   };
+
+  /**
+   * Whether data tables info is still loading
+   */
+  isDataTablesLoading?: boolean;
 
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state

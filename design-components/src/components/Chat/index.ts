@@ -1,6 +1,4 @@
 export { Chat } from './Chat';
-export { DeepResearchChat } from './DeepResearchChat';
-export type { DeepResearchChatProps } from './DeepResearchChat';
 export type {
   ChatProps,
   Message,

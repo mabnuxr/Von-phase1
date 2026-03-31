@@ -45,6 +45,7 @@ function DashboardCanvas({
   collapseOnMount,
 }: DashboardCanvasProps) {
   const { data, isLoading, error } = useDashboardQuery(dashboardId);
+
   const {
     handleSave,
     savePhase,
@@ -137,7 +138,7 @@ function DashboardCanvas({
   } = useDashboardSchedule(dashboardId);
 
   // Subscribe to Pusher events for dashboard refresh notifications
-  useDashboardRefreshEvents(dashboardId);
+  const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
 
   // Only collapse sidebar when first entering the dashboard from another section
   // (e.g. from chat). Switching between dashboards should leave the sidebar as-is.
@@ -147,7 +148,7 @@ function DashboardCanvas({
     }
   }, [collapseOnMount, collapseSidebar]);
 
-  if (isLoading) {
+  if (isLoading || isRefreshing) {
     return <AnalyticsSkeleton />;
   }
 
