@@ -456,21 +456,23 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
             <span className="text-xs text-gray-600">
               {operationLabel} {approval.label}
             </span>
-            {countdown.phase !== 'expired' && countdown.display !== '00:00' && (
-              <span
-                className={`text-xs font-mono px-1.5 py-0.5 rounded-full tabular-nums ${
-                  countdown.phase === 'safe'
-                    ? 'text-green-600 bg-green-50'
-                    : countdown.phase === 'warning'
-                      ? 'text-amber-600 bg-amber-50'
-                      : 'text-red-600 bg-red-50'
-                }`}
-                role={countdown.phase === 'urgent' ? 'timer' : undefined}
-                aria-label={`${countdown.display} remaining`}
-              >
-                {countdown.display}
-              </span>
-            )}
+            {countdown.display &&
+              countdown.phase !== 'expired' &&
+              countdown.phase !== 'inactive' && (
+                <span
+                  className={`text-xs font-mono px-1.5 py-0.5 rounded-full tabular-nums ${
+                    countdown.phase === 'safe'
+                      ? 'text-green-600 bg-green-50'
+                      : countdown.phase === 'warning'
+                        ? 'text-amber-600 bg-amber-50'
+                        : 'text-red-600 bg-red-50'
+                  }`}
+                  role={countdown.phase === 'urgent' ? 'timer' : undefined}
+                  aria-label={`${countdown.display} remaining`}
+                >
+                  {countdown.display}
+                </span>
+              )}
           </div>
         </div>
 

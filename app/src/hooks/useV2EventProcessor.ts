@@ -324,6 +324,8 @@ export function useV2EventProcessor(
       timelineStepsRef.current = next;
       return next;
     });
+    setIsAwaitingApproval(false);
+    setIsThinking(false);
   }, []);
 
   const invalidateApproval = useCallback(

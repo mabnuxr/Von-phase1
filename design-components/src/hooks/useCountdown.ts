@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export type CountdownPhase = 'safe' | 'warning' | 'urgent' | 'expired';
+export type CountdownPhase = 'safe' | 'warning' | 'urgent' | 'expired' | 'inactive';
 
 export interface CountdownState {
   /** Milliseconds remaining */
@@ -15,6 +15,13 @@ const EXPIRED_STATE: CountdownState = {
   remaining: 0,
   display: '00:00',
   phase: 'expired',
+};
+
+/** No TTL configured — approval has no expiry. Don't show countdown, don't fire onExpire. */
+const INACTIVE_STATE: CountdownState = {
+  remaining: Infinity,
+  display: '',
+  phase: 'inactive',
 };
 
 function formatDisplay(remainingMs: number): string {
@@ -49,7 +56,7 @@ export function useCountdown(
   const expiredCalledRef = useRef(false);
 
   const computeState = useCallback((): CountdownState => {
-    if (expiresAt == null || ttlSeconds == null) return EXPIRED_STATE;
+    if (expiresAt == null || ttlSeconds == null) return INACTIVE_STATE;
     const remaining = expiresAt - Date.now();
     if (remaining <= 0) return EXPIRED_STATE;
     const totalMs = ttlSeconds * 1000;
@@ -67,8 +74,8 @@ export function useCountdown(
     const initial = computeState();
     setState(initial);
 
-    if (initial.phase === 'expired') {
-      if (!expiredCalledRef.current) {
+    if (initial.phase === 'expired' || initial.phase === 'inactive') {
+      if (initial.phase === 'expired' && !expiredCalledRef.current) {
         expiredCalledRef.current = true;
         onExpireRef.current?.();
       }

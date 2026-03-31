@@ -189,7 +189,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
           <span className="text-sm font-medium text-gray-900">
             {approval.label} to {approval.operation}
           </span>
-          {countdown.phase !== 'expired' && countdown.display !== '00:00' && (
+          {countdown.display && countdown.phase !== 'expired' && countdown.phase !== 'inactive' && (
             <span
               className={`text-xs font-mono px-1.5 py-0.5 rounded-full tabular-nums ${
                 countdown.phase === 'safe'
