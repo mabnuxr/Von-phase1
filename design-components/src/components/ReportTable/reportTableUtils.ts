@@ -493,6 +493,8 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
 
   for (const col of columns) {
     if (!col.format || typeof col.format !== 'string') continue;
+    // Skip if a custom formatter already exists (don't overwrite)
+    if (col.cells?.formatter) continue;
 
     const d3Format = col.format;
     const rawTemplate = col.cells?.format;
@@ -504,7 +506,8 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
         const value = this.value;
         if (value === null || value === undefined) return '<span style="color:#9ca3af">—</span>';
 
-        const num = typeof value === 'number' ? value : Number(value);
+        const num = typeof value === 'number' ? value
+          : (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
         if (isNaN(num)) return `<span style="color:#111827">${escapeHtml(String(value))}</span>`;
 
         const formatted = escapeHtml(formatD3Pattern(num, d3Format));
