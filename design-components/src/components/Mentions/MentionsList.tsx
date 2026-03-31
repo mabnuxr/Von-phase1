@@ -35,7 +35,6 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
     onClick={() => onSelect(item)}
     onMouseEnter={onMouseEnter}
   >
-    {getMentionIcon(item)}
     <span className="text-sm text-gray-800 truncate">{item.name}</span>
   </div>
 );
@@ -94,6 +93,7 @@ export const MentionsList: React.FC<MentionsListProps> = ({
   return (
     <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
       <div className="overflow-y-auto px-1.5 py-1.5 flex flex-col gap-0.5" style={{ maxHeight }}>
+        <div className="px-2 py-1 text-xs font-medium text-gray-500">Dashboards</div>
         {isLoading && items.length === 0 ? (
           <SkeletonLoading />
         ) : items.length === 0 ? (
