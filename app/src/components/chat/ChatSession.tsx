@@ -389,16 +389,22 @@ function ExistingChatInner(
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
-  // Invalidate preview pane dashboard when agent updates it
+  // Invalidate preview pane dashboard when agent updates it (version changes)
+  const prevDashboardVersionRef = useRef<number | null>(null);
   useEffect(() => {
     if (
       chatV2.dashboard &&
       dashboardPaneState.isOpen &&
-      dashboardPaneState.dashboardId === chatV2.dashboard.dashboard_id
+      dashboardPaneState.dashboardId === chatV2.dashboard.dashboard_id &&
+      prevDashboardVersionRef.current !== null &&
+      chatV2.dashboard.dashboard_version !== prevDashboardVersionRef.current
     ) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(chatV2.dashboard.dashboard_id),
       });
+    }
+    if (chatV2.dashboard) {
+      prevDashboardVersionRef.current = chatV2.dashboard.dashboard_version;
     }
   }, [
     chatV2.dashboard,

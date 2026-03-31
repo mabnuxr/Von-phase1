@@ -30,7 +30,7 @@ export function DashboardPreviewPane({
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
-  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
     savePhase,
@@ -111,7 +111,7 @@ export function DashboardPreviewPane({
       }}
       className="h-full flex-1 min-w-0"
     >
-      {isLoading || isFetching || isRefreshing ? (
+      {isLoading || isRefreshing ? (
         <AnalyticsSkeleton />
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />
