@@ -9,6 +9,7 @@
 import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
@@ -30,7 +31,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
     savePhase,
@@ -80,6 +81,17 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    activeCount: filterActiveCount,
+    handleFilterChange,
+    handleClearFilter,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
 
   const {
     mergedWidgets,
@@ -124,7 +136,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
           <AnalyticsView
             dashboard={dashboard}
             refreshInfo={refreshInfo}
-            activeFilters={activeFilters}
+            filterDefinitions={filterDefinitions}
+            filterState={filterState}
+            filterActiveCount={filterActiveCount}
+            onFilterChange={handleFilterChange}
+            onClearFilter={handleClearFilter}
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}
@@ -157,6 +173,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onDeleteSchedule={handleDeleteSchedule}
             onEditModeChange={editModeMutation.mutate}
             editModePhase={editModePhase}
+            isRefetchingData={isFetching && !isLoading}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}

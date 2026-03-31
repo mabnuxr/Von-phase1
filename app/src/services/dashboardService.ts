@@ -9,6 +9,8 @@ import type {
   PanelDrilldownResponse,
   ScheduleConfigRequest,
   DashboardScheduleResponse,
+  FilterPatchPayload,
+  FilterPatchResponse,
 } from "../types/dashboard";
 
 /**
@@ -196,6 +198,18 @@ class DashboardService {
 
   async deleteSchedule(dashboardId: string): Promise<void> {
     return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}/schedule`);
+  }
+
+  // ─── Filters ────────────────────────────────────────────────────
+
+  async updateFilters(
+    dashboardId: string,
+    filters: FilterPatchPayload,
+  ): Promise<FilterPatchResponse> {
+    return apiClient.patch<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters`,
+      { filters },
+    );
   }
 }
 

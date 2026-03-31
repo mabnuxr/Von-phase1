@@ -304,6 +304,7 @@ export interface TextWidgetConfig {
 // ─── Filters ─────────────────────────────────────────────────────
 
 export type DashboardFilterType =
+  | "picklist"
   | "select"
   | "multi-select"
   | "date-range"
@@ -340,6 +341,52 @@ export interface DashboardFilters {
 
 /** @deprecated Use DashboardFilterDefinition */
 export type DashboardFilter = DashboardFilterDefinition;
+
+// ─── Filter API (PATCH /dashboards/{id}/filters) ────────────────
+
+export type FilterOperator =
+  // picklist
+  | "in"
+  | "not_in"
+  // picklist + text
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "not_contains"
+  // text only
+  | "starts_with"
+  | "ends_with"
+  // date
+  | "on"
+  | "before"
+  | "after"
+  | "on_or_before"
+  | "on_or_after"
+  // number
+  | "greater_than"
+  | "greater_than_or_equal"
+  | "less_than"
+  | "less_than_or_equal"
+  // universal
+  | "is_blank"
+  | "is_not_blank";
+
+export interface FilterValue {
+  operator: FilterOperator;
+  value?: string | number | string[];
+}
+
+export type FilterPatchPayload = Record<
+  string,
+  FilterValue | FilterValue[] | null
+>;
+
+export interface FilterPatchResponse {
+  dashboard_id: string;
+  dashboard_version: number;
+  definitions: DashboardFilterDefinition[];
+  state: Record<string, FilterValue>;
+}
 
 // ─── Schedule ────────────────────────────────────────────────────
 

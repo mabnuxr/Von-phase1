@@ -73,7 +73,7 @@ export function useAnalyticsTools(dashboardId: string) {
         },
       });
     },
-    [saveMutation, showToast],
+    [saveMutation, showToast, showToastNow, hideToastNow],
   );
 
   const savePhase = useMutationPhase(

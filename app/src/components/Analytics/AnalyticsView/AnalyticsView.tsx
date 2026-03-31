@@ -20,6 +20,7 @@ import {
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
+import type { DashboardFilterDefinition } from "../../../types/dashboard";
 // import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
@@ -42,7 +43,16 @@ import type {
 interface AnalyticsViewProps {
   dashboard: Dashboard;
   refreshInfo: RefreshInfo | null;
-  activeFilters: Record<string, unknown>;
+  /** Filter definitions from the dashboard */
+  filterDefinitions: DashboardFilterDefinition[];
+  /** Current filter state (column → value) */
+  filterState: Record<string, unknown>;
+  /** Number of active filters */
+  filterActiveCount: number;
+  /** Called when a filter value changes */
+  onFilterChange: (column: string, value: unknown) => void;
+  /** Called when a filter is cleared */
+  onClearFilter: (column: string) => void;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -104,12 +114,18 @@ interface AnalyticsViewProps {
   onPauseSchedule: () => void;
   onResumeSchedule: () => void;
   onDeleteSchedule: () => void;
+  /** Whether widget data is being refetched (e.g. after filter change) */
+  isRefetchingData?: boolean;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   dashboard,
   refreshInfo,
-  activeFilters,
+  filterDefinitions,
+  filterState,
+  filterActiveCount,
+  onFilterChange,
+  onClearFilter,
   onRefresh,
   onSave,
   savePhase,
@@ -144,6 +160,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onPauseSchedule,
   onResumeSchedule,
   onDeleteSchedule,
+  isRefetchingData,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -364,8 +381,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <DashboardLayout.HeaderRow bordered>
             <DashboardLayout.HeaderRow.Left>
               <AnalyticsFilters
-                filters={dashboard.filters?.definitions ?? []}
-                activeFilters={activeFilters}
+                definitions={filterDefinitions}
+                filterState={filterState}
+                activeCount={filterActiveCount}
+                onFilterChange={onFilterChange}
+                onClearFilter={onClearFilter}
               />
             </DashboardLayout.HeaderRow.Left>
 
@@ -509,6 +529,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTableSortChange={onTableSortChange}
               tableSortStates={tableSortStates}
               isEditMode={isEditMode}
+              isLoading={isRefetchingData}
             />
           </ErrorBoundary>
 

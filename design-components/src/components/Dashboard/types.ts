@@ -195,4 +195,6 @@ export interface DashboardGridProps {
   tableSortStates?: Record<string, SortState>;
   /** Whether the dashboard is in edit mode (shows visual indicators on widgets) */
   isEditMode?: boolean;
+  /** Whether all widgets are loading (e.g. after a filter change) */
+  isLoading?: boolean;
 }
