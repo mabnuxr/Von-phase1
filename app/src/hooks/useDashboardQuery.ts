@@ -93,6 +93,8 @@ interface RawApiDashboardResponse {
   filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  created_by_name?: string;
   refresh_info: {
     last_refreshed_at: string;
   };

@@ -199,7 +199,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onEditModeChange?.(false);
   }, [onEditModeChange]);
 
+  // ── Inline save toast (top-center inside canvas) ───────────────
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const isFirstSaveToastRef = useRef(false);
+
   const handleSaveFromEditMode = useCallback(() => {
+    // Capture before the mutation fires — reading dashboardVersion after
+    // onSuccess races with the query refetch that bumps the version.
+    isFirstSaveToastRef.current = dashboard.dashboardVersion < 1;
     onSave({
       isFirstSave: dashboard.dashboardVersion < 1,
       onSuccess: exitEditMode,
@@ -211,14 +219,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   }, [onRevert, exitEditMode]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
-
-  // ── Inline save toast (top-center inside canvas) ───────────────
-  const [showSaveToast, setShowSaveToast] = useState(false);
-  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const isFirstSaveToastRef = useRef(false);
   useEffect(() => {
     if (savePhase === "success") {
-      isFirstSaveToastRef.current = dashboard.dashboardVersion < 1;
       setShowSaveToast(true);
       clearTimeout(saveToastTimerRef.current);
       saveToastTimerRef.current = setTimeout(
@@ -226,7 +228,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         3000,
       );
     }
-  }, [savePhase, dashboard.dashboardVersion]);
+  }, [savePhase]);
 
   return (
     <DashboardCustomizationProvider
