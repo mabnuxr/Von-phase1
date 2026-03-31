@@ -13,9 +13,7 @@ export const UserChannelEvents = {
   CONVERSATION_TITLE_UPDATED: "conversation_title_updated",
   DASHBOARD_REFRESH_STARTED: "dashboard_refresh_started",
   DASHBOARD_REFRESH_COMPLETED: "dashboard_refresh_completed",
-  // Future events:
-  // ORG_MEMORY_UPDATED: "org_memory_updated",
-  // NOTIFICATION: "notification",
+  COMMAND_CREATED: "command_created",
 } as const;
 
 export type UserChannelEventName =
@@ -45,6 +43,15 @@ export interface DashboardRefreshCompletedEvent {
   dashboardId: string;
   executionId: string;
   success: boolean;
+}
+
+/**
+ * Sent when a quick command is created by the agent
+ */
+export interface CommandCreatedEvent {
+  commandId: string;
+  commandName: string;
+  slug: string;
 }
 
 /**
