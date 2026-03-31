@@ -507,7 +507,13 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
 
         const num = typeof value === 'number' ? value
           : (typeof value === 'string' && value.trim() !== '') ? Number(value) : NaN;
-        if (isNaN(num)) return `<span style="color:#111827">${escapeHtml(String(value))}</span>`;
+        if (isNaN(num)) {
+          const escaped = escapeHtml(String(value));
+          if (hasPlaceholder) {
+            return `<span style="color:#111827">${escapedTemplate!.replaceAll(ESCAPED_VALUE_PLACEHOLDER, escaped)}</span>`;
+          }
+          return `<span style="color:#111827">${escaped}</span>`;
+        }
 
         let formatted: string;
         try {
