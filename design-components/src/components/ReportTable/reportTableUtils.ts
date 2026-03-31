@@ -521,7 +521,7 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
         // If there's a cell template like "{value}%", inject the formatted number
         if (cellTemplate && cellTemplate.includes('{value}')) {
           // Escape template parts around {value} to prevent XSS from backend config
-          const display = escapeHtml(cellTemplate).replace(escapeHtml('{value}'), formatted);
+          const display = escapeHtml(cellTemplate).replaceAll(escapeHtml('{value}'), formatted);
           return `<span style="color:#111827">${display}</span>`;
         }
 
