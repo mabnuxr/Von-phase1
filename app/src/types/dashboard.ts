@@ -376,7 +376,10 @@ export interface FilterValue {
   value?: string | number | string[];
 }
 
-export type FilterPatchPayload = Record<string, FilterValue | null>;
+export type FilterPatchPayload = Record<
+  string,
+  FilterValue | FilterValue[] | null
+>;
 
 export interface FilterPatchResponse {
   dashboard_id: string;

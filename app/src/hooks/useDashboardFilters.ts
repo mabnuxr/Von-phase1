@@ -49,10 +49,15 @@ function normaliseServerState(
  * Map a filter definition type + its UI value into the API payload shape
  * ({operator, value} or null to clear).
  */
+type ApiFilterResult =
+  | { operator: FilterOperator; value?: string | number | string[] }
+  | { operator: FilterOperator; value?: string | number | string[] }[]
+  | null;
+
 function toApiFilter(
   def: DashboardFilterDefinition,
   value: unknown,
-): { operator: FilterOperator; value?: string | number | string[] } | null {
+): ApiFilterResult {
   if (value === null || value === undefined || value === "") return null;
 
   switch (def.type) {
@@ -68,7 +73,10 @@ function toApiFilter(
       const dateVal = value as { start?: string; end?: string };
       if (!dateVal.start && !dateVal.end) return null;
       if (dateVal.start && dateVal.end) {
-        return { operator: "on_or_after", value: dateVal.start };
+        return [
+          { operator: "on_or_after", value: dateVal.start },
+          { operator: "on_or_before", value: dateVal.end },
+        ];
       }
       if (dateVal.start)
         return { operator: "on_or_after", value: dateVal.start };
@@ -77,6 +85,12 @@ function toApiFilter(
     case "range": {
       const rangeVal = value as { min?: number; max?: number };
       if (rangeVal.min == null && rangeVal.max == null) return null;
+      if (rangeVal.min != null && rangeVal.max != null) {
+        return [
+          { operator: "greater_than_or_equal", value: rangeVal.min },
+          { operator: "less_than_or_equal", value: rangeVal.max },
+        ];
+      }
       if (rangeVal.min != null)
         return { operator: "greater_than_or_equal", value: rangeVal.min };
       return { operator: "less_than_or_equal", value: rangeVal.max };
@@ -103,7 +117,8 @@ export function useDashboardFilters(
 ) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pendingPayloadRef = useRef<FilterPatchPayload>({});
 
   // Local filter state keyed by filter id → raw UI value
   const [localState, setLocalState] = useState<Record<string, unknown>>(() =>
@@ -170,18 +185,21 @@ export function useDashboardFilters(
         return next;
       });
 
-      // Build PATCH payload
+      // Accumulate into pending payload so rapid changes aren't lost
       const def = definitionsRef.current.find((d) => d.id === filterId);
       if (!def) return;
 
       const apiValue = toApiFilter(def, value);
-      const payload: FilterPatchPayload = {
+      pendingPayloadRef.current = {
+        ...pendingPayloadRef.current,
         [filterId]: apiValue,
       };
 
-      // Debounce the API call
+      // Debounce the API call — sends all accumulated changes
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
+        const payload = pendingPayloadRef.current;
+        pendingPayloadRef.current = {};
         mutateRef.current(payload);
       }, DEBOUNCE_MS);
     },
