@@ -388,9 +388,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             ? handleRevertFromEditMode
                             : undefined
                         }
-                        disabled={revertPhase !== "idle" || dashboard.status !== "draft"}
+                        disabled={revertPhase !== "idle" || dashboard.status !== DashboardStatus.Draft}
                         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                          dashboard.status !== "draft"
+                          dashboard.status !== DashboardStatus.Draft
                             ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
                             : revertPhase === "pending"
                               ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
