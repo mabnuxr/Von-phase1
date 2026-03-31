@@ -214,10 +214,6 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
       {/* Dashboard Artifact Card - shown when dashboard was created */}
       {dashboard && !isStreaming && !showDashboardBuilderApproval && !showResearchResults && (
         <div className="space-y-2">
-          <p className="text-sm text-gray-600">
-            The dashboard is currently saved as a <strong>draft</strong>. Save it to make it
-            accessible from the side panel.
-          </p>
           <DashboardArtifactCard
             title={dashboard.dashboard_name}
             onPreview={
@@ -258,10 +254,6 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
           {/* Dashboard Card after research completes */}
           {researchResults.isCompleted && dashboard && (
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                The dashboard is currently saved as a <strong>draft</strong>. Save it to make it
-                accessible from the side panel.
-              </p>
               <DashboardArtifactCard
                 title={dashboard.dashboard_name}
                 onPreview={
