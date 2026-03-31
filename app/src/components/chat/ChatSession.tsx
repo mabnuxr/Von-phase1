@@ -29,8 +29,8 @@ import {
   FilePreviewModal,
   ArtifactViewerPanel,
   usePanelResize,
-  ConversationMode,
 } from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
 import type { FileArtifact } from "@vonlabs/design-components";
 
 import type {
@@ -59,12 +59,8 @@ import {
   getFrontendIntegrationId,
   INTEGRATION_METADATA,
 } from "../../constants/integrationMetadata";
-import {
-  MESSAGES_PAGE_LIMIT,
-  CHAT_PANE_AGENT_MODES,
-} from "../../config/constants";
+import { MESSAGES_PAGE_LIMIT } from "../../config/constants";
 import { config as appConfig } from "../../config";
-import { DeepResearchConversation } from "../DeepResearchConversation";
 import { DashboardPreviewPane } from "../DashboardPreviewPane";
 import { SingleArtifactDrawerContainer } from "../SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "../LazyTransparencyDrawer";
@@ -126,12 +122,6 @@ export interface ChatSessionProps {
   hasNextMessagePage?: boolean;
   isFetchingNextMessagePage?: boolean;
   refetchMessages?: () => Promise<unknown>;
-
-  // ── Mode ────────────────────────────────────────
-  lockedConversationMode?: ConversationMode;
-  isAgentLocked?: boolean;
-  availableAgentModes?: ConversationMode[];
-  syncConversationModeToBackend?: (mode: ConversationMode) => Promise<void>;
 
   // ── Dashboard context (analytics sidebar) ───────
   dashboardId?: string;
@@ -252,13 +242,6 @@ function ExistingChatInner(
   );
   const refStack = useReferenceStack(dashboardBaseLayer);
 
-  // ── Mode ──────────────────────────────────────────────────────────
-  const lockedConversationMode =
-    props.lockedConversationMode ??
-    currentConversation?.mode ??
-    ConversationMode.DashboardBuilder;
-  const isAgentLocked = props.isAgentLocked ?? true;
-
   // ── Chat engine ───────────────────────────────────────────────────
   const chatV2 = useChatV2({
     conversationId,
@@ -269,15 +252,13 @@ function ExistingChatInner(
       tenantId: base.user?.tenantId ?? "",
       title: props.title ?? props.dashboardTitle ?? "",
       agentVersion: "v2" as const,
-      mode: lockedConversationMode,
+      mode: "auto" as ConversationMode,
       createdAt: new Date().toISOString(),
       createdBy: null,
       updatedAt: null,
     },
     conversationMessages,
     refetchMessages,
-    lockedConversationMode,
-    isAgentLocked,
     canSubmit: base.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction ?? (() => {}),
     salesforceInstanceUrl: props.salesforceInstanceUrl,
@@ -286,8 +267,6 @@ function ExistingChatInner(
     isDeepLinksEnabled: base.features.isDeepLinksEnabled,
     isSourcesEnabled: base.features.isSourcesEnabled,
     isFileUploadEnabled: base.features.isFileUploadEnabled,
-    syncConversationModeToBackend:
-      props.syncConversationModeToBackend ?? (async () => {}),
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
     references: refStack.references,
   });
@@ -469,85 +448,7 @@ function ExistingChatInner(
     return <ChatSkeleton messageCount={4} />;
   }
 
-  // ── Deep research mode ────────────────────────────────────────────
-  if (chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0) {
-    const deepResearchContent = (
-      <DeepResearchConversation
-        messages={chatV2.transformedMessages}
-        userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
-        userEmail={base.user?.email}
-        conversationId={conversationId}
-        researchResults={chatV2.effectiveResearchResults ?? undefined}
-        isDeepResearchRunning={chatV2.isDeepResearchRunning}
-        dashboard={chatV2.dashboard ?? undefined}
-        lockedConversationMode={lockedConversationMode}
-        onSendMessage={chatV2.handleSendMessage}
-        onStopStreaming={chatV2.handleStopStreaming}
-        onArtifactClick={chatV2.handleArtifactClick}
-        onApprove={chatV2.handleApproval}
-        onReject={chatV2.handleRejection}
-        onApprovePlan={chatV2.handlePlanApproval}
-        onRejectPlan={chatV2.handlePlanRejection}
-        placeholder={props.placeholder ?? "Ask von anything"}
-        disableSubmit={!chatV2.canSubmitFinal}
-        onInputWhileDisabled={props.onDisabledInteraction}
-        enableCommands={base.features.isSlashCommandsEnabled}
-        availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
-        fetchNextMessagePage={fetchNextMessagePage}
-        hasNextMessagePage={hasNextMessagePage}
-        isFetchingNextMessagePage={isFetchingNextMessagePage}
-        onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
-        enableFileUpload={base.features.isFileUploadEnabled}
-        onFileClick={chatV2.handleFileClick}
-        compact={props.compact}
-      />
-    );
-
-    return (
-      <>
-        <div ref={splitContainerRef} className="flex h-full w-full">
-          <div
-            className="min-w-0 flex flex-col"
-            style={
-              dashboardPaneState.isOpen
-                ? {
-                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
-                  }
-                : { flex: 1 }
-            }
-          >
-            {fullBanner}
-            {deepResearchContent}
-          </div>
-          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-            <>
-              <div
-                {...getSplitHandleProps(0)}
-                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
-              >
-                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
-              </div>
-              <div
-                className="h-full min-w-0"
-                style={{
-                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
-                }}
-              >
-                <DashboardPreviewPane
-                  dashboardId={dashboardPaneState.dashboardId}
-                  conversationId={conversationId}
-                  onClose={closeDashboardPane}
-                />
-              </div>
-            </>
-          )}
-        </div>
-        <Overlays conversationId={conversationId} chatV2={chatV2} />
-      </>
-    );
-  }
-
-  // ── Regular chat ──────────────────────────────────────────────────
+  // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
       title={props.title ?? props.dashboardTitle ?? "von AI"}
@@ -569,10 +470,6 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       placeholder={props.placeholder ?? "Ask von anything"}
-      // Mode
-      isAgentLocked={isAgentLocked}
-      lockedConversationMode={lockedConversationMode}
-      availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
       banner={fullBanner}
@@ -608,6 +505,10 @@ function ExistingChatInner(
           ? base.commands.handleSendTest
           : undefined
       }
+      // Data tables (deep research approval flow)
+      dataTablesInfo={chatV2.dataTablesInfo ?? undefined}
+      isDataTablesLoading={chatV2.isDataTablesLoading}
+      onDataTablesClick={chatV2.handleDataTablesClick}
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
@@ -617,6 +518,7 @@ function ExistingChatInner(
       onReject={chatV2.handleRejection}
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
+      onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
       // Artifacts
       onArtifactClick={chatV2.handleArtifactClick}
       showArtifacts={base.features.isArtifactsEnabled}
@@ -656,8 +558,41 @@ function ExistingChatInner(
 
   return (
     <>
-      <div className="flex h-full w-full gap-1">
-        <div className="flex-1 min-w-0">{chatElement}</div>
+      <div ref={splitContainerRef} className="flex h-full w-full gap-1">
+        <div
+          className="flex-1 min-w-0"
+          style={
+            dashboardPaneState.isOpen
+              ? {
+                  flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                }
+              : undefined
+          }
+        >
+          {chatElement}
+        </div>
+        {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+          <>
+            <div
+              {...getSplitHandleProps(0)}
+              className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+            >
+              <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+            </div>
+            <div
+              className="h-full min-w-0"
+              style={{
+                flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+              }}
+            >
+              <DashboardPreviewPane
+                dashboardId={dashboardPaneState.dashboardId}
+                conversationId={conversationId}
+                onClose={closeDashboardPane}
+              />
+            </div>
+          </>
+        )}
         {!props.compact &&
           base.features.isArtifactsEnabled &&
           chatV2.fileArtifactPanel.isOpen &&
@@ -753,7 +688,6 @@ function NewChatInner(props: ChatSessionProps) {
     agentVersion: "v2",
     isAgentV2: true,
     title: props.dashboardTitle ?? props.title ?? "",
-    fixedMode: ConversationMode.DashboardBuilder,
     references,
     onCreated: props.onCreated,
   });
@@ -775,9 +709,6 @@ function NewChatInner(props: ChatSessionProps) {
       thinkingProcessVersion="v2"
       useStandardInput
       placeholder={props.placeholder ?? "Make changes to this dashboard..."}
-      isAgentLocked
-      lockedConversationMode={ConversationMode.DashboardBuilder}
-      availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}

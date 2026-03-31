@@ -16,15 +16,9 @@
 
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
-import { ConversationMode } from "@vonlabs/design-components";
 
-import {
-  conversationsService,
-  IntegrationType,
-  AuthenticationStatus,
-} from "../services";
+import { IntegrationType, AuthenticationStatus } from "../services";
 import { useIntegrations } from "../hooks/useIntegrations";
 import useChatStore from "../store/chatStore";
 import { useMessages } from "../hooks/useMessages";
@@ -33,8 +27,6 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useToast } from "../hooks/useToast";
-import { conversationKeys } from "../hooks/useConversations";
-import { chatSidebarKeys } from "../hooks/useChatSidebar";
 import { ChatV1Container } from "../components/ChatV1Container";
 import { ChatSession } from "../components/chat/ChatSession";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
@@ -61,13 +53,11 @@ const Conversation = () => {
     isSlashCommandsEnabled,
     isActionsEnabled,
     isDeepLinksEnabled,
-    isSidebarV2,
     isSourcesEnabled,
     isTenantDisabled,
     isFileUploadEnabled,
     isArtifactsEnabled,
     isGoogleDriveEnabled,
-    isDeepResearchEnabled,
     isScheduledCommandsEnabled,
   } = useFeatureFlag();
 
@@ -140,51 +130,6 @@ const Conversation = () => {
 
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
-
-  const lockedConversationMode: ConversationMode = useMemo(() => {
-    return currentConversation?.mode || ConversationMode.Auto;
-  }, [currentConversation]);
-
-  const isAgentLocked = conversationMessages.length > 0;
-
-  // --- Sync Agent Mode to Backend ---
-  const queryClient = useQueryClient();
-  const syncConversationModeToBackend = useCallback(
-    async (mode: ConversationMode) => {
-      if (!currentConversationId) return;
-
-      if (mode !== ConversationMode.Auto) {
-        try {
-          await conversationsService.updateConversationMode(
-            currentConversationId,
-            mode,
-          );
-          queryClient.invalidateQueries({
-            queryKey: isSidebarV2
-              ? chatSidebarKeys.sidebar()
-              : conversationKeys.lists(),
-          });
-
-          // Refetch the specific conversation so currentConversation.mode updates
-          await queryClient.refetchQueries({
-            queryKey: ["conversation", currentConversationId],
-          });
-          if (import.meta.env.DEV) {
-            console.log(
-              "[Conversation] Synced conversation mode to backend:",
-              mode,
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[Conversation] Failed to sync conversation mode:",
-            error,
-          );
-        }
-      }
-    },
-    [currentConversationId, queryClient, isSidebarV2],
-  );
 
   // --- UI State ---
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
@@ -261,13 +206,6 @@ const Conversation = () => {
     />
   );
 
-  // --- Agent modes available in the plus menu ---
-  const availableAgentModes = useMemo(() => {
-    const modes: ConversationMode[] = [ConversationMode.Auto];
-    if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
-    return modes;
-  }, [isDeepResearchEnabled]);
-
   // --- Shared container props ---
   const sharedContainerProps = {
     user,
@@ -277,8 +215,6 @@ const Conversation = () => {
     hasNextMessagePage: !!hasNextMessagePage,
     isFetchingNextMessagePage,
     refetchMessages: refetchMessages as () => Promise<unknown>,
-    lockedConversationMode,
-    isAgentLocked,
     canSubmit,
     onDisabledInteraction: handleDisabledInteraction,
     salesforceInstanceUrl,
@@ -289,8 +225,6 @@ const Conversation = () => {
     isFileUploadEnabled,
     isArtifactsEnabled,
     isScheduledCommandsEnabled,
-    availableAgentModes,
-    syncConversationModeToBackend,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
     onGoogleDriveClick: handleGoogleDriveClick,
@@ -325,10 +259,6 @@ const Conversation = () => {
           hasNextMessagePage={!!hasNextMessagePage}
           isFetchingNextMessagePage={isFetchingNextMessagePage}
           refetchMessages={refetchMessages as () => Promise<unknown>}
-          lockedConversationMode={lockedConversationMode}
-          isAgentLocked={isAgentLocked}
-          availableAgentModes={availableAgentModes}
-          syncConversationModeToBackend={syncConversationModeToBackend}
           banner={chatBanner}
           onDisabledInteraction={handleDisabledInteraction}
           onCollapseSidebar={collapseSidebar}

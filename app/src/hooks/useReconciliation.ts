@@ -52,9 +52,9 @@ export interface UseReconciliationConfig {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
     options?: {
-      phase?: "plan-proposed" | "ask" | null;
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
+      isDashboardBuilderMode?: boolean;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
@@ -152,20 +152,17 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 5b: Extract phase and dashboard from RUN_FINISHED event (if present)
+      // Step 5b: Extract dashboard and executionId from RUN_FINISHED event (if present)
       type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
           dashboard?: DashboardMetadata | null;
           execution_id?: string | null;
+          is_dashboard_builder_mode?: boolean;
         };
       };
       const runFinishedEvent = mergedEvents.find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
-      const reconciledPhase = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result?.phase ??
-          null)
-        : undefined;
       const reconciledDashboard = runFinishedEvent
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.dashboard ?? null)
@@ -174,12 +171,16 @@ export function useReconciliation({
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.execution_id ?? null)
         : undefined;
+      const reconciledIsDashboardBuilderMode = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.is_dashboard_builder_mode ?? false)
+        : undefined;
 
-      // Step 6: Update state (including phase/dashboard/executionId from RUN_FINISHED)
+      // Step 6: Update state (including dashboard/executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
-        phase: reconciledPhase,
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
+        isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
       });
 
       // Step 7: Handle run completion
