@@ -490,7 +490,7 @@ function ExistingChatInner(
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? "Ask von anything"}
+      placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
       banner={fullBanner}
@@ -712,7 +712,7 @@ function NewChatInner(props: ChatSessionProps) {
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? "Make changes to this dashboard..."}
+      placeholder={props.placeholder ?? "Ask questions or make changes..."}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}

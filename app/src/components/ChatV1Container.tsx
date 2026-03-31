@@ -155,7 +155,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         isLoading={false}
         loadMoreRef={loadMoreMessagesRef}
         isFetchingMore={isFetchingNextMessagePage}
-        placeholder="Ask von anything"
+        placeholder="Reply.."
         height="100%"
         width="100%"
         showMessagesFromIndex={showMessagesFromIndex}

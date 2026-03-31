@@ -444,7 +444,7 @@ const Analytics = () => {
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
-            placeholder="Make changes to this dashboard..."
+            placeholder="Ask questions or make changes..."
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}

@@ -158,7 +158,7 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
-        placeholder="Ask von anything"
+        placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"
         banner={banner}
