@@ -210,8 +210,6 @@ export function useMentions({
   }, []);
 
   const clearSelectedMentions = useCallback(() => {
-    // Reset dismissed state on send so the context dashboard re-attaches for the next message
-    userDismissedDashboardRef.current = false;
     setSelectedMentions([]);
   }, []);
 
