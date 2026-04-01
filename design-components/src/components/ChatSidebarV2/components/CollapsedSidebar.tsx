@@ -257,11 +257,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                             onClick={() => onDashboardClick?.(dash.id)}
                             title={dash.label}
                           >
-                            <ChartBarIcon
-                              size={14}
-                              weight="regular"
-                              className="flex-shrink-0 text-gray-500"
-                            />
                             <span className="truncate block">{dash.label}</span>
                           </div>
                         );

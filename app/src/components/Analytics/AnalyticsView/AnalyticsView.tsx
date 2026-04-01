@@ -12,16 +12,12 @@ import {
 import vonFilledLogo from "../../../assets/von-filled-logo.svg";
 import {
   DashboardLayout,
-  DashboardCustomizationProvider,
   DashboardGrid,
   ErrorBoundary,
   Tooltip,
 } from "@vonlabs/design-components";
-import { chartThemeIds } from "@vonlabs/design-components";
-import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
-// import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { SharePopover } from "./SharePopover";
@@ -116,12 +112,10 @@ interface AnalyticsViewProps {
   ) => void;
   /** Current sort state per panel */
   tableSortStates?: Record<string, { orderBy: string; orderByAsc: boolean }>;
-  /** Initial color theme from backend ui_config */
-  defaultColorTheme?: string;
-  /** Called when the user changes the color theme */
-  onColorThemeChange?: (themeId: string) => void;
   /** Called when the owner renames the dashboard */
   onRename?: (newName: string) => void;
+  /** Hide the "Created by" chip in the header */
+  hideCreatorChip?: boolean;
   /** Schedule state and handlers (required when dashboard.isOwner) */
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
@@ -174,9 +168,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onPointDrillDown,
   onTableSortChange,
   tableSortStates,
-  defaultColorTheme,
-  onColorThemeChange,
   onRename,
+  hideCreatorChip,
   schedule,
   isScheduled,
   isSchedulePaused,
@@ -198,11 +191,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     string,
     WidgetConfig
   >;
-
-  const validatedColorTheme =
-    defaultColorTheme && (chartThemeIds as string[]).includes(defaultColorTheme)
-      ? (defaultColorTheme as ChartThemeId)
-      : "default";
 
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -260,89 +248,86 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const isSaved = dashboard.status === DashboardStatus.Published;
 
   return (
-    <DashboardCustomizationProvider
-      defaultColorTheme={validatedColorTheme}
-      onColorThemeChange={onColorThemeChange}
+    <DashboardLayout
+      className={
+        isEditMode
+          ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
+          : "transition-all duration-200"
+      }
     >
-      <DashboardLayout
-        className={
-          isEditMode
-            ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
-            : "transition-all duration-200"
-        }
-      >
-        <DashboardLayout.Header>
-          {/* Title row: name + description | chat + close */}
-          <DashboardLayout.HeaderRow>
-            <DashboardLayout.HeaderRow.Left>
-              <div className="min-w-0">
-                {isRenamingTitle ? (
-                  <input
-                    ref={inputRef}
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={commitRename}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitRename();
-                      if (e.key === "Escape") {
-                        setEditValue(dashboard.title);
-                        setIsRenamingTitle(false);
+      <DashboardLayout.Header>
+        {/* Title row: name + description | chat + close */}
+        <DashboardLayout.HeaderRow>
+          <DashboardLayout.HeaderRow.Left>
+            <div className="min-w-0">
+              {isRenamingTitle ? (
+                <input
+                  ref={inputRef}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={commitRename}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitRename();
+                    if (e.key === "Escape") {
+                      setEditValue(dashboard.title);
+                      setIsRenamingTitle(false);
+                    }
+                  }}
+                  className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
+                />
+              ) : (
+                <div className="flex items-center gap-1.5 group">
+                  <h1 className="text-base font-semibold text-gray-900 truncate">
+                    {dashboard.title}
+                  </h1>
+                  {dashboard.description && (
+                    <Tooltip
+                      content={
+                        <span className="block max-w-[240px] whitespace-normal">
+                          {dashboard.description}
+                        </span>
                       }
-                    }}
-                    className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
-                  />
-                ) : (
-                  <div className="flex items-center gap-1.5 group">
-                    <h1 className="text-base font-semibold text-gray-900 truncate">
-                      {dashboard.title}
-                    </h1>
-                    {dashboard.description && (
-                      <Tooltip
-                        content={
-                          <span className="block max-w-[240px] whitespace-normal">
-                            {dashboard.description}
-                          </span>
+                    >
+                      <button className="text-gray-700 hover:text-gray-600 transition-colors">
+                        <InfoIcon size={16} />
+                      </button>
+                    </Tooltip>
+                  )}
+                  {dashboard.isOwner && onRename && (
+                    <Tooltip
+                      content={
+                        isSaved
+                          ? "Rename dashboard"
+                          : "Save the dashboard to rename"
+                      }
+                    >
+                      <button
+                        onClick={
+                          isSaved ? () => setIsRenamingTitle(true) : undefined
                         }
-                      >
-                        <button className="text-gray-700 hover:text-gray-600 transition-colors">
-                          <InfoIcon size={16} />
-                        </button>
-                      </Tooltip>
-                    )}
-                    {dashboard.isOwner && onRename && (
-                      <Tooltip
-                        content={
+                        disabled={!isSaved}
+                        className={`transition-opacity ${
+                          isEditMode
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
+                        } ${
                           isSaved
-                            ? "Rename dashboard"
-                            : "Save the dashboard to rename"
-                        }
+                            ? "text-gray-700 hover:text-gray-900 cursor-pointer"
+                            : "text-gray-500 cursor-not-allowed"
+                        }`}
                       >
-                        <button
-                          onClick={
-                            isSaved ? () => setIsRenamingTitle(true) : undefined
-                          }
-                          disabled={!isSaved}
-                          className={`transition-opacity ${
-                            isEditMode
-                              ? "opacity-100"
-                              : "opacity-0 group-hover:opacity-100"
-                          } ${
-                            isSaved
-                              ? "text-gray-700 hover:text-gray-900 cursor-pointer"
-                              : "text-gray-500 cursor-not-allowed"
-                          }`}
-                        >
-                          <PencilSimpleIcon size={16} />
-                        </button>
-                      </Tooltip>
-                    )}
-                  </div>
-                )}
-              </div>
-            </DashboardLayout.HeaderRow.Left>
+                        <PencilSimpleIcon size={16} />
+                      </button>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
+            </div>
+          </DashboardLayout.HeaderRow.Left>
 
-            <DashboardLayout.HeaderRow.Right>
-              {/* Created by indicator */}
+          <DashboardLayout.HeaderRow.Right>
+            {/* Created by indicator */}
+            {!hideCreatorChip && (
               <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
                 <span className="text-gray-800">Created by</span>
                 <span className="text-gray-800 font-medium">
@@ -351,243 +336,242 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     : dashboard.createdByName || "someone"}
                 </span>
               </span>
-              {onExpand && !isEditMode && (
+            )}
+            {onExpand && !isEditMode && (
+              <button
+                onClick={isSaved ? onExpand : undefined}
+                disabled={!isSaved}
+                className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                  !isSaved
+                    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                }`}
+              >
+                <ArrowsOutSimpleIcon size={13} />
+                View in Dashboards
+              </button>
+            )}
+
+            {/* "Ask Von" button — only shown when chat panel is closed */}
+            {onChatClick && !isChatOpen && (
+              <motion.button
+                key="ask-von"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.15 }}
+                onClick={onChatClick}
+                title="Ask Von"
+                className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <img
+                  src={vonFilledLogo}
+                  alt="Von"
+                  width={15}
+                  height={15}
+                  className="flex-shrink-0"
+                />
+                Ask Von
+              </motion.button>
+            )}
+
+            {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
+            {!onChatClick && onClose && (
+              <Tooltip content="Close">
                 <button
-                  onClick={isSaved ? onExpand : undefined}
-                  disabled={!isSaved}
-                  className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
-                    !isSaved
-                      ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                      : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                  }`}
+                  onClick={onClose}
+                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <ArrowsOutSimpleIcon size={13} />
-                  View in Dashboards
+                  <XIcon size={14} />
                 </button>
-              )}
-
-              {/* "Ask Von" button — only shown when chat panel is closed */}
-              {onChatClick && !isChatOpen && (
-                <motion.button
-                  key="ask-von"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{ duration: 0.15 }}
-                  onClick={onChatClick}
-                  title="Ask Von"
-                  className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  <img
-                    src={vonFilledLogo}
-                    alt="Von"
-                    width={15}
-                    height={15}
-                    className="flex-shrink-0"
-                  />
-                  Ask Von
-                </motion.button>
-              )}
-
-              {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
-              {!onChatClick && onClose && (
-                <Tooltip content="Close">
-                  <button
-                    onClick={onClose}
-                    className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    <XIcon size={14} />
-                  </button>
-                </Tooltip>
-              )}
-            </DashboardLayout.HeaderRow.Right>
-          </DashboardLayout.HeaderRow>
-
-          {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
-          <DashboardLayout.HeaderRow bordered>
-            <DashboardLayout.HeaderRow.Left>
-              <AnalyticsFilters
-                definitions={filterDefinitions}
-                filterState={filterState}
-                pendingRows={filterPendingRows}
-                activeCount={filterActiveCount}
-                canApply={filterCanApply}
-                isApplying={filterIsApplying}
-                onFilterChange={onFilterChange}
-                onRemoveFilter={onRemoveFilter}
-                onAddFilter={onAddFilter}
-                onRemovePendingRow={onRemovePendingRow}
-                onCommitPendingRow={onCommitPendingRow}
-                onApply={onApplyFilters}
-                onClearAll={onClearAll}
-              />
-            </DashboardLayout.HeaderRow.Left>
-
-            <DashboardLayout.HeaderRow.Right>
-              <StatusLine
-                state={dashboard.status}
-                lastSavedAt={dashboard.updatedAt}
-                lastRefreshedAt={refreshInfo?.lastRefreshedAt}
-              />
-              {dashboard.isOwner && (
-                <>
-                  {/* Revert — only in edit mode when there's a previous version */}
-                  {isEditMode && dashboard.dashboardVersion >= 1 && (
-                    <Tooltip content="Reverts to previous saved version">
-                      <button
-                        onClick={
-                          revertPhase === "idle"
-                            ? handleRevertFromEditMode
-                            : undefined
-                        }
-                        disabled={
-                          revertPhase !== "idle" ||
-                          dashboard.status !== DashboardStatus.Draft
-                        }
-                        className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                          dashboard.status !== DashboardStatus.Draft
-                            ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                            : revertPhase === "pending"
-                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                              : revertPhase === "success"
-                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
-                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                        }`}
-                      >
-                        {revertPhase === "pending" ? (
-                          <SpinnerGapIcon size={14} className="animate-spin" />
-                        ) : (
-                          <ClockCounterClockwiseIcon size={14} />
-                        )}
-                      </button>
-                    </Tooltip>
-                  )}
-
-                  <RefreshButton
-                    onRefresh={onRefresh}
-                    canRefresh={isSaved}
-                    schedule={schedule}
-                    isScheduled={isScheduled}
-                    isPaused={isSchedulePaused}
-                    isMutating={isScheduleMutating}
-                    onCreateSchedule={onCreateSchedule}
-                    onUpdateSchedule={onUpdateSchedule}
-                    onPauseSchedule={onPauseSchedule}
-                    onResumeSchedule={onResumeSchedule}
-                    onDeleteSchedule={onDeleteSchedule}
-                  />
-                  {/* <CustomizeButton /> */}
-                  <SharePopover
-                    isSharedWithTenant={dashboard.isSharedWithTenant}
-                    canShare={isSaved}
-                    sharePhase={sharePhase}
-                    onShare={onShare}
-                    onCopyLink={handleCopyLink}
-                  />
-
-                  {/* Edit / Save toggle */}
-                  {isEditMode ||
-                  savePhase !== "idle" ||
-                  dashboard.dashboardVersion < 1 ? (
-                    <SaveButton
-                      savePhase={savePhase}
-                      onSave={handleSaveFromEditMode}
-                      isSaved={false}
-                    />
-                  ) : (
-                    <Tooltip content="Edit dashboard">
-                      <button
-                        onClick={
-                          editModePhase === "idle"
-                            ? handleEnterEditMode
-                            : undefined
-                        }
-                        disabled={editModePhase !== "idle"}
-                        className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
-                          editModePhase === "pending"
-                            ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
-                            : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-                        }`}
-                      >
-                        {editModePhase === "pending" ? (
-                          <SpinnerGapIcon size={13} className="animate-spin" />
-                        ) : (
-                          <PencilSimpleIcon size={13} />
-                        )}
-                        Edit
-                      </button>
-                    </Tooltip>
-                  )}
-                </>
-              )}
-            </DashboardLayout.HeaderRow.Right>
-          </DashboardLayout.HeaderRow>
-        </DashboardLayout.Header>
-
-        <DashboardLayout.Canvas
-          className={`relative ${
-            isEditMode
-              ? "bg-gray-50 transition-colors duration-200"
-              : "transition-colors duration-200"
-          }`}
-        >
-          {/* Save toast — absolute top-center, no layout impact */}
-          <AnimatePresence>
-            {showSaveToast && (
-              <motion.div
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
-              >
-                <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
-                  <CheckCircleIcon size={16} weight="fill" />
-                  {isFirstSave
-                    ? "Dashboard is created. You can access the dashboard from the side panel."
-                    : "Dashboard is updated. You can access the dashboard from the side panel."}
-                </div>
-              </motion.div>
+              </Tooltip>
             )}
-          </AnimatePresence>
+          </DashboardLayout.HeaderRow.Right>
+        </DashboardLayout.HeaderRow>
 
-          <ErrorBoundary>
-            <DashboardGrid
-              layout={layout}
-              widgets={widgets}
-              gridConfig={gridConfig}
-              onTablePageChange={onTablePageChange}
-              loadingTablePanels={loadingTablePanels}
-              onDrillDown={onDrillDown}
-              onPointDrillDown={onPointDrillDown}
-              onTableSortChange={onTableSortChange}
-              tableSortStates={tableSortStates}
-              isEditMode={isEditMode}
-              isLoading={isRefetchingData}
+        {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
+        <DashboardLayout.HeaderRow bordered>
+          <DashboardLayout.HeaderRow.Left>
+            <AnalyticsFilters
+              definitions={filterDefinitions}
+              filterState={filterState}
+              pendingRows={filterPendingRows}
+              activeCount={filterActiveCount}
+              canApply={filterCanApply}
+              isApplying={filterIsApplying}
+              onFilterChange={onFilterChange}
+              onRemoveFilter={onRemoveFilter}
+              onAddFilter={onAddFilter}
+              onRemovePendingRow={onRemovePendingRow}
+              onCommitPendingRow={onCommitPendingRow}
+              onApply={onApplyFilters}
+              onClearAll={onClearAll}
             />
-          </ErrorBoundary>
+          </DashboardLayout.HeaderRow.Left>
 
-          {/* Edit mode banner — full-width sticky bottom */}
-          <AnimatePresence>
-            {isEditMode && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.2 }}
-                className="sticky bottom-0 z-10 -mx-4"
-              >
-                <div className="bg-gray-900 text-white text-sm px-6 pt-3 pb-4 items-center text-center rounded-t-2xl">
-                  You're in edit mode. Use the chat to make changes, then click{" "}
-                  <span className="font-semibold">Save</span> in the toolbar to
-                  save them.
-                </div>
-              </motion.div>
+          <DashboardLayout.HeaderRow.Right>
+            <StatusLine
+              state={dashboard.status}
+              lastSavedAt={dashboard.updatedAt}
+              lastRefreshedAt={refreshInfo?.lastRefreshedAt}
+            />
+            {dashboard.isOwner && (
+              <>
+                {/* Revert — only in edit mode when there's a previous version */}
+                {isEditMode && dashboard.dashboardVersion >= 1 && (
+                  <Tooltip content="Reverts to previous saved version">
+                    <button
+                      onClick={
+                        revertPhase === "idle"
+                          ? handleRevertFromEditMode
+                          : undefined
+                      }
+                      disabled={
+                        revertPhase !== "idle" ||
+                        dashboard.status !== DashboardStatus.Draft
+                      }
+                      className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
+                        dashboard.status !== DashboardStatus.Draft
+                          ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                          : revertPhase === "pending"
+                            ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                            : revertPhase === "success"
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                      }`}
+                    >
+                      {revertPhase === "pending" ? (
+                        <SpinnerGapIcon size={14} className="animate-spin" />
+                      ) : (
+                        <ClockCounterClockwiseIcon size={14} />
+                      )}
+                    </button>
+                  </Tooltip>
+                )}
+
+                <RefreshButton
+                  onRefresh={onRefresh}
+                  canRefresh={isSaved}
+                  schedule={schedule}
+                  isScheduled={isScheduled}
+                  isPaused={isSchedulePaused}
+                  isMutating={isScheduleMutating}
+                  onCreateSchedule={onCreateSchedule}
+                  onUpdateSchedule={onUpdateSchedule}
+                  onPauseSchedule={onPauseSchedule}
+                  onResumeSchedule={onResumeSchedule}
+                  onDeleteSchedule={onDeleteSchedule}
+                />
+                <SharePopover
+                  isSharedWithTenant={dashboard.isSharedWithTenant}
+                  canShare={isSaved}
+                  sharePhase={sharePhase}
+                  onShare={onShare}
+                  onCopyLink={handleCopyLink}
+                />
+
+                {/* Edit / Save toggle */}
+                {isEditMode ||
+                savePhase !== "idle" ||
+                dashboard.dashboardVersion < 1 ? (
+                  <SaveButton
+                    savePhase={savePhase}
+                    onSave={handleSaveFromEditMode}
+                    isSaved={false}
+                  />
+                ) : (
+                  <Tooltip content="Edit dashboard">
+                    <button
+                      onClick={
+                        editModePhase === "idle"
+                          ? handleEnterEditMode
+                          : undefined
+                      }
+                      disabled={editModePhase !== "idle"}
+                      className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                        editModePhase === "pending"
+                          ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
+                          : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                      }`}
+                    >
+                      {editModePhase === "pending" ? (
+                        <SpinnerGapIcon size={13} className="animate-spin" />
+                      ) : (
+                        <PencilSimpleIcon size={13} />
+                      )}
+                      Edit
+                    </button>
+                  </Tooltip>
+                )}
+              </>
             )}
-          </AnimatePresence>
-        </DashboardLayout.Canvas>
-      </DashboardLayout>
-    </DashboardCustomizationProvider>
+          </DashboardLayout.HeaderRow.Right>
+        </DashboardLayout.HeaderRow>
+      </DashboardLayout.Header>
+
+      <DashboardLayout.Canvas
+        className={`relative ${
+          isEditMode
+            ? "bg-gray-50 transition-colors duration-200"
+            : "transition-colors duration-200"
+        }`}
+      >
+        {/* Save toast — absolute top-center, no layout impact */}
+        <AnimatePresence>
+          {showSaveToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
+            >
+              <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
+                <CheckCircleIcon size={16} weight="fill" />
+                {isFirstSave
+                  ? "Dashboard is created. You can access the dashboard from the side panel."
+                  : "Dashboard is updated. You can access the dashboard from the side panel."}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <ErrorBoundary>
+          <DashboardGrid
+            layout={layout}
+            widgets={widgets}
+            gridConfig={gridConfig}
+            onTablePageChange={onTablePageChange}
+            loadingTablePanels={loadingTablePanels}
+            onDrillDown={onDrillDown}
+            onPointDrillDown={onPointDrillDown}
+            onTableSortChange={onTableSortChange}
+            tableSortStates={tableSortStates}
+            isEditMode={isEditMode}
+            isLoading={isRefetchingData}
+          />
+        </ErrorBoundary>
+
+        {/* Edit mode banner — full-width sticky bottom */}
+        <AnimatePresence>
+          {isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="sticky bottom-0 z-10 -mx-4"
+            >
+              <div className="bg-gray-900 text-white text-sm px-6 pt-3 pb-4 items-center text-center rounded-t-2xl">
+                You're in edit mode. Use the chat to make changes, then click{" "}
+                <span className="font-semibold">Save</span> in the toolbar to
+                save them.
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </DashboardLayout.Canvas>
+    </DashboardLayout>
   );
 };
 

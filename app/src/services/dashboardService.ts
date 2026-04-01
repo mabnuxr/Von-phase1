@@ -43,7 +43,6 @@ export interface DashboardUpdateRequest {
   description?: string;
   is_editable?: boolean;
   ui_config?: {
-    color_palette_global?: string;
     [key: string]: unknown;
   };
 }

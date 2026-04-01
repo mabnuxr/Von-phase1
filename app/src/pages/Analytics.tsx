@@ -62,17 +62,6 @@ function DashboardCanvas({
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
 
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({
-        ui_config: {
-          color_palette_global: themeId,
-        },
-      });
-    },
-    [handleUpdate],
-  );
-
   const handleRename = useCallback(
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
@@ -198,8 +187,6 @@ function DashboardCanvas({
         onPointDrillDown={openPointDrilldown}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
-        defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-        onColorThemeChange={handleColorThemeChange}
         onRename={handleRename}
         schedule={schedule}
         isScheduled={isScheduled}
@@ -328,7 +315,7 @@ const Analytics = () => {
   const { guard } = useNavigationGuard({
     when: isEditable,
     title: "Dashboard in edit mode",
-    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Switching will discard any edits.`,
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
     confirmLabel: "Switch Anyway",
   });
 
@@ -460,7 +447,7 @@ const Analytics = () => {
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
-            placeholder="Make changes to this dashboard..."
+            placeholder="Ask questions or make changes..."
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}

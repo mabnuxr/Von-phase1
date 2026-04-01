@@ -94,7 +94,7 @@ export function useFeatureFlag() {
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
+    isAgentV2: true,
 
     /**
      * User memory — permanently enabled, no longer behind a feature flag
@@ -104,7 +104,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
-    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
+    isDeepResearchEnabled: true,
 
     /**
      * Controls whether the Sources button is shown on assistant messages

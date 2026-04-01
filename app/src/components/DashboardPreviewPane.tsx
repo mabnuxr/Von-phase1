@@ -60,17 +60,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleDeleteSchedule,
   } = useDashboardSchedule(dashboardId);
 
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({
-        ui_config: {
-          color_palette_global: themeId,
-        },
-      });
-    },
-    [handleUpdate],
-  );
-
   const handleRename = useCallback(
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
@@ -175,9 +164,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onPointDrillDown={openPointDrilldown}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
-            defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-            onColorThemeChange={handleColorThemeChange}
             onRename={handleRename}
+            hideCreatorChip
             schedule={schedule}
             isScheduled={isScheduled}
             isSchedulePaused={isSchedulePaused}
