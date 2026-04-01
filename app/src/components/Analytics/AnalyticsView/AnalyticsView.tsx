@@ -410,11 +410,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
-            <StatusLine
-              state={dashboard.status}
-              lastSavedAt={dashboard.updatedAt}
-              lastRefreshedAt={refreshInfo?.lastRefreshedAt}
-            />
+            {!isEditMode && !isRefetchingData && (
+              <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
+            )}
             {dashboard.isOwner && (
               <>
                 {/* Revert — only in edit mode when there's a previous version */}

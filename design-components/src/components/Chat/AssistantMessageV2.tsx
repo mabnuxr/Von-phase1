@@ -167,12 +167,10 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
         <>
           <MarkdownActionCard
             variant="analysis-request"
-            markdown={
-              v2FinalResponse || 'Your dashboard is ready to be created. Please review and approve.'
-            }
+            markdown={v2FinalResponse || 'Your dashboard is now updated and saved.'}
             isStreaming={false}
             primaryAction={{
-              label: 'Create Dashboard',
+              label: 'Confirm Changes',
               onClick: async () => {
                 if (!isApproving && executionId && runId && onApprovePlan) {
                   setIsApproving(true);
