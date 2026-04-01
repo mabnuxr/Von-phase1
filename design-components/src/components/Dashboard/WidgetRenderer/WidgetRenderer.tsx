@@ -98,11 +98,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       case 'table':
         return (
-          <WidgetShell
-            title={widget.title}
-            subtitle={widget.subtitle}
-            queryInfo={widget.queryInfo}
-          >
+          <WidgetShell title={widget.title} subtitle={widget.subtitle} queryInfo={widget.queryInfo}>
             <TableWidget
               config={widget.config as TableWidgetConfig}
               onPageChange={
