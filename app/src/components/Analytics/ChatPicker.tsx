@@ -134,10 +134,7 @@ export function ChatPicker({
   };
 
   const titledConversations = useMemo(
-    () =>
-      unfiledConversations.filter(
-        (c) => c.title?.trim() && c.mode === "dashboard-builder",
-      ),
+    () => unfiledConversations.filter((c) => c.title?.trim()),
     [unfiledConversations],
   );
 
