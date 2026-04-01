@@ -43,13 +43,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
       [onPointDrillDown, widget.id]
     );
 
-    const handleCellClick = useCallback(
-      (columnId: string, cellValue: unknown) => {
-        onPointDrillDown?.(widget.id, { [columnId]: cellValue });
-      },
-      [onPointDrillDown, widget.id]
-    );
-
     switch (widget.type) {
       case 'chart':
         return (
@@ -105,12 +98,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       case 'table':
         return (
-          <WidgetShell
-            title={widget.title}
-            subtitle={widget.subtitle}
-            onDrillDown={drillDownHandler}
-            queryInfo={widget.queryInfo}
-          >
+          <WidgetShell title={widget.title} subtitle={widget.subtitle} queryInfo={widget.queryInfo}>
             <TableWidget
               config={widget.config as TableWidgetConfig}
               onPageChange={
@@ -124,7 +112,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
                   : undefined
               }
               sortState={tableSortState}
-              onCellClick={onPointDrillDown ? handleCellClick : undefined}
             />
           </WidgetShell>
         );
