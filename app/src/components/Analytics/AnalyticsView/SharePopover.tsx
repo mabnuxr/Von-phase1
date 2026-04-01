@@ -47,8 +47,6 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
   };
 
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
-  // Track the last action so pending/success labels stay correct
-  const [lastAction, setLastAction] = useState<"share" | "private">("share");
 
   const isDisabled = sharePhase === "pending" || sharePhase === "success";
   const hasChanged = selectedShared !== isSharedWithTenant;
@@ -60,13 +58,11 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
       setShowPrivateConfirm(true);
       return;
     }
-    setLastAction("share");
     onShare(selectedShared);
   };
 
   const handleConfirmPrivate = () => {
     setShowPrivateConfirm(false);
-    setLastAction("private");
     onShare(false);
   };
 
@@ -176,15 +172,13 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
                     {sharePhase === "pending" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <SpinnerGapIcon size={14} className="animate-spin" />
-                        {lastAction === "private"
-                          ? "Making Private"
-                          : "Sharing"}
+                        {!selectedShared ? "Making Private" : "Sharing"}
                       </span>
                     )}
                     {sharePhase === "success" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <CheckIcon size={14} weight="bold" />
-                        {lastAction === "private" ? "Made Private" : "Shared"}
+                        {!selectedShared ? "Made Private" : "Shared"}
                       </span>
                     )}
                     {sharePhase === "idle" &&

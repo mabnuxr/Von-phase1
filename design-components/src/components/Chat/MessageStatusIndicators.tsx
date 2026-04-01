@@ -39,7 +39,7 @@ export const MessageStatusIndicators: React.FC<MessageStatusIndicatorsProps> = (
 
       {/* Show expired approval indicator */}
       {status === 'expired' && (
-        <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
+        <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
           <div className="shrink-0 mt-0.5">
             <InfoIcon size={20} className="text-gray-500" />
           </div>
