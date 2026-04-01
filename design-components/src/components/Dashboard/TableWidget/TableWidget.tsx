@@ -93,47 +93,21 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
 
-  // Track text column ids and ordered column list for expand-button click handler
-  const textColIds = useMemo(() => findTextColumnIds(stableOptions), [stableOptions]);
-  const columnIds = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cols = (stableOptions as any).columns as Array<{ id: string }> | undefined;
-    return cols?.map((c) => c.id) ?? [];
-  }, [stableOptions]);
-
-  // Keep a ref to data columns so the click handler always has fresh data
-  const dataRef = useRef(stableOptions);
-  dataRef.current = stableOptions;
-
   /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback(
-    (e: React.MouseEvent) => {
-      const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
-      if (!btn) return;
-      e.stopPropagation();
+  const handleGridClick = useCallback((e: React.MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
+    if (!btn) return;
+    e.stopPropagation();
 
-      const td = btn.closest('td');
-      const tr = btn.closest('tr');
-      const tbody = tr?.closest('tbody');
-      if (!td || !tr || !tbody) return;
+    const td = btn.closest('td');
+    if (!td) return;
 
-      const colIdx = Array.from(tr.children).indexOf(td);
-      const rowIdx = Array.from(tbody.children).indexOf(tr);
-      const colId = columnIds[colIdx];
-
-      if (rowIdx >= 0 && colId && textColIds.has(colId)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const opts = dataRef.current as any;
-        const dataCols: Record<string, unknown[]> | undefined =
-          opts.data?.columns ?? opts.dataTable?.columns;
-        const fullText = String(dataCols?.[colId]?.[rowIdx] ?? '');
-        if (fullText) {
-          setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-        }
-      }
-    },
-    [columnIds, textColIds]
-  );
+    const span = td.querySelector('.dt-longtext-wrap > span');
+    const fullText = span?.textContent ?? '';
+    if (fullText) {
+      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
+    }
+  }, []);
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);

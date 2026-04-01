@@ -141,12 +141,6 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     () => new Set(columns.filter((c) => c.type === "text").map((c) => c.id)),
     [columns],
   );
-  const columnIds = useMemo(() => columns.map((c) => c.id), [columns]);
-
-  // Keep a ref to data rows so the click handler always sees fresh data
-  const dataRef = useRef(data);
-  dataRef.current = data;
-
   // Build grid options, injecting server sort state so Grid Lite preserves
   // its sort cycle correctly across data updates.
   // Override text column formatters with the longtext expand-button variant.
@@ -185,33 +179,23 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   }, [columns, data, sortState, textColIds]);
 
   /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback(
-    (e: React.MouseEvent) => {
-      const btn = (e.target as HTMLElement).closest(
-        ".dt-expand-btn",
-      ) as HTMLElement;
-      if (!btn) return;
+  const handleGridClick = useCallback((e: React.MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest(
+      ".dt-expand-btn",
+    ) as HTMLElement;
+    if (!btn) return;
 
-      e.stopPropagation();
+    e.stopPropagation();
 
-      const td = btn.closest("td");
-      const tr = btn.closest("tr");
-      const tbody = tr?.closest("tbody");
-      if (!td || !tr || !tbody) return;
+    const td = btn.closest("td");
+    if (!td) return;
 
-      const colIdx = Array.from(tr.children).indexOf(td);
-      const rowIdx = Array.from(tbody.children).indexOf(tr);
-      const colId = columnIds[colIdx];
-
-      if (rowIdx >= 0 && colId && textColIds.has(colId)) {
-        const fullText = String(dataRef.current[rowIdx]?.[colId] ?? "");
-        if (fullText) {
-          setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-        }
-      }
-    },
-    [columnIds, textColIds],
-  );
+    const span = td.querySelector(".dt-longtext-wrap > span");
+    const fullText = span?.textContent ?? "";
+    if (fullText) {
+      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
+    }
+  }, []);
 
   // ── Resize drag handlers ──────────────────────────────────────
 
