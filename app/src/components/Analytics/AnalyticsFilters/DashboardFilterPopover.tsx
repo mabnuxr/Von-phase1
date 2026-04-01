@@ -671,16 +671,11 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                         wasBetween !== isBetween ||
                         wasList !== isList;
 
-                      // Clear include_blank when switching to no-value operators
-                      const keepBlank = isNoValue
-                        ? false
-                        : filter.include_blank;
-
                       onFilterChange(
                         filterId,
                         op,
                         incompatible ? undefined : filter.value,
-                        keepBlank || undefined,
+                        isNoValue ? undefined : filter.include_blank,
                       );
                     }}
                     onValueChange={(val) =>
@@ -688,7 +683,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                         filterId,
                         filter.operator,
                         val,
-                        filter.include_blank || undefined,
+                        filter.include_blank,
                       )
                     }
                     onIncludeBlankChange={(includeBlank) =>

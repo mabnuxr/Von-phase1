@@ -155,9 +155,13 @@ export function useDashboardFilters(
         message: "Failed to apply filters. Please try again.",
         variant: "error",
       });
-      // Revert to server state on error
       setLocalState(serverNormalised.current);
       setIsApplying(false);
+    },
+    onSettled: () => {
+      // Safety net: if serverState effect doesn't fire within 15s
+      // (e.g. refetch fails silently), unlock the UI
+      setTimeout(() => setIsApplying(false), 15_000);
     },
   });
 
@@ -278,6 +282,7 @@ export function useDashboardFilters(
   const isDirty = !statesEqual(localState, serverNormalised.current);
 
   // Every local filter must be complete (has value or is a no-value operator)
+  const BETWEEN_OPS = new Set(["between", "not_between"]);
   const allFiltersValid = Object.values(localState).every((filter) => {
     if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
     if (
@@ -286,7 +291,21 @@ export function useDashboardFilters(
       filter.value === ""
     )
       return false;
-    if (Array.isArray(filter.value) && filter.value.length === 0) return false;
+    if (Array.isArray(filter.value)) {
+      if (filter.value.length === 0) return false;
+      // Between requires exactly 2 non-empty bounds
+      if (BETWEEN_OPS.has(filter.operator)) {
+        return (
+          filter.value.length === 2 &&
+          filter.value[0] !== undefined &&
+          filter.value[0] !== null &&
+          filter.value[0] !== "" &&
+          filter.value[1] !== undefined &&
+          filter.value[1] !== null &&
+          filter.value[1] !== ""
+        );
+      }
+    }
     return true;
   });
 
