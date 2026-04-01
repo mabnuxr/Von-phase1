@@ -52,7 +52,7 @@ function applyLongTextFormatters(options: GridOptions): GridOptions {
   return {
     ...options,
     columns: cols.map((col) =>
-      textIds.has(col.id)
+      textIds.has(col.id) && !col.cells?.formatter
         ? { ...col, cells: { ...col.cells, formatter: longTextExpandFormatter } }
         : col
     ),
