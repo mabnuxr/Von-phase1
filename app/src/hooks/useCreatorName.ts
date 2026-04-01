@@ -15,20 +15,23 @@ export function useCreatorName({
   createdBy: string;
   createdByName?: string;
 }): { name: string; isLoading: boolean; isError: boolean } {
+  const needsLookup = !isOwner && !createdByName;
   const { user, loading: userLoading } = useUser();
   const {
     data: teamMembers,
     isLoading: membersLoading,
     isError,
-  } = useTeamMembers(user?.tenantId);
+  } = useTeamMembers(needsLookup ? user?.tenantId : undefined);
 
-  const needsLookup = !isOwner && !createdByName;
   const isLoading = needsLookup && (userLoading || membersLoading);
 
   const memberNameById = useMemo(
     () =>
       new Map(
-        teamMembers?.map((m) => [m.id, `${m.firstName} ${m.lastName}`.trim()]),
+        teamMembers?.map((m) => [
+          m.id,
+          `${m.firstName || ""} ${m.lastName || ""}`.trim(),
+        ]),
       ),
     [teamMembers],
   );
