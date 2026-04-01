@@ -18,13 +18,11 @@ import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
 import { usePusherChannel } from "./usePusherChannel";
 import { useV1EventProcessor } from "./useV1EventProcessor";
-import { useStreamGuard } from "./useStreamGuard";
 import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 export interface UseChatV1Props {
   conversationId: string;
@@ -43,13 +41,7 @@ export interface UseChatV1Props {
 }
 
 export function useChatV1(props: UseChatV1Props) {
-  const {
-    conversationId,
-    user,
-    conversationMessages,
-    refetchMessages,
-    canSubmit,
-  } = props;
+  const { conversationId, user, conversationMessages, canSubmit } = props;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -142,33 +134,6 @@ export function useChatV1(props: UseChatV1Props) {
       }
     }
   }, [conversationId, conversationMessages]);
-
-  // Stream timeout guard
-  const getMessages = useCallback(
-    () => conversationMessages,
-    [conversationMessages],
-  );
-
-  const handleForceComplete = useCallback(
-    (messageId: string) => {
-      useChatStore.getState().forceCompleteMessage(conversationId, messageId);
-    },
-    [conversationId],
-  );
-
-  const handleStreamTimeout = useCallback(
-    async (messageId: string) => {
-      useChatStore.getState().markMessageTimeout(conversationId, messageId);
-      await refetchMessages();
-    },
-    [conversationId, refetchMessages],
-  );
-
-  useStreamGuard(conversationId, getMessages, {
-    timeoutMs: STREAM_TIMEOUT_MS,
-    onTimeout: handleStreamTimeout,
-    onForceComplete: handleForceComplete,
-  });
 
   // Transform messages to Chat component format (V1 path)
   const { messages: transformedMessages } = useMemo(
