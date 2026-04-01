@@ -200,14 +200,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     disabled: true,
   },
   // Sales Engagement integrations
-  outreach: {
-    id: "outreach",
-    name: "Outreach",
-    description: "Sync sales sequences and engagement data from Outreach",
+  outreachengage: {
+    id: "outreachengage",
+    name: "Outreach Engage",
+    description:
+      "Manage sequences, log calls, and create tasks in Outreach Engage",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
     category: "Sales Engagement",
-    disabled: true,
   },
   salesloft: {
     id: "salesloft",
@@ -296,7 +296,7 @@ export function getIntegrationLogoPath(type: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -339,7 +339,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     confluence: "CONFLUENCE",
     guru: "GURU",
     intercom: "INTERCOM",
-    outreach: "OUTREACH",
+    outreachengage: "OUTREACH_ENGAGE",
     salesloft: "SALESLOFT",
     snowflake: "SNOWFLAKE",
     databricks: "DATABRICKS",
@@ -376,7 +376,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -414,7 +414,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -452,6 +452,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   claricopilot: ["tenant"],
   attention: ["tenant"],
   zendesk: ["tenant"],
+  outreachengage: ["tenant"],
 
   // Personal integrations - user-level only
   hubspot: ["user"],
@@ -463,7 +464,6 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   confluence: ["user"],
   guru: ["user"],
   intercom: ["user"],
-  outreach: ["user"],
   salesloft: ["user"],
   snowflake: ["tenant"],
   databricks: ["user"],
