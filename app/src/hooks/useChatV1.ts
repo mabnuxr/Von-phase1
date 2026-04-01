@@ -45,7 +45,6 @@ export function useChatV1(props: UseChatV1Props) {
     conversationId,
     user,
     conversationMessages,
-    refetchMessages,
     canSubmit,
   } = props;
 
