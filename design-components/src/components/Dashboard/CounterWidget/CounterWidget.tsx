@@ -3,7 +3,6 @@ import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
-import { useDashboardCustomization } from '../DashboardCustomization';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import {
   formatKpiDisplay,
@@ -13,20 +12,13 @@ import {
 
 const DEFAULT_ACCENT = '#8039e9';
 
-/** Try to read the theme primary color, fallback gracefully */
-function useThemePrimary(): string | undefined {
-  const activeTheme = useDashboardCustomization();
-  return activeTheme.palette?.primary;
-}
-
 const Sparkline: React.FC<{ data: number[]; type: 'line' | 'bar'; accentColor?: string }> = ({
   data,
   type,
   accentColor,
 }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
-  const themeColor = useThemePrimary();
-  const color = accentColor ?? themeColor ?? DEFAULT_ACCENT;
+  const color = accentColor ?? DEFAULT_ACCENT;
 
   useEffect(() => {
     const chart = chartRef.current?.chart;
@@ -108,7 +100,6 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   queryInfo,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
-  const primaryColor = useThemePrimary();
 
   const displayValue = formatKpiDisplay(value, format, prefix, suffix);
 
@@ -183,7 +174,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
               className="h-full rounded-full transition-all duration-500 ease-out"
               style={{
                 width: `${Math.min(100, Math.max(0, progress))}%`,
-                backgroundColor: primaryColor ?? '#29a395',
+                backgroundColor: '#29a395',
               }}
             />
           </div>
