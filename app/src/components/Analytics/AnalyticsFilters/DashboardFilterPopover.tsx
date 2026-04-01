@@ -170,14 +170,14 @@ const ValueInput: React.FC<ValueInputProps> = ({
             type="date"
             value={arr[0] ?? ""}
             onChange={(e) => onChange([e.target.value, arr[1] ?? ""])}
-            className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-300 transition-colors"
+            className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors"
           />
-          <span className="text-xs text-gray-400 flex-shrink-0">to</span>
+          <span className="text-xs text-gray-600 flex-shrink-0">to</span>
           <input
             type="date"
             value={arr[1] ?? ""}
             onChange={(e) => onChange([arr[0] ?? "", e.target.value])}
-            className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-300 transition-colors"
+            className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors"
           />
         </div>
       );
@@ -195,9 +195,9 @@ const ValueInput: React.FC<ValueInputProps> = ({
             onChange([n, arr[1]]);
           }}
           placeholder="Min"
-          className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
+          className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
         />
-        <span className="text-xs text-gray-400 flex-shrink-0">to</span>
+        <span className="text-xs text-gray-600 flex-shrink-0">to</span>
         <input
           type="number"
           value={arr[1] ?? ""}
@@ -206,7 +206,7 @@ const ValueInput: React.FC<ValueInputProps> = ({
             onChange([arr[0], n]);
           }}
           placeholder="Max"
-          className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
+          className="flex-1 min-w-0 px-2 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
         />
       </div>
     );
@@ -265,7 +265,7 @@ const ValueInput: React.FC<ValueInputProps> = ({
           type="date"
           value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value || undefined)}
-          className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-300 transition-colors"
+          className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 transition-colors"
         />
       </div>
     );
@@ -282,7 +282,7 @@ const ValueInput: React.FC<ValueInputProps> = ({
             onChange(e.target.value ? Number(e.target.value) : undefined)
           }
           placeholder="Enter a value"
-          className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
+          className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
         />
       </div>
     );
@@ -296,7 +296,7 @@ const ValueInput: React.FC<ValueInputProps> = ({
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(e.target.value || undefined)}
         placeholder="Enter a value"
-        className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
+        className="w-full px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-500 focus:outline-none focus:border-gray-300 transition-colors"
       />
     </div>
   );
@@ -411,7 +411,7 @@ const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
                 }`}
               />
             </button>
-            <span className="text-xs text-gray-500">Include blanks</span>
+            <span className="text-xs text-gray-700">Include blanks</span>
           </div>
         )}
       </div>
@@ -460,14 +460,14 @@ const PendingFilterRow: React.FC<PendingFilterRowProps> = ({
 
       {/* Operator placeholder */}
       <div className="w-32 flex-shrink-0">
-        <div className="px-2.5 py-1.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-lg">
+        <div className="px-2.5 py-1.5 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg">
           is
         </div>
       </div>
 
       {/* Value placeholder */}
       <div className="flex-1 min-w-0">
-        <div className="px-2.5 py-1.5 text-sm text-gray-400 bg-white border border-gray-200 rounded-lg">
+        <div className="px-2.5 py-1.5 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg">
           Enter a value
         </div>
       </div>
@@ -620,7 +620,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
       <button
         ref={buttonRef}
         onClick={() => setIsOpen((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 h-[34px] px-3 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
       >
         <FunnelIcon size={14} />
         <span>Filter</span>
@@ -636,7 +636,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[480px] max-w-[600px]"
+            className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-lg p-3 min-w-[480px] max-w-[600px]"
             style={{ top: position.top, left: position.left }}
           >
             <div
@@ -736,7 +736,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                   <button
                     type="button"
                     onClick={onAddFilter}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                   >
                     <PlusIcon size={14} />
                     <span>Add condition</span>
@@ -746,7 +746,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                   <button
                     type="button"
                     onClick={onClearAll}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-900 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                   >
                     <PaintBrushHouseholdIcon size={14} />
                     <span>Clear all</span>
