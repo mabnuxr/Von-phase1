@@ -41,12 +41,7 @@ export interface UseChatV1Props {
 }
 
 export function useChatV1(props: UseChatV1Props) {
-  const {
-    conversationId,
-    user,
-    conversationMessages,
-    canSubmit,
-  } = props;
+  const { conversationId, user, conversationMessages, canSubmit } = props;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
