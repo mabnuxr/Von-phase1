@@ -499,12 +499,12 @@
 
 .markdown-content table,
 .prose table[data-streamdown='table'] {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   margin: 0 !important;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  overflow: hidden;
 }
 
 .markdown-content th,
@@ -528,6 +528,7 @@
   font-weight: 600;
   color: #0a0a0a;
   text-transform: none;
+  white-space: nowrap;
 }
 
 /* Override Streamdown's default table styling */
@@ -750,18 +751,29 @@ li[data-streamdown='list-item'] {
 /* Make tables full width with subtle borders */
 .markdown-body table,
 table[data-streamdown='table'] {
-  width: 100% !important;
+  width: max-content;
+  min-width: 100%;
   display: table !important;
   border-collapse: collapse;
   margin: 1em 0;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  overflow: hidden;
 }
 
-/* Table wrapper - position relative for absolute button positioning */
+/* Table wrapper - scrollable with fade hint */
 div[data-streamdown='table-wrapper'] {
   position: relative;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Sticky header row when scrolling vertically */
+div[data-streamdown='table-wrapper'] thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #f9fafb;
 }
 
 /* Hide the button container that appears above table */
