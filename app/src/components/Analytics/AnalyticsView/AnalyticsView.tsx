@@ -45,14 +45,23 @@ interface AnalyticsViewProps {
   refreshInfo: RefreshInfo | null;
   /** Filter definitions from the dashboard */
   filterDefinitions: DashboardFilterDefinition[];
-  /** Current filter state (column → value) */
-  filterState: Record<string, unknown>;
+  /** Current filter state in API-native format */
+  filterState: Record<string, { operator: string; value?: unknown }>;
+  /** Pending rows where user hasn't picked a field yet */
+  filterPendingRows: { tempId: string }[];
   /** Number of active filters */
   filterActiveCount: number;
-  /** Called when a filter value changes */
-  onFilterChange: (column: string, value: unknown) => void;
-  /** Called when a filter is cleared */
-  onClearFilter: (column: string) => void;
+  /** Whether filters can be applied (dirty + all valid) */
+  filterCanApply: boolean;
+  /** Whether filters are being applied (PATCH + refetch in progress) */
+  filterIsApplying: boolean;
+  onFilterChange: (filterId: string, operator: string, value?: unknown, includeBlank?: boolean) => void;
+  onRemoveFilter: (filterId: string) => void;
+  onAddFilter: () => void;
+  onRemovePendingRow: (tempId: string) => void;
+  onCommitPendingRow: (pendingId: string, filterId: string, defaultOperator: string) => void;
+  onApplyFilters: () => void;
+  onClearAll: () => void;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -123,9 +132,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   refreshInfo,
   filterDefinitions,
   filterState,
+  filterPendingRows,
   filterActiveCount,
+  filterCanApply,
+  filterIsApplying,
   onFilterChange,
-  onClearFilter,
+  onRemoveFilter,
+  onAddFilter,
+  onRemovePendingRow,
+  onCommitPendingRow,
+  onApplyFilters,
+  onClearAll,
   onRefresh,
   onSave,
   savePhase,
@@ -383,9 +400,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <AnalyticsFilters
                 definitions={filterDefinitions}
                 filterState={filterState}
+                pendingRows={filterPendingRows}
                 activeCount={filterActiveCount}
+                canApply={filterCanApply}
+                isApplying={filterIsApplying}
                 onFilterChange={onFilterChange}
-                onClearFilter={onClearFilter}
+                onRemoveFilter={onRemoveFilter}
+                onAddFilter={onAddFilter}
+                onRemovePendingRow={onRemovePendingRow}
+                onCommitPendingRow={onCommitPendingRow}
+                onApply={onApplyFilters}
+                onClearAll={onClearAll}
               />
             </DashboardLayout.HeaderRow.Left>
 

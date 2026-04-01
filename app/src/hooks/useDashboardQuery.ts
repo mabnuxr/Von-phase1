@@ -244,6 +244,7 @@ function adaptApiResponse(
                 ? raw.filters.definitions
                 : [],
               state: raw.filters.state ?? {},
+              defaults: raw.filters.defaults ?? {},
             }
           : undefined,
         createdAt: raw.created_at,

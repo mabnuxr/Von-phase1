@@ -84,9 +84,17 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const {
     definitions: filterDefinitions,
     filterState,
+    pendingRows: filterPendingRows,
     activeCount: filterActiveCount,
+    canApply: filterCanApply,
+    isApplying: filterIsApplying,
     handleFilterChange,
-    handleClearFilter,
+    handleRemoveFilter,
+    handleAddFilter,
+    handleRemovePendingRow,
+    handleCommitPendingRow,
+    handleApply,
+    handleClearAll,
   } = useDashboardFilters(
     dashboardId,
     dashboard?.filters?.definitions ?? [],
@@ -138,9 +146,17 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             refreshInfo={refreshInfo}
             filterDefinitions={filterDefinitions}
             filterState={filterState}
+            filterPendingRows={filterPendingRows}
             filterActiveCount={filterActiveCount}
+            filterCanApply={filterCanApply}
+            filterIsApplying={filterIsApplying}
             onFilterChange={handleFilterChange}
-            onClearFilter={handleClearFilter}
+            onRemoveFilter={handleRemoveFilter}
+            onAddFilter={handleAddFilter}
+            onRemovePendingRow={handleRemovePendingRow}
+            onCommitPendingRow={handleCommitPendingRow}
+            onApplyFilters={handleApply}
+            onClearAll={handleClearAll}
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}
