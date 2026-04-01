@@ -318,33 +318,6 @@ function transformRowToEmail(
 }
 
 /**
- * Sort function for conversations by relevance and recency
- */
-function sortByRelevanceAndRecency(
-  a: { relevanceScore?: number; recencyScore?: number; date: string },
-  b: { relevanceScore?: number; recencyScore?: number; date: string },
-): number {
-  const relevanceA = a.relevanceScore ?? 0;
-  const relevanceB = b.relevanceScore ?? 0;
-
-  // Primary sort: by relevance score descending
-  if (relevanceA !== relevanceB) {
-    return relevanceB - relevanceA;
-  }
-
-  // Tiebreaker: by recency score descending
-  const recencyA = a.recencyScore ?? 0;
-  const recencyB = b.recencyScore ?? 0;
-
-  if (recencyA !== recencyB) {
-    return recencyB - recencyA;
-  }
-
-  // Final fallback: by date descending
-  return new Date(b.date).getTime() - new Date(a.date).getTime();
-}
-
-/**
  * Sort function for conversations by date descending (most recent first)
  */
 function sortByDateDescending(
