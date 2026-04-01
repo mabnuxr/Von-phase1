@@ -21,4 +21,6 @@ export interface MentionItem {
   version: number;
   /** Dashboard sub-type for icon differentiation */
   dashboardVariant?: DashboardVariant;
+  /** Whether this is the currently open/in-viewport dashboard */
+  isCurrent?: boolean;
 }

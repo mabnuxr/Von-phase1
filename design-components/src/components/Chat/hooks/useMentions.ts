@@ -156,16 +156,37 @@ export function useMentions({
     (m) => m.type === MentionItemType.Dashboard
   );
 
-  // Filter items by current query, excluding already-selected mentions
+  // Filter items by current query, excluding already-selected mentions.
+  // When a dashboard is currently in the viewport (dashboardMention), prioritize it first.
   const filteredItems = useMemo(() => {
-    // When limit is reached, show all items (they'll render disabled)
+    let items: MentionItem[];
     if (isDashboardLimitReached) {
-      return filterItems(mentionItems, suggestionState.query);
+      // When limit is reached, show all items (they'll render disabled)
+      items = filterItems(mentionItems, suggestionState.query);
+    } else {
+      const selectedIds = new Set(selectedMentions.map((m) => m.id));
+      const available = mentionItems.filter((item) => !selectedIds.has(item.id));
+      items = filterItems(available, suggestionState.query);
     }
-    const selectedIds = new Set(selectedMentions.map((m) => m.id));
-    const available = mentionItems.filter((item) => !selectedIds.has(item.id));
-    return filterItems(available, suggestionState.query);
-  }, [mentionItems, suggestionState.query, selectedMentions, isDashboardLimitReached]);
+
+    // Mark and move the currently open dashboard to the top of the list
+    if (dashboardMention) {
+      const currentId = dashboardMention.id;
+      const current = items
+        .filter((item) => item.id === currentId)
+        .map((item) => ({ ...item, isCurrent: true }));
+      const rest = items.filter((item) => item.id !== currentId);
+      items = [...current, ...rest];
+    }
+
+    return items;
+  }, [
+    mentionItems,
+    suggestionState.query,
+    selectedMentions,
+    isDashboardLimitReached,
+    dashboardMention,
+  ]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight when query changes

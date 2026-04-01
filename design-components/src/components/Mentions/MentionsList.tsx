@@ -115,29 +115,45 @@ export const MentionsList: React.FC<MentionsListProps> = ({
   return (
     <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
       <div className="overflow-y-auto px-1.5 py-1.5 flex flex-col gap-0.5" style={{ maxHeight }}>
-        <div className="px-2 py-1 text-xs font-medium text-gray-500">Dashboards</div>
         {isLoading && items.length === 0 ? (
           <SkeletonLoading />
         ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          items.map((item, index) => (
-            <div
-              key={item.id}
-              ref={(el) => {
-                itemRefs.current[index] = el;
-              }}
-            >
-              <MentionItemRow
-                item={item}
-                onSelect={onSelect}
-                onMouseEnter={() => onHoverIndex?.(index)}
-                isHighlighted={index === highlightedIndex}
-                disabled={disabled}
-                disabledTooltip={disabledTooltip}
-              />
-            </div>
-          ))
+          items.map((item, index) => {
+            const prevItem = items[index - 1];
+            const showCurrentHeader = item.isCurrent && index === 0;
+            const showOthersHeader = !item.isCurrent && (index === 0 || prevItem?.isCurrent);
+            return (
+              <React.Fragment key={item.id}>
+                {showCurrentHeader && (
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500">
+                    Currently viewing
+                  </div>
+                )}
+                {showOthersHeader && (
+                  <>
+                    {index > 0 && <div className="mx-2 border-t border-gray-100" />}
+                    <div className="px-2 py-1 text-xs font-medium text-gray-500">Dashboards</div>
+                  </>
+                )}
+                <div
+                  ref={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
+                >
+                  <MentionItemRow
+                    item={item}
+                    onSelect={onSelect}
+                    onMouseEnter={() => onHoverIndex?.(index)}
+                    isHighlighted={index === highlightedIndex}
+                    disabled={disabled}
+                    disabledTooltip={disabledTooltip}
+                  />
+                </div>
+              </React.Fragment>
+            );
+          })
         )}
       </div>
     </div>
