@@ -120,7 +120,7 @@ const BaseArtifactCardRoot: React.FC<BaseArtifactCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`border border-gray-200 rounded-2xl px-3 py-3 flex items-center gap-3 hover:border-gray-200 shadow-xs transition-colors ${onClick ? 'cursor-pointer' : ''} ${className ?? ''}`}
+      className={`mt-2 border border-gray-200 rounded-2xl px-3 py-3 flex items-center gap-3 hover:border-gray-200 shadow-xs transition-colors ${onClick ? 'cursor-pointer' : ''} ${className ?? ''}`}
     >
       {/* Icon slot or direct icon prop */}
       {iconContent && (

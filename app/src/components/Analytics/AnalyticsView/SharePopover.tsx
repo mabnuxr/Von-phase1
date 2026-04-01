@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useVisibilityToggle, Tooltip } from "@vonlabs/design-components";
 import { useToast } from "../../../hooks/useToast";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
+import { UnsavedChangesModal } from "../UnsavedChangesModal";
 
 interface SharePopoverProps {
   isSharedWithTenant: boolean;
@@ -45,11 +46,27 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
     toggleVisibility();
   };
 
+  const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+
   const isDisabled = sharePhase === "pending" || sharePhase === "success";
   const hasChanged = selectedShared !== isSharedWithTenant;
+  const isMakingPrivate = isSharedWithTenant && !selectedShared;
 
   const handleShare = () => {
+    if (isMakingPrivate) {
+      setShowPrivateConfirm(true);
+      return;
+    }
     onShare(selectedShared);
+  };
+
+  const handleConfirmPrivate = () => {
+    setShowPrivateConfirm(false);
+    onShare(false);
+  };
+
+  const handleCancelPrivate = () => {
+    setShowPrivateConfirm(false);
   };
 
   const handleCopyLink = async () => {
@@ -163,7 +180,8 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
                         Shared
                       </span>
                     )}
-                    {sharePhase === "idle" && "Share"}
+                    {sharePhase === "idle" &&
+                      (isMakingPrivate ? "Make Private" : "Share")}
                   </button>
 
                   {isSharedWithTenant && onCopyLink && (
@@ -183,6 +201,15 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
           </>
         )}
       </AnimatePresence>
+
+      <UnsavedChangesModal
+        isOpen={showPrivateConfirm}
+        title="Make dashboard private?"
+        body="Your team will lose access to this dashboard. Only you will be able to view and edit it."
+        confirmLabel="Yes, Make Private"
+        onConfirm={handleConfirmPrivate}
+        onCancel={handleCancelPrivate}
+      />
     </div>
   );
 };

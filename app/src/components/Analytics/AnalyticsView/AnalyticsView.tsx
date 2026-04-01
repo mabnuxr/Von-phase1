@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
+  BuildingsIcon,
   CheckCircleIcon,
   ClockCounterClockwiseIcon,
   InfoIcon,
+  LockSimpleIcon,
   SpinnerGapIcon,
   XIcon,
   PencilSimpleIcon,
@@ -326,6 +328,23 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
+            {/* Visibility indicator */}
+            <Tooltip
+              content={
+                dashboard.isSharedWithTenant
+                  ? "This dashboard is shared with your organization"
+                  : "This dashboard is private"
+              }
+            >
+              <span className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-700 cursor-default">
+                {dashboard.isSharedWithTenant ? (
+                  <BuildingsIcon size={16} />
+                ) : (
+                  <LockSimpleIcon size={16} />
+                )}
+              </span>
+            </Tooltip>
+
             {/* Created by indicator */}
             {!hideCreatorChip && (
               <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
@@ -560,7 +579,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               transition={{ duration: 0.2 }}
               className="sticky bottom-0 z-10 -mx-4"
             >
-              <div className="bg-gray-900 text-white text-sm px-6 pt-3 pb-4 items-center text-center rounded-t-2xl">
+              <div className="bg-gray-900 text-white text-sm px-4 py-4 items-center text-center rounded-2xl w-fit mx-auto">
                 You're in edit mode. Use the chat to make changes, then click{" "}
                 <span className="font-semibold">Save</span> in the toolbar to
                 save them.

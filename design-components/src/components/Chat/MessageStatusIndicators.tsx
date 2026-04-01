@@ -17,7 +17,7 @@ export const MessageStatusIndicators: React.FC<MessageStatusIndicatorsProps> = (
     <>
       {/* Show stopped indicator */}
       {stoppedByUser && (
-        <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+        <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
           <div className="shrink-0 mt-0.5">
             <InfoIcon size={20} className="text-indigo-600" />
           </div>
@@ -29,7 +29,7 @@ export const MessageStatusIndicators: React.FC<MessageStatusIndicatorsProps> = (
 
       {/* Show timeout indicator */}
       {status === 'timeout' && (
-        <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+        <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
           <div className="shrink-0 mt-0.5">
             <InfoIcon size={20} className="text-indigo-600" />
           </div>
