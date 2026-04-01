@@ -345,6 +345,16 @@ function sortByRelevanceAndRecency(
 }
 
 /**
+ * Sort function for conversations by date descending (most recent first)
+ */
+function sortByDateDescending(
+  a: { date: string },
+  b: { date: string },
+): number {
+  return new Date(b.date).getTime() - new Date(a.date).getTime();
+}
+
+/**
  * Content shape for fetch_conversation artifacts
  */
 type FetchConversationContent = {
@@ -509,7 +519,7 @@ function transformFetchConversationToEmail(
  * Separate calls and emails from bulk RAG artifacts
  * Supports both row-based artifacts (execute_conversation_search) and
  * single-conversation artifacts (fetch_conversation)
- * Returns both arrays sorted by relevance with recency tiebreaker
+ * Returns both arrays sorted by date descending (most recent first)
  */
 export function separateCallsAndEmails(
   bulkRagArtifacts:
@@ -587,9 +597,9 @@ export function separateCallsAndEmails(
     }
   }
 
-  // Sort both by relevance with recency tiebreaker
-  calls.sort(sortByRelevanceAndRecency);
-  emails.sort(sortByRelevanceAndRecency);
+  // Sort both by date descending (most recent first)
+  calls.sort(sortByDateDescending);
+  emails.sort(sortByDateDescending);
 
   return { calls, emails };
 }
