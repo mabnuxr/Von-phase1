@@ -38,11 +38,13 @@ export function useArtifactCreatedEvent(
       );
       if (hasCommandCreated) {
         queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
-        // Don't process command artifacts as file artifacts
-        if (parsed.artifacts.every((a) => a.artifact_type === "command_created")) {
-          return;
-        }
       }
+
+      // Filter out command_created entries — they aren't file artifacts
+      const fileArtifacts = parsed.artifacts.filter(
+        (a) => a.artifact_type !== "command_created",
+      );
+      if (fileArtifacts.length === 0) return;
 
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
@@ -51,7 +53,7 @@ export function useArtifactCreatedEvent(
 
       if (parsed.status === "processing") {
         // Seed cache with placeholders so skeletons render immediately
-        const placeholders: FileMetadataResponse[] = parsed.artifacts.map(
+        const placeholders: FileMetadataResponse[] = fileArtifacts.map(
           (a) => ({
             id: a.file_name,
             fileName: a.file_name,
@@ -71,7 +73,7 @@ export function useArtifactCreatedEvent(
         queryClient.invalidateQueries({ queryKey, refetchType: "inactive" });
       } else {
         // Immediately replace placeholders with event data (removes isPending)
-        const freshData: FileMetadataResponse[] = parsed.artifacts.map((a) => ({
+        const freshData: FileMetadataResponse[] = fileArtifacts.map((a) => ({
           id: a.id ?? a.file_name,
           fileName: a.file_name,
           mimeType: "",
