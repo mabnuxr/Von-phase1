@@ -95,6 +95,12 @@ export function transformMessagesToChatFormat(
           | "text"
           | "image",
       })),
+      mentions: streamingMsg.references?.map((ref) => ({
+        id: ref.context.dashboardId,
+        name: ref.context.dashboardName,
+        type: ref.type,
+        version: ref.context.dashboardVersion,
+      })),
       // Map the quick command so ChatMessage can render CommandPreview
       command: streamingMsg.command
         ? {
@@ -265,12 +271,12 @@ export interface V2LiveData {
     string,
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
-  /** Conversation phase for approval button control */
-  phase?: "plan-proposed" | "ask" | null;
   /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
   dashboard?: DashboardMetadata | null;
   /** execution_id for workflow execution approval (dry_run completed, pending approval) */
   executionId?: string | null;
+  /** Whether the current run is a dashboard builder response */
+  isDashboardBuilderMode?: boolean;
 }
 
 /**
@@ -386,9 +392,10 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
-        phase: v2LiveData.phase,
         dashboard: v2LiveData.dashboard ?? null,
         executionId: v2LiveData.executionId ?? null,
+        isDashboardBuilderMode: v2LiveData.isDashboardBuilderMode ?? false,
+        researchResults: v2LiveData.researchResults ?? null,
         // Propagate error from failed run
         ...(v2LiveData.runErrorMessage
           ? {
@@ -438,7 +445,7 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
-      // Extract phase and dashboard from persisted events
+      // Extract dashboard and execution metadata from persisted events
       const runFinishedEvent = findLast(
         msg.events,
         (e) => e.event?.type === "RUN_FINISHED",
@@ -447,17 +454,17 @@ function transformMessagesForV2(
         ? (
             runFinishedEvent.event as RunFinishedEvent & {
               result: {
-                phase?: string | null;
                 dashboard?: DashboardMetadata | null;
                 execution_id?: string | null;
+                is_dashboard_builder_mode?: boolean;
               };
             }
           ).result
         : null;
-      const persistedPhase =
-        (runFinishedResult?.phase as "plan-proposed" | "ask" | null) ?? null;
       const persistedDashboard = runFinishedResult?.dashboard ?? null;
       const persistedExecutionId = runFinishedResult?.execution_id ?? null;
+      const persistedIsDashboardBuilderMode =
+        runFinishedResult?.is_dashboard_builder_mode ?? false;
 
       // Extract persisted research results; prefer the latest completed run when no live data
       // (allows full analysis to overwrite sample analysis after refresh)
@@ -477,9 +484,10 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
-        phase: persistedPhase,
         dashboard: persistedDashboard,
         executionId: persistedExecutionId,
+        isDashboardBuilderMode: persistedIsDashboardBuilderMode,
+        researchResults: researchResults ?? null,
         // Propagate expired or error status.  Check both the transform flag
         // (backend sent an explicit expired result) and the post-processed
         // steps (awaiting-approval unconditionally marked expired above, e.g.
@@ -618,7 +626,6 @@ export function transformConversationMessages(
     stoppedByUser: false,
     runErrorMessage: "",
     currentRunId: null,
-    phase: null,
   };
 
   return transformMessagesForV2(conversationMessages, liveData);

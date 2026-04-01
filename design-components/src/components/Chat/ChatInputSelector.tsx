@@ -10,7 +10,7 @@ import {
 import { ChatInput } from './ChatInput';
 import { StandardChatInput } from './StandardChatInput';
 import type { StandardChatInputRef } from './StandardChatInput';
-import type { BuildMode, ReferenceContext } from './StandardChatInput/types';
+import type { BuildMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
@@ -133,11 +133,6 @@ export interface ChatInputSelectorProps {
   ) => Promise<void>;
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
-  /** Reference context shown above the input (dashboard/widget context) */
-  referenceContext?: ReferenceContext;
-  /** Callback when the reference context is removed */
-  onRemoveReference?: () => void;
-
   // -------------------------------------------------------------------------
   // @ Mention props
   // -------------------------------------------------------------------------
@@ -152,6 +147,8 @@ export interface ChatInputSelectorProps {
   onSelectMention?: (item: MentionItem) => void;
   /** Called when the user first types "@" — use to lazy-load mention items */
   onMentionsActivated?: () => void;
+  /** Dashboard mention to auto-add when chat opens alongside a dashboard */
+  dashboardMention?: MentionItem | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,14 +202,13 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onUploadFile,
       onSendTest,
       availableAgentModes,
-      referenceContext,
-      onRemoveReference,
       // Mention props
       enableMentions = false,
       mentionItems = [],
       isLoadingMentions = false,
       onSelectMention: onSelectMentionProp,
       onMentionsActivated,
+      dashboardMention,
     },
     ref
   ) => {
@@ -311,12 +307,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       selectedMentions,
       removeSelectedMention,
       clearSelectedMentions,
+      isDashboardLimitReached,
     } = useMentions({
       enableMentions,
       mentionItems,
       isLoadingMentions,
       onSelectMention: onSelectMentionProp,
       onMentionsActivated,
+      dashboardMention,
     });
 
     // Build additionalExtensions array for TiptapEditor — stable reference
@@ -403,8 +401,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         onFilesSelected,
         fileErrorMessage,
         onDismissFileError,
-        referenceContext,
-        onRemoveReference,
       };
 
       // Wrap onSend to handle command execution + mention extraction
@@ -498,6 +494,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             highlightedIndex={mentionHighlightedIndex}
             onHoverIndex={setMentionHighlightedIndex}
             anchorRect={mentionSuggestionState.anchorRect}
+            disabled={isDashboardLimitReached}
+            disabledTooltip="Only one dashboard can be mentioned per message"
           />
         )}
         {chatInput}

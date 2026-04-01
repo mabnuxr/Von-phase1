@@ -1,6 +1,16 @@
 import React, { useEffect, useRef } from 'react';
-import { ChartBar } from '@phosphor-icons/react';
+import { ChalkboardTeacher, Chalkboard } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
+import { Tooltip } from '../Tooltip';
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getMentionIcon(item: MentionItem) {
+  const Icon = item.dashboardVariant === 'user' ? ChalkboardTeacher : Chalkboard;
+  return <Icon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -11,6 +21,8 @@ interface MentionItemRowProps {
   onSelect: (item: MentionItem) => void;
   onMouseEnter?: () => void;
   isHighlighted?: boolean;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 const MentionItemRow: React.FC<MentionItemRowProps> = ({
@@ -18,15 +30,49 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
   onSelect,
   onMouseEnter,
   isHighlighted,
+  disabled,
+  disabledTooltip,
 }) => (
-  <div
-    className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:bg-gray-100 ${isHighlighted ? 'bg-gray-100' : ''}`}
-    onClick={() => onSelect(item)}
-    onMouseEnter={onMouseEnter}
+  <Tooltip
+    content={disabledTooltip}
+    enabled={!!disabled && !!disabledTooltip}
+    wrapperClassName="w-full"
   >
-    <ChartBar size={16} className="text-gray-400 shrink-0" />
-    <span className="text-sm text-gray-900 truncate">{item.name}</span>
+    <div
+      className={`flex items-center gap-2.5 px-2 h-8 rounded-xl border border-transparent transition-colors duration-150 w-full ${
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : `cursor-pointer hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs ${
+              isHighlighted ? 'bg-gray-50 border-gray-200 shadow-xs' : ''
+            }`
+      }`}
+      onClick={disabled ? undefined : () => onSelect(item)}
+      onMouseEnter={disabled ? undefined : onMouseEnter}
+    >
+      {getMentionIcon(item)}
+      <span className="text-sm text-gray-800 truncate">{item.name}</span>
+    </div>
+  </Tooltip>
+);
+
+const SKELETON_WIDTHS = [100, 72, 120, 88, 64];
+
+const SkeletonRow: React.FC<{ index: number }> = ({ index }) => (
+  <div className="flex items-center gap-2.5 px-2 h-8">
+    <div className="w-4 h-4 rounded bg-gray-100 animate-pulse flex-shrink-0" />
+    <div
+      className="h-3.5 rounded bg-gray-100 animate-pulse"
+      style={{ width: `${SKELETON_WIDTHS[index % SKELETON_WIDTHS.length]}px` }}
+    />
   </div>
+);
+
+const SkeletonLoading: React.FC = () => (
+  <>
+    {Array.from({ length: 5 }).map((_, i) => (
+      <SkeletonRow key={i} index={i} />
+    ))}
+  </>
 );
 
 const EmptyState: React.FC = () => (
@@ -44,6 +90,10 @@ export interface MentionsListProps {
   maxHeight?: number;
   highlightedIndex?: number;
   onHoverIndex?: (index: number) => void;
+  /** When true, all items are shown in a disabled state */
+  disabled?: boolean;
+  /** Tooltip shown on disabled items */
+  disabledTooltip?: string;
 }
 
 export const MentionsList: React.FC<MentionsListProps> = ({
@@ -53,6 +103,8 @@ export const MentionsList: React.FC<MentionsListProps> = ({
   maxHeight = 300,
   highlightedIndex = -1,
   onHoverIndex,
+  disabled,
+  disabledTooltip,
 }) => {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -60,35 +112,48 @@ export const MentionsList: React.FC<MentionsListProps> = ({
     itemRefs.current[highlightedIndex]?.scrollIntoView({ block: 'nearest' });
   }, [highlightedIndex]);
 
-  if (isLoading && items.length === 0) {
-    return (
-      <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm rounded-xl px-4 py-8 text-sm text-gray-400 text-center">
-        Loading dashboards…
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-xs bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
-      <div className="overflow-y-auto px-1.5 py-2 flex flex-col gap-0.5" style={{ maxHeight }}>
-        {items.length === 0 ? (
+      <div className="overflow-y-auto px-1.5 py-1.5 flex flex-col gap-0.5" style={{ maxHeight }}>
+        {isLoading && items.length === 0 ? (
+          <SkeletonLoading />
+        ) : items.length === 0 ? (
           <EmptyState />
         ) : (
-          items.map((item, index) => (
-            <div
-              key={item.id}
-              ref={(el) => {
-                itemRefs.current[index] = el;
-              }}
-            >
-              <MentionItemRow
-                item={item}
-                onSelect={onSelect}
-                onMouseEnter={() => onHoverIndex?.(index)}
-                isHighlighted={index === highlightedIndex}
-              />
-            </div>
-          ))
+          items.map((item, index) => {
+            const prevItem = items[index - 1];
+            const showCurrentHeader = item.isCurrent && index === 0;
+            const showOthersHeader = !item.isCurrent && (index === 0 || prevItem?.isCurrent);
+            return (
+              <React.Fragment key={item.id}>
+                {showCurrentHeader && (
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500">
+                    Currently viewing
+                  </div>
+                )}
+                {showOthersHeader && (
+                  <>
+                    {index > 0 && <div className="mx-2 border-t border-gray-100" />}
+                    <div className="px-2 py-1 text-xs font-medium text-gray-500">Dashboards</div>
+                  </>
+                )}
+                <div
+                  ref={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
+                >
+                  <MentionItemRow
+                    item={item}
+                    onSelect={onSelect}
+                    onMouseEnter={() => onHoverIndex?.(index)}
+                    isHighlighted={index === highlightedIndex}
+                    disabled={disabled}
+                    disabledTooltip={disabledTooltip}
+                  />
+                </div>
+              </React.Fragment>
+            );
+          })
         )}
       </div>
     </div>

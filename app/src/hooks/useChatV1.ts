@@ -7,7 +7,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
-  ConversationMode,
   SendMessageOptions,
   FileAttachment,
   MessageFileAttachment,
@@ -19,21 +18,17 @@ import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
 import { usePusherChannel } from "./usePusherChannel";
 import { useV1EventProcessor } from "./useV1EventProcessor";
-import { useStreamGuard } from "./useStreamGuard";
 import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 export interface UseChatV1Props {
   conversationId: string;
   user: User | null;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedConversationMode: ConversationMode;
-  isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   isSalesforceReady: boolean;
@@ -43,18 +38,10 @@ export interface UseChatV1Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
 }
 
 export function useChatV1(props: UseChatV1Props) {
-  const {
-    conversationId,
-    user,
-    conversationMessages,
-    refetchMessages,
-    canSubmit,
-    syncConversationModeToBackend,
-  } = props;
+  const { conversationId, user, conversationMessages, canSubmit } = props;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -148,33 +135,6 @@ export function useChatV1(props: UseChatV1Props) {
     }
   }, [conversationId, conversationMessages]);
 
-  // Stream timeout guard
-  const getMessages = useCallback(
-    () => conversationMessages,
-    [conversationMessages],
-  );
-
-  const handleForceComplete = useCallback(
-    (messageId: string) => {
-      useChatStore.getState().forceCompleteMessage(conversationId, messageId);
-    },
-    [conversationId],
-  );
-
-  const handleStreamTimeout = useCallback(
-    async (messageId: string) => {
-      useChatStore.getState().markMessageTimeout(conversationId, messageId);
-      await refetchMessages();
-    },
-    [conversationId, refetchMessages],
-  );
-
-  useStreamGuard(conversationId, getMessages, {
-    timeoutMs: STREAM_TIMEOUT_MS,
-    onTimeout: handleStreamTimeout,
-    onForceComplete: handleForceComplete,
-  });
-
   // Transform messages to Chat component format (V1 path)
   const { messages: transformedMessages } = useMemo(
     () => transformConversationMessages(conversationMessages, false),
@@ -194,12 +154,6 @@ export function useChatV1(props: UseChatV1Props) {
       options?: SendMessageOptions,
     ) => {
       lastUserMessageRef.current = content;
-
-      const currentMessages =
-        useChatStore.getState().messages[conversationId] || [];
-      if (currentMessages.length === 0 && options?.agentMode) {
-        await syncConversationModeToBackend(options.agentMode);
-      }
 
       let fileAttachments;
       if (hasFileAttachments) {
@@ -238,7 +192,6 @@ export function useChatV1(props: UseChatV1Props) {
     },
     [
       conversationId,
-      syncConversationModeToBackend,
       hasFileAttachments,
       uploadPendingFiles,
       sendMessage,

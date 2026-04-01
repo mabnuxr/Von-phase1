@@ -22,23 +22,21 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Chat,
   ChatSkeleton,
   FilePreviewModal,
   ArtifactViewerPanel,
   usePanelResize,
-  ConversationMode,
 } from "@vonlabs/design-components";
-import type { FileArtifact } from "@vonlabs/design-components";
+import type { ConversationMode } from "@vonlabs/design-components";
+import type { FileArtifact, MentionItem } from "@vonlabs/design-components";
+import { MentionItemType } from "@vonlabs/design-components";
 
 import type {
   Conversation,
   MessageWithStreaming,
 } from "../../types/conversation";
-import type { MessageReference } from "../../types/conversation";
-import { ReferenceType } from "../../types/conversation";
 import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
 import { useChatMentions } from "../../hooks/useChatMentions";
 import { useChatV2 } from "../../hooks/useChatV2";
@@ -46,25 +44,20 @@ import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
 import { useMessages } from "../../hooks/useMessages";
 import { useCurrentConversation } from "../../hooks/useCurrentConversation";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
-import { useReferenceStack } from "../../hooks/useReferenceStack";
-import type { ReferenceStackLayer } from "../../hooks/useReferenceStack";
+
 import { useDashboardPane } from "../../hooks/useDashboardPane";
 import { useTeamMembers } from "../../hooks/useTeam";
 import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
 import usePreferencesStore from "../../store/preferencesStore";
 import useChatStore from "../../store/chatStore";
-import { dashboardKeys } from "../../hooks/useDashboardQuery";
+import { useDashboardVersionInvalidation } from "../../hooks/useDashboardVersionInvalidation";
 import {
   getFrontendIntegrationId,
   INTEGRATION_METADATA,
 } from "../../constants/integrationMetadata";
-import {
-  MESSAGES_PAGE_LIMIT,
-  CHAT_PANE_AGENT_MODES,
-} from "../../config/constants";
+import { MESSAGES_PAGE_LIMIT } from "../../config/constants";
 import { config as appConfig } from "../../config";
-import { DeepResearchConversation } from "../DeepResearchConversation";
 import { DashboardPreviewPane } from "../DashboardPreviewPane";
 import { SingleArtifactDrawerContainer } from "../SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "../LazyTransparencyDrawer";
@@ -126,12 +119,6 @@ export interface ChatSessionProps {
   hasNextMessagePage?: boolean;
   isFetchingNextMessagePage?: boolean;
   refetchMessages?: () => Promise<unknown>;
-
-  // ── Mode ────────────────────────────────────────
-  lockedConversationMode?: ConversationMode;
-  isAgentLocked?: boolean;
-  availableAgentModes?: ConversationMode[];
-  syncConversationModeToBackend?: (mode: ConversationMode) => Promise<void>;
 
   // ── Dashboard context (analytics sidebar) ───────
   dashboardId?: string;
@@ -221,45 +208,9 @@ function ExistingChatInner(
     isLoading: isFetchingNextMessagePage,
   });
 
-  // ── Reference stack (dashboard context) ───────────────────────────
-  const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
-  const dashboardBaseLayer: ReferenceStackLayer | null = useMemo(
-    () =>
-      hasDashboard
-        ? {
-            display: {
-              type: ReferenceType.Dashboard,
-              name: props.dashboardTitle!,
-              id: props.dashboardId!,
-            },
-            reference: {
-              refId: `dashboard-${props.dashboardId}`,
-              type: ReferenceType.Dashboard,
-              context: {
-                dashboardId: props.dashboardId!,
-                dashboardVersion: props.dashboardVersion ?? 0,
-                dashboardName: props.dashboardTitle!,
-              },
-            },
-          }
-        : null,
-    [
-      hasDashboard,
-      props.dashboardId,
-      props.dashboardTitle,
-      props.dashboardVersion,
-    ],
-  );
-  const refStack = useReferenceStack(dashboardBaseLayer);
-
-  // ── Mode ──────────────────────────────────────────────────────────
-  const lockedConversationMode =
-    props.lockedConversationMode ??
-    currentConversation?.mode ??
-    ConversationMode.DashboardBuilder;
-  const isAgentLocked = props.isAgentLocked ?? true;
-
   // ── Chat engine ───────────────────────────────────────────────────
+  // Dashboard references are now driven solely by @ mentions (selectedMentions)
+  // so the user controls which dashboards are sent as context.
   const chatV2 = useChatV2({
     conversationId,
     user: base.user,
@@ -269,15 +220,13 @@ function ExistingChatInner(
       tenantId: base.user?.tenantId ?? "",
       title: props.title ?? props.dashboardTitle ?? "",
       agentVersion: "v2" as const,
-      mode: lockedConversationMode,
+      mode: "auto" as ConversationMode,
       createdAt: new Date().toISOString(),
       createdBy: null,
       updatedAt: null,
     },
     conversationMessages,
     refetchMessages,
-    lockedConversationMode,
-    isAgentLocked,
     canSubmit: base.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction ?? (() => {}),
     salesforceInstanceUrl: props.salesforceInstanceUrl,
@@ -286,30 +235,8 @@ function ExistingChatInner(
     isDeepLinksEnabled: base.features.isDeepLinksEnabled,
     isSourcesEnabled: base.features.isSourcesEnabled,
     isFileUploadEnabled: base.features.isFileUploadEnabled,
-    syncConversationModeToBackend:
-      props.syncConversationModeToBackend ?? (async () => {}),
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
-    references: refStack.references,
   });
-
-  // ── Dashboard version invalidation ────────────────────────────────
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (
-      props.dashboardId &&
-      chatV2.dashboard &&
-      chatV2.dashboard.dashboard_version !== props.dashboardVersion
-    ) {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(props.dashboardId),
-      });
-    }
-  }, [
-    chatV2.dashboard,
-    props.dashboardId,
-    props.dashboardVersion,
-    queryClient,
-  ]);
 
   // ── Integration metadata ──────────────────────────────────────────
   const { data: integrationsData } = useIntegrations();
@@ -409,6 +336,50 @@ function ExistingChatInner(
   // ── Dashboard preview pane ────────────────────────────────────────
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
+
+  // Invalidate dashboard cache when agent updates it (version changes).
+  // activeDashboardId covers both contexts:
+  //   - Chat page with preview pane open → dashboardPaneState.dashboardId
+  //   - Dashboard page with chat sidebar → props.dashboardId
+  const activeDashboardId = dashboardPaneState.isOpen
+    ? dashboardPaneState.dashboardId
+    : props.dashboardId;
+  useDashboardVersionInvalidation({
+    dashboard: chatV2.dashboard,
+    activeDashboardId,
+  });
+
+  // ── Dashboard @ mention (replaces orange referenceContext tag) ─────
+  // Scenario 1: dashboard sidebar — props carry the dashboard info directly.
+  // Scenario 2: preview pane — look up the dashboard from mentionItems.
+  const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
+  const dashboardMention = useMemo(() => {
+    if (hasDashboard) {
+      return {
+        id: props.dashboardId!,
+        name: props.dashboardTitle!,
+        type: MentionItemType.Dashboard,
+        version: props.dashboardVersion ?? 0,
+      };
+    }
+    if (dashboardPaneState.isOpen && dashboardPaneState.dashboardId) {
+      const match = mentionItems.find(
+        (item) => item.id === dashboardPaneState.dashboardId,
+      );
+      if (match) return match;
+    }
+    return null;
+  }, [
+    hasDashboard,
+    props.dashboardId,
+    props.dashboardTitle,
+    props.dashboardVersion,
+    dashboardPaneState.isOpen,
+    dashboardPaneState.dashboardId,
+    mentionItems,
+  ]);
+
+  const isCompact = !!props.compact || dashboardPaneState.isOpen;
   const {
     containerRef: splitContainerRef,
     ratios: splitRatios,
@@ -435,6 +406,17 @@ function ExistingChatInner(
       openDashboardPane,
       onCollapseSidebar,
     ],
+  );
+
+  const handleMentionClick = useCallback(
+    (mention: MentionItem) => {
+      window.open(
+        `/dashboard/${mention.id}?conversationId=${conversationId}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+    },
+    [conversationId],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
@@ -469,85 +451,7 @@ function ExistingChatInner(
     return <ChatSkeleton messageCount={4} />;
   }
 
-  // ── Deep research mode ────────────────────────────────────────────
-  if (chatV2.isDeepResearchMode && chatV2.transformedMessages.length > 0) {
-    const deepResearchContent = (
-      <DeepResearchConversation
-        messages={chatV2.transformedMessages}
-        userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
-        userEmail={base.user?.email}
-        conversationId={conversationId}
-        researchResults={chatV2.effectiveResearchResults ?? undefined}
-        isDeepResearchRunning={chatV2.isDeepResearchRunning}
-        dashboard={chatV2.dashboard ?? undefined}
-        lockedConversationMode={lockedConversationMode}
-        onSendMessage={chatV2.handleSendMessage}
-        onStopStreaming={chatV2.handleStopStreaming}
-        onArtifactClick={chatV2.handleArtifactClick}
-        onApprove={chatV2.handleApproval}
-        onReject={chatV2.handleRejection}
-        onApprovePlan={chatV2.handlePlanApproval}
-        onRejectPlan={chatV2.handlePlanRejection}
-        placeholder={props.placeholder ?? "Ask von anything"}
-        disableSubmit={!chatV2.canSubmitFinal}
-        onInputWhileDisabled={props.onDisabledInteraction}
-        enableCommands={base.features.isSlashCommandsEnabled}
-        availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
-        fetchNextMessagePage={fetchNextMessagePage}
-        hasNextMessagePage={hasNextMessagePage}
-        isFetchingNextMessagePage={isFetchingNextMessagePage}
-        onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
-        enableFileUpload={base.features.isFileUploadEnabled}
-        onFileClick={chatV2.handleFileClick}
-        compact={props.compact}
-      />
-    );
-
-    return (
-      <>
-        <div ref={splitContainerRef} className="flex h-full w-full">
-          <div
-            className="min-w-0 flex flex-col"
-            style={
-              dashboardPaneState.isOpen
-                ? {
-                    flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
-                  }
-                : { flex: 1 }
-            }
-          >
-            {fullBanner}
-            {deepResearchContent}
-          </div>
-          {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
-            <>
-              <div
-                {...getSplitHandleProps(0)}
-                className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
-              >
-                <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
-              </div>
-              <div
-                className="h-full min-w-0"
-                style={{
-                  flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
-                }}
-              >
-                <DashboardPreviewPane
-                  dashboardId={dashboardPaneState.dashboardId}
-                  conversationId={conversationId}
-                  onClose={closeDashboardPane}
-                />
-              </div>
-            </>
-          )}
-        </div>
-        <Overlays conversationId={conversationId} chatV2={chatV2} />
-      </>
-    );
-  }
-
-  // ── Regular chat ──────────────────────────────────────────────────
+  // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
       title={props.title ?? props.dashboardTitle ?? "von AI"}
@@ -562,17 +466,13 @@ function ExistingChatInner(
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
       isLoading={false}
-      compact={props.compact}
+      compact={isCompact}
       height="100%"
       width="100%"
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? "Ask von anything"}
-      // Mode
-      isAgentLocked={isAgentLocked}
-      lockedConversationMode={lockedConversationMode}
-      availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
+      placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
       banner={fullBanner}
@@ -608,6 +508,10 @@ function ExistingChatInner(
           ? base.commands.handleSendTest
           : undefined
       }
+      // Data tables (deep research approval flow)
+      dataTablesInfo={chatV2.dataTablesInfo ?? undefined}
+      isDataTablesLoading={chatV2.isDataTablesLoading}
+      onDataTablesClick={chatV2.handleDataTablesClick}
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
@@ -615,8 +519,11 @@ function ExistingChatInner(
       enableActions={base.features.isActionsEnabled}
       onApprove={chatV2.handleApproval}
       onReject={chatV2.handleRejection}
+      onExpire={chatV2.handleExpire}
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
+      onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
+      onMentionClick={handleMentionClick}
       // Artifacts
       onArtifactClick={chatV2.handleArtifactClick}
       showArtifacts={base.features.isArtifactsEnabled}
@@ -630,14 +537,12 @@ function ExistingChatInner(
       // Salesforce / deep links
       salesforceInstanceUrl={props.salesforceInstanceUrl}
       enableDeepLinks={base.features.isDeepLinksEnabled}
-      // Reference context
-      referenceContext={refStack.activeContext}
-      onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
       // Mentions
       enableMentions={enableMentions}
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
+      dashboardMention={dashboardMention}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -656,8 +561,41 @@ function ExistingChatInner(
 
   return (
     <>
-      <div className="flex h-full w-full gap-1">
-        <div className="flex-1 min-w-0">{chatElement}</div>
+      <div ref={splitContainerRef} className="flex h-full w-full gap-1">
+        <div
+          className="flex-1 min-w-0"
+          style={
+            dashboardPaneState.isOpen
+              ? {
+                  flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
+                }
+              : undefined
+          }
+        >
+          {chatElement}
+        </div>
+        {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
+          <>
+            <div
+              {...getSplitHandleProps(0)}
+              className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+            >
+              <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+            </div>
+            <div
+              className="h-full min-w-0"
+              style={{
+                flex: `0 0 calc(${splitRatios[1] * 100}% - ${6 * splitRatios[1]}px)`,
+              }}
+            >
+              <DashboardPreviewPane
+                dashboardId={dashboardPaneState.dashboardId}
+                conversationId={conversationId}
+                onClose={closeDashboardPane}
+              />
+            </div>
+          </>
+        )}
         {!props.compact &&
           base.features.isArtifactsEnabled &&
           chatV2.fileArtifactPanel.isOpen &&
@@ -713,26 +651,16 @@ function NewChatInner(props: ChatSessionProps) {
     onMentionsActivated,
   } = useChatMentions();
 
-  // ── Reference stack ───────────────────────────────────────────────
+  // ── Dashboard @ mention ────────────────────────────────────────────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
-  const dashboardBaseLayer: ReferenceStackLayer | null = useMemo(
+  const dashboardMention = useMemo(
     () =>
       hasDashboard
         ? {
-            display: {
-              type: ReferenceType.Dashboard,
-              name: props.dashboardTitle!,
-              id: props.dashboardId!,
-            },
-            reference: {
-              refId: `dashboard-${props.dashboardId}`,
-              type: ReferenceType.Dashboard,
-              context: {
-                dashboardId: props.dashboardId!,
-                dashboardVersion: props.dashboardVersion ?? 0,
-                dashboardName: props.dashboardTitle!,
-              },
-            },
+            id: props.dashboardId!,
+            name: props.dashboardTitle!,
+            type: MentionItemType.Dashboard,
+            version: props.dashboardVersion ?? 0,
           }
         : null,
     [
@@ -742,19 +670,12 @@ function NewChatInner(props: ChatSessionProps) {
       props.dashboardVersion,
     ],
   );
-  const refStack = useReferenceStack(dashboardBaseLayer);
 
-  const references: MessageReference[] = useMemo(
-    () => (dashboardBaseLayer ? [dashboardBaseLayer.reference] : []),
-    [dashboardBaseLayer],
-  );
-
+  // Dashboard references are now driven solely by @ mentions (selectedMentions)
   const createFlow = useCreateAndSendMessage({
     agentVersion: "v2",
     isAgentV2: true,
     title: props.dashboardTitle ?? props.title ?? "",
-    fixedMode: ConversationMode.DashboardBuilder,
-    references,
     onCreated: props.onCreated,
   });
 
@@ -774,10 +695,7 @@ function NewChatInner(props: ChatSessionProps) {
       width="100%"
       thinkingProcessVersion="v2"
       useStandardInput
-      placeholder={props.placeholder ?? "Make changes to this dashboard..."}
-      isAgentLocked
-      lockedConversationMode={ConversationMode.DashboardBuilder}
-      availableAgentModes={props.availableAgentModes ?? CHAT_PANE_AGENT_MODES}
+      placeholder={props.placeholder ?? "Ask questions or make changes..."}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}
@@ -802,9 +720,7 @@ function NewChatInner(props: ChatSessionProps) {
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
-      // Reference context
-      referenceContext={refStack.activeContext}
-      onRemoveReference={refStack.canRemove ? refStack.removeTop : undefined}
+      dashboardMention={dashboardMention}
     >
       {slots.emptyState && (
         <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>

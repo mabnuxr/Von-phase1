@@ -176,6 +176,10 @@ export type { DropdownProps, DropdownItem } from './Dropdown';
 export { Select } from './forms/dropdown';
 export type { SelectProps, SelectOption } from './forms/dropdown';
 
+// Multi-select dropdown
+export { MultiSelectDropdown } from './forms/dropdown';
+export type { MultiSelectDropdownProps, MultiSelectDropdownOption } from './forms/dropdown';
+
 // Chat Molecules
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';
@@ -217,10 +221,6 @@ export type {
   MentionsListProps,
   MentionStripProps,
 } from './Mentions';
-
-// Deep Research Chat - specialized chat UI for deep research mode
-export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
-export type { DeepResearchChatProps } from './Chat';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
 export type {
@@ -436,6 +436,7 @@ export {
   ReportTable,
   buildGridOptions,
   autoSizeGridColumns,
+  applyColumnFormats,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
@@ -556,11 +557,6 @@ export {
   CounterWidget,
   TextWidget,
   DashboardLayout,
-  DashboardCustomizationProvider,
-  useDashboardCustomization,
-  chartThemes,
-  chartThemeIds,
-  multiSwatchColors,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -576,7 +572,4 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
-  DashboardCustomizationState,
-  ChartThemeId,
-  ChartThemePalette,
 } from './Dashboard';

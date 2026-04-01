@@ -17,7 +17,6 @@ import type {
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
-import { ConversationMode } from "@vonlabs/design-components";
 import { ReferenceType } from "../types/conversation";
 import type {
   MessageWithStreaming,
@@ -35,7 +34,10 @@ import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
-import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
+import {
+  useLazyTransparencyArtifacts,
+  useDeepResearchArtifacts,
+} from "./useMessageArtifacts";
 import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
@@ -51,8 +53,6 @@ export interface UseChatV2Props {
   currentConversation: Conversation;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedConversationMode: ConversationMode;
-  isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   salesforceInstanceUrl?: string;
@@ -61,7 +61,6 @@ export interface UseChatV2Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   onCollapseSidebar: () => void;
   /** References (dashboard/widget context) to send with each message */
   references?: MessageReference[];
@@ -74,8 +73,6 @@ export function useChatV2(props: UseChatV2Props) {
     currentConversation,
     conversationMessages,
     refetchMessages,
-    lockedConversationMode,
-    syncConversationModeToBackend,
     onCollapseSidebar,
     references,
   } = props;
@@ -83,17 +80,6 @@ export function useChatV2(props: UseChatV2Props) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
-
-  const chatType: ConversationMode =
-    currentConversation.mode || ConversationMode.Auto;
-
-  // Deep research mode is active if:
-  // 1. Agent is locked to dashboard-builder (has messages), OR
-  // 2. Conversation mode is dashboard-builder (backend confirmed)
-  const isDeepResearchMode =
-    (lockedConversationMode === ConversationMode.DashboardBuilder ||
-      chatType === ConversationMode.DashboardBuilder) &&
-    conversationMessages.length > 0;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -177,6 +163,10 @@ export function useChatV2(props: UseChatV2Props) {
   // Keep ref in sync with latest processor value
   v2ProcessorRef.current = v2Processor;
 
+  const chatType = v2Processor.isDashboardBuilderMode
+    ? ("dashboard-builder" as const)
+    : currentConversation.mode || "auto";
+
   // User message + error processing (writes to chatStore)
   useUserMessageProcessor(channel, conversationId);
 
@@ -216,7 +206,6 @@ export function useChatV2(props: UseChatV2Props) {
     onStateUpdate: v2Processor.applyTransformResult,
     onRunFinished: v2Processor.handleRunFinished,
     onReconcile: refetchMessages as () => void,
-    onTimeout: v2Processor.markTimedOut,
   });
 
   // Send message
@@ -373,6 +362,32 @@ export function useChatV2(props: UseChatV2Props) {
     isTransparencyOpen ? transparencyRunId : null,
   );
 
+  // Data tables info for the DataTablesCard (deep research approval flow)
+  // Use v2Processor.currentRunId when live, fall back to last assistant message runId
+  // (on page refresh, currentRunId is null for completed runs to avoid forcing V2 live path)
+  const dataTablesRunId = useMemo(() => {
+    if (v2Processor.currentRunId) return v2Processor.currentRunId;
+    for (let i = conversationMessages.length - 1; i >= 0; i--) {
+      const msg = conversationMessages[i];
+      if (msg.role === "assistant" && msg.runId) return msg.runId;
+    }
+    return null;
+  }, [v2Processor.currentRunId, conversationMessages]);
+
+  const { dataTablesInfo, isLoading: isDataTablesLoading } =
+    useDeepResearchArtifacts(
+      conversationId,
+      dataTablesRunId,
+      v2Processor.isDashboardBuilderMode || !!v2Processor.executionId,
+    );
+
+  const handleDataTablesClick = useCallback(() => {
+    if (dataTablesRunId) {
+      setTransparencyRunId(dataTablesRunId);
+      setIsTransparencyOpen(true);
+    }
+  }, [dataTablesRunId]);
+
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
   const lastUserMessageRef = useRef("");
@@ -395,9 +410,9 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
-        phase: v2Processor.phase,
         dashboard: v2Processor.dashboard,
         executionId: v2Processor.executionId,
+        isDashboardBuilderMode: v2Processor.isDashboardBuilderMode,
       }),
     [
       conversationMessages,
@@ -412,9 +427,9 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
-      v2Processor.phase,
       v2Processor.dashboard,
       v2Processor.executionId,
+      v2Processor.isDashboardBuilderMode,
     ],
   );
 
@@ -445,6 +460,10 @@ export function useChatV2(props: UseChatV2Props) {
     },
     [conversationId],
   );
+
+  const handleExpire = useCallback((stepId: string) => {
+    v2ProcessorRef.current?.expireApprovalStep(stepId);
+  }, []);
 
   // Transparency handler
   const handleTransparencyClick = useCallback(
@@ -557,20 +576,15 @@ export function useChatV2(props: UseChatV2Props) {
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
 
-      // If awaiting approval, invalidate the old run so its events don't interfere
+      // If awaiting approval, invalidate the old run so its events don't interfere.
+      // skipRefetch=true: forceCompleteStreamingMessages() below handles event
+      // persistence, and refetching now would overwrite the new message's optimistic state.
       if (v2Processor.isAwaitingApproval) {
-        v2Processor.invalidateApproval();
+        v2Processor.invalidateApproval(true);
       }
 
       // Persist any in-flight V2 state before sending a new message
       forceCompleteStreamingMessages();
-
-      const currentMessages =
-        useChatStore.getState().messages[conversationId] || [];
-      if (currentMessages.length === 0 && options?.agentMode) {
-        // Update conversation mode before sending first message
-        await syncConversationModeToBackend(options.agentMode);
-      }
 
       let fileAttachments;
       if (hasFileAttachments) {
@@ -632,7 +646,6 @@ export function useChatV2(props: UseChatV2Props) {
       hasFileAttachments,
       sendMessage,
       clearFileAttachments,
-      syncConversationModeToBackend,
       uploadPendingFiles,
       references,
     ],
@@ -649,12 +662,8 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   return {
-    // Mode
-    isDeepResearchMode,
-
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
-    phase: v2Processor.phase,
     dashboard: v2Processor.dashboard,
     liveDashboardKey: v2Processor.liveDashboardKey,
 
@@ -672,6 +681,7 @@ export function useChatV2(props: UseChatV2Props) {
     handleStopStreaming,
     handleApproval,
     handleRejection,
+    handleExpire,
     handlePlanApproval,
     handlePlanRejection,
 
@@ -706,6 +716,11 @@ export function useChatV2(props: UseChatV2Props) {
     handleFileArtifactClick,
     closeFileArtifactPanel,
     handleArtifactDownload,
+
+    // Data tables (deep research approval flow)
+    dataTablesInfo,
+    isDataTablesLoading,
+    handleDataTablesClick,
 
     // Write-blocked banner
     writeBlocked,

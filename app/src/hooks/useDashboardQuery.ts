@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
-import { applyWidgetTheme } from "../utils/applyWidgetTheme";
 import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
@@ -88,11 +87,12 @@ interface RawApiDashboardResponse {
       { x: number; y: number; w: number; h: number }
     >;
     color_palette?: string | null;
-    color_palette_global?: string | null;
   };
   filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  created_by_name?: string;
   refresh_info: {
     last_refreshed_at: string;
   };
@@ -242,19 +242,17 @@ function adaptApiResponse(
                 ? raw.filters.definitions
                 : [],
               state: raw.filters.state ?? {},
+              defaults: raw.filters.defaults ?? {},
             }
           : undefined,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
-        createdBy: "",
+        createdBy: raw.created_by ?? "",
+        createdByName: raw.created_by_name ?? undefined,
         analysisId: "",
         isEditable: raw.is_editable ?? false,
         uiConfig: raw.ui_config
           ? {
-              colorPaletteGlobal:
-                raw.ui_config.color_palette_global === "teal"
-                  ? "default"
-                  : (raw.ui_config.color_palette_global ?? "default"),
               panelLayouts: raw.ui_config.panel_layouts,
             }
           : undefined,
@@ -316,11 +314,6 @@ export function useDashboardQuery(dashboardId: string | undefined) {
         );
 
         const { dashboard, refreshInfo } = response.data;
-
-        // Inject frontend color palette into widget configs
-        dashboard.widgets = applyWidgetTheme(
-          dashboard.widgets,
-        ) as typeof dashboard.widgets;
 
         // Extract active filter values from the filter state
         const activeFilters: Record<string, unknown> =

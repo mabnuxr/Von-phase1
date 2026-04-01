@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { ArrowLineRightIcon, PlusCircleIcon } from "@phosphor-icons/react";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
-import { useAppShell } from "../hooks/useAppShell";
 import { useResizablePane } from "../hooks/useResizablePane";
 import {
   AnalyticsView,
@@ -19,7 +19,6 @@ import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { ChatSession } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
-import { useToast } from "../hooks/useToast";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
@@ -30,7 +29,6 @@ interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
   isChatOpen: boolean;
-  collapseOnMount: boolean;
 }
 
 /**
@@ -42,50 +40,24 @@ function DashboardCanvas({
   dashboardId,
   onChatClick,
   isChatOpen,
-  collapseOnMount,
 }: DashboardCanvasProps) {
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
-  const { handleUpdate, updateMutation } = useDashboardUpdate(dashboardId);
-  const { showToast } = useToast();
-
-  const handleEditModeChange = useCallback(
-    (isEditable: boolean) => {
-      updateMutation.mutate(
-        { is_editable: isEditable },
-        {
-          onError: (error: unknown) => {
-            console.error("[Analytics] Edit mode toggle failed:", error);
-            showToast({
-              message: "Failed to toggle edit mode. Please try again.",
-              variant: "error",
-            });
-          },
-        },
-      );
-    },
-    [updateMutation, showToast],
-  );
-
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({
-        ui_config: {
-          color_palette_global: themeId,
-        },
-      });
-    },
-    [handleUpdate],
-  );
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
 
   const handleRename = useCallback(
     (newName: string) => {
@@ -97,8 +69,25 @@ function DashboardCanvas({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
-  const { collapseSidebar } = useAppShell();
-
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    pendingRows: filterPendingRows,
+    activeCount: filterActiveCount,
+    canApply: filterCanApply,
+    isApplying: filterIsApplying,
+    handleFilterChange,
+    handleRemoveFilter,
+    handleAddFilter,
+    handleRemovePendingRow,
+    handleCommitPendingRow,
+    handleApply,
+    handleClearAll,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
   const {
     mergedWidgets,
     handlePageChange,
@@ -137,17 +126,9 @@ function DashboardCanvas({
   } = useDashboardSchedule(dashboardId);
 
   // Subscribe to Pusher events for dashboard refresh notifications
-  useDashboardRefreshEvents(dashboardId);
+  const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
 
-  // Only collapse sidebar when first entering the dashboard from another section
-  // (e.g. from chat). Switching between dashboards should leave the sidebar as-is.
-  useEffect(() => {
-    if (collapseOnMount) {
-      collapseSidebar();
-    }
-  }, [collapseOnMount, collapseSidebar]);
-
-  if (isLoading) {
+  if (isLoading || isRefreshing) {
     return <AnalyticsSkeleton />;
   }
 
@@ -160,17 +141,32 @@ function DashboardCanvas({
       <AnalyticsView
         dashboard={dashboard}
         refreshInfo={refreshInfo}
-        activeFilters={activeFilters}
+        filterDefinitions={filterDefinitions}
+        filterState={filterState}
+        filterPendingRows={filterPendingRows}
+        filterActiveCount={filterActiveCount}
+        filterCanApply={filterCanApply}
+        filterIsApplying={filterIsApplying}
+        onFilterChange={handleFilterChange}
+        onRemoveFilter={handleRemoveFilter}
+        onAddFilter={handleAddFilter}
+        onRemovePendingRow={handleRemovePendingRow}
+        onCommitPendingRow={handleCommitPendingRow}
+        onApplyFilters={handleApply}
+        onClearAll={handleClearAll}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
+        showSaveToast={showSaveToast}
+        isFirstSave={isFirstSave}
         onRevert={handleRevert}
         revertPhase={revertPhase}
         onShare={handleShare}
         sharePhase={sharePhase}
         onChatClick={onChatClick}
         isChatOpen={isChatOpen}
-        onEditModeChange={handleEditModeChange}
+        onEditModeChange={editModeMutation.mutate}
+        editModePhase={editModePhase}
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}
@@ -178,8 +174,6 @@ function DashboardCanvas({
         onPointDrillDown={openPointDrilldown}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
-        defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-        onColorThemeChange={handleColorThemeChange}
         onRename={handleRename}
         schedule={schedule}
         isScheduled={isScheduled}
@@ -190,6 +184,7 @@ function DashboardCanvas({
         onPauseSchedule={handlePauseSchedule}
         onResumeSchedule={handleResumeSchedule}
         onDeleteSchedule={handleDeleteSchedule}
+        isRefetchingData={isFetching && !isLoading}
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}
@@ -261,10 +256,6 @@ const Analytics = () => {
   // after the user has navigated to a different dashboard.
   const activeDashboardIdRef = useRef(dashboardId);
 
-  // Track whether we've already visited a dashboard in this session.
-  // undefined = first visit (came from chat/elsewhere) → collapse sidebar.
-  // any string = switching between dashboards → leave sidebar alone.
-  const prevDashboardIdRef = useRef<string | undefined>(undefined);
   const handleConversationCreated = useCallback(
     (conversationId: string) => {
       if (activeDashboardIdRef.current === dashboardId) {
@@ -280,7 +271,6 @@ const Analytics = () => {
   // panel should persist across dashboard navigation.
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
-    prevDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
   }, [dashboardId]);
 
@@ -307,7 +297,7 @@ const Analytics = () => {
   const { guard } = useNavigationGuard({
     when: isEditable,
     title: "Dashboard in edit mode",
-    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Switching will discard any edits.`,
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
     confirmLabel: "Switch Anyway",
   });
 
@@ -368,7 +358,7 @@ const Analytics = () => {
   } = useResizablePane();
 
   return (
-    <div className="flex h-full w-full gap-1">
+    <div className="flex h-full w-full gap-1.5">
       <div className="flex-1 min-w-0 h-full relative">
         {/* key={dashboardId} resets all dashboard-specific state on navigation */}
         <DashboardCanvas
@@ -376,7 +366,6 @@ const Analytics = () => {
           dashboardId={dashboardId}
           onChatClick={openChatPanel}
           isChatOpen={isChatPanelOpen}
-          collapseOnMount={prevDashboardIdRef.current === undefined}
         />
       </div>
 
@@ -400,7 +389,7 @@ const Analytics = () => {
         </div>
 
         {/* Chat picker — persistent header that lets users switch conversations */}
-        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5">
+        <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-gray-100">
           <ChatPicker
             activeChatId={activeChatId}
             onSelect={guardedSetActiveChatId}
@@ -410,9 +399,9 @@ const Analytics = () => {
           <Tooltip content="New chat">
             <button
               onClick={guardedNewChat}
-              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <PlusCircleIcon size={16} weight="fill" />
+              <PlusIcon size={14} weight="bold" />
             </button>
           </Tooltip>
           <ConversationMoreMenu
@@ -426,7 +415,7 @@ const Analytics = () => {
           <Tooltip content="Collapse chat">
             <button
               onClick={closeChatPanel}
-              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <ArrowLineRightIcon size={14} weight="bold" />
             </button>
@@ -439,7 +428,7 @@ const Analytics = () => {
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
-            placeholder="Make changes to this dashboard..."
+            placeholder="Ask questions or make changes..."
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}

@@ -11,13 +11,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   PlusIcon,
   MicrophoneIcon,
-  ChalkboardIcon,
-  Table,
-  FileText,
-  X,
-  ChartLineIcon,
-  HashIcon,
-  DatabaseIcon,
   UploadSimpleIcon,
   LineVerticalIcon,
 } from '@phosphor-icons/react';
@@ -30,9 +23,9 @@ import { useFileUpload } from '../FileAttachment/useFileUpload';
 import { getAcceptString } from '../FileAttachment/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Toggle as _Toggle } from '../../forms/toggle';
-import { SecondaryIconButton, RemoveButton, TransparentButton } from '../../forms/buttons';
+import { SecondaryIconButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
-import type { StandardChatInputProps, StandardChatInputRef, ReferenceContext } from './types';
+import type { StandardChatInputProps, StandardChatInputRef } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
@@ -40,54 +33,6 @@ import { ModeSelectorPill } from './ModeSelectorPill';
 import { ChatInputPopover } from './ChatInputPopover';
 import { ConversationMode } from './types';
 import { TruncateWithText } from '../../TruncateWithText/TruncateWithText';
-
-/**
- * Get icon for reference type
- */
-function getReferenceIcon(type: ReferenceContext['type']) {
-  switch (type) {
-    case 'dashboard':
-      return <ChalkboardIcon size={14} weight="regular" className="text-gray-800" />;
-    case 'report':
-      return <Table size={14} weight="regular" className="text-gray-800" />;
-    case 'document':
-      return <FileText size={14} weight="regular" className="text-gray-800" />;
-    case 'widget':
-      return <ChartLineIcon size={14} weight="regular" className="text-gray-800" />;
-    case 'kpi':
-      return <HashIcon size={14} weight="regular" className="text-gray-800" />;
-    case 'table':
-      return <Table size={14} weight="regular" className="text-gray-800" />;
-    case 'source':
-      return <DatabaseIcon size={14} weight="regular" className="text-gray-800" />;
-    default:
-      return <ChalkboardIcon size={14} weight="regular" className="text-gray-800" />;
-  }
-}
-
-/**
- * Get label for reference type
- */
-function getReferenceLabel(type: ReferenceContext['type']) {
-  switch (type) {
-    case 'dashboard':
-      return 'Dashboard';
-    case 'report':
-      return 'Report';
-    case 'document':
-      return 'Document';
-    case 'widget':
-      return 'Widget';
-    case 'kpi':
-      return 'KPI';
-    case 'table':
-      return 'Table';
-    case 'source':
-      return 'Reference';
-    default:
-      return 'Reference';
-  }
-}
 
 // Re-export ConversationMode from types for external use
 export { ConversationMode } from './types';
@@ -214,8 +159,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onDroppedFilesProcessed,
       onFileError,
       onFilesSelected,
-      referenceContext,
-      onRemoveReference,
       showFormattingToolbar = false,
       // Mode selector props
       showModeSelector = false,
@@ -521,28 +464,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
             />
           )}
 
-          {/* Reference tag - shown above the input when a reference is set */}
-          {referenceContext && !activePopover && (
-            <div className="flex items-center justify-start px-2 pb-4 pt-2 -mb-4 bg-orange-50 border-t border-r border-l border-orange-100 rounded-t-[18px] overflow-hidden">
-              <div className="bg-orange-100 border border-orange-200 shadow-xs shadow-orange-100 flex flex-row gap-2.5 rounded-xl px-2 py-1 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-                  {getReferenceIcon(referenceContext.type)}
-                  <TruncateWithText className="text-sm text-gray-900">
-                    {`${getReferenceLabel(referenceContext.type)}: ${referenceContext.name}`}
-                  </TruncateWithText>
-                </div>
-                {onRemoveReference && (
-                  <RemoveButton
-                    icon={<X size={12} weight="bold" />}
-                    onClick={onRemoveReference}
-                    title="Remove reference"
-                    className="text-gray-800"
-                  />
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Toast + input wrapper */}
           <div className="flex flex-col gap-1.5">
             {/* File validation error toast — inline above input */}
@@ -571,12 +492,12 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 className="rounded-2xl p-px transition-all duration-200"
                 style={gradientBorderStyle}
               >
-                <div className="flex flex-col bg-white rounded-[15px] gap-1">
+                <div className="flex flex-col bg-white rounded-[15px] gap-2">
                   {/* Drag-and-drop overlay */}
                   <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
                   {/* File & mention previews - shown above the input */}
                   {(hasAttachments || (selectedMentions && selectedMentions.length > 0)) && (
-                    <div className="px-4 pt-3 pb-1">
+                    <div className="px-2 pt-2 pb-1">
                       <div className="flex flex-wrap gap-1.5">
                         {attachments.map((attachment) => (
                           <FilePreview
@@ -612,7 +533,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                   {showPlusMenu ? (
                     <>
                       {/* Text input area - Tiptap Editor */}
-                      <div className="px-4 py-3">
+                      <div className="px-3 py-2">
                         <div className="flex items-start gap-2">
                           <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
                             <TiptapEditor

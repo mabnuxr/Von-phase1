@@ -14,7 +14,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ConversationMode } from "@vonlabs/design-components";
 import type {
   SendMessageOptions,
   FileAttachment,
@@ -55,12 +54,6 @@ export interface UseCreateAndSendMessageOptions {
   title?: string;
 
   /**
-   * If provided, the conversation is locked to this mode.
-   * If undefined, the mode comes from SendMessageOptions.agentMode (regular chat).
-   */
-  fixedMode?: ConversationMode;
-
-  /**
    * References to attach to the first message (e.g. a dashboard reference).
    */
   references?: MessageReference[];
@@ -89,7 +82,6 @@ export function useCreateAndSendMessage({
   agentVersion = "v2",
   isAgentV2 = true,
   title = "",
-  fixedMode,
   references,
   onCreated,
   navigateOnCreate = false,
@@ -165,6 +157,21 @@ export function useCreateAndSendMessage({
           }
         : undefined;
 
+      const mentionRefsForOptimistic: MessageReference[] = (
+        options?.mentions ?? []
+      ).map((m) => ({
+        refId: `${ReferenceType.Dashboard}-${m.id}`,
+        type: ReferenceType.Dashboard,
+        context: {
+          dashboardId: m.id,
+          dashboardVersion: m.version,
+          dashboardName: m.name,
+        },
+      }));
+      const optimisticReferences =
+        mentionRefsForOptimistic.length > 0
+          ? [...(references ?? []), ...mentionRefsForOptimistic]
+          : references;
       const tempId = `temp-${Date.now()}`;
       setPendingMessages([
         {
@@ -179,6 +186,9 @@ export function useCreateAndSendMessage({
           isStreaming: false,
           status: "completed",
           ...(command ? { command } : {}),
+          ...(optimisticReferences?.length
+            ? { references: optimisticReferences }
+            : {}),
         },
         {
           id: `${tempId}-assistant`,
@@ -199,20 +209,8 @@ export function useCreateAndSendMessage({
       let succeeded = false;
 
       try {
-        // Resolve conversation mode
-        const mode: ConversationMode | undefined =
-          fixedMode ??
-          ((): ConversationMode | undefined => {
-            const agentMode = options?.agentMode as
-              | ConversationMode
-              | undefined;
-            return agentMode && agentMode !== ConversationMode.Auto
-              ? agentMode
-              : undefined;
-          })();
-
-        // 1. Create the conversation
-        const res = await createConversation({ title, agentVersion, mode });
+        // 1. Create the conversation (always auto mode)
+        const res = await createConversation({ title, agentVersion });
         newId = res.conversation.conversationId;
 
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
@@ -246,6 +244,9 @@ export function useCreateAndSendMessage({
           status: "completed",
           ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
           ...(command ? { command } : {}),
+          ...(optimisticReferences?.length
+            ? { references: optimisticReferences }
+            : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,
@@ -369,7 +370,6 @@ export function useCreateAndSendMessage({
       agentVersion,
       clearFiles,
       createConversation,
-      fixedMode,
       isSidebarV2,
       navigate,
       navigateOnCreate,

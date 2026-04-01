@@ -8,6 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
+import { useCountdown } from '../../../hooks/useCountdown';
 
 // ============================================================================
 // Completed Bulk Card - Collapsed summary when approved/rejected
@@ -102,6 +103,8 @@ export interface BulkApprovalCardProps {
   isExpired?: boolean;
   /** Whether the approval tool encountered a system/validation error */
   isError?: boolean;
+  /** Callback when approval TTL expires */
+  onExpire?: () => void;
 }
 
 /**
@@ -125,8 +128,10 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     isRejected = false,
     isExpired = false,
     isError = false,
+    onExpire,
   }) => {
     const records = useMemo(() => approval.bulkRecords || [], [approval.bulkRecords]);
+    const countdown = useCountdown(approval.expiresAt, approval.ttlSeconds, onExpire);
 
     // Local state for bulk approve/reject (optimistic UI collapse)
     const [bulkAction, setBulkAction] = useState<'approved' | 'rejected' | null>(null);
@@ -179,11 +184,26 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
 
     return (
       <div className="mt-2 min-w-0">
-        {/* Header with count */}
-        <div className="mb-2">
+        {/* Header with count and countdown */}
+        <div className="mb-2 flex items-center justify-between">
           <span className="text-sm font-medium text-gray-900">
             {approval.label} to {approval.operation}
           </span>
+          {countdown.display && countdown.phase !== 'expired' && countdown.phase !== 'inactive' && (
+            <span
+              className={`text-xs font-mono px-1.5 py-0.5 rounded-full tabular-nums ${
+                countdown.phase === 'safe'
+                  ? 'text-green-600 bg-green-50'
+                  : countdown.phase === 'warning'
+                    ? 'text-amber-600 bg-amber-50'
+                    : 'text-red-600 bg-red-50'
+              }`}
+              role={countdown.phase === 'urgent' ? 'timer' : undefined}
+              aria-label={`${countdown.display} remaining`}
+            >
+              {countdown.display}
+            </span>
+          )}
         </div>
 
         {/* Scrollable stacked cards - reusing CompactApprovalCard */}

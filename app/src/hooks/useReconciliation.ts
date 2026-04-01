@@ -34,7 +34,6 @@ import {
   RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
-  STREAM_TIMEOUT_MS,
 } from "../config/constants";
 import { ConversationMode } from "@vonlabs/design-components";
 
@@ -52,14 +51,13 @@ export interface UseReconciliationConfig {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
     options?: {
-      phase?: "plan-proposed" | "ask" | null;
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
+      isDashboardBuilderMode?: boolean;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
   onReconcile?: () => void;
-  onTimeout?: () => void;
 }
 
 function getStallThreshold(chatType: ConversationMode): number {
@@ -85,7 +83,6 @@ export function useReconciliation({
   onStateUpdate,
   onRunFinished,
   onReconcile,
-  onTimeout,
 }: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
 
@@ -152,20 +149,17 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 5b: Extract phase and dashboard from RUN_FINISHED event (if present)
+      // Step 5b: Extract dashboard and executionId from RUN_FINISHED event (if present)
       type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
           dashboard?: DashboardMetadata | null;
           execution_id?: string | null;
+          is_dashboard_builder_mode?: boolean;
         };
       };
       const runFinishedEvent = mergedEvents.find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
-      const reconciledPhase = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result?.phase ??
-          null)
-        : undefined;
       const reconciledDashboard = runFinishedEvent
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.dashboard ?? null)
@@ -174,12 +168,16 @@ export function useReconciliation({
         ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
             ?.execution_id ?? null)
         : undefined;
+      const reconciledIsDashboardBuilderMode = runFinishedEvent
+        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+            ?.is_dashboard_builder_mode ?? false)
+        : undefined;
 
-      // Step 6: Update state (including phase/dashboard/executionId from RUN_FINISHED)
+      // Step 6: Update state (including dashboard/executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
-        phase: reconciledPhase,
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
+        isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
       });
 
       // Step 7: Handle run completion
@@ -252,18 +250,6 @@ export function useReconciliation({
 
       const timeSinceLastEvent = Date.now() - lastEventTimeRef.current;
 
-      // Hard timeout — no genuinely new events for too long, give up
-      if (timeSinceLastEvent >= STREAM_TIMEOUT_MS) {
-        console.log(
-          "[useReconciliation] Hard timeout — no new events for",
-          Math.round(timeSinceLastEvent / 1000),
-          "seconds",
-        );
-        clearInterval(intervalId);
-        onTimeout?.();
-        return;
-      }
-
       if (timeSinceLastEvent >= stallThreshold) {
         console.log(
           "[useReconciliation] No events for",
@@ -280,7 +266,6 @@ export function useReconciliation({
     conversationId,
     chatType,
     lastEventTimeRef,
-    onTimeout,
     reconcile,
   ]);
 

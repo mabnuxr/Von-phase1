@@ -55,10 +55,10 @@ export interface Dashboard {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  createdByName?: string;
   analysisId: string;
   isEditable: boolean;
   uiConfig?: {
-    colorPaletteGlobal?: string;
     panelLayouts?: Record<
       string,
       { x: number; y: number; w: number; h: number }
@@ -303,6 +303,7 @@ export interface TextWidgetConfig {
 // ─── Filters ─────────────────────────────────────────────────────
 
 export type DashboardFilterType =
+  | "picklist"
   | "select"
   | "multi-select"
   | "date-range"
@@ -321,6 +322,8 @@ export interface DashboardFilterDefinition {
   default?: unknown;
   /** Widget IDs this filter applies to */
   applies_to?: string[];
+  /** Valid operators with display labels for this filter type */
+  valid_operators?: { value: string; label: string }[];
 }
 
 /** Active filter state values per filter type:
@@ -335,10 +338,62 @@ export type DashboardFilterState = Record<string, unknown>;
 export interface DashboardFilters {
   definitions: DashboardFilterDefinition[];
   state: DashboardFilterState;
+  defaults?: DashboardFilterState;
 }
 
 /** @deprecated Use DashboardFilterDefinition */
 export type DashboardFilter = DashboardFilterDefinition;
+
+// ─── Filter API (PATCH /dashboards/{id}/filters) ────────────────
+
+export type FilterOperator =
+  // picklist
+  | "in"
+  | "not_in"
+  // picklist + text
+  | "equals"
+  | "not_equals"
+  | "contains"
+  | "not_contains"
+  // text only
+  | "starts_with"
+  | "ends_with"
+  // date
+  | "on"
+  | "before"
+  | "after"
+  | "on_or_before"
+  | "on_or_after"
+  // number
+  | "greater_than"
+  | "greater_than_or_equal"
+  | "less_than"
+  | "less_than_or_equal"
+  // date + number range
+  | "between"
+  | "not_between"
+  // universal
+  | "is_blank"
+  | "is_not_blank";
+
+export interface FilterValue {
+  operator: FilterOperator;
+  value?: string | number | string[] | [string, string] | [number, number];
+  include_blank?: boolean;
+}
+
+export type FilterPatchPayload = Record<
+  string,
+  FilterValue | FilterValue[] | null
+>;
+
+export interface FilterPatchResponse {
+  dashboard_id: string;
+  dashboard_version: number;
+  definitions: DashboardFilterDefinition[];
+  state: Record<string, FilterValue>;
+  defaults?: Record<string, FilterValue>;
+}
 
 // ─── Schedule ────────────────────────────────────────────────────
 

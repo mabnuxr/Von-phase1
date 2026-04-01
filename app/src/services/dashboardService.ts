@@ -9,6 +9,8 @@ import type {
   PanelDrilldownResponse,
   ScheduleConfigRequest,
   DashboardScheduleResponse,
+  FilterPatchPayload,
+  FilterPatchResponse,
 } from "../types/dashboard";
 
 /**
@@ -41,7 +43,6 @@ export interface DashboardUpdateRequest {
   description?: string;
   is_editable?: boolean;
   ui_config?: {
-    color_palette_global?: string;
     [key: string]: unknown;
   };
 }
@@ -196,6 +197,28 @@ class DashboardService {
 
   async deleteSchedule(dashboardId: string): Promise<void> {
     return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}/schedule`);
+  }
+
+  // ─── Filters ────────────────────────────────────────────────────
+
+  async updateFilters(
+    dashboardId: string,
+    filters?: FilterPatchPayload | null,
+    resetFields?: string[],
+  ): Promise<FilterPatchResponse> {
+    const body: Record<string, unknown> = {};
+    if (filters) body.filters = filters;
+    if (resetFields?.length) body.reset_fields = resetFields;
+    return apiClient.patch<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters`,
+      body,
+    );
+  }
+
+  async resetFilters(dashboardId: string): Promise<FilterPatchResponse> {
+    return apiClient.post<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters/reset`,
+    );
   }
 }
 

@@ -8,6 +8,7 @@ import {
 } from '@phosphor-icons/react';
 import type { CompactApprovalCardProps, ApprovalFieldType, FieldChange } from '../types';
 import { useVisibilityToggle } from '../../../hooks/useVisibilityToggle';
+import { useCountdown } from '../../../hooks/useCountdown';
 
 // ============================================================================
 // Helper Components
@@ -254,9 +255,11 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     isError,
     defaultExpanded = true,
     hideActions = false,
+    onExpire,
   }) => {
     const { isVisible: isExpanded, toggleVisibility: toggleExpanded } =
       useVisibilityToggle(defaultExpanded);
+    const countdown = useCountdown(approval.expiresAt, approval.ttlSeconds, onExpire);
 
     const handleApprove = useCallback(
       (e: React.MouseEvent) => {
@@ -449,9 +452,28 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-600 shrink-0 ml-2">
-            {operationLabel} {approval.label}
-          </span>
+          <div className="flex items-center gap-2 shrink-0 ml-2">
+            <span className="text-xs text-gray-600">
+              {operationLabel} {approval.label}
+            </span>
+            {countdown.display &&
+              countdown.phase !== 'expired' &&
+              countdown.phase !== 'inactive' && (
+                <span
+                  className={`text-xs font-mono px-1.5 py-0.5 rounded-full tabular-nums ${
+                    countdown.phase === 'safe'
+                      ? 'text-green-600 bg-green-50'
+                      : countdown.phase === 'warning'
+                        ? 'text-amber-600 bg-amber-50'
+                        : 'text-red-600 bg-red-50'
+                  }`}
+                  role={countdown.phase === 'urgent' ? 'timer' : undefined}
+                  aria-label={`${countdown.display} remaining`}
+                >
+                  {countdown.display}
+                </span>
+              )}
+          </div>
         </div>
 
         {/* Expanded content - Changes/Fields table */}

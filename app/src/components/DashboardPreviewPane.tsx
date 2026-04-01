@@ -6,14 +6,20 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback } from "react";
-import { useGuardedNavigate } from "../providers/NavigationGuard";
+import { useCallback, memo } from "react";
+import {
+  useGuardedNavigate,
+  useNavigationGuard,
+} from "../providers/NavigationGuard";
+import { useAppShell } from "../hooks/useAppShell";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 import { DrilldownPanel } from "./Analytics/DrilldownPanel";
 
@@ -23,24 +29,40 @@ interface DashboardPreviewPaneProps {
   onClose: () => void;
 }
 
-export function DashboardPreviewPane({
+export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   dashboardId,
   conversationId,
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { collapseSidebar } = useAppShell();
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+  const dashboardTitle = data?.dashboard?.title ?? "";
+  const isEditable = data?.dashboard?.isEditable ?? false;
+
+  useNavigationGuard({
+    when: isEditable,
+    title: "Dashboard in edit mode",
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
+    confirmLabel: "Switch Anyway",
+  });
+
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
+  const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
   const {
     schedule,
     isScheduled,
@@ -53,17 +75,6 @@ export function DashboardPreviewPane({
     handleDeleteSchedule,
   } = useDashboardSchedule(dashboardId);
 
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({
-        ui_config: {
-          color_palette_global: themeId,
-        },
-      });
-    },
-    [handleUpdate],
-  );
-
   const handleRename = useCallback(
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
@@ -74,6 +85,25 @@ export function DashboardPreviewPane({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    pendingRows: filterPendingRows,
+    activeCount: filterActiveCount,
+    canApply: filterCanApply,
+    isApplying: filterIsApplying,
+    handleFilterChange,
+    handleRemoveFilter,
+    handleAddFilter,
+    handleRemovePendingRow,
+    handleCommitPendingRow,
+    handleApply,
+    handleClearAll,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
 
   const {
     mergedWidgets,
@@ -99,8 +129,11 @@ export function DashboardPreviewPane({
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   const handleExpand = useCallback(() => {
-    navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-  }, [navigate, dashboardId, conversationId]);
+    navigate(
+      `/dashboard/${dashboardId}?conversationId=${conversationId}`,
+      collapseSidebar,
+    );
+  }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
   return (
     <div
@@ -109,7 +142,7 @@ export function DashboardPreviewPane({
       }}
       className="h-full flex-1 min-w-0"
     >
-      {isLoading ? (
+      {isLoading || isRefreshing ? (
         <AnalyticsSkeleton />
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />
@@ -118,10 +151,24 @@ export function DashboardPreviewPane({
           <AnalyticsView
             dashboard={dashboard}
             refreshInfo={refreshInfo}
-            activeFilters={activeFilters}
+            filterDefinitions={filterDefinitions}
+            filterState={filterState}
+            filterPendingRows={filterPendingRows}
+            filterActiveCount={filterActiveCount}
+            filterCanApply={filterCanApply}
+            filterIsApplying={filterIsApplying}
+            onFilterChange={handleFilterChange}
+            onRemoveFilter={handleRemoveFilter}
+            onAddFilter={handleAddFilter}
+            onRemovePendingRow={handleRemovePendingRow}
+            onCommitPendingRow={handleCommitPendingRow}
+            onApplyFilters={handleApply}
+            onClearAll={handleClearAll}
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}
+            showSaveToast={showSaveToast}
+            isFirstSave={isFirstSave}
             onRevert={handleRevert}
             revertPhase={revertPhase}
             onShare={handleShare}
@@ -135,9 +182,8 @@ export function DashboardPreviewPane({
             onPointDrillDown={openPointDrilldown}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
-            defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-            onColorThemeChange={handleColorThemeChange}
             onRename={handleRename}
+            hideCreatorChip
             schedule={schedule}
             isScheduled={isScheduled}
             isSchedulePaused={isSchedulePaused}
@@ -147,6 +193,9 @@ export function DashboardPreviewPane({
             onPauseSchedule={handlePauseSchedule}
             onResumeSchedule={handleResumeSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            onEditModeChange={editModeMutation.mutate}
+            editModePhase={editModePhase}
+            isRefetchingData={isFetching && !isLoading}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}
@@ -164,4 +213,4 @@ export function DashboardPreviewPane({
       )}
     </div>
   );
-}
+});

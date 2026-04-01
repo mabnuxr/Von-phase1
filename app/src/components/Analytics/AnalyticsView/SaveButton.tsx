@@ -21,10 +21,10 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
       disabled={isDisabled}
       className={`flex items-center gap-1.5 h-[34px] px-3 text-sm font-medium rounded-xl border transition-colors ${
         savePhase === "success" || isSaved
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 cursor-default"
+          ? "border-emerald-700 bg-emerald-700 text-white cursor-default"
           : savePhase === "pending"
-            ? "border-gray-200/70 bg-gray-100 text-gray-500 cursor-not-allowed"
-            : "border-gray-200/70 text-gray-800 hover:bg-gray-50 cursor-pointer"
+            ? "border-emerald-800 bg-emerald-800 text-white cursor-not-allowed"
+            : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
       }`}
     >
       {savePhase === "pending" && (
