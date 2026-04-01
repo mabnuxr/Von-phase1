@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { dashboardService } from "../services/dashboardService";
+import { ApiError } from "../services/apiClient";
 import { dashboardKeys } from "./useDashboardQuery";
 import { sidebarDashboardKeys } from "./useSidebarDashboards";
 import { useMutationPhase } from "./useMutationPhase";
@@ -200,8 +201,23 @@ export function useAnalyticsTools(dashboardId: string) {
       await refreshMutation.mutateAsync();
     } catch (error) {
       console.error("[useAnalyticsTools] Refresh failed:", error);
+      if (
+        error instanceof ApiError &&
+        (error.response as { error?: { code?: string } })?.error?.code ===
+          "APP_DASHBOARD_REFRESH_IN_PROGRESS"
+      ) {
+        showToast({
+          message: "A refresh is already in progress. Please wait and try again.",
+          variant: "warning",
+        });
+      } else {
+        showToast({
+          message: "Failed to refresh dashboard. Please try again.",
+          variant: "error",
+        });
+      }
     }
-  }, [refreshMutation]);
+  }, [refreshMutation, showToast]);
 
   return {
     handleSave,
