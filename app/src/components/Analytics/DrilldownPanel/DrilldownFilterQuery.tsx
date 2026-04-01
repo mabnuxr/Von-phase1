@@ -39,7 +39,7 @@ function formatColumn(col: string): string {
 
 /** Strip surrounding single quotes from a SQL value */
 function stripQuotes(val: string): string {
-  return val.replace(/^'(.*)'$/, "$1");
+  return val.replace(/^'(.*)'$/, "$1").replace(/''/g, "'");
 }
 
 /** Regex source for a SQL identifier: word, dotted (table.col), double-quoted, or backtick-quoted */
@@ -102,7 +102,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     if (!trimmed) continue;
 
     // IS NOT NULL
-    const isNotNullMatch = trimmed.match(new RegExp(`^(${COL})\\s+IS\\s+NOT\\s+NULL$`, "i"));
+    const isNotNullMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+IS\\s+NOT\\s+NULL$`, "i"),
+    );
     if (isNotNullMatch) {
       conditions.push({
         column: formatColumn(isNotNullMatch[1]),
@@ -114,7 +116,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // IS NULL
-    const isNullMatch = trimmed.match(new RegExp(`^(${COL})\\s+IS\\s+NULL$`, "i"));
+    const isNullMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+IS\\s+NULL$`, "i"),
+    );
     if (isNullMatch) {
       conditions.push({
         column: formatColumn(isNullMatch[1]),
@@ -126,7 +130,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // NOT IN (...)
-    const notInMatch = trimmed.match(new RegExp(`^(${COL})\\s+NOT\\s+IN\\s*\\((.+)\\)$`, "i"));
+    const notInMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+NOT\\s+IN\\s*\\((.+)\\)$`, "i"),
+    );
     if (notInMatch) {
       const values = splitTopLevelCommas(notInMatch[2])
         .map((v: string) => stripQuotes(v.trim()))
@@ -141,7 +147,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // IN (...)
-    const inMatch = trimmed.match(new RegExp(`^(${COL})\\s+IN\\s*\\((.+)\\)$`, "i"));
+    const inMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+IN\\s*\\((.+)\\)$`, "i"),
+    );
     if (inMatch) {
       const values = splitTopLevelCommas(inMatch[2])
         .map((v: string) => stripQuotes(v.trim()))
@@ -156,7 +164,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // BETWEEN ... AND ...
-    const betweenMatch = trimmed.match(new RegExp(`^(${COL})\\s+BETWEEN\\s+(.+?)\\s+AND\\s+(.+)$`, "i"));
+    const betweenMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+BETWEEN\\s+(.+?)\\s+AND\\s+(.+)$`, "i"),
+    );
     if (betweenMatch) {
       conditions.push({
         column: formatColumn(betweenMatch[1]),
@@ -168,7 +178,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // NOT LIKE
-    const notLikeMatch = trimmed.match(new RegExp(`^(${COL})\\s+NOT\\s+LIKE\\s+(.+)$`, "i"));
+    const notLikeMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+NOT\\s+LIKE\\s+(.+)$`, "i"),
+    );
     if (notLikeMatch) {
       conditions.push({
         column: formatColumn(notLikeMatch[1]),
@@ -180,7 +192,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // LIKE
-    const likeMatch = trimmed.match(new RegExp(`^(${COL})\\s+LIKE\\s+(.+)$`, "i"));
+    const likeMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s+LIKE\\s+(.+)$`, "i"),
+    );
     if (likeMatch) {
       conditions.push({
         column: formatColumn(likeMatch[1]),
@@ -192,7 +206,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // Standard comparison: col op value
-    const compMatch = trimmed.match(new RegExp(`^(${COL})\\s*(!=|<>|>=|<=|=|>|<)\\s*(.+)$`));
+    const compMatch = trimmed.match(
+      new RegExp(`^(${COL})\\s*(!=|<>|>=|<=|=|>|<)\\s*(.+)$`),
+    );
     if (compMatch) {
       conditions.push({
         column: formatColumn(compMatch[1]),
