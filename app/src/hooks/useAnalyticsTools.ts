@@ -207,7 +207,8 @@ export function useAnalyticsTools(dashboardId: string) {
           "APP_DASHBOARD_REFRESH_IN_PROGRESS"
       ) {
         showToast({
-          message: "A refresh is already in progress. Please wait and try again.",
+          message:
+            "A refresh is already in progress. Please wait and try again.",
           variant: "warning",
         });
       } else {
