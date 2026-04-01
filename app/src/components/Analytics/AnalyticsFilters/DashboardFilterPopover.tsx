@@ -540,13 +540,18 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  // Position the popover below the button
+  // Position the popover below the button, clamping to viewport
   useLayoutEffect(() => {
     if (!isOpen || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const popoverWidth = popoverRef.current?.offsetWidth ?? 520;
+    const left = Math.max(
+      16,
+      Math.min(rect.left, window.innerWidth - popoverWidth - 16),
+    );
     setPosition({
       top: rect.bottom + 6,
-      left: rect.left,
+      left,
     });
   }, [isOpen]);
 
