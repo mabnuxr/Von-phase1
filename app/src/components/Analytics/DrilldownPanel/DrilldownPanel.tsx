@@ -5,6 +5,7 @@ import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
 import type { ReportColumn, ServerSortState } from "@vonlabs/design-components";
 import type { PanelDrilldownPagination } from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
+import { DrilldownFilterQuery } from "./DrilldownFilterQuery";
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -85,6 +86,8 @@ export interface DrilldownPanelProps {
   isOpen: boolean;
   onClose: () => void;
   widgetTitle: string;
+  /** SQL query from the drilldown API — used to show active filter conditions */
+  query?: string;
   data: Record<string, unknown>[];
   pagination: PanelDrilldownPagination | null;
   isLoading: boolean;
@@ -102,6 +105,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   isOpen,
   onClose,
   widgetTitle,
+  query,
   data,
   pagination,
   isLoading,
@@ -231,13 +235,16 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
               <span className="text-sm font-medium text-gray-900 truncate">
                 {widgetTitle}
               </span>
-              <button
-                onClick={onClose}
-                className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
-                title="Close"
-              >
-                <XIcon size={16} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                {query && <DrilldownFilterQuery query={query} />}
+                <button
+                  onClick={onClose}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
+                  title="Close"
+                >
+                  <XIcon size={16} />
+                </button>
+              </div>
             </div>
 
             {/* Table */}
