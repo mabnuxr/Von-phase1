@@ -413,6 +413,20 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             {!isEditMode && !isRefetchingData && (
               <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
             )}
+            <RefreshButton
+              onRefresh={onRefresh}
+              canRefresh={isSaved}
+              isOwner={dashboard.isOwner}
+              schedule={schedule}
+              isScheduled={isScheduled}
+              isPaused={isSchedulePaused}
+              isMutating={isScheduleMutating}
+              onCreateSchedule={onCreateSchedule}
+              onUpdateSchedule={onUpdateSchedule}
+              onPauseSchedule={onPauseSchedule}
+              onResumeSchedule={onResumeSchedule}
+              onDeleteSchedule={onDeleteSchedule}
+            />
             {dashboard.isOwner && (
               <>
                 {/* Revert — only in edit mode when there's a previous version */}
@@ -446,20 +460,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-
-                <RefreshButton
-                  onRefresh={onRefresh}
-                  canRefresh={isSaved}
-                  schedule={schedule}
-                  isScheduled={isScheduled}
-                  isPaused={isSchedulePaused}
-                  isMutating={isScheduleMutating}
-                  onCreateSchedule={onCreateSchedule}
-                  onUpdateSchedule={onUpdateSchedule}
-                  onPauseSchedule={onPauseSchedule}
-                  onResumeSchedule={onResumeSchedule}
-                  onDeleteSchedule={onDeleteSchedule}
-                />
                 <SharePopover
                   isSharedWithTenant={dashboard.isSharedWithTenant}
                   canShare={isSaved}
