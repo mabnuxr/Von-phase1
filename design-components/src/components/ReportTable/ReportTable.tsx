@@ -94,6 +94,8 @@ export interface ReportTableProps {
   sortState?: ServerSortState | null;
   /** Called when a table body cell is clicked — provides column ID and raw value */
   onCellClick?: (columnId: string, cellValue: unknown) => void;
+  /** Disable the built-in truncation tooltip (e.g. when using a custom expand popover) */
+  disableTooltip?: boolean;
 }
 
 // ============================================================================
@@ -109,6 +111,7 @@ export function ReportTable({
   onSortChange,
   sortState,
   onCellClick,
+  disableTooltip = false,
 }: ReportTableProps) {
   void sortState; // reserved for future initial-sort sync
 
@@ -130,6 +133,7 @@ export function ReportTable({
   const lastHoveredTd = useRef<HTMLElement | null>(null);
 
   const handleCellMouseEnter = useCallback((e: React.MouseEvent) => {
+    if (disableTooltip) return;
     const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
     if (!td || td === lastHoveredTd.current) return;
     lastHoveredTd.current = td;

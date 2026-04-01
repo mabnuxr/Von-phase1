@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ReportTable } from '../../ReportTable';
-import type { ServerSortState } from '../../ReportTable';
+import { AnimatePresence } from 'framer-motion';
+import {
+  ReportTable,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  LongTextPopover,
+} from '../../ReportTable';
+import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
 import { ServerPagination } from './ServerPagination';
@@ -18,6 +24,41 @@ interface TableWidgetProps {
   onCellClick?: (columnId: string, cellValue: unknown) => void;
 }
 
+/** Identify text column ids by checking data values */
+function findTextColumnIds(options: GridOptions): Set<string> {
+  const ids = new Set<string>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opts = options as any;
+  // Grid Lite supports both `data.columns` (new) and `dataTable.columns` (legacy)
+  const dataCols: Record<string, unknown[]> | undefined =
+    opts.data?.columns ?? opts.dataTable?.columns;
+  if (!dataCols) return ids;
+  for (const [colId, values] of Object.entries(dataCols)) {
+    if (colId.startsWith('_')) continue; // skip internal columns
+    if (!Array.isArray(values)) continue;
+    const first = values.find((v) => v != null);
+    if (typeof first === 'string') ids.add(colId);
+  }
+  return ids;
+}
+
+/** Override text column formatters with the longtext expand variant */
+function applyLongTextFormatters(options: GridOptions): GridOptions {
+  const textIds = findTextColumnIds(options);
+  if (textIds.size === 0) return options;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cols = options.columns as any[] | undefined;
+  if (!cols) return options;
+  return {
+    ...options,
+    columns: cols.map((col) =>
+      textIds.has(col.id)
+        ? { ...col, cells: { ...col.cells, formatter: longTextExpandFormatter } }
+        : col
+    ),
+  };
+}
+
 const TableWidget: React.FC<TableWidgetProps> = ({
   config,
   onPageChange,
@@ -28,6 +69,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 }) => {
   const { serverPagination } = config;
   const hasServerPagination = !!serverPagination;
+  const [popover, setPopover] = useState<ExpandPopoverState | null>(null);
 
   // Keep the last valid gridOptions so the table stays stable during loading.
   // When loading, config.gridOptions may still hold the previous page's data
@@ -37,9 +79,9 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const base = config.gridOptions as GridOptions;
   // Only disable client-side pagination for server-paginated tables;
   // non-server-paginated tables keep their existing pagination config.
-  const options: GridOptions = hasServerPagination
-    ? { ...base, pagination: { enabled: false } }
-    : base;
+  const options: GridOptions = applyLongTextFormatters(
+    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+  );
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
@@ -50,6 +92,48 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const stableOptions = lastOptionsRef.current ?? options;
 
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
+
+  // Track text column ids and ordered column list for expand-button click handler
+  const textColIds = useMemo(() => findTextColumnIds(stableOptions), [stableOptions]);
+  const columnIds = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cols = (stableOptions as any).columns as Array<{ id: string }> | undefined;
+    return cols?.map((c) => c.id) ?? [];
+  }, [stableOptions]);
+
+  // Keep a ref to data columns so the click handler always has fresh data
+  const dataRef = useRef(stableOptions);
+  dataRef.current = stableOptions;
+
+  /** Click handler — detect expand-button clicks via DOM traversal */
+  const handleGridClick = useCallback(
+    (e: React.MouseEvent) => {
+      const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
+      if (!btn) return;
+      e.stopPropagation();
+
+      const td = btn.closest('td');
+      const tr = btn.closest('tr');
+      const tbody = tr?.closest('tbody');
+      if (!td || !tr || !tbody) return;
+
+      const colIdx = Array.from(tr.children).indexOf(td);
+      const rowIdx = Array.from(tbody.children).indexOf(tr);
+      const colId = columnIds[colIdx];
+
+      if (rowIdx >= 0 && colId && textColIds.has(colId)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const opts = dataRef.current as any;
+        const dataCols: Record<string, unknown[]> | undefined =
+          opts.data?.columns ?? opts.dataTable?.columns;
+        const fullText = String(dataCols?.[colId]?.[rowIdx] ?? '');
+        if (fullText) {
+          setPopover({ text: fullText, rect: td.getBoundingClientRect() });
+        }
+      }
+    },
+    [columnIds, textColIds]
+  );
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,13 +167,19 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     <div
       className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
     >
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden relative">
+      <div
+        ref={containerRef}
+        className="flex-1 min-h-0 overflow-hidden relative"
+        onClick={handleGridClick}
+        onMouseOver={handleLongTextHover}
+      >
         <ReportTable
           options={stableOptions}
           hidePagination
           onSortChange={hasServerPagination ? onSortChange : undefined}
           sortState={hasServerPagination ? sortState : undefined}
           onCellClick={onCellClick}
+          disableTooltip
         />
 
         {/* Shimmer covers body rows while headers stay visible */}
@@ -124,6 +214,15 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           onPageChange={handlePageChange}
         />
       )}
+      <AnimatePresence>
+        {popover && (
+          <LongTextPopover
+            text={popover.text}
+            anchorRect={popover.rect}
+            onClose={() => setPopover(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
