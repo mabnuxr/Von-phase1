@@ -22,7 +22,6 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   Chat,
   ChatSkeleton,
@@ -52,7 +51,7 @@ import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
 import usePreferencesStore from "../../store/preferencesStore";
 import useChatStore from "../../store/chatStore";
-import { dashboardKeys } from "../../hooks/useDashboardQuery";
+import { useDashboardVersionInvalidation } from "../../hooks/useDashboardVersionInvalidation";
 import {
   getFrontendIntegrationId,
   INTEGRATION_METADATA,
@@ -260,7 +259,6 @@ function ExistingChatInner(
   });
 
   // ── Integration metadata ──────────────────────────────────────────
-  const queryClient = useQueryClient();
   const { data: integrationsData } = useIntegrations();
   const connectedIntegrationTypes = useMemo(() => {
     const connected = new Set<string>();
@@ -359,29 +357,17 @@ function ExistingChatInner(
   const { dashboardPaneState, openDashboardPane, closeDashboardPane } =
     useDashboardPane();
 
-  // Invalidate preview pane dashboard when agent updates it (version changes)
-  const prevDashboardVersionRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (
-      chatV2.dashboard &&
-      dashboardPaneState.isOpen &&
-      dashboardPaneState.dashboardId === chatV2.dashboard.dashboard_id &&
-      prevDashboardVersionRef.current !== null &&
-      chatV2.dashboard.dashboard_version !== prevDashboardVersionRef.current
-    ) {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(chatV2.dashboard.dashboard_id),
-      });
-    }
-    if (chatV2.dashboard) {
-      prevDashboardVersionRef.current = chatV2.dashboard.dashboard_version;
-    }
-  }, [
-    chatV2.dashboard,
-    dashboardPaneState.isOpen,
-    dashboardPaneState.dashboardId,
-    queryClient,
-  ]);
+  // Invalidate dashboard cache when agent updates it (version changes).
+  // activeDashboardId covers both contexts:
+  //   - Chat page with preview pane open → dashboardPaneState.dashboardId
+  //   - Dashboard page with chat sidebar → props.dashboardId
+  const activeDashboardId = dashboardPaneState.isOpen
+    ? dashboardPaneState.dashboardId
+    : props.dashboardId;
+  useDashboardVersionInvalidation({
+    dashboard: chatV2.dashboard,
+    activeDashboardId,
+  });
 
   const isCompact = !!props.compact || dashboardPaneState.isOpen;
   const {
