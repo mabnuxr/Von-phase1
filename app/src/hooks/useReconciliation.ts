@@ -58,7 +58,6 @@ export interface UseReconciliationConfig {
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
   onReconcile?: () => void;
-  onTimeout?: () => void;
 }
 
 function getStallThreshold(chatType: ConversationMode): number {
@@ -84,7 +83,6 @@ export function useReconciliation({
   onStateUpdate,
   onRunFinished,
   onReconcile,
-  onTimeout,
 }: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
 
@@ -268,7 +266,6 @@ export function useReconciliation({
     conversationId,
     chatType,
     lastEventTimeRef,
-    onTimeout,
     reconcile,
   ]);
 

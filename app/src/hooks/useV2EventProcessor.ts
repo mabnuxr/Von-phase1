@@ -111,7 +111,6 @@ export interface UseV2EventProcessorReturn {
   /** Whether the current/last run is a dashboard builder response */
   isDashboardBuilderMode: boolean;
   markStopped: () => void;
-  markTimedOut: () => void;
   clearPendingStop: () => void;
   /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
   resumeTimer: () => void;
@@ -395,28 +394,6 @@ export function useV2EventProcessor(
     },
     [timerOnRunTerminated, onRunComplete],
   );
-
-  const markTimedOut = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log(
-        "[useV2EventProcessor] Run timed out — no new events received",
-      );
-    }
-
-    // Persist timeout status in chatStore so the message shows the error banner
-    // and doesn't resurrect as "streaming" after a page refresh
-    const messages =
-      useChatStore.getState().messages[conversationId ?? ""] || [];
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === "assistant" && m.isStreaming) {
-        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
-        break;
-      }
-    }
-
-    terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
-  }, [conversationId, terminateRun]);
 
   const handleRunFinished = useCallback(
     (runId: string, elapsed: number) => {
@@ -898,7 +875,6 @@ export function useV2EventProcessor(
     executionId,
     isDashboardBuilderMode,
     markStopped,
-    markTimedOut,
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,
     pauseTimerOnApprovalFailure: timerOnApprovalFailed,

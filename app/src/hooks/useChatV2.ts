@@ -206,7 +206,6 @@ export function useChatV2(props: UseChatV2Props) {
     onStateUpdate: v2Processor.applyTransformResult,
     onRunFinished: v2Processor.handleRunFinished,
     onReconcile: refetchMessages as () => void,
-    onTimeout: v2Processor.markTimedOut,
   });
 
   // Send message
