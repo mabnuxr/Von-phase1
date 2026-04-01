@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { CopyIcon, CheckIcon, XIcon } from '@phosphor-icons/react';
+import { useCopyToClipboard } from '../../hooks';
 
 export interface ExpandPopoverState {
   text: string;
@@ -15,20 +15,9 @@ interface LongTextPopoverProps {
 }
 
 export function LongTextPopover({ text, anchorRect, onClose }: LongTextPopoverProps) {
-  const [copied, setCopied] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { copy, copied } = useCopyToClipboard();
 
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      timerRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
-    }
-  };
+  const handleCopy = () => copy(text);
 
   const popoverWidth = Math.max(anchorRect.width, 280);
   const left = Math.max(16, Math.min(anchorRect.left, window.innerWidth - popoverWidth - 16));
