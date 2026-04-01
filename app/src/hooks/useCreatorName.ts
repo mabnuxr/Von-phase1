@@ -22,7 +22,8 @@ export function useCreatorName({
     isError,
   } = useTeamMembers(user?.tenantId);
 
-  const isLoading = userLoading || membersLoading;
+  const needsLookup = !isOwner && !createdByName;
+  const isLoading = needsLookup && (userLoading || membersLoading);
 
   const memberNameById = useMemo(
     () =>
