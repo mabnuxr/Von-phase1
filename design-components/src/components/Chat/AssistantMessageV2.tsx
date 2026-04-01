@@ -208,7 +208,8 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
               }
             }}
             onCancel={() => setShowSkipConfirmModal(false)}
-            operationName="Skip Dashboard Creation"
+            operationName="Skip Changes"
+            description="Are you sure you want to skip? The proposed changes will not be applied to the dashboard."
           />
         </>
       )}

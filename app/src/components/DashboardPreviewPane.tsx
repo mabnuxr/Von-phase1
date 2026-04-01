@@ -7,7 +7,10 @@
  */
 
 import { useCallback, memo } from "react";
-import { useGuardedNavigate } from "../providers/NavigationGuard";
+import {
+  useGuardedNavigate,
+  useNavigationGuard,
+} from "../providers/NavigationGuard";
 import { useAppShell } from "../hooks/useAppShell";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
@@ -34,6 +37,16 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const navigate = useGuardedNavigate();
   const { collapseSidebar } = useAppShell();
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+  const dashboardTitle = data?.dashboard?.title ?? "";
+  const isEditable = data?.dashboard?.isEditable ?? false;
+
+  useNavigationGuard({
+    when: isEditable,
+    title: "Dashboard in edit mode",
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
+    confirmLabel: "Switch Anyway",
+  });
+
   const {
     handleSave,
     savePhase,
