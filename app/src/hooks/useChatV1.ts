@@ -18,7 +18,6 @@ import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
 import { usePusherChannel } from "./usePusherChannel";
 import { useV1EventProcessor } from "./useV1EventProcessor";
-import { useStreamGuard } from "./useStreamGuard";
 import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
@@ -141,32 +140,6 @@ export function useChatV1(props: UseChatV1Props) {
       }
     }
   }, [conversationId, conversationMessages]);
-
-  // Stream timeout guard
-  const getMessages = useCallback(
-    () => conversationMessages,
-    [conversationMessages],
-  );
-
-  const handleForceComplete = useCallback(
-    (messageId: string) => {
-      useChatStore.getState().forceCompleteMessage(conversationId, messageId);
-    },
-    [conversationId],
-  );
-
-  const handleStreamTimeout = useCallback(
-    async (messageId: string) => {
-      useChatStore.getState().markMessageTimeout(conversationId, messageId);
-      await refetchMessages();
-    },
-    [conversationId, refetchMessages],
-  );
-
-  useStreamGuard(conversationId, getMessages, {
-    onTimeout: handleStreamTimeout,
-    onForceComplete: handleForceComplete,
-  });
 
   // Transform messages to Chat component format (V1 path)
   const { messages: transformedMessages } = useMemo(
