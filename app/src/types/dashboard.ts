@@ -322,6 +322,8 @@ export interface DashboardFilterDefinition {
   default?: unknown;
   /** Widget IDs this filter applies to */
   applies_to?: string[];
+  /** Valid operators with display labels for this filter type */
+  valid_operators?: { value: string; label: string }[];
 }
 
 /** Active filter state values per filter type:
@@ -336,6 +338,7 @@ export type DashboardFilterState = Record<string, unknown>;
 export interface DashboardFilters {
   definitions: DashboardFilterDefinition[];
   state: DashboardFilterState;
+  defaults?: DashboardFilterState;
 }
 
 /** @deprecated Use DashboardFilterDefinition */
@@ -366,13 +369,17 @@ export type FilterOperator =
   | "greater_than_or_equal"
   | "less_than"
   | "less_than_or_equal"
+  // date + number range
+  | "between"
+  | "not_between"
   // universal
   | "is_blank"
   | "is_not_blank";
 
 export interface FilterValue {
   operator: FilterOperator;
-  value?: string | number | string[];
+  value?: string | number | string[] | [string, string] | [number, number];
+  include_blank?: boolean;
 }
 
 export type FilterPatchPayload = Record<
@@ -385,6 +392,7 @@ export interface FilterPatchResponse {
   dashboard_version: number;
   definitions: DashboardFilterDefinition[];
   state: Record<string, FilterValue>;
+  defaults?: Record<string, FilterValue>;
 }
 
 // ─── Schedule ────────────────────────────────────────────────────

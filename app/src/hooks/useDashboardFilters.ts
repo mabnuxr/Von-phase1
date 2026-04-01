@@ -7,143 +7,103 @@ import type {
   DashboardFilterDefinition,
   DashboardFilterState,
   FilterPatchPayload,
-  FilterOperator,
 } from "../types/dashboard";
 
-// ── Helpers ─────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────
 
-/**
- * Extract the raw UI value from a server state entry.
- * Server may return a raw value, {operator, value}, or an array of
- * {operator, value} pairs (for range / date-range filters with two bounds).
- */
-function extractRawValue(entry: unknown): unknown {
-  if (Array.isArray(entry)) {
-    // Array of {operator, value} — reconstruct the UI shape
-    const items = entry as { operator: string; value?: unknown }[];
-    const dateResult: { start?: string; end?: string } = {};
-    const rangeResult: { min?: number; max?: number } = {};
-    let isDate = false;
-    let isRange = false;
-
-    for (const item of items) {
-      if (item.operator === "on_or_after") {
-        dateResult.start = item.value as string;
-        isDate = true;
-      } else if (item.operator === "on_or_before") {
-        dateResult.end = item.value as string;
-        isDate = true;
-      } else if (item.operator === "greater_than_or_equal") {
-        rangeResult.min = item.value as number;
-        isRange = true;
-      } else if (item.operator === "less_than_or_equal") {
-        rangeResult.max = item.value as number;
-        isRange = true;
-      }
-    }
-
-    if (isDate) return dateResult;
-    if (isRange) return rangeResult;
-    // Fallback: return the first item's value
-    return items[0]?.value ?? null;
-  }
-
-  if (typeof entry === "object" && entry !== null && "operator" in entry) {
-    const item = entry as { operator: string; value?: unknown };
-    // Single-bound date/range — wrap in the UI shape so inputs populate correctly
-    if (item.operator === "on_or_after") return { start: item.value as string };
-    if (item.operator === "on_or_before") return { end: item.value as string };
-    if (item.operator === "greater_than_or_equal")
-      return { min: item.value as number };
-    if (item.operator === "less_than_or_equal")
-      return { max: item.value as number };
-    return item.value ?? null;
-  }
-
-  return entry;
+/** A single active filter in API-native format. */
+export interface ActiveFilter {
+  operator: string;
+  value?: unknown;
+  include_blank?: boolean;
 }
 
 /**
- * Normalise server state (keyed by filter id, values may be {operator,value})
- * into a simple id → rawValue map for the UI.
+ * Local state: filterId → ActiveFilter.
+ * Filters not in this map have no user selection.
+ */
+type FilterLocalState = Record<string, ActiveFilter>;
+
+/** A pending row where the user hasn't picked a field yet. */
+export interface PendingRow {
+  tempId: string;
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+
+let _nextId = 0;
+const tempId = () => `pending_${++_nextId}`;
+
+const NO_VALUE_OPERATORS = new Set(["is_blank", "is_not_blank"]);
+
+/**
+ * Extract ActiveFilter entries from server state.
+ * Server sends {operator, value} dicts, arrays of them, or null.
  */
 function normaliseServerState(
   serverState: DashboardFilterState,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+): FilterLocalState {
+  const out: FilterLocalState = {};
   for (const [key, val] of Object.entries(serverState)) {
-    const raw = extractRawValue(val);
-    if (raw !== null && raw !== undefined && raw !== "") {
-      out[key] = raw;
+    if (val === null || val === undefined) continue;
+
+    if (Array.isArray(val)) {
+      const items = val as { operator: string; value?: unknown }[];
+      if (items.length === 2) {
+        // Old dual-bound format → convert to between
+        const [a, b] = items;
+        if (
+          (a.operator === "on_or_after" && b.operator === "on_or_before") ||
+          (a.operator === "greater_than_or_equal" &&
+            b.operator === "less_than_or_equal")
+        ) {
+          out[key] = { operator: "between", value: [a.value, b.value] };
+          continue;
+        }
+      }
+      // Fallback: take the first item
+      if (items.length > 0 && items[0].operator) {
+        out[key] = { operator: items[0].operator, value: items[0].value };
+      }
+      continue;
+    }
+
+    if (typeof val === "object" && "operator" in val) {
+      const item = val as {
+        operator: string;
+        value?: unknown;
+        include_blank?: boolean;
+      };
+      out[key] = {
+        operator: item.operator,
+        ...(item.value !== undefined && { value: item.value }),
+        ...(item.include_blank && { include_blank: true }),
+      };
+      continue;
     }
   }
   return out;
 }
 
-/**
- * Map a filter definition type + its UI value into the API payload shape
- * ({operator, value} or null to clear).
- */
-type ApiFilterResult =
-  | { operator: FilterOperator; value?: string | number | string[] }
-  | { operator: FilterOperator; value?: string | number | string[] }[]
-  | null;
-
-function toApiFilter(
-  def: DashboardFilterDefinition,
-  value: unknown,
-): ApiFilterResult {
-  if (value === null || value === undefined || value === "") return null;
-
-  switch (def.type) {
-    case "picklist":
-    case "multi-select": {
-      const arr = Array.isArray(value) ? value : [value];
-      if (arr.length === 0) return null;
-      return { operator: "in", value: arr as string[] };
-    }
-    case "select":
-      return { operator: "equals", value: value as string };
-    case "date-range": {
-      const dateVal = value as { start?: string; end?: string };
-      if (!dateVal.start && !dateVal.end) return null;
-      if (dateVal.start && dateVal.end) {
-        return [
-          { operator: "on_or_after", value: dateVal.start },
-          { operator: "on_or_before", value: dateVal.end },
-        ];
-      }
-      if (dateVal.start)
-        return { operator: "on_or_after", value: dateVal.start };
-      return { operator: "on_or_before", value: dateVal.end };
-    }
-    case "range": {
-      const rangeVal = value as { min?: number; max?: number };
-      if (rangeVal.min == null && rangeVal.max == null) return null;
-      if (rangeVal.min != null && rangeVal.max != null) {
-        return [
-          { operator: "greater_than_or_equal", value: rangeVal.min },
-          { operator: "less_than_or_equal", value: rangeVal.max },
-        ];
-      }
-      if (rangeVal.min != null)
-        return { operator: "greater_than_or_equal", value: rangeVal.min };
-      return { operator: "less_than_or_equal", value: rangeVal.max };
-    }
-    default:
-      return { operator: "contains", value: value as string };
+/** Deep-compare two FilterLocalState objects. */
+function statesEqual(a: FilterLocalState, b: FilterLocalState): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    if (!(key in b)) return false;
+    if (JSON.stringify(a[key]) !== JSON.stringify(b[key])) return false;
   }
+  return true;
 }
 
 // ── Hook ────────────────────────────────────────────────────────
 
-const DEBOUNCE_MS = 600;
-
 /**
- * Manages dashboard filter state and PATCH calls.
+ * Manages dashboard filter state with explicit Apply.
  *
- * State is keyed by filter **id** (e.g. "risk_level", "owner") — matching
- * the server's `filters.state` keys and the PATCH payload keys.
+ * All edits (field, operator, value changes) are local-only.
+ * Nothing is sent to the API until the user clicks Apply.
  */
 export function useDashboardFilters(
   dashboardId: string | undefined,
@@ -152,116 +112,218 @@ export function useDashboardFilters(
 ) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const pendingPayloadRef = useRef<FilterPatchPayload>({});
 
-  // Local filter state keyed by filter id → raw UI value
-  const [localState, setLocalState] = useState<Record<string, unknown>>(() =>
+  // The last-known server state (normalised)
+  const serverNormalised = useRef<FilterLocalState>(
     normaliseServerState(serverState),
   );
 
-  // Sync from server when it changes (e.g. after refetch)
+  // Local working copy — edits happen here, not sent to API
+  const [localState, setLocalState] = useState<FilterLocalState>(() =>
+    normaliseServerState(serverState),
+  );
+
+  // Rows where user hasn't picked a field yet (UI-only)
+  const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
+
+  // True from Apply click until the dashboard refetch completes with new data
+  const [isApplying, setIsApplying] = useState(false);
+
+  // Sync from server when it changes (e.g. after refetch / apply success)
   useEffect(() => {
-    setLocalState(normaliseServerState(serverState));
+    const normalised = normaliseServerState(serverState);
+    serverNormalised.current = normalised;
+    setLocalState(normalised);
+    setPendingRows([]);
+    setIsApplying(false); // Refetch complete — unlock editing
   }, [serverState]);
 
-  // Clear debounce + pending payload on dashboardId change and unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      pendingPayloadRef.current = {};
-    };
-  }, [dashboardId]);
-
   const safeDefinitions = Array.isArray(definitions) ? definitions : [];
-  const definitionsRef = useRef(safeDefinitions);
-  definitionsRef.current = safeDefinitions;
 
   const mutation = useMutation({
-    mutationFn: (payload: FilterPatchPayload) =>
-      dashboardService.updateFilters(dashboardId!, payload),
-    onSuccess: () => {
+    mutationFn: async (payload: FilterPatchPayload) => {
+      await dashboardService.updateFilters(dashboardId!, payload);
+      // Wait for the dashboard render refetch to complete before settling
       if (dashboardId) {
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: dashboardKeys.detail(dashboardId),
         });
       }
     },
     onError: () => {
       showToast({
-        message: "Failed to update filters. Please try again.",
+        message: "Failed to apply filters. Please try again.",
         variant: "error",
       });
-      setLocalState(normaliseServerState(serverState));
+      setLocalState(serverNormalised.current);
+      setIsApplying(false);
     },
   });
 
-  // Stable ref for mutate so the debounced closure never goes stale
-  const mutateRef = useRef(mutation.mutate);
-  mutateRef.current = mutation.mutate;
+  // ── Local-only edits (no API calls) ─────────────────────────
 
-  /**
-   * @param filterId - The filter definition `id` (e.g. "risk_level")
-   * @param value    - The raw UI value (e.g. ["High","Medium"]) or null to clear
-   */
   const handleFilterChange = useCallback(
-    (filterId: string, value: unknown) => {
-      if (!dashboardId) return;
-
-      // Update local state immediately (optimistic)
-      setLocalState((prev) => {
-        const next = { ...prev };
-        if (value === null || value === undefined || value === "") {
-          delete next[filterId];
-        } else if (Array.isArray(value) && value.length === 0) {
-          delete next[filterId];
-        } else {
-          next[filterId] = value;
-        }
-        return next;
-      });
-
-      // Accumulate into pending payload so rapid changes aren't lost
-      const def = definitionsRef.current.find((d) => d.id === filterId);
-      if (!def) return;
-
-      const apiValue = toApiFilter(def, value);
-      pendingPayloadRef.current = {
-        ...pendingPayloadRef.current,
-        [filterId]: apiValue,
+    (
+      filterId: string,
+      operator: string,
+      value?: unknown,
+      includeBlank?: boolean,
+    ) => {
+      const filter: ActiveFilter = {
+        operator,
+        ...(value !== undefined && { value }),
+        ...(includeBlank && { include_blank: true }),
       };
-
-      // Debounce the API call — sends all accumulated changes
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        const payload = pendingPayloadRef.current;
-        pendingPayloadRef.current = {};
-        mutateRef.current(payload);
-      }, DEBOUNCE_MS);
+      setLocalState((prev) => ({ ...prev, [filterId]: filter }));
     },
-    [dashboardId],
+    [],
   );
 
-  const handleClearFilter = useCallback(
-    (filterId: string) => {
-      handleFilterChange(filterId, null);
+  const handleRemoveFilter = useCallback((filterId: string) => {
+    setLocalState((prev) => {
+      const next = { ...prev };
+      delete next[filterId];
+      return next;
+    });
+  }, []);
+
+  const handleAddFilter = useCallback(() => {
+    setPendingRows((prev) => [...prev, { tempId: tempId() }]);
+  }, []);
+
+  const handleRemovePendingRow = useCallback((id: string) => {
+    setPendingRows((prev) => prev.filter((r) => r.tempId !== id));
+  }, []);
+
+  const handleCommitPendingRow = useCallback(
+    (_pendingId: string, filterId: string, defaultOperator: string) => {
+      setPendingRows((prev) => prev.filter((r) => r.tempId !== _pendingId));
+      setLocalState((prev) => ({
+        ...prev,
+        [filterId]: { operator: defaultOperator },
+      }));
     },
-    [handleFilterChange],
+    [],
   );
 
-  const activeCount = safeDefinitions.filter((d) => {
-    const val = localState[d.id];
-    if (val === null || val === undefined || val === "") return false;
-    if (Array.isArray(val) && val.length === 0) return false;
+  // ── Apply: send all changes to API at once ──────────────────
+
+  const handleApply = useCallback(() => {
+    if (!dashboardId) return;
+
+    const server = serverNormalised.current;
+    const payload: FilterPatchPayload = {};
+
+    // Filters that were added or changed
+    for (const [filterId, filter] of Object.entries(localState)) {
+      // Skip incomplete filters (no value and not a no-value operator)
+      if (!NO_VALUE_OPERATORS.has(filter.operator)) {
+        if (
+          filter.value === undefined ||
+          filter.value === null ||
+          filter.value === ""
+        )
+          continue;
+        if (Array.isArray(filter.value) && filter.value.length === 0) continue;
+      }
+      // Check if it actually changed from server state
+      const serverFilter = server[filterId];
+      if (
+        !serverFilter ||
+        JSON.stringify(serverFilter) !== JSON.stringify(filter)
+      ) {
+        const apiValue: Record<string, unknown> = { operator: filter.operator };
+        if (filter.value !== undefined) apiValue.value = filter.value;
+        if (filter.include_blank) {
+          apiValue.include_blank = true;
+        } else if (serverFilter?.include_blank) {
+          // Server had include_blank=true, user turned it off — explicitly clear
+          apiValue.include_blank = false;
+        }
+        payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
+      }
+    }
+
+    // Filters that were removed (in server but not in local)
+    for (const filterId of Object.keys(server)) {
+      if (!(filterId in localState)) {
+        payload[filterId] = null;
+      }
+    }
+
+    if (Object.keys(payload).length === 0) return; // Nothing changed
+
+    setIsApplying(true);
+    mutation.mutate(payload);
+  }, [dashboardId, localState, mutation]);
+
+  // ── Clear all (local + immediate API) ───────────────────────
+
+  const handleClearAll = useCallback(() => {
+    if (!dashboardId) return;
+
+    const server = serverNormalised.current;
+    const payload: FilterPatchPayload = {};
+    for (const filterId of Object.keys(server)) {
+      payload[filterId] = null;
+    }
+
+    setLocalState({});
+    setPendingRows([]);
+
+    if (Object.keys(payload).length > 0) {
+      setIsApplying(true);
+      mutation.mutate(payload);
+    }
+  }, [dashboardId, mutation]);
+
+  const BETWEEN_OPS = new Set(["between", "not_between"]);
+
+  function isFilterComplete(filter: ActiveFilter): boolean {
+    if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
+    if (
+      filter.value === undefined ||
+      filter.value === null ||
+      filter.value === ""
+    )
+      return false;
+    if (Array.isArray(filter.value)) {
+      if (filter.value.length === 0) return false;
+      if (BETWEEN_OPS.has(filter.operator)) {
+        return (
+          filter.value.length === 2 &&
+          filter.value[0] !== undefined &&
+          filter.value[0] !== null &&
+          filter.value[0] !== "" &&
+          filter.value[1] !== undefined &&
+          filter.value[1] !== null &&
+          filter.value[1] !== ""
+        );
+      }
+    }
     return true;
-  }).length;
+  }
+
+  const filters = Object.values(localState);
+  const activeCount = filters.filter(isFilterComplete).length;
+  const isDirty = !statesEqual(localState, serverNormalised.current);
+  const allFiltersValid = filters.every(isFilterComplete);
+
+  const canApply = isDirty && allFiltersValid;
 
   return {
     definitions: safeDefinitions,
     filterState: localState,
+    pendingRows,
     activeCount,
+    canApply,
     handleFilterChange,
-    handleClearFilter,
-    isUpdating: mutation.isPending,
+    handleRemoveFilter,
+    handleAddFilter,
+    handleRemovePendingRow,
+    handleCommitPendingRow,
+    handleApply,
+    handleClearAll,
+    isApplying,
   };
 }

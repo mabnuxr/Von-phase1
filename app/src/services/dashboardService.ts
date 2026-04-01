@@ -203,11 +203,21 @@ class DashboardService {
 
   async updateFilters(
     dashboardId: string,
-    filters: FilterPatchPayload,
+    filters?: FilterPatchPayload | null,
+    resetFields?: string[],
   ): Promise<FilterPatchResponse> {
+    const body: Record<string, unknown> = {};
+    if (filters) body.filters = filters;
+    if (resetFields?.length) body.reset_fields = resetFields;
     return apiClient.patch<FilterPatchResponse>(
       `/api/v1/dashboards/${dashboardId}/filters`,
-      { filters },
+      body,
+    );
+  }
+
+  async resetFilters(dashboardId: string): Promise<FilterPatchResponse> {
+    return apiClient.post<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters/reset`,
     );
   }
 }
