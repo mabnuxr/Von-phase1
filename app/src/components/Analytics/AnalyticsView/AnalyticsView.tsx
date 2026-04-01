@@ -104,6 +104,8 @@ interface AnalyticsViewProps {
   onColorThemeChange?: (themeId: string) => void;
   /** Called when the owner renames the dashboard */
   onRename?: (newName: string) => void;
+  /** Hide the "Created by" chip in the header */
+  hideCreatorChip?: boolean;
   /** Schedule state and handlers (required when dashboard.isOwner) */
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
@@ -151,6 +153,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   defaultColorTheme,
   onColorThemeChange,
   onRename,
+  hideCreatorChip,
   schedule,
   isScheduled,
   isSchedulePaused,
@@ -317,14 +320,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
             <DashboardLayout.HeaderRow.Right>
               {/* Created by indicator */}
-              <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
-                <span className="text-gray-800">Created by</span>
-                <span className="text-gray-800 font-medium">
-                  {dashboard.isOwner
-                    ? "me"
-                    : dashboard.createdByName || "someone"}
+              {!hideCreatorChip && (
+                <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
+                  <span className="text-gray-800">Created by</span>
+                  <span className="text-gray-800 font-medium">
+                    {dashboard.isOwner
+                      ? "me"
+                      : dashboard.createdByName || "someone"}
+                  </span>
                 </span>
-              </span>
+              )}
               {onExpand && !isEditMode && (
                 <button
                   onClick={isSaved ? onExpand : undefined}

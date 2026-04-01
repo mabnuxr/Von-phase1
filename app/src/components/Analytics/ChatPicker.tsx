@@ -62,9 +62,6 @@ function ConvButton({
       >
         {conv.title}
       </span>
-      {isActive && (
-        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400 ring-2 ring-green-300" />
-      )}
     </button>
   );
 }

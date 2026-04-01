@@ -162,6 +162,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
             onColorThemeChange={handleColorThemeChange}
             onRename={handleRename}
+            hideCreatorChip
             schedule={schedule}
             isScheduled={isScheduled}
             isSchedulePaused={isSchedulePaused}
