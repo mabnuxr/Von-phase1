@@ -30,14 +30,48 @@ const SQL_OPERATOR_LABELS: Record<string, string> = {
   "IS NOT NULL": "is not blank",
 };
 
-/** Pretty-print a snake_case column name */
+/** Pretty-print a column name: strip quotes, replace underscores, title-case */
 function formatColumn(col: string): string {
-  return col.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  // Strip surrounding double-quotes or backticks
+  const stripped = col.replace(/^["`]|["`]$/g, "");
+  return stripped.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /** Strip surrounding single quotes from a SQL value */
 function stripQuotes(val: string): string {
   return val.replace(/^'(.*)'$/, "$1");
+}
+
+/** Regex source for a SQL identifier: word, dotted (table.col), double-quoted, or backtick-quoted */
+const COL = `(?:"[^"]+"|` + "`[^`]+" + "`" + `|\\w+(?:\\.\\w+)*)`;
+
+/** Split a string on commas that are not inside quotes or parentheses */
+function splitTopLevelCommas(input: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let inQuote = false;
+  let start = 0;
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (ch === "'") {
+      if (inQuote && input[i + 1] === "'") {
+        i++;
+      } else {
+        inQuote = !inQuote;
+      }
+      continue;
+    }
+    if (inQuote) continue;
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    else if (ch === "," && depth === 0) {
+      parts.push(input.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(input.slice(start));
+  return parts;
 }
 
 /**
@@ -68,7 +102,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     if (!trimmed) continue;
 
     // IS NOT NULL
-    const isNotNullMatch = trimmed.match(/^(\w+)\s+IS\s+NOT\s+NULL$/i);
+    const isNotNullMatch = trimmed.match(new RegExp(`^(${COL})\\s+IS\\s+NOT\\s+NULL$`, "i"));
     if (isNotNullMatch) {
       conditions.push({
         column: formatColumn(isNotNullMatch[1]),
@@ -80,7 +114,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // IS NULL
-    const isNullMatch = trimmed.match(/^(\w+)\s+IS\s+NULL$/i);
+    const isNullMatch = trimmed.match(new RegExp(`^(${COL})\\s+IS\\s+NULL$`, "i"));
     if (isNullMatch) {
       conditions.push({
         column: formatColumn(isNullMatch[1]),
@@ -92,10 +126,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // NOT IN (...)
-    const notInMatch = trimmed.match(/^(\w+)\s+NOT\s+IN\s*\((.+)\)$/i);
+    const notInMatch = trimmed.match(new RegExp(`^(${COL})\\s+NOT\\s+IN\\s*\\((.+)\\)$`, "i"));
     if (notInMatch) {
-      const values = notInMatch[2]
-        .split(",")
+      const values = splitTopLevelCommas(notInMatch[2])
         .map((v: string) => stripQuotes(v.trim()))
         .join(", ");
       conditions.push({
@@ -108,10 +141,9 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // IN (...)
-    const inMatch = trimmed.match(/^(\w+)\s+IN\s*\((.+)\)$/i);
+    const inMatch = trimmed.match(new RegExp(`^(${COL})\\s+IN\\s*\\((.+)\\)$`, "i"));
     if (inMatch) {
-      const values = inMatch[2]
-        .split(",")
+      const values = splitTopLevelCommas(inMatch[2])
         .map((v: string) => stripQuotes(v.trim()))
         .join(", ");
       conditions.push({
@@ -124,9 +156,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // BETWEEN ... AND ...
-    const betweenMatch = trimmed.match(
-      /^(\w+)\s+BETWEEN\s+(.+?)\s+AND\s+(.+)$/i,
-    );
+    const betweenMatch = trimmed.match(new RegExp(`^(${COL})\\s+BETWEEN\\s+(.+?)\\s+AND\\s+(.+)$`, "i"));
     if (betweenMatch) {
       conditions.push({
         column: formatColumn(betweenMatch[1]),
@@ -138,7 +168,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // NOT LIKE
-    const notLikeMatch = trimmed.match(/^(\w+)\s+NOT\s+LIKE\s+(.+)$/i);
+    const notLikeMatch = trimmed.match(new RegExp(`^(${COL})\\s+NOT\\s+LIKE\\s+(.+)$`, "i"));
     if (notLikeMatch) {
       conditions.push({
         column: formatColumn(notLikeMatch[1]),
@@ -150,7 +180,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // LIKE
-    const likeMatch = trimmed.match(/^(\w+)\s+LIKE\s+(.+)$/i);
+    const likeMatch = trimmed.match(new RegExp(`^(${COL})\\s+LIKE\\s+(.+)$`, "i"));
     if (likeMatch) {
       conditions.push({
         column: formatColumn(likeMatch[1]),
@@ -162,7 +192,7 @@ function parseWhereClause(query: string): FilterCondition[] {
     }
 
     // Standard comparison: col op value
-    const compMatch = trimmed.match(/^(\w+)\s*(!=|<>|>=|<=|=|>|<)\s*(.+)$/);
+    const compMatch = trimmed.match(new RegExp(`^(${COL})\\s*(!=|<>|>=|<=|=|>|<)\\s*(.+)$`));
     if (compMatch) {
       conditions.push({
         column: formatColumn(compMatch[1]),
