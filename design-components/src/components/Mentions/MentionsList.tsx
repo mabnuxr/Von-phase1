@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ChalkboardTeacher, Chalkboard } from '@phosphor-icons/react';
+import { ChartBarIcon } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
 import { Tooltip } from '../Tooltip';
 
@@ -7,9 +7,8 @@ import { Tooltip } from '../Tooltip';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getMentionIcon(item: MentionItem) {
-  const Icon = item.dashboardVariant === 'user' ? ChalkboardTeacher : Chalkboard;
-  return <Icon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
+function getMentionIcon() {
+  return <ChartBarIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,7 +48,7 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
       onClick={disabled ? undefined : () => onSelect(item)}
       onMouseEnter={disabled ? undefined : onMouseEnter}
     >
-      {getMentionIcon(item)}
+      {getMentionIcon()}
       <span className="text-sm text-gray-800 truncate">{item.name}</span>
     </div>
   </Tooltip>
