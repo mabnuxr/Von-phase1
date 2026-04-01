@@ -7,6 +7,7 @@ import Analytics from "./pages/Analytics";
 import Logout from "./pages/Logout";
 import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
+import Redirecting from "./pages/Redirecting";
 import Settings from "./pages/Settings";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
 import { AppShell } from "./components/AppShell";
@@ -41,6 +42,7 @@ export default function App() {
             <Route path="/chat/new" element={<NewConversation />} />
             <Route path="/chat/:conversationId" element={<Conversation />} />
             <Route path="/dashboard/:dashboardId" element={<Analytics />} />
+            <Route path="/redirecting" element={<Redirecting />} />
           </Route>
 
           {/* Settings has its own sidebar */}

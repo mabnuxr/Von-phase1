@@ -130,7 +130,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
 
   const handleExpand = useCallback(() => {
     navigate(
-      `/dashboard/${dashboardId}?conversationId=${conversationId}`,
+      `/redirecting?to=${encodeURIComponent(`/dashboard/${dashboardId}?conversationId=${conversationId}`)}`,
       collapseSidebar,
     );
   }, [navigate, dashboardId, conversationId, collapseSidebar]);
