@@ -62,17 +62,6 @@ function DashboardCanvas({
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
 
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({
-        ui_config: {
-          color_palette_global: themeId,
-        },
-      });
-    },
-    [handleUpdate],
-  );
-
   const handleRename = useCallback(
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
@@ -182,8 +171,6 @@ function DashboardCanvas({
         onPointDrillDown={openPointDrilldown}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
-        defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-        onColorThemeChange={handleColorThemeChange}
         onRename={handleRename}
         schedule={schedule}
         isScheduled={isScheduled}

@@ -557,11 +557,6 @@ export {
   CounterWidget,
   TextWidget,
   DashboardLayout,
-  DashboardCustomizationProvider,
-  useDashboardCustomization,
-  chartThemes,
-  chartThemeIds,
-  multiSwatchColors,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -577,7 +572,4 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
-  DashboardCustomizationState,
-  ChartThemeId,
-  ChartThemePalette,
 } from './Dashboard';
