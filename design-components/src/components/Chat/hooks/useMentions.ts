@@ -180,7 +180,13 @@ export function useMentions({
     }
 
     return items;
-  }, [mentionItems, suggestionState.query, selectedMentions, isDashboardLimitReached, dashboardMention]);
+  }, [
+    mentionItems,
+    suggestionState.query,
+    selectedMentions,
+    isDashboardLimitReached,
+    dashboardMention,
+  ]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight when query changes

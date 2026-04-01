@@ -127,7 +127,9 @@ export const MentionsList: React.FC<MentionsListProps> = ({
             return (
               <React.Fragment key={item.id}>
                 {showCurrentHeader && (
-                  <div className="px-2 py-1 text-xs font-medium text-gray-500">Currently viewing</div>
+                  <div className="px-2 py-1 text-xs font-medium text-gray-500">
+                    Currently viewing
+                  </div>
                 )}
                 {showOthersHeader && (
                   <>
