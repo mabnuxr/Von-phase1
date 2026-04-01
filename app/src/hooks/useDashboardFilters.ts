@@ -172,7 +172,7 @@ export function useDashboardFilters(
       const filter: ActiveFilter = {
         operator,
         ...(value !== undefined && { value }),
-        ...(includeBlank !== undefined && { include_blank: includeBlank }),
+        ...(includeBlank && { include_blank: true }),
       };
       setLocalState((prev) => ({ ...prev, [filterId]: filter }));
     },
@@ -234,8 +234,12 @@ export function useDashboardFilters(
       ) {
         const apiValue: Record<string, unknown> = { operator: filter.operator };
         if (filter.value !== undefined) apiValue.value = filter.value;
-        if (filter.include_blank !== undefined)
-          apiValue.include_blank = filter.include_blank;
+        if (filter.include_blank) {
+          apiValue.include_blank = true;
+        } else if (serverFilter?.include_blank) {
+          // Server had include_blank=true, user turned it off — explicitly clear
+          apiValue.include_blank = false;
+        }
         payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
       }
     }
@@ -273,12 +277,9 @@ export function useDashboardFilters(
     }
   }, [dashboardId, mutation]);
 
-  const activeCount = Object.keys(localState).length;
-  const isDirty = !statesEqual(localState, serverNormalised.current);
-
-  // Every local filter must be complete (has value or is a no-value operator)
   const BETWEEN_OPS = new Set(["between", "not_between"]);
-  const allFiltersValid = Object.values(localState).every((filter) => {
+
+  function isFilterComplete(filter: ActiveFilter): boolean {
     if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
     if (
       filter.value === undefined ||
@@ -288,7 +289,6 @@ export function useDashboardFilters(
       return false;
     if (Array.isArray(filter.value)) {
       if (filter.value.length === 0) return false;
-      // Between requires exactly 2 non-empty bounds
       if (BETWEEN_OPS.has(filter.operator)) {
         return (
           filter.value.length === 2 &&
@@ -302,7 +302,12 @@ export function useDashboardFilters(
       }
     }
     return true;
-  });
+  }
+
+  const filters = Object.values(localState);
+  const activeCount = filters.filter(isFilterComplete).length;
+  const isDirty = !statesEqual(localState, serverNormalised.current);
+  const allFiltersValid = filters.every(isFilterComplete);
 
   const canApply = isDirty && allFiltersValid;
 
