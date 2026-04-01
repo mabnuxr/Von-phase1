@@ -9,6 +9,8 @@ interface FilterCondition {
   column: string;
   operator: string;
   value: string;
+  /** The logical connector that precedes this condition ("and" / "or"). Unused for the first condition. */
+  connector?: "and" | "or";
 }
 
 const SQL_OPERATOR_LABELS: Record<string, string> = {
@@ -58,11 +60,11 @@ function parseWhereClause(query: string): FilterCondition[] {
 
   const conditions: FilterCondition[] = [];
 
-  // Split on top-level AND (not inside parentheses)
-  const parts = splitOnTopLevelAnd(clause);
+  // Split on top-level AND / OR (not inside parentheses or quotes)
+  const parts = splitOnTopLevelLogical(clause);
 
-  for (const part of parts) {
-    const trimmed = part.trim();
+  for (const { text, connector } of parts) {
+    const trimmed = text.trim();
     if (!trimmed) continue;
 
     // IS NOT NULL
@@ -72,6 +74,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(isNotNullMatch[1]),
         operator: "is not blank",
         value: "",
+        connector,
       });
       continue;
     }
@@ -83,6 +86,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(isNullMatch[1]),
         operator: "is blank",
         value: "",
+        connector,
       });
       continue;
     }
@@ -92,12 +96,13 @@ function parseWhereClause(query: string): FilterCondition[] {
     if (notInMatch) {
       const values = notInMatch[2]
         .split(",")
-        .map((v) => stripQuotes(v.trim()))
+        .map((v: string) => stripQuotes(v.trim()))
         .join(", ");
       conditions.push({
         column: formatColumn(notInMatch[1]),
         operator: "is not any of",
         value: values,
+        connector,
       });
       continue;
     }
@@ -107,12 +112,13 @@ function parseWhereClause(query: string): FilterCondition[] {
     if (inMatch) {
       const values = inMatch[2]
         .split(",")
-        .map((v) => stripQuotes(v.trim()))
+        .map((v: string) => stripQuotes(v.trim()))
         .join(", ");
       conditions.push({
         column: formatColumn(inMatch[1]),
         operator: "is any of",
         value: values,
+        connector,
       });
       continue;
     }
@@ -126,6 +132,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(betweenMatch[1]),
         operator: "is between",
         value: `${stripQuotes(betweenMatch[2].trim())} and ${stripQuotes(betweenMatch[3].trim())}`,
+        connector,
       });
       continue;
     }
@@ -137,6 +144,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(notLikeMatch[1]),
         operator: "does not contain",
         value: stripQuotes(notLikeMatch[2].trim()).replace(/%/g, ""),
+        connector,
       });
       continue;
     }
@@ -148,6 +156,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(likeMatch[1]),
         operator: "contains",
         value: stripQuotes(likeMatch[2].trim()).replace(/%/g, ""),
+        connector,
       });
       continue;
     }
@@ -159,6 +168,7 @@ function parseWhereClause(query: string): FilterCondition[] {
         column: formatColumn(compMatch[1]),
         operator: SQL_OPERATOR_LABELS[compMatch[2]] ?? compMatch[2],
         value: stripQuotes(compMatch[3].trim()),
+        connector,
       });
       continue;
     }
@@ -167,12 +177,15 @@ function parseWhereClause(query: string): FilterCondition[] {
   return conditions;
 }
 
-/** Split a SQL clause on AND that isn't inside parentheses or quoted strings */
-function splitOnTopLevelAnd(clause: string): string[] {
-  const parts: string[] = [];
+/** Split a SQL clause on top-level AND / OR (not inside parentheses or quoted strings) */
+function splitOnTopLevelLogical(
+  clause: string,
+): { text: string; connector?: "and" | "or" }[] {
+  const parts: { text: string; connector?: "and" | "or" }[] = [];
   let depth = 0;
   let inQuote = false;
   let start = 0;
+  let nextConnector: "and" | "or" | undefined;
 
   for (let i = 0; i < clause.length; i++) {
     const ch = clause[i];
@@ -191,21 +204,31 @@ function splitOnTopLevelAnd(clause: string): string[] {
 
     if (ch === "(") depth++;
     else if (ch === ")") depth--;
-    else if (
-      depth === 0 &&
-      clause.slice(i).match(/^AND\s/i) &&
-      (i === 0 || /\s/.test(clause[i - 1]))
-    ) {
-      // Don't split BETWEEN ... AND ...
-      const preceding = clause.slice(start, i).trim();
-      if (/\bBETWEEN\s+\S+\s*$/i.test(preceding)) continue;
+    else if (depth === 0 && (i === 0 || /\s/.test(clause[i - 1]))) {
+      const andMatch = clause.slice(i).match(/^AND\s/i);
+      const orMatch = clause.slice(i).match(/^OR\s/i);
 
-      parts.push(preceding);
-      i += 3; // skip "AND"
-      start = i;
+      if (andMatch) {
+        // Don't split BETWEEN ... AND ...
+        const preceding = clause.slice(start, i).trim();
+        if (/\bBETWEEN\s+\S+\s*$/i.test(preceding)) continue;
+
+        parts.push({ text: preceding, connector: nextConnector });
+        i += 3; // skip "AND"
+        start = i;
+        nextConnector = "and";
+      } else if (orMatch) {
+        parts.push({
+          text: clause.slice(start, i).trim(),
+          connector: nextConnector,
+        });
+        i += 2; // skip "OR"
+        start = i;
+        nextConnector = "or";
+      }
     }
   }
-  parts.push(clause.slice(start).trim());
+  parts.push({ text: clause.slice(start).trim(), connector: nextConnector });
   return parts;
 }
 
@@ -295,7 +318,7 @@ export function DrilldownFilterQuery({ query }: DrilldownFilterQueryProps) {
                     className="flex items-baseline gap-2 text-sm leading-relaxed"
                   >
                     <span className="text-gray-400 shrink-0 w-10 text-right">
-                      {i === 0 ? "Where" : "and"}
+                      {i === 0 ? "Where" : (cond.connector ?? "and")}
                     </span>
                     <span className="text-gray-700">
                       <span className="font-semibold text-gray-900">
