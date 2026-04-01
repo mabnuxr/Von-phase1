@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ChalkboardTeacher, Chalkboard } from '@phosphor-icons/react';
+import { X, ChartBarIcon } from '@phosphor-icons/react';
 import type { MentionItem } from '../../Mentions/types';
 
 export interface MentionPreviewProps {
@@ -19,11 +19,9 @@ export const MentionPreview: React.FC<MentionPreviewProps> = ({
   onRemove,
   removable = true,
 }) => {
-  const Icon = mention.dashboardVariant === 'user' ? ChalkboardTeacher : Chalkboard;
-
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs flex-shrink-0">
-      <Icon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />
+      <ChartBarIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />
       <span className="truncate max-w-[160px]" title={mention.name}>
         {mention.name}
       </span>
