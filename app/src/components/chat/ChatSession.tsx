@@ -208,26 +208,6 @@ function ExistingChatInner(
     isLoading: isFetchingNextMessagePage,
   });
 
-  // ── Dashboard @ mention (replaces orange referenceContext tag) ─────
-  const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
-  const dashboardMention = useMemo(
-    () =>
-      hasDashboard
-        ? {
-            id: props.dashboardId!,
-            name: props.dashboardTitle!,
-            type: MentionItemType.Dashboard,
-            version: props.dashboardVersion ?? 0,
-          }
-        : null,
-    [
-      hasDashboard,
-      props.dashboardId,
-      props.dashboardTitle,
-      props.dashboardVersion,
-    ],
-  );
-
   // ── Chat engine ───────────────────────────────────────────────────
   // Dashboard references are now driven solely by @ mentions (selectedMentions)
   // so the user controls which dashboards are sent as context.
@@ -368,6 +348,36 @@ function ExistingChatInner(
     dashboard: chatV2.dashboard,
     activeDashboardId,
   });
+
+  // ── Dashboard @ mention (replaces orange referenceContext tag) ─────
+  // Scenario 1: dashboard sidebar — props carry the dashboard info directly.
+  // Scenario 2: preview pane — look up the dashboard from mentionItems.
+  const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
+  const dashboardMention = useMemo(() => {
+    if (hasDashboard) {
+      return {
+        id: props.dashboardId!,
+        name: props.dashboardTitle!,
+        type: MentionItemType.Dashboard,
+        version: props.dashboardVersion ?? 0,
+      };
+    }
+    if (dashboardPaneState.isOpen && dashboardPaneState.dashboardId) {
+      const match = mentionItems.find(
+        (item) => item.id === dashboardPaneState.dashboardId,
+      );
+      if (match) return match;
+    }
+    return null;
+  }, [
+    hasDashboard,
+    props.dashboardId,
+    props.dashboardTitle,
+    props.dashboardVersion,
+    dashboardPaneState.isOpen,
+    dashboardPaneState.dashboardId,
+    mentionItems,
+  ]);
 
   const isCompact = !!props.compact || dashboardPaneState.isOpen;
   const {
