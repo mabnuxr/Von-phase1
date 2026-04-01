@@ -13,3 +13,6 @@ export type { UseFileDropOptions, UseFileDropReturn } from './useFileDrop';
 
 export { useCopyToClipboard } from './useCopyToClipboard';
 export type { UseCopyToClipboardReturn } from './useCopyToClipboard';
+
+export { useCountdown } from './useCountdown';
+export type { CountdownPhase, CountdownState } from './useCountdown';

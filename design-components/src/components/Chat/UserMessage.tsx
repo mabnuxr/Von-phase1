@@ -3,7 +3,7 @@ import { CopyIcon, CheckIcon } from '@phosphor-icons/react';
 import { Tooltip } from '../Tooltip';
 import { TiptapViewer } from '../TiptapEditor';
 import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
-import { MessageMentionPreview } from './FileAttachment/MessageMentionPreview';
+import { MentionPreview } from './FileAttachment/MentionPreview';
 import { CommandPreview } from '../Commands/CommandPreview';
 import { formatMessageTimestamp, formatFullTimestamp, getUserInitials } from './utils/messageUtils';
 import type { MessageFileAttachment } from './types';
@@ -112,9 +112,17 @@ export const UserMessage: React.FC<UserMessageProps> = ({
             )}
             {mentions && mentions.length > 0 && (
               <div
-                className={command || (attachments && attachments.length > 0) ? 'mt-2' : undefined}
+                className={`flex flex-wrap gap-1.5 ${command || (attachments && attachments.length > 0) ? 'mt-2' : ''}`}
               >
-                <MessageMentionPreview mentions={mentions} onMentionClick={onMentionClick} />
+                {mentions.map((mention) => (
+                  <div
+                    key={mention.id}
+                    onClick={() => onMentionClick?.(mention)}
+                    className={onMentionClick ? 'cursor-pointer' : undefined}
+                  >
+                    <MentionPreview mention={mention} removable={false} />
+                  </div>
+                ))}
               </div>
             )}
             {/* Text content - render markdown using TiptapViewer */}

@@ -27,6 +27,10 @@ export interface MentionsOverlayProps {
   onHoverIndex?: (index: number) => void;
   /** Anchor position (caret coordinates) */
   anchorRect?: { left: number; top: number; bottom: number } | null;
+  /** When true, all items are shown in a disabled state */
+  disabled?: boolean;
+  /** Tooltip shown on disabled items */
+  disabledTooltip?: string;
 }
 
 export const MentionsOverlay: React.FC<MentionsOverlayProps> = ({
@@ -37,6 +41,8 @@ export const MentionsOverlay: React.FC<MentionsOverlayProps> = ({
   highlightedIndex = -1,
   onHoverIndex,
   anchorRect,
+  disabled,
+  disabledTooltip,
 }) => {
   if (!showMentionsList) return null;
 
@@ -50,6 +56,8 @@ export const MentionsOverlay: React.FC<MentionsOverlayProps> = ({
           maxHeight={maxHeight}
           highlightedIndex={highlightedIndex}
           onHoverIndex={onHoverIndex}
+          disabled={disabled}
+          disabledTooltip={disabledTooltip}
         />
       )}
     </AnchoredPopup>

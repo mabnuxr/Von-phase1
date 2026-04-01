@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { Editor, Extension, JSONContent } from '@tiptap/react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import type { MentionItem } from '../../Mentions/types';
+import { MentionItemType } from '../../Mentions/constants';
 import {
   MentionChip,
   createMentionSuggestion,
@@ -43,6 +44,8 @@ export interface UseMentionsReturn {
   removeSelectedMention: (id: string) => void;
   /** Clear all selected mentions (e.g. after send) */
   clearSelectedMentions: () => void;
+  /** Whether a dashboard mention is already selected (limit: 1 per message) */
+  isDashboardLimitReached: boolean;
 }
 
 /**
@@ -98,9 +101,8 @@ export function useMentions({
     dashboardMention ? [dashboardMention] : []
   );
 
-  // Tracks whether the user explicitly dismissed the current dashboard's mention chip.
-  // Prevents the effect below from re-adding it until the dashboard changes or a send clears it.
-  const userDismissedDashboardRef = useRef(false);
+  // Track whether the user explicitly dismissed the current dashboard mention
+  const dashboardDismissedRef = useRef(false);
 
   // Sync dashboard mention into selectedMentions on dashboard switch
   const prevDashboardIdRef = useRef(dashboardMention?.id);
@@ -110,7 +112,7 @@ export function useMentions({
     if (!dashboardMention) {
       // Dashboard mention cleared — remove the previous dashboard mention
       prevDashboardIdRef.current = undefined;
-      userDismissedDashboardRef.current = false;
+      dashboardDismissedRef.current = false;
       if (prevId) {
         setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
       }
@@ -120,23 +122,20 @@ export function useMentions({
     prevDashboardIdRef.current = dashboardMention.id;
 
     if (prevId !== dashboardMention.id) {
-      // Dashboard changed — replace old with new, reset dismissed flag
-      userDismissedDashboardRef.current = false;
+      // Dashboard changed — replace old with new, reset dismissed state
+      dashboardDismissedRef.current = false;
       setSelectedMentions((prev) => {
         const withoutOld = prev.filter((m) => m.id !== prevId && m.id !== dashboardMention.id);
         return [dashboardMention, ...withoutOld];
       });
-    } else {
-      // Same dashboard — only re-add if the user hasn't explicitly dismissed it
-      if (!userDismissedDashboardRef.current) {
-        setSelectedMentions((prev) => {
-          const exists = prev.some((m) => m.id === dashboardMention.id);
-          if (!exists) return [dashboardMention, ...prev];
-          return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
-        });
-      }
+    } else if (!dashboardDismissedRef.current) {
+      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
+      setSelectedMentions((prev) => {
+        const exists = prev.some((m) => m.id === dashboardMention.id);
+        if (!exists) return [dashboardMention, ...prev];
+        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
+      });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardMention, selectedMentions.length]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
@@ -152,12 +151,21 @@ export function useMentions({
   // Keep highlightedIndexRef in sync
   highlightedIndexRef.current = highlightedIndex;
 
+  // A dashboard mention is already selected — block further dashboard selections
+  const isDashboardLimitReached = selectedMentions.some(
+    (m) => m.type === MentionItemType.Dashboard
+  );
+
   // Filter items by current query, excluding already-selected mentions
   const filteredItems = useMemo(() => {
+    // When limit is reached, show all items (they'll render disabled)
+    if (isDashboardLimitReached) {
+      return filterItems(mentionItems, suggestionState.query);
+    }
     const selectedIds = new Set(selectedMentions.map((m) => m.id));
     const available = mentionItems.filter((item) => !selectedIds.has(item.id));
     return filterItems(available, suggestionState.query);
-  }, [mentionItems, suggestionState.query, selectedMentions]);
+  }, [mentionItems, suggestionState.query, selectedMentions, isDashboardLimitReached]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight when query changes
@@ -174,7 +182,13 @@ export function useMentions({
     ((props: { id: string; label: string; mentionType: string; version: number }) => void) | null
   >(null);
 
+  const isDashboardLimitReachedRef = useRef(isDashboardLimitReached);
+  isDashboardLimitReachedRef.current = isDashboardLimitReached;
+
   const handleOverlaySelect = useCallback((item: MentionItem) => {
+    // Block selection when dashboard limit is reached
+    if (isDashboardLimitReachedRef.current) return;
+
     // Use Tiptap's suggestion command to clean up the @query text
     if (suggestionCommandRef.current) {
       suggestionCommandRef.current({
@@ -203,14 +217,20 @@ export function useMentions({
     onSelectMentionRef.current?.(item);
   }, []);
 
-  const removeSelectedMention = useCallback((id: string) => {
-    if (id === prevDashboardIdRef.current) {
-      userDismissedDashboardRef.current = true;
-    }
-    setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
-  }, []);
+  const removeSelectedMention = useCallback(
+    (id: string) => {
+      // If removing the current dashboard mention, mark it as dismissed
+      // so the sync effect doesn't re-add it
+      if (dashboardMention && id === dashboardMention.id) {
+        dashboardDismissedRef.current = true;
+      }
+      setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
+    },
+    [dashboardMention]
+  );
 
   const clearSelectedMentions = useCallback(() => {
+    dashboardDismissedRef.current = false;
     setSelectedMentions([]);
   }, []);
 
@@ -303,5 +323,6 @@ export function useMentions({
     selectedMentions,
     removeSelectedMention,
     clearSelectedMentions,
+    isDashboardLimitReached,
   };
 }

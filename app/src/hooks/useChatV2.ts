@@ -206,7 +206,6 @@ export function useChatV2(props: UseChatV2Props) {
     onStateUpdate: v2Processor.applyTransformResult,
     onRunFinished: v2Processor.handleRunFinished,
     onReconcile: refetchMessages as () => void,
-    onTimeout: v2Processor.markTimedOut,
   });
 
   // Send message
@@ -462,6 +461,10 @@ export function useChatV2(props: UseChatV2Props) {
     [conversationId],
   );
 
+  const handleExpire = useCallback((stepId: string) => {
+    v2ProcessorRef.current?.expireApprovalStep(stepId);
+  }, []);
+
   // Transparency handler
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
@@ -573,9 +576,11 @@ export function useChatV2(props: UseChatV2Props) {
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
 
-      // If awaiting approval, invalidate the old run so its events don't interfere
+      // If awaiting approval, invalidate the old run so its events don't interfere.
+      // skipRefetch=true: forceCompleteStreamingMessages() below handles event
+      // persistence, and refetching now would overwrite the new message's optimistic state.
       if (v2Processor.isAwaitingApproval) {
-        v2Processor.invalidateApproval();
+        v2Processor.invalidateApproval(true);
       }
 
       // Persist any in-flight V2 state before sending a new message
@@ -676,6 +681,7 @@ export function useChatV2(props: UseChatV2Props) {
     handleStopStreaming,
     handleApproval,
     handleRejection,
+    handleExpire,
     handlePlanApproval,
     handlePlanRejection,
 

@@ -6,9 +6,10 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
@@ -24,13 +25,13 @@ interface DashboardPreviewPaneProps {
   onClose: () => void;
 }
 
-export function DashboardPreviewPane({
+export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   dashboardId,
   conversationId,
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
     savePhase,
@@ -41,6 +42,8 @@ export function DashboardPreviewPane({
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
@@ -78,6 +81,17 @@ export function DashboardPreviewPane({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    activeCount: filterActiveCount,
+    handleFilterChange,
+    handleClearFilter,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
 
   const {
     mergedWidgets,
@@ -122,7 +136,11 @@ export function DashboardPreviewPane({
           <AnalyticsView
             dashboard={dashboard}
             refreshInfo={refreshInfo}
-            activeFilters={activeFilters}
+            filterDefinitions={filterDefinitions}
+            filterState={filterState}
+            filterActiveCount={filterActiveCount}
+            onFilterChange={handleFilterChange}
+            onClearFilter={handleClearFilter}
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}
@@ -154,6 +172,9 @@ export function DashboardPreviewPane({
             onPauseSchedule={handlePauseSchedule}
             onResumeSchedule={handleResumeSchedule}
             onDeleteSchedule={handleDeleteSchedule}
+            onEditModeChange={editModeMutation.mutate}
+            editModePhase={editModePhase}
+            isRefetchingData={isFetching && !isLoading}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}
@@ -171,4 +192,4 @@ export function DashboardPreviewPane({
       )}
     </div>
   );
-}
+});

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
@@ -19,7 +20,6 @@ import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { ChatSession } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
-import { useToast } from "../hooks/useToast";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
@@ -44,7 +44,7 @@ function DashboardCanvas({
   isChatOpen,
   collapseOnMount,
 }: DashboardCanvasProps) {
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
 
   const {
     handleSave,
@@ -56,28 +56,11 @@ function DashboardCanvas({
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
-  const { handleUpdate, updateMutation } = useDashboardUpdate(dashboardId);
-  const { showToast } = useToast();
-
-  const handleEditModeChange = useCallback(
-    (isEditable: boolean) => {
-      updateMutation.mutate(
-        { is_editable: isEditable },
-        {
-          onError: (error: unknown) => {
-            console.error("[Analytics] Edit mode toggle failed:", error);
-            showToast({
-              message: "Failed to toggle edit mode. Please try again.",
-              variant: "error",
-            });
-          },
-        },
-      );
-    },
-    [updateMutation, showToast],
-  );
+  const { handleUpdate } = useDashboardUpdate(dashboardId);
 
   const handleColorThemeChange = useCallback(
     (themeId: string) => {
@@ -100,6 +83,17 @@ function DashboardCanvas({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    activeCount: filterActiveCount,
+    handleFilterChange,
+    handleClearFilter,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
   const { collapseSidebar } = useAppShell();
 
   const {
@@ -163,7 +157,11 @@ function DashboardCanvas({
       <AnalyticsView
         dashboard={dashboard}
         refreshInfo={refreshInfo}
-        activeFilters={activeFilters}
+        filterDefinitions={filterDefinitions}
+        filterState={filterState}
+        filterActiveCount={filterActiveCount}
+        onFilterChange={handleFilterChange}
+        onClearFilter={handleClearFilter}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
@@ -175,7 +173,8 @@ function DashboardCanvas({
         sharePhase={sharePhase}
         onChatClick={onChatClick}
         isChatOpen={isChatOpen}
-        onEditModeChange={handleEditModeChange}
+        onEditModeChange={editModeMutation.mutate}
+        editModePhase={editModePhase}
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}
@@ -195,6 +194,7 @@ function DashboardCanvas({
         onPauseSchedule={handlePauseSchedule}
         onResumeSchedule={handleResumeSchedule}
         onDeleteSchedule={handleDeleteSchedule}
+        isRefetchingData={isFetching && !isLoading}
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}

@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { CaretUpDownIcon } from "@phosphor-icons/react";
+import { ensureUTC } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
@@ -22,7 +23,7 @@ function groupByRecency(conversations: SidebarConversation[]) {
   const older: SidebarConversation[] = [];
 
   for (const conv of conversations) {
-    const age = now - new Date(conv.updatedAt).getTime();
+    const age = now - new Date(ensureUTC(conv.updatedAt)).getTime();
     if (age <= sevenDays) {
       last7.push(conv);
     } else if (age <= thirtyDays) {

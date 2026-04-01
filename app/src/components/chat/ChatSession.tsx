@@ -259,26 +259,8 @@ function ExistingChatInner(
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
   });
 
-  // ── Dashboard version invalidation (sidebar context) ──────────────
-  const queryClient = useQueryClient();
-  useEffect(() => {
-    if (
-      props.dashboardId &&
-      chatV2.dashboard &&
-      chatV2.dashboard.dashboard_version !== props.dashboardVersion
-    ) {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(props.dashboardId),
-      });
-    }
-  }, [
-    chatV2.dashboard,
-    props.dashboardId,
-    props.dashboardVersion,
-    queryClient,
-  ]);
-
   // ── Integration metadata ──────────────────────────────────────────
+  const queryClient = useQueryClient();
   const { data: integrationsData } = useIntegrations();
   const connectedIntegrationTypes = useMemo(() => {
     const connected = new Set<string>();
@@ -432,9 +414,13 @@ function ExistingChatInner(
 
   const handleMentionClick = useCallback(
     (mention: MentionItem) => {
-      navigate(`/dashboard/${mention.id}?conversationId=${conversationId}`);
+      window.open(
+        `/dashboard/${mention.id}?conversationId=${conversationId}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
     },
-    [navigate, conversationId],
+    [conversationId],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
@@ -537,6 +523,7 @@ function ExistingChatInner(
       enableActions={base.features.isActionsEnabled}
       onApprove={chatV2.handleApproval}
       onReject={chatV2.handleRejection}
+      onExpire={chatV2.handleExpire}
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
       onDashboardPreview={props.compact ? undefined : handleDashboardPreview}

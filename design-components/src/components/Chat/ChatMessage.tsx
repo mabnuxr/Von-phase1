@@ -43,6 +43,8 @@ export interface ChatMessageProps {
   stoppedByUser?: boolean;
   onApprove?: (toolCallId: string, runId: string) => void;
   onReject?: (toolCallId: string, runId: string) => void;
+  /** Callback when an approval expires (TTL reached) */
+  onExpire?: (stepId: string) => void;
   runId?: string;
   isLatestMessage?: boolean;
   enableActions?: boolean;
@@ -136,6 +138,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isLatestMessage,
   onApprove,
   onReject,
+  onExpire,
   runId = '',
   enableActions = false,
   onConvertToDashboard,
@@ -285,6 +288,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         salesforceInstanceUrl={salesforceInstanceUrl}
                         onApprove={onApprove}
                         onReject={onReject}
+                        onExpire={onExpire}
                         onArtifactClick={onArtifactClick}
                         dashboard={dashboard}
                         executionId={executionId}

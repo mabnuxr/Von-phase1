@@ -34,7 +34,6 @@ import {
   RECONCILIATION_STALL_THRESHOLD_DASHBOARD_BUILDER_MS,
   RECONCILIATION_STALL_THRESHOLD_MS,
   RECONCILIATION_CHECK_INTERVAL_MS,
-  STREAM_TIMEOUT_MS,
 } from "../config/constants";
 import { ConversationMode } from "@vonlabs/design-components";
 
@@ -59,7 +58,6 @@ export interface UseReconciliationConfig {
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
   onReconcile?: () => void;
-  onTimeout?: () => void;
 }
 
 function getStallThreshold(chatType: ConversationMode): number {
@@ -85,7 +83,6 @@ export function useReconciliation({
   onStateUpdate,
   onRunFinished,
   onReconcile,
-  onTimeout,
 }: UseReconciliationConfig): void {
   const isReconcilingRef = useRef<boolean>(false);
 
@@ -253,18 +250,6 @@ export function useReconciliation({
 
       const timeSinceLastEvent = Date.now() - lastEventTimeRef.current;
 
-      // Hard timeout — no genuinely new events for too long, give up
-      if (timeSinceLastEvent >= STREAM_TIMEOUT_MS) {
-        console.log(
-          "[useReconciliation] Hard timeout — no new events for",
-          Math.round(timeSinceLastEvent / 1000),
-          "seconds",
-        );
-        clearInterval(intervalId);
-        onTimeout?.();
-        return;
-      }
-
       if (timeSinceLastEvent >= stallThreshold) {
         console.log(
           "[useReconciliation] No events for",
@@ -281,7 +266,6 @@ export function useReconciliation({
     conversationId,
     chatType,
     lastEventTimeRef,
-    onTimeout,
     reconcile,
   ]);
 

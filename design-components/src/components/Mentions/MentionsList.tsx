@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { ChalkboardTeacher, Chalkboard } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
+import { Tooltip } from '../Tooltip';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,6 +21,8 @@ interface MentionItemRowProps {
   onSelect: (item: MentionItem) => void;
   onMouseEnter?: () => void;
   isHighlighted?: boolean;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 const MentionItemRow: React.FC<MentionItemRowProps> = ({
@@ -27,16 +30,29 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
   onSelect,
   onMouseEnter,
   isHighlighted,
+  disabled,
+  disabledTooltip,
 }) => (
-  <div
-    className={`flex items-center gap-2.5 px-2 h-8 rounded-xl border border-transparent transition-colors duration-150 cursor-pointer hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs ${
-      isHighlighted ? 'bg-gray-50 border-gray-200 shadow-xs' : ''
-    }`}
-    onClick={() => onSelect(item)}
-    onMouseEnter={onMouseEnter}
+  <Tooltip
+    content={disabledTooltip}
+    enabled={!!disabled && !!disabledTooltip}
+    wrapperClassName="w-full"
   >
-    <span className="text-sm text-gray-800 truncate">{item.name}</span>
-  </div>
+    <div
+      className={`flex items-center gap-2.5 px-2 h-8 rounded-xl border border-transparent transition-colors duration-150 w-full ${
+        disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : `cursor-pointer hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs ${
+              isHighlighted ? 'bg-gray-50 border-gray-200 shadow-xs' : ''
+            }`
+      }`}
+      onClick={disabled ? undefined : () => onSelect(item)}
+      onMouseEnter={disabled ? undefined : onMouseEnter}
+    >
+      {getMentionIcon(item)}
+      <span className="text-sm text-gray-800 truncate">{item.name}</span>
+    </div>
+  </Tooltip>
 );
 
 const SKELETON_WIDTHS = [100, 72, 120, 88, 64];
@@ -74,6 +90,10 @@ export interface MentionsListProps {
   maxHeight?: number;
   highlightedIndex?: number;
   onHoverIndex?: (index: number) => void;
+  /** When true, all items are shown in a disabled state */
+  disabled?: boolean;
+  /** Tooltip shown on disabled items */
+  disabledTooltip?: string;
 }
 
 export const MentionsList: React.FC<MentionsListProps> = ({
@@ -83,6 +103,8 @@ export const MentionsList: React.FC<MentionsListProps> = ({
   maxHeight = 300,
   highlightedIndex = -1,
   onHoverIndex,
+  disabled,
+  disabledTooltip,
 }) => {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -111,6 +133,8 @@ export const MentionsList: React.FC<MentionsListProps> = ({
                 onSelect={onSelect}
                 onMouseEnter={() => onHoverIndex?.(index)}
                 isHighlighted={index === highlightedIndex}
+                disabled={disabled}
+                disabledTooltip={disabledTooltip}
               />
             </div>
           ))

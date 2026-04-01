@@ -111,13 +111,13 @@ export interface UseV2EventProcessorReturn {
   /** Whether the current/last run is a dashboard builder response */
   isDashboardBuilderMode: boolean;
   markStopped: () => void;
-  markTimedOut: () => void;
   clearPendingStop: () => void;
   /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
   resumeTimer: () => void;
   /** Undo the optimistic timer resume when the approval API fails. */
   pauseTimerOnApprovalFailure: () => void;
-  invalidateApproval: () => void;
+  invalidateApproval: (skipRefetch?: boolean) => void;
+  expireApprovalStep: (stepId: string) => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -313,77 +313,87 @@ export function useV2EventProcessor(
     pendingStopRef.current = false;
   }, []);
 
-  const invalidateApproval = useCallback(() => {
-    // Mark all active runs as finished so their events are no longer processed
-    for (const [runId] of eventsRef.current) {
-      if (!finishedRunsRef.current.has(runId)) {
-        finishedRunsRef.current.add(runId);
-      }
-    }
-
-    // Reset live state synchronously so React commits the update before this
-    // function returns.  The functional updater reads React's latest committed
-    // state (avoiding races with queued updates).  Note: `flushSync` guarantees
-    // the DOM is updated, but the `timelineSteps` state variable captured by
-    // the enclosing closure is NOT updated until the next render — any code that
-    // needs the new steps immediately after this call must read via the ref.
-    flushSync(() => {
-      setTimelineSteps((prev) => {
-        const next = prev.map((step) => {
-          if (step.status === "awaiting-approval") {
-            return { ...step, status: "expired" as const };
-          }
-          if (step.status === "in-progress" || step.status === "pending") {
-            return { ...step, status: "complete" as const };
-          }
-          return step;
-        });
-        timelineStepsRef.current = next;
-        return next;
-      });
-      setIsAwaitingApproval(false);
-      setIsThinking(false);
-      setIsFinalResponseStreaming(false);
-      setExecutionId(null);
-    });
-    timerOnRunTerminated(true);
-    lastEventTimeRef.current = 0;
-
-    // Trigger event persistence: onRunComplete calls forceCompleteMessage which
-    // persists events from eventsRef into the chatStore message, then
-    // refetchMessages() replaces the optimistic message with the server's
-    // version.  dashboardUtils post-processing unconditionally marks any
-    // remaining awaiting-approval steps as expired for non-streaming messages,
-    // and propagates the expired status to the message level — so no
-    // separate markMessageExpired call is needed here.
-    try {
-      onRunComplete?.();
-    } catch (err) {
-      console.error("[invalidateApproval] onRunComplete failed:", err);
-    }
-  }, [timerOnRunTerminated, onRunComplete]);
-
-  const markTimedOut = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log(
-        "[useV2EventProcessor] Run timed out — no new events received",
+  const expireApprovalStep = useCallback((stepId: string) => {
+    setTimelineSteps((prev) => {
+      const next = prev.map((step) =>
+        step.id === stepId && step.status === "awaiting-approval"
+          ? { ...step, status: "expired" as const }
+          : step,
       );
-    }
+      timelineStepsRef.current = next;
 
-    // Persist timeout status in chatStore so the message shows the error banner
-    // and doesn't resurrect as "streaming" after a page refresh
-    const messages =
-      useChatStore.getState().messages[conversationId ?? ""] || [];
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === "assistant" && m.isStreaming) {
-        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
-        break;
+      // Derive flags from updated steps rather than unconditionally resetting
+      const stillAwaiting = next.some((s) => s.status === "awaiting-approval");
+      const stillThinking = next.some(
+        (s) => s.status === "in-progress" || s.status === "pending",
+      );
+      setIsAwaitingApproval(stillAwaiting);
+      setIsThinking(stillThinking || stillAwaiting);
+
+      return next;
+    });
+  }, []);
+
+  const invalidateApproval = useCallback(
+    (skipRefetch?: boolean) => {
+      // Mark all active runs as finished so their events are no longer processed
+      for (const [runId] of eventsRef.current) {
+        if (!finishedRunsRef.current.has(runId)) {
+          finishedRunsRef.current.add(runId);
+        }
       }
-    }
 
-    terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
-  }, [conversationId, terminateRun]);
+      // Reset live state synchronously so React commits the update before this
+      // function returns.  The functional updater reads React's latest committed
+      // state (avoiding races with queued updates).  Note: `flushSync` guarantees
+      // the DOM is updated, but the `timelineSteps` state variable captured by
+      // the enclosing closure is NOT updated until the next render — any code that
+      // needs the new steps immediately after this call must read via the ref.
+      flushSync(() => {
+        setTimelineSteps((prev) => {
+          const next = prev.map((step) => {
+            if (step.status === "awaiting-approval") {
+              return { ...step, status: "expired" as const };
+            }
+            if (step.status === "in-progress" || step.status === "pending") {
+              return { ...step, status: "complete" as const };
+            }
+            return step;
+          });
+          timelineStepsRef.current = next;
+          return next;
+        });
+        setIsAwaitingApproval(false);
+        setIsThinking(false);
+        setIsFinalResponseStreaming(false);
+        setExecutionId(null);
+      });
+      timerOnRunTerminated(true);
+      lastEventTimeRef.current = 0;
+
+      // Trigger event persistence: onRunComplete calls forceCompleteMessage which
+      // persists events from eventsRef into the chatStore message, then
+      // refetchMessages() replaces the optimistic message with the server's
+      // version.  dashboardUtils post-processing unconditionally marks any
+      // remaining awaiting-approval steps as expired for non-streaming messages,
+      // and propagates the expired status to the message level — so no
+      // separate markMessageExpired call is needed here.
+      //
+      // When skipRefetch is true (called from handleSendMessage), we skip
+      // onRunComplete because forceCompleteStreamingMessages() handles event
+      // persistence, and the refetchMessages() inside onRunComplete would
+      // fire before the new message's Pusher events arrive, overwriting
+      // the optimistic state with stale backend data.
+      if (!skipRefetch) {
+        try {
+          onRunComplete?.();
+        } catch (err) {
+          console.error("[invalidateApproval] onRunComplete failed:", err);
+        }
+      }
+    },
+    [timerOnRunTerminated, onRunComplete],
+  );
 
   const handleRunFinished = useCallback(
     (runId: string, elapsed: number) => {
@@ -865,11 +875,11 @@ export function useV2EventProcessor(
     executionId,
     isDashboardBuilderMode,
     markStopped,
-    markTimedOut,
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,
     pauseTimerOnApprovalFailure: timerOnApprovalFailed,
     invalidateApproval,
+    expireApprovalStep,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

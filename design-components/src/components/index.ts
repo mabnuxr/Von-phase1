@@ -176,6 +176,10 @@ export type { DropdownProps, DropdownItem } from './Dropdown';
 export { Select } from './forms/dropdown';
 export type { SelectProps, SelectOption } from './forms/dropdown';
 
+// Multi-select dropdown
+export { MultiSelectDropdown } from './forms/dropdown';
+export type { MultiSelectDropdownProps, MultiSelectDropdownOption } from './forms/dropdown';
+
 // Chat Molecules
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';

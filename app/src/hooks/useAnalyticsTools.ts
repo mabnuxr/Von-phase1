@@ -28,12 +28,13 @@ export function useAnalyticsTools(dashboardId: string) {
   useEffect(() => () => clearTimeout(saveToastTimerRef.current), []);
 
   const saveMutation = useMutation({
-    mutationFn: (version?: number) =>
-      dashboardService.publishDashboard(dashboardId, version),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    mutationFn: async (version?: number) => {
+      await dashboardService.publishDashboard(dashboardId, version);
+      await queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: sidebarDashboardKeys.all,
       });
@@ -72,7 +73,7 @@ export function useAnalyticsTools(dashboardId: string) {
         },
       });
     },
-    [saveMutation, showToast],
+    [saveMutation, showToast, showToastNow, hideToastNow],
   );
 
   const savePhase = useMutationPhase(
@@ -82,11 +83,13 @@ export function useAnalyticsTools(dashboardId: string) {
 
   // ─── Revert to Saved ───────────────────────────────────────────
   const revertMutation = useMutation({
-    mutationFn: () => dashboardService.revertToPublished(dashboardId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    mutationFn: async () => {
+      await dashboardService.revertToPublished(dashboardId);
+      await queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+    },
+    onSuccess: () => {
       showToast({
         message: "Dashboard reverted to last saved version.",
         variant: "success",
@@ -148,6 +151,34 @@ export function useAnalyticsTools(dashboardId: string) {
     shareMutation.isSuccess,
   );
 
+  // ─── Edit Mode ─────────────────────────────────────────────────
+  const editModeMutation = useMutation({
+    mutationFn: async (isEditable: boolean) => {
+      await dashboardService.updateDashboard(dashboardId, {
+        is_editable: isEditable,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      });
+    },
+    onMutate: () =>
+      queryClient.cancelQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      }),
+    onError: (error: unknown) => {
+      console.error("[useAnalyticsTools] Edit mode toggle failed:", error);
+      showToast({
+        message: "Failed to toggle edit mode. Please try again.",
+        variant: "error",
+      });
+    },
+  });
+
+  const editModePhase = useMutationPhase(
+    editModeMutation.isPending,
+    editModeMutation.isSuccess,
+  );
+
   // ─── Refresh ───────────────────────────────────────────────────
   const refreshMutation = useMutation({
     mutationFn: () => dashboardService.triggerRefresh(dashboardId),
@@ -187,5 +218,7 @@ export function useAnalyticsTools(dashboardId: string) {
     sharePhase,
     handleRefresh,
     refreshMutation,
+    editModeMutation,
+    editModePhase,
   };
 }

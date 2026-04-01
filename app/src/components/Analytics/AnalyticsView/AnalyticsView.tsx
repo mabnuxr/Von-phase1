@@ -20,6 +20,7 @@ import {
 import { chartThemeIds } from "@vonlabs/design-components";
 import type { ChartThemeId } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
+import type { DashboardFilterDefinition } from "../../../types/dashboard";
 // import { CustomizeButton } from "./CustomizeButton";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
@@ -42,7 +43,16 @@ import type {
 interface AnalyticsViewProps {
   dashboard: Dashboard;
   refreshInfo: RefreshInfo | null;
-  activeFilters: Record<string, unknown>;
+  /** Filter definitions from the dashboard */
+  filterDefinitions: DashboardFilterDefinition[];
+  /** Current filter state (column → value) */
+  filterState: Record<string, unknown>;
+  /** Number of active filters */
+  filterActiveCount: number;
+  /** Called when a filter value changes */
+  onFilterChange: (column: string, value: unknown) => void;
+  /** Called when a filter is cleared */
+  onClearFilter: (column: string) => void;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -64,6 +74,8 @@ interface AnalyticsViewProps {
   isChatOpen?: boolean;
   /** Toggle edit mode via PATCH API (is_editable) */
   onEditModeChange?: (isEditable: boolean) => void;
+  /** Edit mode mutation phase (pending while API + refetch in flight) */
+  editModePhase?: MutationPhase;
   /** Server-side table pagination handler */
   onTablePageChange?: (panelId: string, page: number) => void;
   /** Set of panel IDs currently loading a new page */
@@ -104,12 +116,18 @@ interface AnalyticsViewProps {
   onPauseSchedule: () => void;
   onResumeSchedule: () => void;
   onDeleteSchedule: () => void;
+  /** Whether widget data is being refetched (e.g. after filter change) */
+  isRefetchingData?: boolean;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   dashboard,
   refreshInfo,
-  activeFilters,
+  filterDefinitions,
+  filterState,
+  filterActiveCount,
+  onFilterChange,
+  onClearFilter,
   onRefresh,
   onSave,
   savePhase,
@@ -124,6 +142,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   isChatOpen,
   onEditModeChange,
+  editModePhase = "idle",
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -144,6 +163,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onPauseSchedule,
   onResumeSchedule,
   onDeleteSchedule,
+  isRefetchingData,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -204,20 +224,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onChatClick?.();
   }, [dashboard.isOwner, onEditModeChange, onChatClick]);
 
-  const exitEditMode = useCallback(() => {
-    onEditModeChange?.(false);
-  }, [onEditModeChange]);
-
   const handleSaveFromEditMode = useCallback(() => {
     onSave({
       isFirstSave: dashboard.dashboardVersion < 1,
-      onSuccess: exitEditMode,
     });
-  }, [onSave, dashboard.dashboardVersion, exitEditMode]);
+  }, [onSave, dashboard.dashboardVersion]);
 
   const handleRevertFromEditMode = useCallback(() => {
-    onRevert({ onSuccess: exitEditMode });
-  }, [onRevert, exitEditMode]);
+    onRevert();
+  }, [onRevert]);
 
   const isSaved = dashboard.status === DashboardStatus.Published;
 
@@ -315,7 +330,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   </span>
                 </span>
               )}
-              {onExpand && (
+              {onExpand && !isEditMode && (
                 <button
                   onClick={isSaved ? onExpand : undefined}
                   disabled={!isSaved}
@@ -338,7 +353,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: 0.15 }}
-                  onClick={handleEnterEditMode}
+                  onClick={onChatClick}
                   title="Ask Von"
                   className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
                 >
@@ -371,8 +386,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           <DashboardLayout.HeaderRow bordered>
             <DashboardLayout.HeaderRow.Left>
               <AnalyticsFilters
-                filters={dashboard.filters?.definitions ?? []}
-                activeFilters={activeFilters}
+                definitions={filterDefinitions}
+                filterState={filterState}
+                activeCount={filterActiveCount}
+                onFilterChange={onFilterChange}
+                onClearFilter={onClearFilter}
               />
             </DashboardLayout.HeaderRow.Left>
 
@@ -393,13 +411,18 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                             ? handleRevertFromEditMode
                             : undefined
                         }
-                        disabled={revertPhase !== "idle"}
+                        disabled={
+                          revertPhase !== "idle" ||
+                          dashboard.status !== DashboardStatus.Draft
+                        }
                         className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-                          revertPhase === "pending"
-                            ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                            : revertPhase === "success"
-                              ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
-                              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                          dashboard.status !== DashboardStatus.Draft
+                            ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                            : revertPhase === "pending"
+                              ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                              : revertPhase === "success"
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
                         }`}
                       >
                         {revertPhase === "pending" ? (
@@ -434,7 +457,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   />
 
                   {/* Edit / Save toggle */}
-                  {isEditMode || dashboard.dashboardVersion < 1 ? (
+                  {isEditMode ||
+                  savePhase !== "idle" ||
+                  dashboard.dashboardVersion < 1 ? (
                     <SaveButton
                       savePhase={savePhase}
                       onSave={handleSaveFromEditMode}
@@ -443,10 +468,23 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   ) : (
                     <Tooltip content="Edit dashboard">
                       <button
-                        onClick={handleEnterEditMode}
-                        className="flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border border-gray-900 bg-gray-900 text-white hover:bg-gray-800 transition-colors cursor-pointer whitespace-nowrap"
+                        onClick={
+                          editModePhase === "idle"
+                            ? handleEnterEditMode
+                            : undefined
+                        }
+                        disabled={editModePhase !== "idle"}
+                        className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                          editModePhase === "pending"
+                            ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
+                            : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                        }`}
                       >
-                        <PencilSimpleIcon size={13} />
+                        {editModePhase === "pending" ? (
+                          <SpinnerGapIcon size={13} className="animate-spin" />
+                        ) : (
+                          <PencilSimpleIcon size={13} />
+                        )}
                         Edit
                       </button>
                     </Tooltip>
@@ -496,6 +534,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               onTableSortChange={onTableSortChange}
               tableSortStates={tableSortStates}
               isEditMode={isEditMode}
+              isLoading={isRefetchingData}
             />
           </ErrorBoundary>
 
