@@ -108,9 +108,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   const handleExpand = useCallback(() => {
-    collapseSidebar();
-    navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-  }, [collapseSidebar, navigate, dashboardId, conversationId]);
+    navigate(
+      `/dashboard/${dashboardId}?conversationId=${conversationId}`,
+      collapseSidebar,
+    );
+  }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
   return (
     <div

@@ -27,16 +27,20 @@ export function NavigationGuardProvider({
   }, []);
 
   const navigate = useCallback(
-    (to: string) => {
+    (to: string, onNavigate?: () => void) => {
       const check = guardCheckRef.current;
       if (check) {
         const config = check();
         if (config) {
           setModalConfig(config);
-          setPendingAction(() => () => routerNavigate(to));
+          setPendingAction(() => () => {
+            onNavigate?.();
+            routerNavigate(to);
+          });
           return;
         }
       }
+      onNavigate?.();
       routerNavigate(to);
     },
     [routerNavigate],
