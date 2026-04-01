@@ -167,21 +167,40 @@ function parseWhereClause(query: string): FilterCondition[] {
   return conditions;
 }
 
-/** Split a SQL clause on AND that isn't inside parentheses */
+/** Split a SQL clause on AND that isn't inside parentheses or quoted strings */
 function splitOnTopLevelAnd(clause: string): string[] {
   const parts: string[] = [];
   let depth = 0;
+  let inQuote = false;
   let start = 0;
 
   for (let i = 0; i < clause.length; i++) {
-    if (clause[i] === "(") depth++;
-    else if (clause[i] === ")") depth--;
+    const ch = clause[i];
+
+    // Toggle single-quote state, handling escaped quotes ('')
+    if (ch === "'") {
+      if (inQuote && clause[i + 1] === "'") {
+        i++; // skip escaped quote
+      } else {
+        inQuote = !inQuote;
+      }
+      continue;
+    }
+
+    if (inQuote) continue;
+
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
     else if (
       depth === 0 &&
       clause.slice(i).match(/^AND\s/i) &&
       (i === 0 || /\s/.test(clause[i - 1]))
     ) {
-      parts.push(clause.slice(start, i).trim());
+      // Don't split BETWEEN ... AND ...
+      const preceding = clause.slice(start, i).trim();
+      if (/\bBETWEEN\s+\S+\s*$/i.test(preceding)) continue;
+
+      parts.push(preceding);
       i += 3; // skip "AND"
       start = i;
     }
