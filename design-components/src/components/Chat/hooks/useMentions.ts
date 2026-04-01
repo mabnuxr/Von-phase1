@@ -136,7 +136,8 @@ export function useMentions({
         });
       }
     }
-  }, [dashboardMention]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dashboardMention, selectedMentions.length]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
