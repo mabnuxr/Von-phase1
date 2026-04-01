@@ -6,6 +6,9 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  escapeHtml,
 } from './reportTableUtils';
 export type {
   ReportTableProps,
@@ -27,3 +30,5 @@ export {
   TruncatedTextCell,
 } from './CellRenderers';
 export { SourcePopover, VonLogoButton } from './SourcePopover';
+export { LongTextPopover } from './LongTextPopover';
+export type { ExpandPopoverState } from './LongTextPopover';

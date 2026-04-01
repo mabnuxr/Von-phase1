@@ -440,6 +440,10 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  escapeHtml,
+  LongTextPopover,
 } from './ReportTable';
 export type {
   ReportTableProps,
@@ -447,6 +451,7 @@ export type {
   ColumnType,
   AIReasoningData,
   ServerSortState,
+  ExpandPopoverState,
 } from './ReportTable';
 
 // ============================================================================

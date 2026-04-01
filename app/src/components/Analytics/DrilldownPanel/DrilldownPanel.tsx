@@ -1,11 +1,22 @@
 import { useRef, useCallback, useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { XIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
-import type { ReportColumn, ServerSortState } from "@vonlabs/design-components";
+import {
+  ReportTable,
+  buildGridOptions,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  LongTextPopover,
+} from "@vonlabs/design-components";
+import type {
+  ReportColumn,
+  ServerSortState,
+  ExpandPopoverState,
+} from "@vonlabs/design-components";
 import type { PanelDrilldownPagination } from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
 import { DrilldownFilterQuery } from "./DrilldownFilterQuery";
+import "./drilldown-panel.css";
 
 // ─── Helpers ────────────────────────────────────────────────────
 
@@ -115,7 +126,9 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   sortState,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const gridWrapperRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState(90);
+  const [popover, setPopover] = useState<ExpandPopoverState | null>(null);
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
@@ -123,36 +136,66 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   // Derive columns from data
   const columns = useMemo(() => columnsFromData(data), [data]);
 
+  // Track which columns are text type for the expand-button click handler
+  const textColIds = useMemo(
+    () => new Set(columns.filter((c) => c.type === "text").map((c) => c.id)),
+    [columns],
+  );
   // Build grid options, injecting server sort state so Grid Lite preserves
   // its sort cycle correctly across data updates.
+  // Override text column formatters with the longtext expand-button variant.
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || data.length === 0) return null;
     const opts = buildGridOptions(columns, data, {
       pageSize: data.length,
       showPagination: false,
     });
-    if (!sortState?.orderBy || !opts.columns) return opts;
-    return {
-      ...opts,
-      columns: (
-        opts.columns as Array<{
-          id: string;
-          sorting?: Record<string, unknown>;
-        }>
-      ).map((col) => ({
-        ...col,
-        sorting: {
-          ...(col.sorting ?? {}),
-          order:
-            col.id === sortState.orderBy
-              ? sortState.orderByAsc
-                ? ("asc" as const)
-                : ("desc" as const)
-              : undefined,
-        },
-      })),
-    };
-  }, [columns, data, sortState]);
+    if (!opts.columns) return opts;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const gridCols = (opts.columns as any[]).map((col: any) => ({
+      ...col,
+      // Override text columns with longtext expand formatter
+      ...(textColIds.has(col.id)
+        ? { cells: { ...col.cells, formatter: longTextExpandFormatter } }
+        : {}),
+      // Inject sort state
+      ...(sortState?.orderBy
+        ? {
+            sorting: {
+              ...(col.sorting ?? {}),
+              order:
+                col.id === sortState.orderBy
+                  ? sortState.orderByAsc
+                    ? ("asc" as const)
+                    : ("desc" as const)
+                  : undefined,
+            },
+          }
+        : {}),
+    }));
+
+    return { ...opts, columns: gridCols };
+  }, [columns, data, sortState, textColIds]);
+
+  /** Click handler — detect expand-button clicks via DOM traversal */
+  const handleGridClick = useCallback((e: React.MouseEvent) => {
+    const btn = (e.target as HTMLElement).closest(
+      ".dt-expand-btn",
+    ) as HTMLElement;
+    if (!btn) return;
+
+    e.stopPropagation();
+
+    const td = btn.closest("td");
+    if (!td) return;
+
+    const span = td.querySelector(".dt-longtext-wrap > span");
+    const fullText = span?.textContent ?? "";
+    if (fullText) {
+      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
+    }
+  }, []);
 
   // ── Resize drag handlers ──────────────────────────────────────
 
@@ -255,11 +298,17 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
                   <span>Failed to load data. Please try again.</span>
                 </div>
               ) : gridOptions ? (
-                <div className="h-full relative">
+                <div
+                  ref={gridWrapperRef}
+                  className="h-full relative drilldown-grid"
+                  onClick={handleGridClick}
+                  onMouseOver={handleLongTextHover}
+                >
                   <ReportTable
                     options={gridOptions}
                     onSortChange={onSortChange}
                     sortState={sortState}
+                    disableTooltip
                   />
                   {/* Shimmer overlay — same pattern as TableWidget: headers stay visible,
                       shimmer covers only body rows. top:36px clears the HCG header. */}
@@ -320,6 +369,17 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
               )}
             </div>
           </motion.div>
+
+          {/* LongText expand popover */}
+          <AnimatePresence>
+            {popover && (
+              <LongTextPopover
+                text={popover.text}
+                anchorRect={popover.rect}
+                onClose={() => setPopover(null)}
+              />
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

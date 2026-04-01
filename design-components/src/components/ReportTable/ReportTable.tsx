@@ -94,6 +94,8 @@ export interface ReportTableProps {
   sortState?: ServerSortState | null;
   /** Called when a table body cell is clicked — provides column ID and raw value */
   onCellClick?: (columnId: string, cellValue: unknown) => void;
+  /** Disable the built-in truncation tooltip (e.g. when using a custom expand popover) */
+  disableTooltip?: boolean;
 }
 
 // ============================================================================
@@ -109,6 +111,7 @@ export function ReportTable({
   onSortChange,
   sortState,
   onCellClick,
+  disableTooltip = false,
 }: ReportTableProps) {
   void sortState; // reserved for future initial-sort sync
 
@@ -129,35 +132,39 @@ export function ReportTable({
   } | null>(null);
   const lastHoveredTd = useRef<HTMLElement | null>(null);
 
-  const handleCellMouseEnter = useCallback((e: React.MouseEvent) => {
-    const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
-    if (!td || td === lastHoveredTd.current) return;
-    lastHoveredTd.current = td;
+  const handleCellMouseEnter = useCallback(
+    (e: React.MouseEvent) => {
+      if (disableTooltip) return;
+      const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
+      if (!td || td === lastHoveredTd.current) return;
+      lastHoveredTd.current = td;
 
-    // Check if cell content is actually truncated.
-    // The default cell formatter wraps text in a display:block span with overflow:hidden,
-    // so the td's scrollWidth equals clientWidth even when text is truncated — the inner
-    // element clips it. We need to check td OR its first child element.
-    const firstChild = td.firstElementChild as HTMLElement | null;
-    const isTruncated =
-      td.scrollWidth > td.clientWidth ||
-      (firstChild !== null && firstChild.scrollWidth > firstChild.clientWidth);
-    if (!isTruncated) return;
+      // Check if cell content is actually truncated.
+      // The default cell formatter wraps text in a display:block span with overflow:hidden,
+      // so the td's scrollWidth equals clientWidth even when text is truncated — the inner
+      // element clips it. We need to check td OR its first child element.
+      const firstChild = td.firstElementChild as HTMLElement | null;
+      const isTruncated =
+        td.scrollWidth > td.clientWidth ||
+        (firstChild !== null && firstChild.scrollWidth > firstChild.clientWidth);
+      if (!isTruncated) return;
 
-    // Prefer explicit data-tooltip (set for owner/multiPicklist cells where
-    // textContent concatenates avatar initials or tag text without separators)
-    const tooltipEl = td.querySelector('[data-tooltip]') as HTMLElement | null;
-    const text = tooltipEl?.getAttribute('data-tooltip') || td.textContent?.trim();
-    if (!text) return;
+      // Prefer explicit data-tooltip (set for owner/multiPicklist cells where
+      // textContent concatenates avatar initials or tag text without separators)
+      const tooltipEl = td.querySelector('[data-tooltip]') as HTMLElement | null;
+      const text = tooltipEl?.getAttribute('data-tooltip') || td.textContent?.trim();
+      if (!text) return;
 
-    const rect = td.getBoundingClientRect();
-    setTruncTooltip({
-      text,
-      top: rect.top - 6,
-      left: rect.left,
-      width: rect.width,
-    });
-  }, []);
+      const rect = td.getBoundingClientRect();
+      setTruncTooltip({
+        text,
+        top: rect.top - 6,
+        left: rect.left,
+        width: rect.width,
+      });
+    },
+    [disableTooltip]
+  );
 
   const handleCellMouseLeave = useCallback((e: React.MouseEvent) => {
     const td = (e.target as HTMLElement).closest('td') as HTMLElement | null;
