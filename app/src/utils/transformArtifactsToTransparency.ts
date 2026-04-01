@@ -78,6 +78,51 @@ interface SqlArtifactContent {
 }
 
 /**
+ * Generic artifact content structure
+ * Covers execute_python_code and other tools that use the sample/queries format
+ */
+interface GenericArtifactContent {
+  success?: boolean;
+  query?: string;
+  query_name?: string;
+  row_count?: number;
+  columns?: Array<{ name: string; display_name?: string }>;
+  rows?: Array<Record<string, unknown>>;
+  sample?: {
+    columns: Array<{ name: string; display_name?: string }>;
+    rows: Array<Record<string, unknown>>;
+    size?: number;
+    is_complete?: boolean;
+  };
+  queries?: Array<{
+    label?: string;
+    dialect?: string;
+    statement: string;
+  }>;
+}
+
+/**
+ * Transform raw rows to display-friendly string/number values
+ */
+function transformRowsForDisplay(
+  rawRows: Array<Record<string, unknown>>,
+): Record<string, string | number>[] {
+  return rawRows.map((row) => {
+    const transformedRow: Record<string, string | number> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (value === null || value === undefined) {
+        transformedRow[key] = "";
+      } else if (typeof value === "object") {
+        transformedRow[key] = JSON.stringify(value);
+      } else {
+        transformedRow[key] = value as string | number;
+      }
+    }
+    return transformedRow;
+  });
+}
+
+/**
  * Memory tool names to exclude from sources
  */
 export const MEMORY_TOOL_NAMES = new Set([
@@ -160,20 +205,7 @@ function transformArtifactToQueryResult(
       })),
     );
 
-    // Transform rows to string values for display
-    const rows = ragContent.sample.rows.map((row) => {
-      const transformedRow: Record<string, string | number> = {};
-      for (const [key, value] of Object.entries(row)) {
-        if (value === null || value === undefined) {
-          transformedRow[key] = "";
-        } else if (typeof value === "object") {
-          transformedRow[key] = JSON.stringify(value);
-        } else {
-          transformedRow[key] = value as string | number;
-        }
-      }
-      return transformedRow;
-    });
+    const rows = transformRowsForDisplay(ragContent.sample.rows);
 
     return {
       id: artifact_id,
@@ -208,24 +240,11 @@ function transformArtifactToQueryResult(
       })),
     );
 
-    // Transform rows to string values for display
-    const rows = rawRows.map((row) => {
-      const transformedRow: Record<string, string | number> = {};
-      for (const [key, value] of Object.entries(row)) {
-        if (value === null || value === undefined) {
-          transformedRow[key] = "";
-        } else if (typeof value === "object") {
-          transformedRow[key] = JSON.stringify(value);
-        } else {
-          transformedRow[key] = value as string | number;
-        }
-      }
-      return transformedRow;
-    });
+    const rows = transformRowsForDisplay(rawRows);
 
     // Get query from either format: queries[0].statement or query
-    const queryStatement =
-      sqlContent.queries?.[0]?.statement || sqlContent.query;
+    const firstQuery = sqlContent.queries?.[0];
+    const queryStatement = firstQuery?.statement || sqlContent.query;
 
     // Use query_name if available, otherwise fall back to tool display name
     const displayName = sqlContent.query_name || getToolDisplayName(tool_name);
@@ -235,6 +254,7 @@ function transformArtifactToQueryResult(
       name: displayName,
       description: `${sqlContent.row_count ?? rows.length} rows returned`,
       query: queryStatement,
+      queryLabel: firstQuery?.label,
       columns,
       rows,
       executedAt: new Date(persisted_at),
@@ -251,47 +271,36 @@ function transformArtifactToQueryResult(
 
   // Handle generic JSON/table artifacts
   if (artifact.artifact_type === "table" || artifact.artifact_type === "json") {
-    const genericContent = content as Record<string, unknown>;
+    const genericContent = content as unknown as GenericArtifactContent;
 
-    // Try to extract table-like data from generic content
-    if (genericContent.columns && genericContent.rows) {
-      const cols = genericContent.columns as Array<{
-        name: string;
-        display_name?: string;
-      }>;
-      const rawRows = genericContent.rows as Array<Record<string, unknown>>;
+    // Support both formats: nested under sample or at top level
+    const rawCols = genericContent.sample?.columns || genericContent.columns;
+    const rawRows = genericContent.sample?.rows || genericContent.rows;
 
+    if (rawCols && rawRows) {
       const columns: QueryColumn[] = applyDeepLinkTransform(
-        cols.map((col) => ({
+        rawCols.map((col) => ({
           key: col.name,
           label: col.display_name || col.name,
           type: "string" as const,
         })),
       );
 
-      const rows = rawRows.map((row) => {
-        const transformedRow: Record<string, string | number> = {};
-        for (const [key, value] of Object.entries(row)) {
-          if (value === null || value === undefined) {
-            transformedRow[key] = "";
-          } else if (typeof value === "object") {
-            transformedRow[key] = JSON.stringify(value);
-          } else {
-            transformedRow[key] = value as string | number;
-          }
-        }
-        return transformedRow;
-      });
+      const rows = transformRowsForDisplay(rawRows);
 
-      // Use query_name if available, otherwise fall back to tool display name
       const displayName =
-        (genericContent.query_name as string) || getToolDisplayName(tool_name);
+        genericContent.query_name || getToolDisplayName(tool_name);
+
+      const firstQuery = genericContent.queries?.[0];
+      const queryStatement = firstQuery?.statement || genericContent.query;
 
       return {
         id: artifact_id,
         name: displayName,
         columns,
         rows,
+        query: queryStatement,
+        queryLabel: firstQuery?.label,
         executedAt: new Date(persisted_at),
       };
     }
@@ -302,7 +311,7 @@ function transformArtifactToQueryResult(
       { key: "value", label: "Value", type: "string" },
     ];
 
-    const rows = Object.entries(genericContent).map(([key, value]) => ({
+    const rows = Object.entries(content).map(([key, value]) => ({
       key,
       value:
         typeof value === "object" ? JSON.stringify(value) : String(value ?? ""),

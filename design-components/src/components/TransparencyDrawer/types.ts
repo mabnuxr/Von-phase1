@@ -11,6 +11,8 @@ export interface QueryResult {
   name: string;
   description?: string;
   query?: string;
+  /** Label for the collapsible query section (e.g. "SQL Query", "Python Code"). Defaults to "SQL Query". */
+  queryLabel?: string;
   columns: QueryColumn[];
   rows: Record<string, string | number>[];
   executedAt?: Date;
