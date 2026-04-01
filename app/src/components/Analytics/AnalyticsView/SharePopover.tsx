@@ -172,13 +172,13 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
                     {sharePhase === "pending" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <SpinnerGapIcon size={14} className="animate-spin" />
-                        Sharing
+                        {!selectedShared ? "Making Private" : "Sharing"}
                       </span>
                     )}
                     {sharePhase === "success" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <CheckIcon size={14} weight="bold" />
-                        Shared
+                        {!selectedShared ? "Made Private" : "Shared"}
                       </span>
                     )}
                     {sharePhase === "idle" &&

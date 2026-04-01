@@ -339,10 +339,10 @@ const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
     const isNoValue = NO_VALUE_OPERATORS.has(filter.operator);
 
     return (
-      <div className="group flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           {/* Field dropdown */}
-          <div className="w-32 flex-shrink-0">
+          <div className="w-40 flex-shrink-0">
             <Select
               options={fieldOptions}
               value={filterId}
@@ -357,7 +357,7 @@ const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
           </div>
 
           {/* Operator dropdown */}
-          <div className="w-32 flex-shrink-0">
+          <div className="w-36 flex-shrink-0">
             <Select
               options={operatorOptions}
               value={filter.operator}
@@ -380,39 +380,42 @@ const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
           {/* Spacer when value input is hidden */}
           {isNoValue && <div className="flex-1" />}
 
-          {/* Delete button */}
+          {/* Delete button — always visible, secondary style */}
           <button
             type="button"
             onClick={onRemove}
             title="Remove condition"
-            className="flex-shrink-0 p-1.5 rounded-lg text-gray-800 hover:bg-gray-100 transition-all duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
+            className="flex-shrink-0 p-1.5 rounded-lg text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
           >
             <TrashIcon size={14} />
           </button>
         </div>
 
-        {/* Include blanks toggle — hidden for is_blank / is_not_blank */}
+        {/* Include blanks toggle — left-aligned, with separator below */}
         {!isNoValue && (
-          <div className="flex items-center gap-2 justify-end pr-8">
-            <button
-              type="button"
-              role="switch"
-              aria-checked={!!filter.include_blank}
-              onClick={() => onIncludeBlankChange(!filter.include_blank)}
-              className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-                filter.include_blank ? "bg-gray-900" : "bg-gray-200"
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out mt-0.5 ${
-                  filter.include_blank
-                    ? "translate-x-3.5 ml-px"
-                    : "translate-x-0.5"
+          <>
+            <div className="flex items-center gap-2 pl-0.5">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={!!filter.include_blank}
+                onClick={() => onIncludeBlankChange(!filter.include_blank)}
+                className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                  filter.include_blank ? "bg-gray-900" : "bg-gray-200"
                 }`}
-              />
-            </button>
-            <span className="text-xs text-gray-700">Include blanks</span>
-          </div>
+              >
+                <span
+                  className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out mt-0.5 ${
+                    filter.include_blank
+                      ? "translate-x-3.5 ml-px"
+                      : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className="text-xs text-gray-700">Include blanks</span>
+            </div>
+            <div className="border-t border-gray-100" />
+          </>
         )}
       </div>
     );
@@ -441,9 +444,9 @@ const PendingFilterRow: React.FC<PendingFilterRowProps> = ({
     .map((d) => ({ value: d.id, label: d.label }));
 
   return (
-    <div className="group flex items-center gap-2">
+    <div className="flex items-center gap-2">
       {/* Field dropdown */}
-      <div className="w-32 flex-shrink-0">
+      <div className="w-40 flex-shrink-0">
         <Select
           options={fieldOptions}
           value=""
@@ -459,7 +462,7 @@ const PendingFilterRow: React.FC<PendingFilterRowProps> = ({
       </div>
 
       {/* Operator placeholder */}
-      <div className="w-32 flex-shrink-0">
+      <div className="w-36 flex-shrink-0">
         <div className="px-2.5 py-1.5 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg">
           is
         </div>
@@ -472,18 +475,20 @@ const PendingFilterRow: React.FC<PendingFilterRowProps> = ({
         </div>
       </div>
 
-      {/* Delete button (only if there are other rows) */}
-      {showRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          title="Remove"
-          className="flex-shrink-0 p-1.5 rounded-lg text-gray-800 hover:bg-gray-100 transition-all duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
-        >
-          <TrashIcon size={14} />
-        </button>
-      )}
-      {!showRemove && <div className="w-[30px] flex-shrink-0" />}
+      {/* Delete button — always visible, disabled when can't remove */}
+      <button
+        type="button"
+        onClick={showRemove ? onRemove : undefined}
+        disabled={!showRemove}
+        title="Remove"
+        className={`flex-shrink-0 p-1.5 rounded-lg bg-white border border-gray-200 transition-colors duration-150 ${
+          showRemove
+            ? "text-gray-700 hover:bg-gray-50 cursor-pointer"
+            : "text-gray-700 opacity-50 cursor-not-allowed"
+        }`}
+      >
+        <TrashIcon size={14} />
+      </button>
     </div>
   );
 };
@@ -535,13 +540,18 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
-  // Position the popover below the button
+  // Position the popover below the button, clamping to viewport
   useLayoutEffect(() => {
     if (!isOpen || !buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
+    const popoverWidth = popoverRef.current?.offsetWidth ?? 520;
+    const left = Math.max(
+      16,
+      Math.min(rect.left, window.innerWidth - popoverWidth - 16),
+    );
     setPosition({
       top: rect.bottom + 6,
-      left: rect.left,
+      left,
     });
   }, [isOpen]);
 
@@ -636,7 +646,7 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-50 bg-white border border-gray-300 rounded-xl shadow-lg p-3 min-w-[480px] max-w-[600px]"
+            className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[520px] max-w-[640px]"
             style={{ top: position.top, left: position.left }}
           >
             <div

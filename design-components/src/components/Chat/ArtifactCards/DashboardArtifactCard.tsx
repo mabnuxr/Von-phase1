@@ -28,6 +28,7 @@ export const DashboardArtifactCard: React.FC<DashboardArtifactCardProps> = ({
     description="Dashboard"
     isPending={isPending}
     onClick={onClick ?? onPreview}
+    className="mt-2"
   >
     <BaseArtifactCard.Icon>
       <ChalkboardIcon size={20} weight="regular" className="text-gray-500" />

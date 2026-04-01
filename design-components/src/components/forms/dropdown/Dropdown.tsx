@@ -246,7 +246,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                             ${
                               isSelected
                                 ? 'bg-gray-50 text-gray-900 font-medium'
-                                : 'text-gray-700 hover:bg-gray-50'
+                                : 'text-gray-800 hover:bg-gray-50'
                             }
                           `}
                         >
@@ -311,7 +311,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                             ${
                               isSelected
                                 ? 'bg-gray-50 text-gray-900 font-medium'
-                                : 'text-gray-700 hover:bg-gray-50'
+                                : 'text-gray-800 hover:bg-gray-50'
                             }
                           `}
                         >
