@@ -841,8 +841,22 @@ export interface ApprovalResult {
 /**
  * Check if a tool call is the Salesforce approval tool
  */
+const OUTREACH_APPROVAL_TOOLS = new Set([
+  'outreach_enroll_in_sequence',
+  'outreach_manage_sequence',
+  'outreach_log_call',
+  'outreach_create_task',
+  'outreach_update_task',
+  'outreach_create_prospect',
+  'outreach_update_prospect',
+]);
+
 export function isApprovalTool(toolName: string): boolean {
-  return toolName === 'request_salesforce_approval' || toolName === 'salesforce_tooling_mutate';
+  return (
+    toolName === 'request_salesforce_approval' ||
+    toolName === 'salesforce_tooling_mutate' ||
+    OUTREACH_APPROVAL_TOOLS.has(toolName)
+  );
 }
 
 /**
