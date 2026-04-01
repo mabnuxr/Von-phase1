@@ -17,6 +17,7 @@ import {
   getFolderContextMenuItems,
   getDashboardContextMenuItems,
 } from './utils';
+import { ensureUTC } from '../../utils/ensureUTC';
 
 /**
  * Convert an ISO timestamp (or any Date-parseable string) to a human-readable
@@ -25,7 +26,7 @@ import {
 function formatRelativeTime(dateStr: string | undefined): string {
   if (!dateStr) return 'Just now';
   const now = Date.now();
-  const then = new Date(dateStr).getTime();
+  const then = new Date(ensureUTC(dateStr)).getTime();
   if (Number.isNaN(then)) return 'Just now';
   const diffMs = now - then;
   if (diffMs < 0) return 'Just now';
