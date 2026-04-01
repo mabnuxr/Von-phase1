@@ -535,6 +535,8 @@ export interface PanelDrilldownPagination {
 }
 
 export interface PanelDrilldownResponse {
+  title: string;
+  query: string;
   data: Record<string, unknown>[];
   pagination: PanelDrilldownPagination;
 }

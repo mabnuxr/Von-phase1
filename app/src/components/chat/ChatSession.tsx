@@ -21,7 +21,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useGuardedNavigate } from "../../providers/NavigationGuard";
 import {
   Chat,
   ChatSkeleton,
@@ -172,7 +172,7 @@ function ExistingChatInner(
   const { conversationId } = props;
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
 
   // ── Conversation & messages ───────────────────────────────────────
   // Use page-provided data if available, otherwise fetch at the leaf
@@ -410,13 +410,9 @@ function ExistingChatInner(
 
   const handleMentionClick = useCallback(
     (mention: MentionItem) => {
-      window.open(
-        `/dashboard/${mention.id}?conversationId=${conversationId}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
+      navigate(`/dashboard/${mention.id}?conversationId=${conversationId}`);
     },
-    [conversationId],
+    [conversationId, navigate],
   );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);

@@ -99,7 +99,9 @@ function DashboardCanvas({
   // Drilldown
   const {
     isOpen: isDrilldownOpen,
-    widgetTitle: drilldownWidgetTitle,
+    panelId: drilldownPanelId,
+    title: drilldownTitle,
+    query: drilldownQuery,
     data: drilldownData,
     pagination: drilldownPagination,
     currentSort: drilldownSort,
@@ -110,7 +112,7 @@ function DashboardCanvas({
     closeDrilldown,
     changePage: changeDrilldownPage,
     changeSort: changeDrilldownSort,
-  } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
+  } = useDrilldown(dashboardId);
 
   // Schedule management
   const {
@@ -189,7 +191,17 @@ function DashboardCanvas({
       <DrilldownPanel
         isOpen={isDrilldownOpen}
         onClose={closeDrilldown}
-        widgetTitle={drilldownWidgetTitle}
+        widgetTitle={
+          drilldownTitle ||
+          (drilldownPanelId && dashboard.widgets?.[drilldownPanelId]?.title) ||
+          "Drilldown"
+        }
+        query={
+          drilldownQuery ||
+          (drilldownPanelId &&
+            dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
+          ""
+        }
         data={drilldownData}
         pagination={drilldownPagination}
         isLoading={isDrilldownLoading}

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
-import type { PanelDrilldownPagination } from "../types/dashboard";
+import type { PanelDrilldownResponse } from "../types/dashboard";
 
 const PAGE_LIMIT = 20;
 
@@ -12,26 +12,20 @@ interface SortInfo {
 
 interface DrilldownState {
   panelId: string;
-  widgetTitle: string;
   page: number;
   sort: SortInfo | null;
   drillFilters: Record<string, unknown> | null;
 }
 
-export function useDrilldown(
-  dashboardId: string,
-  widgets: Record<string, { title: string }>,
-) {
+export function useDrilldown(dashboardId: string) {
   const [drilldown, setDrilldown] = useState<DrilldownState | null>(null);
-  // Track the last successful data so we can show it while loading a new page
-  const lastDataRef = useRef<Record<string, unknown>[]>([]);
-  const lastPaginationRef = useRef<PanelDrilldownPagination | null>(null);
+  // Track the last successful response so we can show it while loading a new page
+  const lastResponseRef = useRef<PanelDrilldownResponse | null>(null);
 
   // Reset all state when the dashboard changes so stale panel data never bleeds across
   useEffect(() => {
     setDrilldown(null);
-    lastDataRef.current = [];
-    lastPaginationRef.current = null;
+    lastResponseRef.current = null;
   }, [dashboardId]);
 
   const { data, isLoading, isFetching, isError, error } = useQuery({
@@ -67,56 +61,48 @@ export function useDrilldown(
     staleTime: 5 * 60 * 1000,
   });
 
-  // Keep last successful data for smooth page transitions
+  // Keep last successful response for smooth page transitions
   if (data) {
-    lastDataRef.current = data.data;
-    lastPaginationRef.current = data.pagination;
+    lastResponseRef.current = data;
   }
 
   /** Chart-level drilldown — shows all rows (no filters). */
   const openDrilldown = useCallback(
     (panelId: string) => {
-      const widget = widgets[panelId];
       // Clear cached rows when switching to a different panel so the previous
       // panel's data is never shown while the new panel's first fetch is in-flight.
       if (drilldown?.panelId !== panelId) {
-        lastDataRef.current = [];
-        lastPaginationRef.current = null;
+        lastResponseRef.current = null;
       }
       setDrilldown({
         panelId,
-        widgetTitle: widget?.title ?? "Drilldown",
         page: 1,
         sort: null,
         drillFilters: null,
       });
     },
-    [widgets, drilldown?.panelId],
+    [drilldown?.panelId],
   );
 
   /** Point-level drilldown — filters to the clicked chart element. */
   const openPointDrilldown = useCallback(
     (panelId: string, drillFilters: Record<string, unknown>) => {
-      const widget = widgets[panelId];
       // Always clear cached data — drill_filters change means new result set,
       // even when clicking a different point on the same panel.
-      lastDataRef.current = [];
-      lastPaginationRef.current = null;
+      lastResponseRef.current = null;
       setDrilldown({
         panelId,
-        widgetTitle: widget?.title ?? "Drilldown",
         page: 1,
         sort: null,
         drillFilters,
       });
     },
-    [widgets],
+    [],
   );
 
   const closeDrilldown = useCallback(() => {
     setDrilldown(null);
-    lastDataRef.current = [];
-    lastPaginationRef.current = null;
+    lastResponseRef.current = null;
   }, []);
 
   const changePage = useCallback((page: number) => {
@@ -137,11 +123,15 @@ export function useDrilldown(
     [],
   );
 
+  const response = data ?? lastResponseRef.current;
+
   return {
     isOpen: !!drilldown,
-    widgetTitle: drilldown?.widgetTitle ?? "",
-    data: data?.data ?? lastDataRef.current,
-    pagination: data?.pagination ?? lastPaginationRef.current,
+    panelId: drilldown?.panelId ?? null,
+    title: response?.title ?? "",
+    query: response?.query ?? "",
+    data: response?.data ?? [],
+    pagination: response?.pagination ?? null,
     currentSort: drilldown?.sort ?? null,
     isLoading: isLoading || isFetching,
     isError,

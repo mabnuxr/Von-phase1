@@ -43,13 +43,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
       [onPointDrillDown, widget.id]
     );
 
-    const handleCellClick = useCallback(
-      (columnId: string, cellValue: unknown) => {
-        onPointDrillDown?.(widget.id, { [columnId]: cellValue });
-      },
-      [onPointDrillDown, widget.id]
-    );
-
     switch (widget.type) {
       case 'chart':
         return (
@@ -124,7 +117,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
                   : undefined
               }
               sortState={tableSortState}
-              onCellClick={onPointDrillDown ? handleCellClick : undefined}
             />
           </WidgetShell>
         );

@@ -22,6 +22,7 @@ import { AnalyticsFilters } from "../AnalyticsFilters";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
+import { useCreatorName } from "../../../hooks/useCreatorName";
 import { SharePopover } from "./SharePopover";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -194,6 +195,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
+  const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
+    isOwner: dashboard.isOwner,
+    createdBy: dashboard.createdBy,
+    createdByName: dashboard.createdByName,
+  });
+
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
@@ -349,11 +356,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             {!hideCreatorChip && (
               <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
                 <span className="text-gray-800">Created by</span>
-                <span className="text-gray-800 font-medium">
-                  {dashboard.isOwner
-                    ? "me"
-                    : dashboard.createdByName || "someone"}
-                </span>
+                {isCreatorLoading ? (
+                  <span className="bg-gray-200 rounded animate-pulse w-16 h-3" />
+                ) : (
+                  <span className="text-gray-800 font-medium">
+                    {creatorName}
+                  </span>
+                )}
               </span>
             )}
             {onExpand && !isEditMode && (
@@ -432,6 +441,20 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             {!isEditMode && !isRefetchingData && (
               <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
             )}
+            <RefreshButton
+              onRefresh={onRefresh}
+              canRefresh={isSaved}
+              isOwner={dashboard.isOwner}
+              schedule={schedule}
+              isScheduled={isScheduled}
+              isPaused={isSchedulePaused}
+              isMutating={isScheduleMutating}
+              onCreateSchedule={onCreateSchedule}
+              onUpdateSchedule={onUpdateSchedule}
+              onPauseSchedule={onPauseSchedule}
+              onResumeSchedule={onResumeSchedule}
+              onDeleteSchedule={onDeleteSchedule}
+            />
             {dashboard.isOwner && (
               <>
                 {/* Revert — only in edit mode when there's a previous version */}
@@ -465,20 +488,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-
-                <RefreshButton
-                  onRefresh={onRefresh}
-                  canRefresh={isSaved}
-                  schedule={schedule}
-                  isScheduled={isScheduled}
-                  isPaused={isSchedulePaused}
-                  isMutating={isScheduleMutating}
-                  onCreateSchedule={onCreateSchedule}
-                  onUpdateSchedule={onUpdateSchedule}
-                  onPauseSchedule={onPauseSchedule}
-                  onResumeSchedule={onResumeSchedule}
-                  onDeleteSchedule={onDeleteSchedule}
-                />
                 <SharePopover
                   isSharedWithTenant={dashboard.isSharedWithTenant}
                   canShare={isSaved}

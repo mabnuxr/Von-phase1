@@ -56,6 +56,7 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
 
   const handleShare = () => {
     if (isMakingPrivate) {
+      hide();
       setShowPrivateConfirm(true);
       return;
     }
