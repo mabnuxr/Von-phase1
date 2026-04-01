@@ -438,7 +438,8 @@ function detectApprovalFromArgs(
   if (
     (parsed.approval_required === true ||
       parsed.requires_approval === true ||
-      parsed.needs_confirmation === true) &&
+      parsed.needs_confirmation === true ||
+      parsed.confirmation_required === true) &&
     parsed.summary
   ) {
     return {

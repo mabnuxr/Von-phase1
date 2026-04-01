@@ -47,7 +47,9 @@ export function useArtifactCreatedEvent(
             status: "processing",
             source: "agent_generated",
             createdAt: parsed.updatedAt,
-            artifactType: a.artifact_type,
+            artifactType:
+              a.artifact_type ??
+              (a.file_name?.endsWith(".eml") ? "email_draft" : undefined),
             runId: parsed.runId,
             isPending: true,
           }),
@@ -66,7 +68,9 @@ export function useArtifactCreatedEvent(
           status: "completed",
           source: "agent_generated",
           createdAt: parsed.updatedAt,
-          artifactType: a.artifact_type ?? "document",
+          artifactType:
+            a.artifact_type ??
+            (a.file_name?.endsWith(".eml") ? "email_draft" : "document"),
           runId: parsed.runId,
         }));
         queryClient.setQueryData(queryKey, freshData);

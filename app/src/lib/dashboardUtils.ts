@@ -539,7 +539,9 @@ function transformMessagesForV2(
               return {
                 fileId: a.id,
                 fileName: a.fileName,
-                artifactType: a.artifactType ?? "document",
+                artifactType:
+                  a.artifactType ??
+                  (a.fileName?.endsWith(".eml") ? "email_draft" : "document"),
                 mimeType: a.mimeType,
                 isPending: a.isPending ?? a.status !== "completed",
                 pdfPreview: pdfPreview
