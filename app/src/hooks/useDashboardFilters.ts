@@ -49,6 +49,19 @@ function normaliseServerState(
 
     if (Array.isArray(val)) {
       const items = val as { operator: string; value?: unknown }[];
+      if (items.length === 2) {
+        // Old dual-bound format → convert to between
+        const [a, b] = items;
+        if (
+          (a.operator === "on_or_after" && b.operator === "on_or_before") ||
+          (a.operator === "greater_than_or_equal" &&
+            b.operator === "less_than_or_equal")
+        ) {
+          out[key] = { operator: "between", value: [a.value, b.value] };
+          continue;
+        }
+      }
+      // Fallback: take the first item
       if (items.length > 0 && items[0].operator) {
         out[key] = { operator: items[0].operator, value: items[0].value };
       }
@@ -222,7 +235,8 @@ export function useDashboardFilters(
       ) {
         const apiValue: Record<string, unknown> = { operator: filter.operator };
         if (filter.value !== undefined) apiValue.value = filter.value;
-        if (filter.include_blank) apiValue.include_blank = true;
+        if (filter.include_blank !== undefined)
+          apiValue.include_blank = filter.include_blank;
         payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
       }
     }
