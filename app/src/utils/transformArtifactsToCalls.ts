@@ -321,10 +321,12 @@ function transformRowToEmail(
  * Sort function for conversations by date descending (most recent first)
  */
 function sortByDateDescending(
-  a: { date: string },
-  b: { date: string },
+  a: { date?: string | null },
+  b: { date?: string | null },
 ): number {
-  return new Date(b.date).getTime() - new Date(a.date).getTime();
+  const timeA = a.date ? new Date(a.date).getTime() : 0;
+  const timeB = b.date ? new Date(b.date).getTime() : 0;
+  return timeB - timeA;
 }
 
 /**
