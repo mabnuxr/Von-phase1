@@ -8,6 +8,7 @@
 
 import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
+import { useAppShell } from "../hooks/useAppShell";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -31,6 +32,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   onClose,
 }: DashboardPreviewPaneProps) {
   const navigate = useGuardedNavigate();
+  const { collapseSidebar } = useAppShell();
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
   const {
     handleSave,
@@ -106,8 +108,9 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   } = useDrilldown(dashboardId, dashboard?.widgets ?? {});
 
   const handleExpand = useCallback(() => {
+    collapseSidebar();
     navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-  }, [navigate, dashboardId, conversationId]);
+  }, [collapseSidebar, navigate, dashboardId, conversationId]);
 
   return (
     <div

@@ -7,7 +7,6 @@ import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
-import { useAppShell } from "../hooks/useAppShell";
 import { useResizablePane } from "../hooks/useResizablePane";
 import {
   AnalyticsView,
@@ -30,7 +29,6 @@ interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
   isChatOpen: boolean;
-  collapseOnMount: boolean;
 }
 
 /**
@@ -42,7 +40,6 @@ function DashboardCanvas({
   dashboardId,
   onChatClick,
   isChatOpen,
-  collapseOnMount,
 }: DashboardCanvasProps) {
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
 
@@ -83,8 +80,6 @@ function DashboardCanvas({
     dashboard?.filters?.definitions ?? [],
     activeFilters,
   );
-  const { collapseSidebar } = useAppShell();
-
   const {
     mergedWidgets,
     handlePageChange,
@@ -124,14 +119,6 @@ function DashboardCanvas({
 
   // Subscribe to Pusher events for dashboard refresh notifications
   const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
-
-  // Only collapse sidebar when first entering the dashboard from another section
-  // (e.g. from chat). Switching between dashboards should leave the sidebar as-is.
-  useEffect(() => {
-    if (collapseOnMount) {
-      collapseSidebar();
-    }
-  }, [collapseOnMount, collapseSidebar]);
 
   if (isLoading || isRefreshing) {
     return <AnalyticsSkeleton />;
@@ -253,10 +240,6 @@ const Analytics = () => {
   // after the user has navigated to a different dashboard.
   const activeDashboardIdRef = useRef(dashboardId);
 
-  // Track whether we've already visited a dashboard in this session.
-  // undefined = first visit (came from chat/elsewhere) → collapse sidebar.
-  // any string = switching between dashboards → leave sidebar alone.
-  const prevDashboardIdRef = useRef<string | undefined>(undefined);
   const handleConversationCreated = useCallback(
     (conversationId: string) => {
       if (activeDashboardIdRef.current === dashboardId) {
@@ -272,7 +255,6 @@ const Analytics = () => {
   // panel should persist across dashboard navigation.
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
-    prevDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
   }, [dashboardId]);
 
@@ -368,7 +350,6 @@ const Analytics = () => {
           dashboardId={dashboardId}
           onChatClick={openChatPanel}
           isChatOpen={isChatPanelOpen}
-          collapseOnMount={prevDashboardIdRef.current === undefined}
         />
       </div>
 
