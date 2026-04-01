@@ -141,11 +141,11 @@ export function useDashboardFilters(
   const safeDefinitions = Array.isArray(definitions) ? definitions : [];
 
   const mutation = useMutation({
-    mutationFn: (payload: FilterPatchPayload) =>
-      dashboardService.updateFilters(dashboardId!, payload),
-    onSuccess: () => {
+    mutationFn: async (payload: FilterPatchPayload) => {
+      await dashboardService.updateFilters(dashboardId!, payload);
+      // Wait for the dashboard render refetch to complete before settling
       if (dashboardId) {
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: dashboardKeys.detail(dashboardId),
         });
       }
@@ -157,11 +157,6 @@ export function useDashboardFilters(
       });
       setLocalState(serverNormalised.current);
       setIsApplying(false);
-    },
-    onSettled: () => {
-      // Safety net: if serverState effect doesn't fire within 15s
-      // (e.g. refetch fails silently), unlock the UI
-      setTimeout(() => setIsApplying(false), 15_000);
     },
   });
 
