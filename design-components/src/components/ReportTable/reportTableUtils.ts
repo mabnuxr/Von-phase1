@@ -683,7 +683,7 @@ export function longTextExpandFormatter(this: { value: unknown }): string {
   return (
     '<div class="dt-longtext-wrap">' +
     `<span>${escaped}</span>` +
-    '<button class="dt-expand-btn"></button>' +
+    '<button type="button" class="dt-expand-btn"></button>' +
     '</div>'
   );
 }
