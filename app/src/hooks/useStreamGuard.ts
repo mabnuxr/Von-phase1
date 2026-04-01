@@ -13,7 +13,6 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import type { MessageWithStreaming } from "../types/conversation";
-import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 interface UseStreamGuardOptions {
   timeoutMs?: number;
@@ -26,7 +25,7 @@ export function useStreamGuard(
   getMessages: () => MessageWithStreaming[],
   options: UseStreamGuardOptions,
 ): void {
-  const { timeoutMs = STREAM_TIMEOUT_MS, onTimeout, onForceComplete } = options;
+  const { timeoutMs, onTimeout, onForceComplete } = options;
 
   const timersRef = useRef<Map<string, number>>(new Map());
   const trackedIdsRef = useRef<Set<string>>(new Set());
@@ -68,38 +67,40 @@ export function useStreamGuard(
       }
     }
 
-    // Set timers for newly streaming messages
-    for (const [msgId, msg] of streamingMessages) {
-      if (trackedIds.has(msgId)) continue; // Already tracking
+    // Set timers for newly streaming messages (only if timeoutMs is configured)
+    if (timeoutMs !== undefined) {
+      for (const [msgId, msg] of streamingMessages) {
+        if (trackedIds.has(msgId)) continue; // Already tracking
 
-      trackedIds.add(msgId);
+        trackedIds.add(msgId);
 
-      const lastUpdate = msg.lastStreamedAt
-        ? new Date(msg.lastStreamedAt)
-        : msg.createdAt
-          ? new Date(msg.createdAt)
-          : new Date();
+        const lastUpdate = msg.lastStreamedAt
+          ? new Date(msg.lastStreamedAt)
+          : msg.createdAt
+            ? new Date(msg.createdAt)
+            : new Date();
 
-      const timeSinceUpdate = Date.now() - lastUpdate.getTime();
+        const timeSinceUpdate = Date.now() - lastUpdate.getTime();
 
-      if (timeSinceUpdate >= timeoutMs) {
-        // Already timed out
-        onForceCompleteRef.current?.(msgId);
-        onTimeoutRef.current(msgId);
-        timers.delete(msgId);
-        trackedIds.delete(msgId);
-        continue;
+        if (timeSinceUpdate >= timeoutMs) {
+          // Already timed out
+          onForceCompleteRef.current?.(msgId);
+          onTimeoutRef.current(msgId);
+          timers.delete(msgId);
+          trackedIds.delete(msgId);
+          continue;
+        }
+
+        const remainingTime = timeoutMs - timeSinceUpdate;
+        const timer = window.setTimeout(() => {
+          onForceCompleteRef.current?.(msgId);
+          onTimeoutRef.current(msgId);
+          timers.delete(msgId);
+          trackedIds.delete(msgId);
+        }, remainingTime);
+
+        timers.set(msgId, timer);
       }
-
-      const remainingTime = timeoutMs - timeSinceUpdate;
-      const timer = window.setTimeout(() => {
-        onForceCompleteRef.current?.(msgId);
-        onTimeoutRef.current(msgId);
-        timers.delete(msgId);
-        trackedIds.delete(msgId);
-      }, remainingTime);
-
-      timers.set(msgId, timer);
     }
   }, [conversationId, timeoutMs]);
 

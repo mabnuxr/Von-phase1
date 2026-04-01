@@ -24,7 +24,6 @@ import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import { STREAM_TIMEOUT_MS } from "../config/constants";
 
 export interface UseChatV1Props {
   conversationId: string;
@@ -165,7 +164,6 @@ export function useChatV1(props: UseChatV1Props) {
   );
 
   useStreamGuard(conversationId, getMessages, {
-    timeoutMs: STREAM_TIMEOUT_MS,
     onTimeout: handleStreamTimeout,
     onForceComplete: handleForceComplete,
   });

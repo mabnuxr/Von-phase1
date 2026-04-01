@@ -125,12 +125,6 @@ export const INFINITE_SCROLL_THRESHOLD = 0.1 as const;
  */
 export const MAX_REPLAY_CACHE_SIZE = 1000 as const;
 
-/**
- * Timeout duration in milliseconds while waiting for response
- * After this time, the response will be considered timed out
- */
-export const STREAM_TIMEOUT_MS = 300000 as const; // 300 seconds (5 minutes)
-
 // ============================================================================
 // Pusher Connection & Reconciliation Constants
 // ============================================================================
@@ -289,7 +283,6 @@ export const QUERY_CONSTANTS = {
   OAUTH_POPUP_CHECK_DELAY_MS,
   INFINITE_SCROLL_THRESHOLD,
   MAX_REPLAY_CACHE_SIZE,
-  STREAM_TIMEOUT_MS,
   PUSHER_ACTIVITY_TIMEOUT_S,
   PUSHER_PONG_TIMEOUT_S,
   RECONCILIATION_STALL_THRESHOLD_MS,
