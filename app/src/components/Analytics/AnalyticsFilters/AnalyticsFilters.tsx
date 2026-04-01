@@ -1,6 +1,9 @@
 import { DashboardFilterPopover } from "./DashboardFilterPopover";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
-import type { ActiveFilter, PendingRow } from "../../../hooks/useDashboardFilters";
+import type {
+  ActiveFilter,
+  PendingRow,
+} from "../../../hooks/useDashboardFilters";
 
 interface AnalyticsFiltersProps {
   definitions: DashboardFilterDefinition[];
@@ -9,11 +12,20 @@ interface AnalyticsFiltersProps {
   activeCount: number;
   canApply: boolean;
   isApplying: boolean;
-  onFilterChange: (filterId: string, operator: string, value?: unknown, includeBlank?: boolean) => void;
+  onFilterChange: (
+    filterId: string,
+    operator: string,
+    value?: unknown,
+    includeBlank?: boolean,
+  ) => void;
   onRemoveFilter: (filterId: string) => void;
   onAddFilter: () => void;
   onRemovePendingRow: (tempId: string) => void;
-  onCommitPendingRow: (pendingId: string, filterId: string, defaultOperator: string) => void;
+  onCommitPendingRow: (
+    pendingId: string,
+    filterId: string,
+    defaultOperator: string,
+  ) => void;
   onApply: () => void;
   onClearAll: () => void;
 }

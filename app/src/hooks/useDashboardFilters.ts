@@ -56,7 +56,11 @@ function normaliseServerState(
     }
 
     if (typeof val === "object" && "operator" in val) {
-      const item = val as { operator: string; value?: unknown; include_blank?: boolean };
+      const item = val as {
+        operator: string;
+        value?: unknown;
+        include_blank?: boolean;
+      };
       out[key] = {
         operator: item.operator,
         ...(item.value !== undefined && { value: item.value }),
@@ -147,7 +151,12 @@ export function useDashboardFilters(
   // ── Local-only edits (no API calls) ─────────────────────────
 
   const handleFilterChange = useCallback(
-    (filterId: string, operator: string, value?: unknown, includeBlank?: boolean) => {
+    (
+      filterId: string,
+      operator: string,
+      value?: unknown,
+      includeBlank?: boolean,
+    ) => {
       const filter: ActiveFilter = {
         operator,
         ...(value !== undefined && { value }),
@@ -197,12 +206,20 @@ export function useDashboardFilters(
     for (const [filterId, filter] of Object.entries(localState)) {
       // Skip incomplete filters (no value and not a no-value operator)
       if (!NO_VALUE_OPERATORS.has(filter.operator)) {
-        if (filter.value === undefined || filter.value === null || filter.value === "") continue;
+        if (
+          filter.value === undefined ||
+          filter.value === null ||
+          filter.value === ""
+        )
+          continue;
         if (Array.isArray(filter.value) && filter.value.length === 0) continue;
       }
       // Check if it actually changed from server state
       const serverFilter = server[filterId];
-      if (!serverFilter || JSON.stringify(serverFilter) !== JSON.stringify(filter)) {
+      if (
+        !serverFilter ||
+        JSON.stringify(serverFilter) !== JSON.stringify(filter)
+      ) {
         const apiValue: Record<string, unknown> = { operator: filter.operator };
         if (filter.value !== undefined) apiValue.value = filter.value;
         if (filter.include_blank) apiValue.include_blank = true;
@@ -249,7 +266,12 @@ export function useDashboardFilters(
   // Every local filter must be complete (has value or is a no-value operator)
   const allFiltersValid = Object.values(localState).every((filter) => {
     if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
-    if (filter.value === undefined || filter.value === null || filter.value === "") return false;
+    if (
+      filter.value === undefined ||
+      filter.value === null ||
+      filter.value === ""
+    )
+      return false;
     if (Array.isArray(filter.value) && filter.value.length === 0) return false;
     return true;
   });

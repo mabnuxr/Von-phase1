@@ -1,4 +1,11 @@
-import { useRef, useLayoutEffect, useEffect, useState, useMemo, memo } from "react";
+import {
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useState,
+  useMemo,
+  memo,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   FunnelIcon,
@@ -8,7 +15,10 @@ import {
 } from "@phosphor-icons/react";
 import { MultiSelectDropdown, Select } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
-import type { ActiveFilter, PendingRow } from "../../../hooks/useDashboardFilters";
+import type {
+  ActiveFilter,
+  PendingRow,
+} from "../../../hooks/useDashboardFilters";
 
 // ── Operator labels (fallback when valid_operators missing) ────
 
@@ -42,12 +52,69 @@ const BETWEEN_OPERATORS = new Set(["between", "not_between"]);
 
 /** Fallback operators by frontend filter type */
 const FALLBACK_OPERATORS: Record<string, string[]> = {
-  picklist: ["in", "not_in", "equals", "not_equals", "contains", "not_contains", "is_blank", "is_not_blank"],
-  "multi-select": ["in", "not_in", "equals", "not_equals", "contains", "not_contains", "is_blank", "is_not_blank"],
-  select: ["equals", "not_equals", "contains", "not_contains", "starts_with", "ends_with", "is_blank", "is_not_blank"],
-  "date-range": ["on", "before", "after", "on_or_before", "on_or_after", "between", "not_between", "is_blank", "is_not_blank"],
-  range: ["equals", "not_equals", "greater_than", "greater_than_or_equal", "less_than", "less_than_or_equal", "between", "not_between", "is_blank", "is_not_blank"],
-  search: ["equals", "not_equals", "contains", "not_contains", "starts_with", "ends_with", "is_blank", "is_not_blank"],
+  picklist: [
+    "in",
+    "not_in",
+    "equals",
+    "not_equals",
+    "contains",
+    "not_contains",
+    "is_blank",
+    "is_not_blank",
+  ],
+  "multi-select": [
+    "in",
+    "not_in",
+    "equals",
+    "not_equals",
+    "contains",
+    "not_contains",
+    "is_blank",
+    "is_not_blank",
+  ],
+  select: [
+    "equals",
+    "not_equals",
+    "contains",
+    "not_contains",
+    "starts_with",
+    "ends_with",
+    "is_blank",
+    "is_not_blank",
+  ],
+  "date-range": [
+    "on",
+    "before",
+    "after",
+    "on_or_before",
+    "on_or_after",
+    "between",
+    "not_between",
+    "is_blank",
+    "is_not_blank",
+  ],
+  range: [
+    "equals",
+    "not_equals",
+    "greater_than",
+    "greater_than_or_equal",
+    "less_than",
+    "less_than_or_equal",
+    "between",
+    "not_between",
+    "is_blank",
+    "is_not_blank",
+  ],
+  search: [
+    "equals",
+    "not_equals",
+    "contains",
+    "not_contains",
+    "starts_with",
+    "ends_with",
+    "is_blank",
+    "is_not_blank",
+  ],
 };
 
 function getOperatorOptions(def: DashboardFilterDefinition) {
@@ -57,7 +124,12 @@ function getOperatorOptions(def: DashboardFilterDefinition) {
       label: op.label,
     }));
   }
-  const ops = FALLBACK_OPERATORS[def.type] ?? ["equals", "not_equals", "is_blank", "is_not_blank"];
+  const ops = FALLBACK_OPERATORS[def.type] ?? [
+    "equals",
+    "not_equals",
+    "is_blank",
+    "is_not_blank",
+  ];
   return ops.map((op) => ({
     value: op,
     label: OPERATOR_LABELS[op] ?? op,
@@ -110,7 +182,9 @@ const ValueInput: React.FC<ValueInputProps> = ({
         </div>
       );
     }
-    const arr = Array.isArray(value) ? (value as number[]) : [undefined, undefined];
+    const arr = Array.isArray(value)
+      ? (value as number[])
+      : [undefined, undefined];
     return (
       <div className="flex items-center gap-1.5 flex-1 min-w-0">
         <input
@@ -154,7 +228,9 @@ const ValueInput: React.FC<ValueInputProps> = ({
         <MultiSelectDropdown
           options={definition.options.map((o) => ({ value: o, label: o }))}
           value={selected}
-          onChange={(values) => onChange(values.length > 0 ? values : undefined)}
+          onChange={(values) =>
+            onChange(values.length > 0 ? values : undefined)
+          }
           placeholder="Select..."
           usePortal
         />
@@ -241,103 +317,107 @@ interface ActiveFilterRowProps {
   onRemove: () => void;
 }
 
-const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(({
-  filterId,
-  filter,
-  definition,
-  allDefinitions,
-  usedFieldIds,
-  onFieldChange,
-  onOperatorChange,
-  onValueChange,
-  onIncludeBlankChange,
-  onRemove,
-}) => {
-  // Field options: current field + unused fields
-  const fieldOptions = allDefinitions
-    .filter((d) => d.id === filterId || !usedFieldIds.has(d.id))
-    .map((d) => ({ value: d.id, label: d.label }));
+const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
+  ({
+    filterId,
+    filter,
+    definition,
+    allDefinitions,
+    usedFieldIds,
+    onFieldChange,
+    onOperatorChange,
+    onValueChange,
+    onIncludeBlankChange,
+    onRemove,
+  }) => {
+    // Field options: current field + unused fields
+    const fieldOptions = allDefinitions
+      .filter((d) => d.id === filterId || !usedFieldIds.has(d.id))
+      .map((d) => ({ value: d.id, label: d.label }));
 
-  const operatorOptions = getOperatorOptions(definition);
-  const isNoValue = NO_VALUE_OPERATORS.has(filter.operator);
+    const operatorOptions = getOperatorOptions(definition);
+    const isNoValue = NO_VALUE_OPERATORS.has(filter.operator);
 
-  return (
-    <div className="group flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
-        {/* Field dropdown */}
-        <div className="w-32 flex-shrink-0">
-          <Select
-            options={fieldOptions}
-            value={filterId}
-            onChange={(newFieldId) => {
-              if (newFieldId && newFieldId !== filterId) {
-                onFieldChange(filterId, newFieldId);
-              }
-            }}
-            placeholder="Field"
-            usePortal
+    return (
+      <div className="group flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          {/* Field dropdown */}
+          <div className="w-32 flex-shrink-0">
+            <Select
+              options={fieldOptions}
+              value={filterId}
+              onChange={(newFieldId) => {
+                if (newFieldId && newFieldId !== filterId) {
+                  onFieldChange(filterId, newFieldId);
+                }
+              }}
+              placeholder="Field"
+              usePortal
+            />
+          </div>
+
+          {/* Operator dropdown */}
+          <div className="w-32 flex-shrink-0">
+            <Select
+              options={operatorOptions}
+              value={filter.operator}
+              onChange={(op) => {
+                if (op) onOperatorChange(op);
+              }}
+              placeholder="Operator"
+              usePortal
+            />
+          </div>
+
+          {/* Value input */}
+          <ValueInput
+            definition={definition}
+            operator={filter.operator}
+            value={filter.value}
+            onChange={onValueChange}
           />
-        </div>
 
-        {/* Operator dropdown */}
-        <div className="w-32 flex-shrink-0">
-          <Select
-            options={operatorOptions}
-            value={filter.operator}
-            onChange={(op) => {
-              if (op) onOperatorChange(op);
-            }}
-            placeholder="Operator"
-            usePortal
-          />
-        </div>
+          {/* Spacer when value input is hidden */}
+          {isNoValue && <div className="flex-1" />}
 
-        {/* Value input */}
-        <ValueInput
-          definition={definition}
-          operator={filter.operator}
-          value={filter.value}
-          onChange={onValueChange}
-        />
-
-        {/* Spacer when value input is hidden */}
-        {isNoValue && <div className="flex-1" />}
-
-        {/* Delete button */}
-        <button
-          type="button"
-          onClick={onRemove}
-          title="Remove condition"
-          className="flex-shrink-0 p-1.5 rounded-lg text-gray-800 hover:bg-gray-100 transition-all duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
-        >
-          <TrashIcon size={14} />
-        </button>
-      </div>
-
-      {/* Include blanks toggle — hidden for is_blank / is_not_blank */}
-      {!isNoValue && (
-        <div className="flex items-center gap-2 justify-end pr-8">
+          {/* Delete button */}
           <button
             type="button"
-            role="switch"
-            aria-checked={!!filter.include_blank}
-            onClick={() => onIncludeBlankChange(!filter.include_blank)}
-            className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-              filter.include_blank ? "bg-gray-900" : "bg-gray-200"
-            }`}
+            onClick={onRemove}
+            title="Remove condition"
+            className="flex-shrink-0 p-1.5 rounded-lg text-gray-800 hover:bg-gray-100 transition-all duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
           >
-            <span
-              className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out mt-0.5 ${
-                filter.include_blank ? "translate-x-3.5 ml-px" : "translate-x-0.5"
-              }`}
-            />
+            <TrashIcon size={14} />
           </button>
-          <span className="text-xs text-gray-500">Include blanks</span>
         </div>
-      )}
-    </div>
-  );
-});
+
+        {/* Include blanks toggle — hidden for is_blank / is_not_blank */}
+        {!isNoValue && (
+          <div className="flex items-center gap-2 justify-end pr-8">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={!!filter.include_blank}
+              onClick={() => onIncludeBlankChange(!filter.include_blank)}
+              className={`relative inline-flex h-4 w-7 flex-shrink-0 rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                filter.include_blank ? "bg-gray-900" : "bg-gray-200"
+              }`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-3 w-3 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out mt-0.5 ${
+                  filter.include_blank
+                    ? "translate-x-3.5 ml-px"
+                    : "translate-x-0.5"
+                }`}
+              />
+            </button>
+            <span className="text-xs text-gray-500">Include blanks</span>
+          </div>
+        )}
+      </div>
+    );
+  },
+);
 
 // ── Pending (empty) filter row ─────────────────────────────────
 
@@ -417,11 +497,20 @@ interface DashboardFilterPopoverProps {
   activeCount: number;
   canApply: boolean;
   isApplying: boolean;
-  onFilterChange: (filterId: string, operator: string, value?: unknown, includeBlank?: boolean) => void;
+  onFilterChange: (
+    filterId: string,
+    operator: string,
+    value?: unknown,
+    includeBlank?: boolean,
+  ) => void;
   onRemoveFilter: (filterId: string) => void;
   onAddFilter: () => void;
   onRemovePendingRow: (tempId: string) => void;
-  onCommitPendingRow: (pendingId: string, filterId: string, defaultOperator: string) => void;
+  onCommitPendingRow: (
+    pendingId: string,
+    filterId: string,
+    defaultOperator: string,
+  ) => void;
   onApply: () => void;
   onClearAll: () => void;
 }
@@ -494,12 +583,21 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  const defById = useMemo(
+    () => new Map(definitions.map((d) => [d.id, d])),
+    [definitions],
+  );
+  const usedFieldIds = useMemo(
+    () => new Set(Object.keys(filterState)),
+    [filterState],
+  );
+
   if (definitions.length === 0) return null;
 
-  const defById = useMemo(() => new Map(definitions.map((d) => [d.id, d])), [definitions]);
-  const usedFieldIds = useMemo(() => new Set(Object.keys(filterState)), [filterState]);
   const activeFilterEntries = Object.entries(filterState);
-  const unusedFieldCount = definitions.filter((d) => !usedFieldIds.has(d.id)).length;
+  const unusedFieldCount = definitions.filter(
+    (d) => !usedFieldIds.has(d.id),
+  ).length;
   // Hide "+ Add condition" when remaining unused fields equals pending empty rows
   const canAddMore = unusedFieldCount > pendingRows.length;
   const totalRows = activeFilterEntries.length + pendingRows.length;
@@ -541,7 +639,9 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
             className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-3 min-w-[480px] max-w-[600px]"
             style={{ top: position.top, left: position.left }}
           >
-            <div className={`flex flex-col gap-2.5 transition-opacity ${isApplying ? "opacity-50 pointer-events-none" : ""}`}>
+            <div
+              className={`flex flex-col gap-2.5 transition-opacity ${isApplying ? "opacity-50 pointer-events-none" : ""}`}
+            >
               {/* Active filter rows */}
               {activeFilterEntries.map(([filterId, filter]) => {
                 const def = defById.get(filterId);
@@ -557,7 +657,9 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                     onFieldChange={handleFieldChange}
                     onOperatorChange={(op) => {
                       // Reset value when operator type changes
-                      const wasNoValue = NO_VALUE_OPERATORS.has(filter.operator);
+                      const wasNoValue = NO_VALUE_OPERATORS.has(
+                        filter.operator,
+                      );
                       const isNoValue = NO_VALUE_OPERATORS.has(op);
                       const wasBetween = BETWEEN_OPERATORS.has(filter.operator);
                       const isBetween = BETWEEN_OPERATORS.has(op);
@@ -570,7 +672,9 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                         wasList !== isList;
 
                       // Clear include_blank when switching to no-value operators
-                      const keepBlank = isNoValue ? false : filter.include_blank;
+                      const keepBlank = isNoValue
+                        ? false
+                        : filter.include_blank;
 
                       onFilterChange(
                         filterId,
@@ -580,10 +684,20 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
                       );
                     }}
                     onValueChange={(val) =>
-                      onFilterChange(filterId, filter.operator, val, filter.include_blank || undefined)
+                      onFilterChange(
+                        filterId,
+                        filter.operator,
+                        val,
+                        filter.include_blank || undefined,
+                      )
                     }
                     onIncludeBlankChange={(includeBlank) =>
-                      onFilterChange(filterId, filter.operator, filter.value, includeBlank)
+                      onFilterChange(
+                        filterId,
+                        filter.operator,
+                        filter.value,
+                        includeBlank,
+                      )
                     }
                     onRemove={() => onRemoveFilter(filterId)}
                   />
@@ -620,7 +734,9 @@ const DashboardFilterPopover: React.FC<DashboardFilterPopoverProps> = ({
 
             {/* Footer: + Add condition | Clear all | Apply */}
             <div className="flex items-center mt-3">
-              <div className={`flex items-center gap-2 flex-1 transition-opacity ${isApplying ? "opacity-50 pointer-events-none" : ""}`}>
+              <div
+                className={`flex items-center gap-2 flex-1 transition-opacity ${isApplying ? "opacity-50 pointer-events-none" : ""}`}
+              >
                 {canAddMore && (
                   <button
                     type="button"

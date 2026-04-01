@@ -55,11 +55,20 @@ interface AnalyticsViewProps {
   filterCanApply: boolean;
   /** Whether filters are being applied (PATCH + refetch in progress) */
   filterIsApplying: boolean;
-  onFilterChange: (filterId: string, operator: string, value?: unknown, includeBlank?: boolean) => void;
+  onFilterChange: (
+    filterId: string,
+    operator: string,
+    value?: unknown,
+    includeBlank?: boolean,
+  ) => void;
   onRemoveFilter: (filterId: string) => void;
   onAddFilter: () => void;
   onRemovePendingRow: (tempId: string) => void;
-  onCommitPendingRow: (pendingId: string, filterId: string, defaultOperator: string) => void;
+  onCommitPendingRow: (
+    pendingId: string,
+    filterId: string,
+    defaultOperator: string,
+  ) => void;
   onApplyFilters: () => void;
   onClearAll: () => void;
   onRefresh: () => Promise<void>;
