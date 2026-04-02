@@ -8,7 +8,8 @@ import { CopyIcon, CheckIcon } from '@phosphor-icons/react';
 // Gmail Icon — loaded from S3 assets
 // ============================================================================
 
-const GMAIL_ICON_URL = '/s3-assets/integrations/Gmail.svg';
+const GMAIL_ICON_URL =
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg';
 
 // ============================================================================
 // Types
