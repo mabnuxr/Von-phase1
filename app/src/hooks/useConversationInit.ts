@@ -58,16 +58,16 @@ export function useConversationInit(urlConversationId?: string) {
     // For CASE 2 & 3 we need data
     if (isLoading) return;
 
-    // CASE 2: Redirect to most recent conversation
+    // CASE 2: Conversations exist — redirect to new conversation page
     if (firstConversationId) {
       if (import.meta.env.DEV) {
         console.log(
-          `[useConversationInit] Redirecting to most recent conversation: ${firstConversationId}`,
+          `[useConversationInit] Redirecting to new conversation page`,
         );
       }
 
       // Navigate with replace to avoid back button issues
-      navigate(`/chat/${firstConversationId}`, { replace: true });
+      navigate(`/chat/new`, { replace: true });
       return;
     }
 
