@@ -53,12 +53,15 @@ export {
   FileArtifactCard,
   DashboardArtifactCard,
   GmailDraftCard,
+  EmailComposer,
   ArtifactCardSkeleton,
 } from './ArtifactCards';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,
   GmailDraftCardProps,
+  EmailComposerProps,
+  EmailData,
   FileArtifact,
   EmailDraftArtifact,
   ArtifactType,

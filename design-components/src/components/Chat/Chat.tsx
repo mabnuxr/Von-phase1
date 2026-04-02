@@ -51,6 +51,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onArtifactClick,
   showArtifacts = false,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
   onFileArtifactClick,
   onArtifactDownload,
   onGoogleDriveClick,
@@ -348,6 +349,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
+                  renderGroupedEmailArtifacts={showArtifacts ? renderGroupedEmailArtifacts : undefined}
                   dataTablesInfo={dataTablesInfo}
                   isDataTablesLoading={isDataTablesLoading}
                   onDataTablesClick={onDataTablesClick}

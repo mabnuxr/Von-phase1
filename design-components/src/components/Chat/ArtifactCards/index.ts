@@ -12,5 +12,8 @@ export type { DashboardArtifactCardProps } from './DashboardArtifactCard';
 export { GmailDraftCard } from './GmailDraftCard';
 export type { GmailDraftCardProps } from './GmailDraftCard';
 
+export { EmailComposer } from './EmailComposer';
+export type { EmailComposerProps, EmailData } from './EmailComposer';
+
 // Shared types
 export type { ArtifactType, FileArtifact, EmailDraftArtifact } from './types';

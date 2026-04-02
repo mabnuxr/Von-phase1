@@ -121,12 +121,15 @@ export {
   FileArtifactCard,
   DashboardArtifactCard,
   GmailDraftCard,
+  EmailComposer,
   ArtifactCardSkeleton,
 } from './Chat';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,
   GmailDraftCardProps,
+  EmailComposerProps,
+  EmailData,
   FileArtifact,
   ArtifactType,
   EmailDraftArtifact,
