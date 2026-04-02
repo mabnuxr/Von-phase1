@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -47,13 +47,19 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   const [showSubjectTooltip, setShowSubjectTooltip] = useState(false);
   const subjectTextRef = useRef<HTMLParagraphElement>(null);
 
-  const currentEmail = emails[activeTab];
+  // Clamp activeTab when emails array shrinks
+  useEffect(() => {
+    setActiveTab((prev) => (prev >= emails.length ? Math.max(0, emails.length - 1) : prev));
+  }, [emails.length]);
+
+  const currentEmail = emails.length > 0 ? emails[activeTab] : null;
 
   const handleCopyBody = useCallback(() => {
+    if (!currentEmail) return;
     navigator.clipboard.writeText(currentEmail.body);
     setBodyCopied(true);
     setTimeout(() => setBodyCopied(false), 2000);
-  }, [currentEmail.body]);
+  }, [currentEmail]);
 
   const isSubjectTruncated = useCallback(() => {
     const el = subjectTextRef.current;
@@ -65,7 +71,10 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
     setActiveTab(index);
     setShowCc(false);
     setShowBcc(false);
+    setBodyCopied(false);
   };
+
+  if (!currentEmail) return null;
 
   return (
     <motion.div
@@ -146,7 +155,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           >
             <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto">
               <span className="text-xs text-gray-700 flex-shrink-0">Cc</span>
-              <span className="text-sm text-gray-900 whitespace-nowrap">{currentEmail.cc?.join(', ') || '—'}</span>
+              <span className="text-sm text-gray-900 whitespace-nowrap">
+                {currentEmail.cc?.join(', ') || '—'}
+              </span>
             </div>
           </motion.div>
         )}
@@ -164,7 +175,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           >
             <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto">
               <span className="text-xs text-gray-700 flex-shrink-0">Bcc</span>
-              <span className="text-sm text-gray-900 whitespace-nowrap">{currentEmail.bcc?.join(', ') || '—'}</span>
+              <span className="text-sm text-gray-900 whitespace-nowrap">
+                {currentEmail.bcc?.join(', ') || '—'}
+              </span>
             </div>
           </motion.div>
         )}
