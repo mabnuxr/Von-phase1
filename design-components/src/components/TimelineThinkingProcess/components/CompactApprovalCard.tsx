@@ -278,7 +278,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     );
 
     const operationLabel =
-      approval.operation === 'create'
+      approval.operation === 'create' || approval.operation?.startsWith('chatter_create')
         ? 'CREATE'
         : approval.operation === 'update'
           ? 'UPDATE'

@@ -41,9 +41,9 @@ export const BulkUpdateItemRow: React.FC<BulkUpdateItemRowProps> = ({
 
   // Get operation label for header (lowercase for inline text)
   const operationLabel =
-    operation.operation === 'delete'
+    operation.operation === 'delete' || operation.operation?.startsWith('chatter_delete')
       ? 'delete'
-      : operation.operation === 'create'
+      : operation.operation === 'create' || operation.operation?.startsWith('chatter_create')
         ? 'create'
         : 'update';
 
