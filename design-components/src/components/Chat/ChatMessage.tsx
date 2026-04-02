@@ -83,6 +83,7 @@ export interface ChatMessageProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   integrationBlock?: {
@@ -159,6 +160,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   driveTooltip,
   driveLoadingFileId,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
   command,
   onRequestFilePreviewUrl,
   integrationBlock,
@@ -332,6 +334,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         driveTooltip={driveTooltip}
                         driveLoadingFileId={driveLoadingFileId}
                         renderArtifactCard={renderArtifactCard}
+                        renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
                       />
                     )}
 

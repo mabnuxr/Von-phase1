@@ -1191,6 +1191,12 @@ export interface ChatProps {
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
 
   /**
+   * Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs).
+   * When provided, email artifacts are separated from other artifacts and passed here as a group.
+   */
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
+
+  /**
    * Callback when user clicks on a file artifact card (agent-generated documents)
    * Opens the artifact viewer panel
    */

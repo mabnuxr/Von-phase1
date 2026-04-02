@@ -189,13 +189,6 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
         )}
       </div>
 
-      {/* CRM context */}
-      {artifact.crmContext && (
-        <div className="flex items-center gap-1.5 px-3 py-2 border-t border-gray-100 flex-shrink-0 bg-gray-50/60">
-          <span className="text-xs text-gray-500 truncate">{artifact.crmContext}</span>
-        </div>
-      )}
-
       {/* Footer CTAs */}
       <div className="flex items-center justify-end gap-1.5 px-3 py-2.5 border-t border-gray-100 flex-shrink-0">
         <button
