@@ -776,41 +776,31 @@ div[data-streamdown='table-wrapper'] thead th {
   background-color: #f9fafb;
 }
 
-/* Hide the button container that appears above table */
-div[data-streamdown='table-wrapper'] > .relative:first-child {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
-  margin: 0;
-  height: 0;
-  overflow: visible;
-}
-
-/* Hide table copy button by default */
-div[data-streamdown='table-wrapper'] button {
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-/* Show copy button on hover */
-div[data-streamdown='table-wrapper']:hover button {
-  opacity: 1;
-}
-
-/* Style the button to float over table header */
-div[data-streamdown='table-wrapper'] button {
+/* Button container - overlay on top-right of table */
+div[data-streamdown='table-wrapper'] > div:first-child {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  z-index: 10;
+}
+
+/* Hide table buttons by default */
+div[data-streamdown='table-wrapper'] button {
+  opacity: 0;
+  transition: opacity 0.2s ease;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 0.375rem;
-  padding: 0.375rem 0.5rem;
-  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
+}
+
+/* Show buttons on hover */
+div[data-streamdown='table-wrapper']:hover button {
+  opacity: 1;
 }
 
 /* Remove white backgrounds from table rows - match gradient */
@@ -850,6 +840,7 @@ th[data-streamdown='table-header-cell'] {
   font-weight: 600;
   color: #0a0a0a;
   text-transform: none;
+  white-space: nowrap;
 }
 
 .markdown-body td,
