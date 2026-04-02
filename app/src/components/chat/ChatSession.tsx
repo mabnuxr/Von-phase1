@@ -522,10 +522,6 @@ function ExistingChatInner(
           ? base.commands.handleSendTest
           : undefined
       }
-      // Data tables (deep research approval flow)
-      dataTablesInfo={chatV2.dataTablesInfo ?? undefined}
-      isDataTablesLoading={chatV2.isDataTablesLoading}
-      onDataTablesClick={chatV2.handleDataTablesClick}
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}

@@ -479,13 +479,11 @@ export type {
 export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
-  DataTablesCard,
   DeepResearchApprovalCard,
   DeepResearchDataTablesDrawer,
 } from './Chat';
 export type {
   DeepResearchNotificationBarProps,
-  DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,

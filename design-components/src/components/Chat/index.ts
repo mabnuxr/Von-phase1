@@ -217,14 +217,12 @@ export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
   DeepResearchNotificationBar,
-  DataTablesCard,
   DeepResearchApprovalCard,
   MarkdownActionCard,
   DeepResearchDataTablesDrawer,
 } from './DeepResearch';
 export type {
   DeepResearchNotificationBarProps,
-  DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,

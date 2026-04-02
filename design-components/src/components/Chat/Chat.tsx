@@ -95,10 +95,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   showTransparency = true,
   salesforceInstanceUrl,
   enableDeepLinks = false,
-  // Data tables (deep research approval flow)
-  dataTablesInfo,
-  isDataTablesLoading = false,
-  onDataTablesClick,
   // V2 Thinking Process
   thinkingProcessVersion = 'v1',
   useStandardInput = false,
@@ -352,9 +348,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   renderGroupedEmailArtifacts={
                     showArtifacts ? renderGroupedEmailArtifacts : undefined
                   }
-                  dataTablesInfo={dataTablesInfo}
-                  isDataTablesLoading={isDataTablesLoading}
-                  onDataTablesClick={onDataTablesClick}
                   integrationBlock={message.integrationBlock}
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}

@@ -34,10 +34,7 @@ import { useSendMessage } from "./useSendMessage";
 import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
-import {
-  useLazyTransparencyArtifacts,
-  useDeepResearchArtifacts,
-} from "./useMessageArtifacts";
+import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
 import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
@@ -361,32 +358,6 @@ export function useChatV2(props: UseChatV2Props) {
     isTransparencyOpen ? conversationId : null,
     isTransparencyOpen ? transparencyRunId : null,
   );
-
-  // Data tables info for the DataTablesCard (deep research approval flow)
-  // Use v2Processor.currentRunId when live, fall back to last assistant message runId
-  // (on page refresh, currentRunId is null for completed runs to avoid forcing V2 live path)
-  const dataTablesRunId = useMemo(() => {
-    if (v2Processor.currentRunId) return v2Processor.currentRunId;
-    for (let i = conversationMessages.length - 1; i >= 0; i--) {
-      const msg = conversationMessages[i];
-      if (msg.role === "assistant" && msg.runId) return msg.runId;
-    }
-    return null;
-  }, [v2Processor.currentRunId, conversationMessages]);
-
-  const { dataTablesInfo, isLoading: isDataTablesLoading } =
-    useDeepResearchArtifacts(
-      conversationId,
-      dataTablesRunId,
-      v2Processor.isDashboardBuilderMode || !!v2Processor.executionId,
-    );
-
-  const handleDataTablesClick = useCallback(() => {
-    if (dataTablesRunId) {
-      setTransparencyRunId(dataTablesRunId);
-      setIsTransparencyOpen(true);
-    }
-  }, [dataTablesRunId]);
 
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
@@ -716,11 +687,6 @@ export function useChatV2(props: UseChatV2Props) {
     handleFileArtifactClick,
     closeFileArtifactPanel,
     handleArtifactDownload,
-
-    // Data tables (deep research approval flow)
-    dataTablesInfo,
-    isDataTablesLoading,
-    handleDataTablesClick,
 
     // Write-blocked banner
     writeBlocked,

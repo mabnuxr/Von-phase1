@@ -1553,29 +1553,6 @@ export interface ChatProps {
    */
   dashboardMention?: MentionItem | null;
 
-  // ============================================================================
-  // Data Tables Props (Deep Research Approval Flow)
-  // ============================================================================
-
-  /**
-   * Callback when user clicks the DataTablesCard to review source data
-   */
-  onDataTablesClick?: () => void;
-
-  /**
-   * Information for the DataTablesCard (number of tables, records processed, etc.)
-   */
-  dataTablesInfo?: {
-    tableCount: number;
-    processedRecords?: number;
-    totalRecords?: number;
-  };
-
-  /**
-   * Whether data tables info is still loading
-   */
-  isDataTablesLoading?: boolean;
-
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state
    * that replaces the default ChatEmptyState when messages is empty.
