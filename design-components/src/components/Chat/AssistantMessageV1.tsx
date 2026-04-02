@@ -1,4 +1,5 @@
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from './chatRemarkPlugins';
 import { ThinkingBlock } from './ThinkingBlock';
 import { ToolCallItem } from './ToolCallItem';
 import { MessageAreaError } from './MessageAreaError';
@@ -132,6 +133,7 @@ export const AssistantMessageV1: React.FC<AssistantMessageV1Props> = ({
                           isAnimating={false}
                           controls={{ table: true }}
                           components={{ a: SalesforceLink }}
+                          remarkPlugins={chatRemarkPlugins}
                         >
                           {finalStep.content}
                         </Streamdown>
@@ -171,6 +173,7 @@ export const AssistantMessageV1: React.FC<AssistantMessageV1Props> = ({
               isAnimating={isStreaming}
               controls={{ table: true }}
               components={{ a: SalesforceLink }}
+              remarkPlugins={chatRemarkPlugins}
             >
               {content}
             </Streamdown>

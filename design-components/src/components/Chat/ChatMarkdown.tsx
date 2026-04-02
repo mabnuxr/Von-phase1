@@ -1,4 +1,5 @@
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from './chatRemarkPlugins';
 
 export interface ChatMarkdownProps {
   /**
@@ -36,6 +37,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({
           code: !isStreaming, // Only show code copy button when not streaming
           table: true,
         }}
+        remarkPlugins={chatRemarkPlugins}
       >
         {content || ''}
       </Streamdown>

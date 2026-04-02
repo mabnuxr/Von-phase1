@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from './chatRemarkPlugins';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import { MessageAreaError } from './MessageAreaError';
@@ -156,6 +157,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
               isAnimating={isStreaming}
               controls={{ table: true }}
               components={{ a: SalesforceLink }}
+              remarkPlugins={chatRemarkPlugins}
             >
               {v2FinalResponse}
             </Streamdown>

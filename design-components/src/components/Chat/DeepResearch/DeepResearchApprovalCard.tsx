@@ -1,5 +1,6 @@
 import React from 'react';
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from '../chatRemarkPlugins';
 import { PrimaryButton, SecondaryButton } from '../../forms/buttons/ActionButtons';
 import { ClockIcon, DatabaseIcon, FileTextIcon } from '@phosphor-icons/react';
 import type { ResearchResultsMetadata } from './types';
@@ -211,6 +212,7 @@ export const DeepResearchApprovalCard: React.FC<DeepResearchApprovalCardProps> =
             parseIncompleteMarkdown={isStreaming}
             isAnimating={isStreaming}
             controls={{ table: true }}
+            remarkPlugins={chatRemarkPlugins}
           >
             {content}
           </Streamdown>

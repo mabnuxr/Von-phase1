@@ -2,6 +2,7 @@ import React, { useState, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowsOutIcon, DotsThreeIcon, GridFourIcon, XIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from '../chatRemarkPlugins';
 import type { DeepResearchResultsProps } from './types';
 import { ReportModal } from './ReportModal';
 
@@ -128,6 +129,7 @@ export const DeepResearchResults: React.FC<DeepResearchResultsProps> = ({
             parseIncompleteMarkdown={isStreaming}
             isAnimating={isStreaming}
             controls={{ table: true }}
+            remarkPlugins={chatRemarkPlugins}
           >
             {state.content}
           </Streamdown>
