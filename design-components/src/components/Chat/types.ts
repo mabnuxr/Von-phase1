@@ -857,6 +857,7 @@ export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
+    toolName === 'create_command' ||
     OUTREACH_APPROVAL_TOOLS.has(toolName)
   );
 }

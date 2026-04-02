@@ -16,6 +16,7 @@ import type { Channel } from "pusher-js";
 import { ConversationChannelEvents } from "../types/conversationChannelEvents";
 import type { ArtifactCreatedEventPayload } from "../types/conversationChannelEvents";
 import { agentArtifactKeys } from "./useAgentArtifacts";
+import { QUICK_COMMANDS_QUERY_KEY } from "./useQuickCommands";
 import type { FileMetadataResponse } from "../services/fileUploadService";
 
 export function useArtifactCreatedEvent(
@@ -31,6 +32,20 @@ export function useArtifactCreatedEvent(
       const parsed: ArtifactCreatedEventPayload =
         typeof data === "string" ? JSON.parse(data) : data;
 
+      // Check if any artifact is a command_created — invalidate commands cache
+      const hasCommandCreated = parsed.artifacts.some(
+        (a) => a.artifact_type === "command_created",
+      );
+      if (hasCommandCreated) {
+        queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
+      }
+
+      // Filter out command_created entries — they aren't file artifacts
+      const fileArtifacts = parsed.artifacts.filter(
+        (a) => a.artifact_type !== "command_created",
+      );
+      if (fileArtifacts.length === 0) return;
+
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
 
@@ -38,27 +53,25 @@ export function useArtifactCreatedEvent(
 
       if (parsed.status === "processing") {
         // Seed cache with placeholders so skeletons render immediately
-        const placeholders: FileMetadataResponse[] = parsed.artifacts.map(
-          (a) => ({
-            id: a.file_name,
-            fileName: a.file_name,
-            mimeType: "",
-            sizeBytes: 0,
-            status: "processing",
-            source: "agent_generated",
-            createdAt: parsed.updatedAt,
-            artifactType: a.artifact_type,
-            runId: parsed.runId,
-            isPending: true,
-          }),
-        );
+        const placeholders: FileMetadataResponse[] = fileArtifacts.map((a) => ({
+          id: a.file_name,
+          fileName: a.file_name,
+          mimeType: "",
+          sizeBytes: 0,
+          status: "processing",
+          source: "agent_generated",
+          createdAt: parsed.updatedAt,
+          artifactType: a.artifact_type,
+          runId: parsed.runId,
+          isPending: true,
+        }));
         queryClient.setQueryData(queryKey, placeholders);
         // Mark stale so remount refetches if completed event is missed,
         // but don't trigger an immediate refetch while upload is still running
         queryClient.invalidateQueries({ queryKey, refetchType: "inactive" });
       } else {
         // Immediately replace placeholders with event data (removes isPending)
-        const freshData: FileMetadataResponse[] = parsed.artifacts.map((a) => ({
+        const freshData: FileMetadataResponse[] = fileArtifacts.map((a) => ({
           id: a.id ?? a.file_name,
           fileName: a.file_name,
           mimeType: "",
