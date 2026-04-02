@@ -121,7 +121,6 @@ export const GmailDraftCardContainer: React.FC<
       }
     />
   );
-
 };
 
 // ── Multi-email container ────────────────────────────────────────────────────

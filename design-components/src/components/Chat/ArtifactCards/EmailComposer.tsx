@@ -27,7 +27,7 @@ export interface EmailComposerProps {
   emails: EmailData[];
   /** Max height in pixels — content will shrink-wrap below this (default 480) */
   maxHeight?: number;
-  /** Called when user clicks "Save to Gmail" with the index of the active email */
+  /** Called when user clicks "Open in Gmail" with the index of the active email */
   onOpenInGmail?: (index: number) => void;
 }
 
@@ -238,7 +238,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           className="flex items-center gap-2 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
         >
           <img src={GMAIL_ICON_URL} alt="Gmail" width={16} height={16} className="flex-shrink-0" />
-          Save to Gmail
+          Open in Gmail
         </button>
       </div>
     </motion.div>
