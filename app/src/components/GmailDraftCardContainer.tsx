@@ -222,11 +222,13 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   }
 
   const emails: EmailData[] = [];
+  const emailToArtifactIndex: number[] = [];
 
-  for (const pq of parsedQueries) {
+  parsedQueries.forEach((pq, i) => {
     const parsed = pq.data;
-    if (!parsed) continue;
+    if (!parsed) return;
 
+    emailToArtifactIndex.push(i);
     emails.push({
       to: toArray(parsed.to),
       cc: parsed.cc,
@@ -236,7 +238,7 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
       bodyPlain: parsed.body_plain,
       isHtml: parsed.isHtml,
     });
-  }
+  });
 
   if (emails.length === 0) {
     return (
@@ -252,7 +254,7 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
       onOpenInGmail={
         isGmailEnabled
           ? async (index: number) => {
-              const a = artifacts[index];
+              const a = artifacts[emailToArtifactIndex[index]];
               if (!a) return;
               setIsCreatingDraft(true);
               try {
