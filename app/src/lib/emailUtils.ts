@@ -1,14 +1,5 @@
 import PostalMime from "postal-mime";
 
-/**
- * Convert HTML to plain text using DOMParser.
- * Handles entity decoding (&amp; etc.), <br>/<p> as newlines, and tag stripping.
- */
-function htmlToPlainText(html: string): string {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent?.trim() || "";
-}
-
 /** Shape of the draft_card payload returned by the backend tool result */
 export interface DraftCard {
   type: "email_draft";
@@ -16,10 +7,6 @@ export interface DraftCard {
   subject: string;
   body_preview: string;
   body_full: string;
-  /** Plain text version of the body for copy-to-clipboard */
-  body_plain: string;
-  /** Whether body_full contains HTML (true for new drafts, false for legacy plain text) */
-  isHtml: boolean;
   cc?: string[];
   bcc?: string[];
   crm_context?: string;
@@ -55,10 +42,7 @@ export async function parseEmlContent(
   const subject = email.subject ?? "";
   if (!to && !subject) return null;
 
-  const htmlBody = email.html || "";
-  const textBody = email.text || "";
-  // Prefer HTML for rendering; fall back to plain text for old drafts
-  const body = htmlBody || textBody;
+  const body = email.text || email.html?.replace(/<[^>]+>/g, "").trim() || "";
   const toAddrs = (list?: { address?: string }[]) => {
     const addrs = list
       ?.map((a) => a.address)
@@ -66,20 +50,30 @@ export async function parseEmlContent(
     return addrs?.length ? addrs : undefined;
   };
 
-  const isHtml = !!htmlBody;
-  // For plain text copy: use text part if available, otherwise convert HTML properly
-  const plainText = textBody || htmlToPlainText(htmlBody);
-
   return {
     to,
     subject,
-    body_preview:
-      plainText.length > 500 ? plainText.slice(0, 497) + "..." : plainText,
+    body_preview: body.length > 500 ? body.slice(0, 497) + "..." : body,
     body_full: body,
-    body_plain: plainText,
-    isHtml,
     cc: toAddrs(email.cc),
     bcc: toAddrs(email.bcc),
     crm_context: email.headers?.find((h) => h.key === "x-crm-context")?.value,
   };
+}
+
+/**
+ * Build a Gmail compose URL from a DraftCard payload.
+ * Opens a pre-filled compose window — no backend call needed.
+ */
+export function buildGmailComposeUrl(card: DraftCard): string {
+  const params = new URLSearchParams({
+    view: "cm",
+    fs: "1",
+    to: card.to,
+    su: card.subject,
+    body: card.body_full,
+  });
+  if (card.cc?.length) params.set("cc", card.cc.join(","));
+  if (card.bcc?.length) params.set("bcc", card.bcc.join(","));
+  return `https://mail.google.com/mail/?${params.toString()}`;
 }
