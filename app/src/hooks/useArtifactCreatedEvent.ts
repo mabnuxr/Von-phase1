@@ -32,16 +32,17 @@ export function useArtifactCreatedEvent(
       const parsed: ArtifactCreatedEventPayload =
         typeof data === "string" ? JSON.parse(data) : data;
 
-      const convId = conversationIdRef.current;
-      if (!convId || parsed.conversationId !== convId) return;
-
-      // If backend signals a command mutation, refresh the commands list
+      // Commands cache is global (not conversation-scoped), so invalidate
+      // before the conversation guard to ensure it fires for every event.
       const isCommandEvent = parsed.artifacts.some((a) =>
         a.artifact_type?.startsWith("command_"),
       );
       if (isCommandEvent) {
         queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
       }
+
+      const convId = conversationIdRef.current;
+      if (!convId || parsed.conversationId !== convId) return;
 
       // Filter out command artifacts — they aren't file artifacts
       const fileArtifacts = parsed.artifacts.filter(
