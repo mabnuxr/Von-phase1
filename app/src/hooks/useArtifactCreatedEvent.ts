@@ -32,20 +32,6 @@ export function useArtifactCreatedEvent(
       const parsed: ArtifactCreatedEventPayload =
         typeof data === "string" ? JSON.parse(data) : data;
 
-      // Check if any artifact is a command_created — invalidate commands cache
-      const hasCommandCreated = parsed.artifacts.some(
-        (a) => a.artifact_type === "command_created",
-      );
-      if (hasCommandCreated) {
-        queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
-      }
-
-      // Filter out command_created entries — they aren't file artifacts
-      const fileArtifacts = parsed.artifacts.filter(
-        (a) => a.artifact_type !== "command_created",
-      );
-      if (fileArtifacts.length === 0) return;
-
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
 
@@ -57,10 +43,10 @@ export function useArtifactCreatedEvent(
         queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
       }
 
+      // Filter out command artifacts — they aren't file artifacts
       const fileArtifacts = parsed.artifacts.filter(
         (a) => !a.artifact_type?.startsWith("command_"),
       );
-      // Only skip further processing if there are truly no file artifacts to handle.
       if (fileArtifacts.length === 0) return;
 
       const queryKey = agentArtifactKeys.run(convId, parsed.runId);
