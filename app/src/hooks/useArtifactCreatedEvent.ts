@@ -16,6 +16,7 @@ import type { Channel } from "pusher-js";
 import { ConversationChannelEvents } from "../types/conversationChannelEvents";
 import type { ArtifactCreatedEventPayload } from "../types/conversationChannelEvents";
 import { agentArtifactKeys } from "./useAgentArtifacts";
+import { QUICK_COMMANDS_QUERY_KEY } from "./useQuickCommands";
 import type { FileMetadataResponse } from "../services/fileUploadService";
 
 export function useArtifactCreatedEvent(
@@ -33,6 +34,15 @@ export function useArtifactCreatedEvent(
 
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
+
+      // If backend signals a command mutation, refresh the commands list
+      const isCommandEvent = parsed.artifacts.some((a) =>
+        a.artifact_type?.startsWith("command_"),
+      );
+      if (isCommandEvent) {
+        queryClient.invalidateQueries({ queryKey: QUICK_COMMANDS_QUERY_KEY });
+        return;
+      }
 
       const queryKey = agentArtifactKeys.run(convId, parsed.runId);
 
