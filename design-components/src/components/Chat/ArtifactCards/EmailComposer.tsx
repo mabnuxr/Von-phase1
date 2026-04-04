@@ -1,6 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DOMPurify from 'dompurify';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CopyIcon, CheckIcon } from '@phosphor-icons/react';
@@ -22,10 +21,6 @@ export interface EmailData {
   bcc?: string[];
   subject: string;
   body: string;
-  /** Plain text version for copy-to-clipboard */
-  bodyPlain?: string;
-  /** Whether body contains HTML (false = legacy plain text / markdown) */
-  isHtml?: boolean;
 }
 
 export interface EmailComposerProps {
@@ -35,8 +30,6 @@ export interface EmailComposerProps {
   maxHeight?: number;
   /** Called when user clicks "Open in Gmail" with the index of the active email */
   onOpenInGmail?: (index: number) => void;
-  /** Show loading state on the "Open in Gmail" button */
-  isCreatingDraft?: boolean;
 }
 
 // ============================================================================
@@ -47,7 +40,6 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   emails,
   maxHeight = 480,
   onOpenInGmail,
-  isCreatingDraft = false,
 }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [showCc, setShowCc] = useState(false);
@@ -65,15 +57,10 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
 
   const handleCopyBody = useCallback(() => {
     if (!currentEmail) return;
-    navigator.clipboard.writeText(currentEmail.bodyPlain ?? currentEmail.body);
+    navigator.clipboard.writeText(currentEmail.body);
     setBodyCopied(true);
     setTimeout(() => setBodyCopied(false), 2000);
   }, [currentEmail]);
-
-  const sanitizedHtml = useMemo(() => {
-    if (!currentEmail?.isHtml) return '';
-    return DOMPurify.sanitize(currentEmail.body);
-  }, [currentEmail?.body, currentEmail?.isHtml]);
 
   const isSubjectTruncated = useCallback(() => {
     const el = subjectTextRef.current;
@@ -229,11 +216,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       {/* Email body — scrollable */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
         <div className="text-sm text-gray-900 leading-relaxed markdown-content">
-          {currentEmail.isHtml ? (
-            <div dangerouslySetInnerHTML={{ __html: sanitizedHtml }} />
-          ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentEmail.body}</ReactMarkdown>
-          )}
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentEmail.body}</ReactMarkdown>
         </div>
       </div>
 
@@ -251,32 +234,13 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
             <CopyIcon size={15} className="text-gray-700" />
           )}
         </button>
-        {isCreatingDraft ? (
-          <div className="flex items-center gap-2 h-[34px] px-3 rounded-xl border border-gray-200/70 bg-gradient-to-r from-gray-400 via-gray-600 to-gray-400 bg-clip-text text-transparent animate-shimmer">
-            <img
-              src={GMAIL_ICON_URL}
-              alt="Gmail"
-              width={16}
-              height={16}
-              className="flex-shrink-0 opacity-40"
-            />
-            <span className="text-sm font-medium">Opening in Gmail…</span>
-          </div>
-        ) : (
-          <button
-            onClick={() => onOpenInGmail?.(activeTab)}
-            className="flex items-center gap-2 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <img
-              src={GMAIL_ICON_URL}
-              alt="Gmail"
-              width={16}
-              height={16}
-              className="flex-shrink-0"
-            />
-            Open in Gmail
-          </button>
-        )}
+        <button
+          onClick={() => onOpenInGmail?.(activeTab)}
+          className="flex items-center gap-2 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
+        >
+          <img src={GMAIL_ICON_URL} alt="Gmail" width={16} height={16} className="flex-shrink-0" />
+          Open in Gmail
+        </button>
       </div>
     </motion.div>
   );
