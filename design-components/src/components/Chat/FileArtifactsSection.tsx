@@ -1,5 +1,9 @@
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
+
+function isEmailArtifact(artifact: FileArtifact): boolean {
+  return artifact.artifactType === 'email_draft' || (artifact.fileName?.endsWith('.eml') ?? false);
+}
 
 interface FileArtifactsSectionProps {
   artifacts: FileArtifact[];
@@ -17,6 +21,8 @@ interface FileArtifactsSectionProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
+  /** Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs) */
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
 }
 
 export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
@@ -29,11 +35,26 @@ export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
   driveTooltip,
   driveLoadingFileId,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
 }) => {
+  const { emailArtifacts, otherArtifacts } = useMemo(() => {
+    if (!renderGroupedEmailArtifacts) return { emailArtifacts: [], otherArtifacts: artifacts };
+    const email: FileArtifact[] = [];
+    const other: FileArtifact[] = [];
+    for (const a of artifacts) {
+      if (isEmailArtifact(a)) email.push(a);
+      else other.push(a);
+    }
+    return { emailArtifacts: email, otherArtifacts: other };
+  }, [artifacts, renderGroupedEmailArtifacts]);
+
   return (
     <div className="mt-3 space-y-3">
-      {artifacts.map((artifact) => {
-        // Allow app layer to override rendering for specific artifact types (e.g. email_draft)
+      {/* Render grouped email artifacts as a single component */}
+      {emailArtifacts.length > 0 && renderGroupedEmailArtifacts?.(emailArtifacts)}
+
+      {otherArtifacts.map((artifact) => {
+        // Allow app layer to override rendering for specific artifact types
         if (renderArtifactCard) {
           const custom = renderArtifactCard(artifact);
           if (custom) return <Fragment key={artifact.fileId}>{custom}</Fragment>;

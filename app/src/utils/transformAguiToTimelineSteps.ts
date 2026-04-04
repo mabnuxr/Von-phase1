@@ -165,6 +165,9 @@ const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   salesforce_tooling_query: "salesforce",
   salesforce_tooling_mutate: "salesforce",
 
+  // Salesforce Chatter
+  salesforce_chatter_read: "salesforce",
+
   // Gong tools
   search_gong_calls: "gong",
   get_gong_call_transcript: "gong",

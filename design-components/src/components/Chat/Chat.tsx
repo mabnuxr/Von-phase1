@@ -51,6 +51,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onArtifactClick,
   showArtifacts = false,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
   onFileArtifactClick,
   onArtifactDownload,
   onGoogleDriveClick,
@@ -94,10 +95,6 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   showTransparency = true,
   salesforceInstanceUrl,
   enableDeepLinks = false,
-  // Data tables (deep research approval flow)
-  dataTablesInfo,
-  isDataTablesLoading = false,
-  onDataTablesClick,
   // V2 Thinking Process
   thinkingProcessVersion = 'v1',
   useStandardInput = false,
@@ -348,9 +345,9 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
-                  dataTablesInfo={dataTablesInfo}
-                  isDataTablesLoading={isDataTablesLoading}
-                  onDataTablesClick={onDataTablesClick}
+                  renderGroupedEmailArtifacts={
+                    showArtifacts ? renderGroupedEmailArtifacts : undefined
+                  }
                   integrationBlock={message.integrationBlock}
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}

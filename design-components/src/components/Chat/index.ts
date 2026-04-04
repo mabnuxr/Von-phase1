@@ -53,12 +53,15 @@ export {
   FileArtifactCard,
   DashboardArtifactCard,
   GmailDraftCard,
+  EmailComposer,
   ArtifactCardSkeleton,
 } from './ArtifactCards';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,
   GmailDraftCardProps,
+  EmailComposerProps,
+  EmailData,
   FileArtifact,
   EmailDraftArtifact,
   ArtifactType,
@@ -214,14 +217,12 @@ export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
   DeepResearchNotificationBar,
-  DataTablesCard,
   DeepResearchApprovalCard,
   MarkdownActionCard,
   DeepResearchDataTablesDrawer,
 } from './DeepResearch';
 export type {
   DeepResearchNotificationBarProps,
-  DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,

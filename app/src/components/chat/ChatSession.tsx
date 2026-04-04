@@ -62,7 +62,10 @@ import { DashboardPreviewPane } from "../DashboardPreviewPane";
 import { SingleArtifactDrawerContainer } from "../SingleArtifactDrawerContainer";
 import { LazyTransparencyDrawer } from "../LazyTransparencyDrawer";
 import { WriteBlockedBanner } from "../WriteBlockedBanner";
-import { GmailDraftCardContainer } from "../GmailDraftCardContainer";
+import {
+  GmailDraftCardContainer,
+  EmailComposerContainer,
+} from "../GmailDraftCardContainer";
 
 // ─── Split-pane constants ───────────────────────────────────────────
 
@@ -314,7 +317,8 @@ function ExistingChatInner(
         }
       : undefined;
 
-  // ── Artifact card renderer ────────────────────────────────────────
+  // ── Artifact card renderers ──────────────────────────────────────
+  // Single email fallback (used when renderGroupedEmailArtifacts is not available)
   const renderArtifactCard = useCallback(
     (artifact: FileArtifact) => {
       if (
@@ -329,6 +333,20 @@ function ExistingChatInner(
         );
       }
       return null;
+    },
+    [conversationId],
+  );
+
+  // Group all email_draft artifacts into a single EmailComposer with tabs
+  const renderGroupedEmailArtifacts = useCallback(
+    (artifacts: FileArtifact[]) => {
+      if (artifacts.length === 0) return null;
+      return (
+        <EmailComposerContainer
+          conversationId={conversationId}
+          artifacts={artifacts}
+        />
+      );
     },
     [conversationId],
   );
@@ -504,10 +522,6 @@ function ExistingChatInner(
           ? base.commands.handleSendTest
           : undefined
       }
-      // Data tables (deep research approval flow)
-      dataTablesInfo={chatV2.dataTablesInfo ?? undefined}
-      isDataTablesLoading={chatV2.isDataTablesLoading}
-      onDataTablesClick={chatV2.handleDataTablesClick}
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
@@ -524,6 +538,7 @@ function ExistingChatInner(
       onArtifactClick={chatV2.handleArtifactClick}
       showArtifacts={base.features.isArtifactsEnabled}
       renderArtifactCard={renderArtifactCard}
+      renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
       onFileArtifactClick={chatV2.handleFileArtifactClick}
       onArtifactDownload={chatV2.handleArtifactDownload}
       // Integrations

@@ -5,6 +5,20 @@
     <link rel="icon" type="image/png" href="https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>app</title>
+    <script>
+      // Auto-reload once when a dynamic import fails due to stale chunks after deployment.
+      // Must be inline in <head> so it runs before any module loads.
+      window.addEventListener('vite:preloadError', function (e) {
+        e.preventDefault();
+        var key = 'chunk-reload';
+        if (!sessionStorage.getItem(key)) {
+          sessionStorage.setItem(key, '1');
+          window.location.reload();
+        } else {
+          sessionStorage.removeItem(key);
+        }
+      });
+    </script>
     <style>
       html,
       body,

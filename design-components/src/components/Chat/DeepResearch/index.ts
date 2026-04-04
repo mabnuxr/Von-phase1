@@ -12,8 +12,6 @@ export { DeepResearchResults } from './DeepResearchResults';
 export { DeepResearchThinkingIndicator } from './DeepResearchThinkingIndicator';
 export { DeepResearchNotificationBar } from './DeepResearchNotificationBar';
 export type { DeepResearchNotificationBarProps } from './DeepResearchNotificationBar';
-export { DataTablesCard } from './DataTablesCard';
-export type { DataTablesCardProps } from './DataTablesCard';
 export { DeepResearchApprovalCard } from './DeepResearchApprovalCard';
 export type {
   DeepResearchApprovalCardProps,

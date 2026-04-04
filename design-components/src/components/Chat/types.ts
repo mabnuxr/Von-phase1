@@ -857,6 +857,7 @@ export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
+    toolName === 'create_command' ||
     OUTREACH_APPROVAL_TOOLS.has(toolName)
   );
 }
@@ -1189,6 +1190,12 @@ export interface ChatProps {
    * Return a ReactNode to override the default FileArtifactCard, or null to use the default.
    */
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
+
+  /**
+   * Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs).
+   * When provided, email artifacts are separated from other artifacts and passed here as a group.
+   */
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
 
   /**
    * Callback when user clicks on a file artifact card (agent-generated documents)
@@ -1545,29 +1552,6 @@ export interface ChatProps {
    * Updates on dashboard switch without reloading the chat.
    */
   dashboardMention?: MentionItem | null;
-
-  // ============================================================================
-  // Data Tables Props (Deep Research Approval Flow)
-  // ============================================================================
-
-  /**
-   * Callback when user clicks the DataTablesCard to review source data
-   */
-  onDataTablesClick?: () => void;
-
-  /**
-   * Information for the DataTablesCard (number of tables, records processed, etc.)
-   */
-  dataTablesInfo?: {
-    tableCount: number;
-    processedRecords?: number;
-    totalRecords?: number;
-  };
-
-  /**
-   * Whether data tables info is still loading
-   */
-  isDataTablesLoading?: boolean;
 
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state

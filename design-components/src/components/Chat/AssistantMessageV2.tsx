@@ -5,7 +5,6 @@ import type { TimelineStep } from '../TimelineThinkingProcess';
 import { MessageAreaError } from './MessageAreaError';
 import { SalesforceLink } from './SalesforceLink';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
-import { DataTablesCard } from './DeepResearch/DataTablesCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { DashboardArtifactCard } from './ArtifactCards';
 import { ExpensiveOperationModal } from '../popups/ExpensiveOperationModal';
@@ -40,14 +39,6 @@ export interface AssistantMessageV2Props {
   onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
   onRejectPlan?: (runId: string, executionId: string) => void;
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
-  // Data tables (deep research approval flow)
-  dataTablesInfo?: {
-    tableCount: number;
-    processedRecords?: number;
-    totalRecords?: number;
-  };
-  isDataTablesLoading?: boolean;
-  onDataTablesClick?: () => void;
   // Research results
   researchResults?: {
     isStreaming: boolean;
@@ -79,9 +70,6 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
   onApprovePlan,
   onRejectPlan,
   onDashboardPreview,
-  dataTablesInfo,
-  isDataTablesLoading = false,
-  onDataTablesClick,
   researchResults,
 }) => {
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
@@ -187,17 +175,6 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
               label: 'Skip',
               onClick: () => setShowSkipConfirmModal(true),
             }}
-            beforeActions={
-              (dataTablesInfo || isDataTablesLoading) && onDataTablesClick ? (
-                <DataTablesCard
-                  tableCount={dataTablesInfo?.tableCount ?? 0}
-                  processedRecords={dataTablesInfo?.processedRecords}
-                  totalRecords={dataTablesInfo?.totalRecords}
-                  onClick={onDataTablesClick}
-                  isLoading={isDataTablesLoading}
-                />
-              ) : undefined
-            }
           />
           <ExpensiveOperationModal
             isOpen={showSkipConfirmModal}

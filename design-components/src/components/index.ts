@@ -121,12 +121,15 @@ export {
   FileArtifactCard,
   DashboardArtifactCard,
   GmailDraftCard,
+  EmailComposer,
   ArtifactCardSkeleton,
 } from './Chat';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,
   GmailDraftCardProps,
+  EmailComposerProps,
+  EmailData,
   FileArtifact,
   ArtifactType,
   EmailDraftArtifact,
@@ -476,13 +479,11 @@ export type {
 export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
-  DataTablesCard,
   DeepResearchApprovalCard,
   DeepResearchDataTablesDrawer,
 } from './Chat';
 export type {
   DeepResearchNotificationBarProps,
-  DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,

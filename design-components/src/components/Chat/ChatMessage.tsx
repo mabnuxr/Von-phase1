@@ -83,6 +83,7 @@ export interface ChatMessageProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   integrationBlock?: {
@@ -98,13 +99,6 @@ export interface ChatMessageProps {
     description?: string;
   } | null;
   compact?: boolean;
-  dataTablesInfo?: {
-    tableCount: number;
-    processedRecords?: number;
-    totalRecords?: number;
-  };
-  isDataTablesLoading?: boolean;
-  onDataTablesClick?: () => void;
   researchResults?: {
     isStreaming: boolean;
     isCompleted: boolean;
@@ -159,6 +153,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   driveTooltip,
   driveLoadingFileId,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
   command,
   onRequestFilePreviewUrl,
   integrationBlock,
@@ -173,9 +168,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onRejectPlan,
   onDashboardPreview,
   onMentionClick,
-  dataTablesInfo,
-  isDataTablesLoading = false,
-  onDataTablesClick,
   researchResults,
 }) => {
   const isUser = type === 'user';
@@ -296,9 +288,6 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onApprovePlan={onApprovePlan}
                         onRejectPlan={onRejectPlan}
                         onDashboardPreview={onDashboardPreview}
-                        dataTablesInfo={dataTablesInfo}
-                        isDataTablesLoading={isDataTablesLoading}
-                        onDataTablesClick={onDataTablesClick}
                         researchResults={researchResults}
                       />
                     ) : (
@@ -332,6 +321,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         driveTooltip={driveTooltip}
                         driveLoadingFileId={driveLoadingFileId}
                         renderArtifactCard={renderArtifactCard}
+                        renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
                       />
                     )}
 
