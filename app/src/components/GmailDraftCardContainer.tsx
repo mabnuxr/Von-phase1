@@ -6,7 +6,7 @@
  * Shows <ArtifactCardSkeleton> while loading or if any artifact is pending.
  */
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   EmailComposer,
@@ -14,12 +14,10 @@ import {
 } from "@vonlabs/design-components";
 import type { FileArtifact, EmailData } from "@vonlabs/design-components";
 import { fileUploadService } from "../services/fileUploadService";
-import {
-  parseEmlContent,
-  buildGmailComposeUrl,
-  type DraftCard,
-} from "../lib/emailUtils";
+import { apiClient } from "../services/apiClient";
+import { parseEmlContent } from "../lib/emailUtils";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useToast } from "../hooks/useToast";
 
 interface GmailDraftCardContainerProps {
   conversationId: string;
@@ -36,10 +34,22 @@ function toArray(to: string): string[] {
     .filter(Boolean);
 }
 
+async function createGmailDraft(
+  conversationId: string,
+  fileId: string,
+): Promise<{ draft_id: string; gmail_url: string }> {
+  return apiClient.post<{ draft_id: string; gmail_url: string }>(
+    "/api/v1/gsuite/gmail/create-draft",
+    { file_id: fileId, conversation_id: conversationId },
+  );
+}
+
 export const GmailDraftCardContainer: React.FC<
   GmailDraftCardContainerProps
 > = ({ conversationId, artifact }) => {
   const { isGmailEnabled } = useFeatureFlag();
+  const { showToast } = useToast();
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
 
   // Step 1 — get presigned download URL
   const urlQuery = useQuery({
@@ -64,6 +74,20 @@ export const GmailDraftCardContainer: React.FC<
     staleTime: Infinity,
     gcTime: 10 * 60 * 1000,
   });
+
+  const handleOpenInGmail = useCallback(async () => {
+    setIsCreatingDraft(true);
+    try {
+      const result = await createGmailDraft(conversationId, artifact.fileId);
+      window.open(result.gmail_url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      const message =
+        e instanceof Error ? e.message : "Failed to create Gmail draft";
+      showToast({ message, variant: "error" });
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  }, [conversationId, artifact.fileId, showToast]);
 
   // Pending or loading → skeleton
   if (artifact.isPending || urlQuery.isLoading || parsedQuery.isLoading) {
@@ -98,27 +122,27 @@ export const GmailDraftCardContainer: React.FC<
     );
   }
 
-  const card: DraftCard = { type: "email_draft", ...parsed };
-  const gmailUrl = buildGmailComposeUrl(card);
-
   const emailData: EmailData = {
     to: toArray(parsed.to),
     cc: parsed.cc,
     bcc: parsed.bcc,
     subject: parsed.subject,
     body: parsed.body_full,
+    bodyPlain: parsed.body_plain,
+    isHtml: parsed.isHtml,
   };
 
   return (
     <EmailComposer
       emails={[emailData]}
       onOpenInGmail={
-        isGmailEnabled && gmailUrl
+        isGmailEnabled
           ? () => {
-              window.open(gmailUrl, "_blank", "noopener,noreferrer");
+              void handleOpenInGmail();
             }
           : undefined
       }
+      isCreatingDraft={isCreatingDraft}
     />
   );
 };
@@ -138,6 +162,8 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   artifacts,
 }) => {
   const { isGmailEnabled } = useFeatureFlag();
+  const { showToast } = useToast();
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
 
   // Fetch presigned URLs for all artifacts in parallel
   const urlQueries = useQueries({
@@ -196,23 +222,23 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   }
 
   const emails: EmailData[] = [];
-  const gmailUrls: (string | undefined)[] = [];
+  const emailToArtifactIndex: number[] = [];
 
-  for (const pq of parsedQueries) {
+  parsedQueries.forEach((pq, i) => {
     const parsed = pq.data;
-    if (!parsed) continue;
+    if (!parsed) return;
 
-    const card: DraftCard = { type: "email_draft", ...parsed };
-    gmailUrls.push(buildGmailComposeUrl(card));
-
+    emailToArtifactIndex.push(i);
     emails.push({
       to: toArray(parsed.to),
       cc: parsed.cc,
       bcc: parsed.bcc,
       subject: parsed.subject,
       body: parsed.body_full,
+      bodyPlain: parsed.body_plain,
+      isHtml: parsed.isHtml,
     });
-  }
+  });
 
   if (emails.length === 0) {
     return (
@@ -227,12 +253,26 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
       emails={emails}
       onOpenInGmail={
         isGmailEnabled
-          ? (index: number) => {
-              const url = gmailUrls[index];
-              if (url) window.open(url, "_blank", "noopener,noreferrer");
+          ? async (index: number) => {
+              const a = artifacts[emailToArtifactIndex[index]];
+              if (!a) return;
+              setIsCreatingDraft(true);
+              try {
+                const result = await createGmailDraft(conversationId, a.fileId);
+                window.open(result.gmail_url, "_blank", "noopener,noreferrer");
+              } catch (e) {
+                const message =
+                  e instanceof Error
+                    ? e.message
+                    : "Failed to create Gmail draft";
+                showToast({ message, variant: "error" });
+              } finally {
+                setIsCreatingDraft(false);
+              }
             }
           : undefined
       }
+      isCreatingDraft={isCreatingDraft}
     />
   );
 };
