@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { remarkStrikethroughGuard } from '../remarkStrikethroughGuard';
 import { CopyIcon, EnvelopeSimpleIcon, CheckIcon } from '@phosphor-icons/react';
 import { ArtifactCardSkeleton } from './BaseArtifactCard';
 import type { EmailDraftArtifact } from './types';
@@ -164,7 +163,7 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
         <span className="text-xs text-gray-700 mb-2 block">Body</span>
         <div className="text-sm text-gray-900 leading-relaxed markdown-content not-prose">
           <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkStrikethroughGuard]}
+            remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
             urlTransform={(url) => {
               const scheme = url.trim().toLowerCase();
               if (

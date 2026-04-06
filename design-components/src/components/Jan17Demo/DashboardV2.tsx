@@ -34,7 +34,6 @@ import { ReportTable, buildGridOptions, type ReportColumn } from '../ReportTable
 import type { FilterField, FilterGroup, FilterCondition } from '../forms/filter/Filter';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { remarkStrikethroughGuard } from '../Chat/remarkStrikethroughGuard';
 import { formatKpiDisplay, computeProgress, getComparisonColor } from '../../utils/formatKpiValue';
 
 // ============================================================================
@@ -2032,7 +2031,7 @@ const TextWidget: React.FC<TextWidgetProps> = ({
           <div className="text-widget-content">
             {content ? (
               <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkStrikethroughGuard]}
+                remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
                 components={{
                   // Custom heading styles following design system
                   h1: ({ children }) => (

@@ -1,15 +1,20 @@
+import remarkGfm from 'remark-gfm';
 import { defaultRemarkPlugins } from 'streamdown';
 import type { Pluggable } from 'unified';
-import { remarkStrikethroughGuard } from './remarkStrikethroughGuard';
 
 /**
  * Shared remark plugins for all chat markdown rendering.
  *
- * Includes Streamdown's defaults (remark-gfm, remark-math) plus our
- * strikethrough guard that prevents single tildes used as "approximately"
- * from being mis-parsed as strikethrough.
+ * Overrides Streamdown's default remark-gfm config to disable single-tilde
+ * strikethrough (`singleTilde: false`). This prevents tildes used as
+ * "approximately" (e.g. ~$29K, ~$480K) from being mis-parsed as
+ * strikethrough. Only ~~double tilde~~ produces strikethrough.
  */
+
+// Pull everything except gfm from streamdown defaults (currently just math).
+const { gfm: _gfm, ...otherDefaults } = defaultRemarkPlugins;
+
 export const chatRemarkPlugins: Pluggable[] = [
-  ...Object.values(defaultRemarkPlugins),
-  remarkStrikethroughGuard,
+  [remarkGfm, { singleTilde: false }],
+  ...Object.values(otherDefaults),
 ];
