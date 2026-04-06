@@ -108,6 +108,8 @@ export interface CounterWidgetProps {
   onDrillDown?: () => void;
   /** Query SQL and description to display on hover */
   queryInfo?: QueryInfo;
+  /** Filters currently applied to this widget (read-only display) */
+  appliedFilters?: AppliedWidgetFilter[];
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -149,6 +151,20 @@ export interface TableWidgetConfig {
   serverPagination?: TablePaginationInfo;
 }
 
+// ─── Applied Widget Filters ─────────────────────────────────────
+
+/** A single filter applied to a widget, pre-computed for read-only display. */
+export interface AppliedWidgetFilter {
+  /** Human-readable filter name, e.g. "Segment" */
+  label: string;
+  /** Human-readable operator, e.g. "One of" */
+  operatorLabel: string;
+  /** Display values, e.g. ["SMB", "COM"] */
+  values: string[];
+  /** Whether blank/null values are also included */
+  includeBlank?: boolean;
+}
+
 // ─── Widget Shell ────────────────────────────────────────────────
 
 export interface WidgetShellProps {
@@ -159,6 +175,8 @@ export interface WidgetShellProps {
   onDrillDown?: () => void;
   /** Query SQL and description to display on hover */
   queryInfo?: QueryInfo;
+  /** Filters currently applied to this widget (read-only display) */
+  appliedFilters?: AppliedWidgetFilter[];
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -175,6 +193,8 @@ export interface WidgetRendererProps {
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state for this table widget */
   tableSortState?: SortState;
+  /** Filters currently applied to this widget (read-only display) */
+  appliedFilters?: AppliedWidgetFilter[];
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -197,4 +217,6 @@ export interface DashboardGridProps {
   isEditMode?: boolean;
   /** Whether all widgets are loading (e.g. after a filter change) */
   isLoading?: boolean;
+  /** Applied filters per widget ID (read-only display) */
+  widgetAppliedFilters?: Record<string, AppliedWidgetFilter[]>;
 }

@@ -4,6 +4,7 @@ import HighchartsReact from 'highcharts-react-official';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
 import type { CounterWidgetProps } from '../types';
 import { QueryInfoPopover } from '../QueryInfoPopover';
+import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
 import {
   formatKpiDisplay,
   computeProgress,
@@ -98,6 +99,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   subtitle,
   onDrillDown,
   queryInfo,
+  appliedFilters,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
 
@@ -127,8 +129,9 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
       className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors"
       onClick={onDrillDown}
     >
-      {(queryInfo || onDrillDown) && (
+      {(appliedFilters || queryInfo || onDrillDown) && (
         <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+          {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
           {onDrillDown && (
             <button

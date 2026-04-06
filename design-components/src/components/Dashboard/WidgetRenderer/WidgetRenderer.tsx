@@ -5,6 +5,7 @@ import { CounterWidget } from '../CounterWidget';
 import { TextWidget } from '../TextWidget';
 import { TableWidget } from '../TableWidget';
 import { QueryInfoPopover } from '../QueryInfoPopover';
+import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
@@ -29,6 +30,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     onPointDrillDown,
     onTableSortChange,
     tableSortState,
+    appliedFilters,
   }) => {
     const handleDrillDown = useCallback(() => {
       onDrillDown?.(widget.id);
@@ -51,6 +53,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             subtitle={widget.subtitle}
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
+            appliedFilters={appliedFilters}
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
@@ -67,9 +70,10 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors"
               onClick={drillDownHandler}
             >
-              {widget.queryInfo && (
-                <div className="absolute top-2 right-2 z-10">
-                  <QueryInfoPopover queryInfo={widget.queryInfo} />
+              {(appliedFilters || widget.queryInfo) && (
+                <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+                  {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
+                  {widget.queryInfo && <QueryInfoPopover queryInfo={widget.queryInfo} />}
                 </div>
               )}
               {widget.title && (
@@ -86,6 +90,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             subtitle={widget.subtitle}
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
+            appliedFilters={appliedFilters}
           />
         );
 
@@ -103,6 +108,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             subtitle={widget.subtitle}
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
+            appliedFilters={appliedFilters}
           >
             <TableWidget
               config={widget.config as TableWidgetConfig}

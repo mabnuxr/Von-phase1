@@ -578,4 +578,5 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
+  AppliedWidgetFilter,
 } from './Dashboard';

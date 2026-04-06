@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
@@ -37,6 +37,7 @@ import type {
   WidgetConfig,
   GridConfig,
   LayoutItem,
+  AppliedWidgetFilter,
 } from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
@@ -194,6 +195,58 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     string,
     WidgetConfig
   >;
+
+  const widgetIds = useMemo(() => Object.keys(widgets), [widgets]);
+
+  const widgetAppliedFilters = useMemo(() => {
+    if (!filterDefinitions.length || !filterState) return undefined;
+
+    // Pre-compute display-ready filter info once per active definition
+    const enrichedDefs = filterDefinitions
+      .filter((def) => def.id in filterState)
+      .map((def) => {
+        const state = filterState[def.id];
+        if (!state) return null;
+        const operatorLabel =
+          def.valid_operators?.find((op) => op.value === state.operator)
+            ?.label ?? state.operator;
+        const values = Array.isArray(state.value)
+          ? state.value.map(String)
+          : state.value != null
+            ? [String(state.value)]
+            : [];
+        const includeBlank = !!(state as Record<string, unknown>).include_blank;
+        return {
+          label: def.label,
+          operatorLabel,
+          values,
+          includeBlank,
+          appliesTo: def.applies_to,
+        };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
+    if (!enrichedDefs.length) return undefined;
+
+    const result: Record<string, AppliedWidgetFilter[]> = {};
+    for (const wId of widgetIds) {
+      const filtersForWidget: AppliedWidgetFilter[] = [];
+      for (const def of enrichedDefs) {
+        // No applies_to means the filter applies to all widgets
+        if (def.appliesTo && !def.appliesTo.includes(wId)) continue;
+        filtersForWidget.push({
+          label: def.label,
+          operatorLabel: def.operatorLabel,
+          values: def.values,
+          ...(def.includeBlank && { includeBlank: true }),
+        });
+      }
+      if (filtersForWidget.length > 0) {
+        result[wId] = filtersForWidget;
+      }
+    }
+
+    return Object.keys(result).length > 0 ? result : undefined;
+  }, [filterDefinitions, filterState, widgetIds]);
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
     isOwner: dashboard.isOwner,
@@ -574,6 +627,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
             isLoading={isRefetchingData}
+            widgetAppliedFilters={widgetAppliedFilters}
           />
         </ErrorBoundary>
 

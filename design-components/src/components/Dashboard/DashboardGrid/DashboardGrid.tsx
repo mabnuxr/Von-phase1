@@ -26,6 +26,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     tableSortStates,
     isEditMode,
     isLoading,
+    widgetAppliedFilters,
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -92,6 +93,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                       onPointDrillDown={onPointDrillDown}
                       onTableSortChange={onTableSortChange}
                       tableSortState={tableSortStates?.[widget.id]}
+                      appliedFilters={widgetAppliedFilters?.[widget.id]}
                     />
                   </WidgetErrorBoundary>
                 )}
