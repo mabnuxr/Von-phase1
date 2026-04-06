@@ -10,11 +10,7 @@ import type { Pluggable } from 'unified';
  * "approximately" (e.g. ~$29K, ~$480K) from being mis-parsed as
  * strikethrough. Only ~~double tilde~~ produces strikethrough.
  */
-
-// Pull everything except gfm from streamdown defaults (currently just math).
-const { gfm: _gfm, ...otherDefaults } = defaultRemarkPlugins;
-
 export const chatRemarkPlugins: Pluggable[] = [
   [remarkGfm, { singleTilde: false }],
-  ...Object.values(otherDefaults),
+  ...Object.values(defaultRemarkPlugins).filter((p) => p !== defaultRemarkPlugins.gfm),
 ];
