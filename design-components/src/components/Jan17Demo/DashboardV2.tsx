@@ -2031,7 +2031,7 @@ const TextWidget: React.FC<TextWidgetProps> = ({
           <div className="text-widget-content">
             {content ? (
               <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
+                remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
                 components={{
                   // Custom heading styles following design system
                   h1: ({ children }) => (

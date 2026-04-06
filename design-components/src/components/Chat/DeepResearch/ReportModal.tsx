@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, DownloadSimpleIcon } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from '../chatRemarkPlugins';
 import { PrimaryButton } from '../../forms/buttons';
 
 export interface ReportModalProps {
@@ -87,6 +88,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   parseIncompleteMarkdown={false}
                   isAnimating={false}
                   controls={{ table: true }}
+                  remarkPlugins={chatRemarkPlugins}
                 >
                   {content}
                 </Streamdown>

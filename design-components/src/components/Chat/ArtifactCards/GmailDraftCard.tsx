@@ -163,7 +163,7 @@ export const GmailDraftCard: React.FC<GmailDraftCardProps> = ({
         <span className="text-xs text-gray-700 mb-2 block">Body</span>
         <div className="text-sm text-gray-900 leading-relaxed markdown-content not-prose">
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
             urlTransform={(url) => {
               const scheme = url.trim().toLowerCase();
               if (
