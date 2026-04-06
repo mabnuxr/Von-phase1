@@ -202,27 +202,22 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     if (!filterDefinitions.length || !filterState) return undefined;
 
     // Pre-compute display-ready filter info once per active definition
+    const stringify = (v: unknown) => {
+      if (v == null) return "";
+      if (typeof v === "object" && v !== null && "start" in v && "end" in v) {
+        const r = v as { start: string; end: string };
+        return `${r.start} – ${r.end}`;
+      }
+      return typeof v === "object" ? JSON.stringify(v) : String(v);
+    };
+
     const enrichedDefs = filterDefinitions
       .filter((def) => def.id in filterState)
       .map((def) => {
         const state = filterState[def.id];
-        if (!state) return null;
         const operatorLabel =
           def.valid_operators?.find((op) => op.value === state.operator)
             ?.label ?? state.operator;
-        const stringify = (v: unknown) => {
-          if (v == null) return "";
-          if (
-            typeof v === "object" &&
-            v !== null &&
-            "start" in v &&
-            "end" in v
-          ) {
-            const r = v as { start: string; end: string };
-            return `${r.start} – ${r.end}`;
-          }
-          return typeof v === "object" ? JSON.stringify(v) : String(v);
-        };
         const values = Array.isArray(state.value)
           ? state.value.map(stringify)
           : state.value != null
@@ -236,8 +231,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           includeBlank,
           appliesTo: def.applies_to,
         };
-      })
-      .filter((d): d is NonNullable<typeof d> => d !== null);
+      });
     if (!enrichedDefs.length) return undefined;
 
     const result: Record<string, AppliedWidgetFilter[]> = {};
