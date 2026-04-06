@@ -18,6 +18,7 @@ const WidgetFiltersPopover: React.FC<WidgetFiltersPopoverProps> = ({ filters }) 
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const popoverWidth = 320;
+    const popoverHeight = 240 + 44; // max content + header
     let left = rect.left - popoverWidth + rect.width;
     const rightEdge = left + popoverWidth;
 
@@ -27,7 +28,12 @@ const WidgetFiltersPopover: React.FC<WidgetFiltersPopoverProps> = ({ filters }) 
       left = window.innerWidth - popoverWidth - 8;
     }
 
-    setPosition({ top: rect.bottom + 6, left });
+    let top = rect.bottom + 6;
+    if (top + popoverHeight > window.innerHeight - 8) {
+      top = rect.top - popoverHeight - 6;
+    }
+
+    setPosition({ top: Math.max(8, top), left });
   }, []);
 
   useEffect(() => {

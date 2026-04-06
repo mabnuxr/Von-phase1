@@ -210,10 +210,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         const operatorLabel =
           def.valid_operators?.find((op) => op.value === state.operator)
             ?.label ?? state.operator;
+        const stringify = (v: unknown) =>
+          v !== null && typeof v === "object" ? JSON.stringify(v) : String(v);
         const values = Array.isArray(state.value)
-          ? state.value.map(String)
+          ? state.value.map(stringify)
           : state.value != null
-            ? [String(state.value)]
+            ? [stringify(state.value)]
             : [];
         const includeBlank = !!(state as Record<string, unknown>).include_blank;
         return {
