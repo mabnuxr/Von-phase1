@@ -210,8 +210,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         const operatorLabel =
           def.valid_operators?.find((op) => op.value === state.operator)
             ?.label ?? state.operator;
-        const stringify = (v: unknown) =>
-          v !== null && typeof v === "object" ? JSON.stringify(v) : String(v);
+        const stringify = (v: unknown) => {
+          if (v == null) return "";
+          return typeof v === "object" ? JSON.stringify(v) : String(v);
+        };
         const values = Array.isArray(state.value)
           ? state.value.map(stringify)
           : state.value != null
