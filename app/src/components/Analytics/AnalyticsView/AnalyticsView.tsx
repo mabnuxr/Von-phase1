@@ -212,6 +212,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             ?.label ?? state.operator;
         const stringify = (v: unknown) => {
           if (v == null) return "";
+          if (
+            typeof v === "object" &&
+            v !== null &&
+            "start" in v &&
+            "end" in v
+          ) {
+            const r = v as { start: string; end: string };
+            return `${r.start} – ${r.end}`;
+          }
           return typeof v === "object" ? JSON.stringify(v) : String(v);
         };
         const values = Array.isArray(state.value)
