@@ -18,7 +18,8 @@ const WidgetFiltersPopover: React.FC<WidgetFiltersPopoverProps> = ({ filters }) 
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const popoverWidth = 320;
-    const popoverHeight = 240 + 44; // max content + header
+    const maxPopoverHeight = 240 + 44; // max content + header
+    const popoverHeight = popoverRef.current?.offsetHeight || maxPopoverHeight;
     let left = rect.left - popoverWidth + rect.width;
     const rightEdge = left + popoverWidth;
 
@@ -38,7 +39,9 @@ const WidgetFiltersPopover: React.FC<WidgetFiltersPopoverProps> = ({ filters }) 
 
   useEffect(() => {
     if (!open) return;
+    // Initial position, then refine after popover renders and has actual height
     updatePosition();
+    requestAnimationFrame(updatePosition);
 
     const handleClickOutside = (e: MouseEvent) => {
       if (
