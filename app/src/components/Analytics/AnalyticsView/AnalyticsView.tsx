@@ -336,25 +336,24 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
           <DashboardLayout.HeaderRow.Right>
             {/* Visibility indicator */}
-            <Tooltip
-              content={
-                dashboard.isSharedWithTenant
-                  ? "This dashboard is shared with your organization"
-                  : "This dashboard is private"
-              }
-            >
-              <span className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-700 cursor-default">
-                {dashboard.isSharedWithTenant ? (
-                  <BuildingsIcon size={16} />
-                ) : (
-                  <LockSimpleIcon size={16} />
-                )}
-              </span>
-            </Tooltip>
-
             {/* Created by indicator */}
             {!hideCreatorChip && (
               <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
+                <Tooltip
+                  content={
+                    dashboard.isSharedWithTenant
+                      ? "This dashboard is shared with your organization"
+                      : "This dashboard is private"
+                  }
+                >
+                  <span className="inline-flex items-center justify-center text-gray-700 cursor-default">
+                    {dashboard.isSharedWithTenant ? (
+                      <BuildingsIcon size={14} />
+                    ) : (
+                      <LockSimpleIcon size={14} />
+                    )}
+                  </span>
+                </Tooltip>
                 <span className="text-gray-800">Created by</span>
                 {isCreatorLoading ? (
                   <span className="bg-gray-200 rounded animate-pulse w-16 h-3" />
