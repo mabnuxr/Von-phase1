@@ -46,7 +46,10 @@ interface AnalyticsViewProps {
   /** Filter definitions from the dashboard */
   filterDefinitions: DashboardFilterDefinition[];
   /** Current filter state in API-native format */
-  filterState: Record<string, { operator: string; value?: unknown }>;
+  filterState: Record<
+    string,
+    { operator: string; value?: unknown; include_blank?: boolean }
+  >;
   /** Pending rows where user hasn't picked a field yet */
   filterPendingRows: { tempId: string }[];
   /** Number of active filters */
@@ -223,7 +226,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           : state.value != null
             ? [stringify(state.value)]
             : [];
-        const includeBlank = !!(state as Record<string, unknown>).include_blank;
+        const includeBlank = !!state.include_blank;
         return {
           label: def.label,
           operatorLabel,
