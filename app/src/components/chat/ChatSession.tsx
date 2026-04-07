@@ -410,6 +410,8 @@ function ExistingChatInner(
   const { onCollapseSidebar } = props;
   const handleDashboardPreview = useCallback(
     (dashboardId: string) => {
+      if (activeDashboardId && dashboardId === activeDashboardId) return;
+
       if (props.compact) {
         navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
         return;
@@ -418,7 +420,9 @@ function ExistingChatInner(
       onCollapseSidebar?.();
     },
     [
+      activeDashboardId,
       props.compact,
+      dashboardPaneState.isOpen,
       navigate,
       conversationId,
       openDashboardPane,
@@ -532,7 +536,7 @@ function ExistingChatInner(
       onExpire={chatV2.handleExpire}
       onApprovePlan={chatV2.handlePlanApproval}
       onRejectPlan={chatV2.handlePlanRejection}
-      onDashboardPreview={props.compact ? undefined : handleDashboardPreview}
+      onDashboardPreview={handleDashboardPreview}
       onMentionClick={handleMentionClick}
       // Artifacts
       onArtifactClick={chatV2.handleArtifactClick}
