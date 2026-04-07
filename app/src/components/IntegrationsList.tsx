@@ -584,6 +584,7 @@ export function IntegrationsList({
     isGongEngageEnabled,
     isNotionEnabled,
     isOutreachEngageEnabled,
+    isJiminnyEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -597,6 +598,7 @@ export function IntegrationsList({
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
+      if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       return true;
     });
   }, [
@@ -608,6 +610,7 @@ export function IntegrationsList({
     isNotionEnabled,
     isGongEngageEnabled,
     isOutreachEngageEnabled,
+    isJiminnyEnabled,
   ]);
 
   // Merge available apps with connected integrations
