@@ -201,16 +201,27 @@ export function useAnalyticsTools(dashboardId: string) {
       await refreshMutation.mutateAsync();
     } catch (error) {
       console.error("[useAnalyticsTools] Refresh failed:", error);
-      if (
-        error instanceof ApiError &&
-        (error.response as { error?: { code?: string } })?.error?.code ===
-          "APP_DASHBOARD_REFRESH_IN_PROGRESS"
-      ) {
-        showToast({
-          message:
-            "A refresh is already in progress. Please wait and try again.",
-          variant: "warning",
-        });
+      if (error instanceof ApiError) {
+        const errorCode = (error.response as { error?: { code?: string } })
+          ?.error?.code;
+
+        if (errorCode === "APP_DASHBOARD_REFRESH_IN_PROGRESS") {
+          showToast({
+            message:
+              "A refresh is already in progress. Please wait and try again.",
+            variant: "warning",
+          });
+        } else if (errorCode === "APP_DASHBOARD_REFRESH_COOLDOWN") {
+          showToast({
+            message: error.message,
+            variant: "warning",
+          });
+        } else {
+          showToast({
+            message: "Failed to refresh dashboard. Please try again.",
+            variant: "error",
+          });
+        }
       } else {
         showToast({
           message: "Failed to refresh dashboard. Please try again.",
