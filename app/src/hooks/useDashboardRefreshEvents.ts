@@ -10,7 +10,6 @@ import {
   type DashboardRefreshCompletedEvent,
 } from "../types/userChannelEvents";
 
-const MIN_REFRESH_DISPLAY_MS = 2000;
 const REFRESH_SAFETY_TIMEOUT_MS = 60_000;
 
 export function useDashboardRefreshEvents(dashboardId: string) {
@@ -29,7 +28,6 @@ export function useDashboardRefreshEvents(dashboardId: string) {
       return;
     }
 
-    let minDisplayTimer: ReturnType<typeof setTimeout> | null = null;
     let safetyTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleRefreshStarted = (data: DashboardRefreshStartedEvent) => {
@@ -38,7 +36,6 @@ export function useDashboardRefreshEvents(dashboardId: string) {
       }
 
       setIsRefreshing(true);
-      if (minDisplayTimer) clearTimeout(minDisplayTimer);
 
       // Safety: if REFRESH_COMPLETED never fires, clear after timeout
       if (safetyTimer) clearTimeout(safetyTimer);
@@ -46,12 +43,6 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         () => setIsRefreshing(false),
         REFRESH_SAFETY_TIMEOUT_MS,
       );
-
-      showToast({
-        message:
-          "Dashboard refresh started, widgets will be refreshed automatically once its complete.",
-        variant: "info",
-      });
     };
 
     const handleRefreshCompleted = (data: DashboardRefreshCompletedEvent) => {
@@ -59,12 +50,12 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         return;
       }
 
-      showToast({
-        message: data.success
-          ? "Dashboard refresh complete! Your dashboard data has been updated."
-          : "Dashboard refresh failed. Please try again.",
-        variant: data.success ? "success" : "error",
-      });
+      if (!data.success) {
+        showToast({
+          message: "Dashboard refresh failed. Please try again.",
+          variant: "error",
+        });
+      }
 
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
@@ -74,12 +65,7 @@ export function useDashboardRefreshEvents(dashboardId: string) {
       if (safetyTimer) clearTimeout(safetyTimer);
       safetyTimer = null;
 
-      // Hold the refreshing state for a minimum duration so the user sees
-      // the loading skeleton before new data appears
-      minDisplayTimer = setTimeout(
-        () => setIsRefreshing(false),
-        MIN_REFRESH_DISPLAY_MS,
-      );
+      setIsRefreshing(false);
     };
 
     userChannel.bind(
@@ -100,10 +86,9 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
         handleRefreshCompleted,
       );
-      if (minDisplayTimer) clearTimeout(minDisplayTimer);
       if (safetyTimer) clearTimeout(safetyTimer);
-      // Reset on cleanup (dashboardId change or unmount) so the skeleton
-      // doesn't stay stuck when navigating to a different dashboard
+      // Reset on cleanup (dashboardId change or unmount) so the loading
+      // state doesn't stay stuck when navigating to a different dashboard
       setIsRefreshing(false);
     };
   }, [userChannel, showToast, dashboardId, queryClient]);
