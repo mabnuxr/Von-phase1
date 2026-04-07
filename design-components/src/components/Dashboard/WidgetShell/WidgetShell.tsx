@@ -1,5 +1,6 @@
 import { TableIcon } from '@phosphor-icons/react';
 import { QueryInfoPopover } from '../QueryInfoPopover';
+import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
 import type { WidgetShellProps } from '../types';
 
 /**
@@ -13,6 +14,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   children,
   onDrillDown,
   queryInfo,
+  appliedFilters,
 }) => {
   return (
     <div className="group h-full bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
@@ -22,6 +24,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
           {subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-0.5">
+          {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
           {onDrillDown && (
             <button
