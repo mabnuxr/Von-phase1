@@ -144,7 +144,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       }}
       className="h-full flex-1 min-w-0"
     >
-      {isLoading || isRefreshing ? (
+      {isLoading ? (
         <AnalyticsSkeleton />
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />
@@ -198,6 +198,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onEditModeChange={editModeMutation.mutate}
             editModePhase={editModePhase}
             isRefetchingData={isFetching && !isLoading}
+            isRefreshing={isRefreshing}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}

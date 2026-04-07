@@ -130,7 +130,7 @@ function DashboardCanvas({
   // Subscribe to Pusher events for dashboard refresh notifications
   const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
 
-  if (isLoading || isRefreshing) {
+  if (isLoading) {
     return <AnalyticsSkeleton />;
   }
 
@@ -187,6 +187,7 @@ function DashboardCanvas({
         onResumeSchedule={handleResumeSchedule}
         onDeleteSchedule={handleDeleteSchedule}
         isRefetchingData={isFetching && !isLoading}
+        isRefreshing={isRefreshing}
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}
