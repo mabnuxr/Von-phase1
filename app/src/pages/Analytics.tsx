@@ -238,19 +238,12 @@ const Analytics = () => {
 
   const { unfiledConversations } = useChatSidebarV2();
 
-  // Auto-select the most recent dashboard-builder conversation on first load
-  const hasInitializedChatRef = useRef(false);
+  // Select the most recent dashboard-builder conversation each time the panel opens
   useEffect(() => {
-    if (!hasInitializedChatRef.current && activeChatId === null) {
-      const dashboardConv = unfiledConversations.find(
-        (c) => c.mode === "dashboard-builder",
-      );
-      if (dashboardConv) {
-        hasInitializedChatRef.current = true;
-        setActiveChatId(dashboardConv.conversationId);
-      }
-    }
-  }, [activeChatId, unfiledConversations, setActiveChatId]);
+    if (!isChatPanelOpen) return;
+
+    setActiveChatId(unfiledConversations[0].conversationId);
+  }, [isChatPanelOpen, unfiledConversations, setActiveChatId]);
 
   // Local fallback for conversations created during this session before they're
   // reflected in the sidebar list
