@@ -206,7 +206,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
           </div>
 
           {/* Dashboards Icon with Hover Dropdown */}
-          {dashboards && dashboards.length > 0 && (
+          {dashboards && (
             <div
               className="relative"
               onMouseEnter={() => onDashboardsHover(true)}
@@ -244,26 +244,34 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                       </span>
                     </div>
                     <div className="overflow-y-auto max-h-64 py-0.5">
-                      {dashboards.slice(0, 10).map((dash) => {
-                        const isSelected = dash.id === selectedDashboardId;
-                        return (
-                          <div
-                            key={dash.id}
-                            className={`
-                              flex items-center gap-2 px-3 py-2 rounded-xl text-sm
-                              transition-colors duration-150 cursor-pointer
-                              ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
-                            `}
-                            onClick={() => onDashboardClick?.(dash.id)}
-                            title={dash.label}
-                          >
-                            <span className="truncate block">{dash.label}</span>
-                          </div>
-                        );
-                      })}
-                      {dashboards.length > 10 && (
-                        <div className="px-3 py-2 text-[11px] text-gray-500 border-t border-gray-100">
-                          +{dashboards.length - 10} more
+                      {dashboards.length > 0 ? (
+                        <>
+                          {dashboards.slice(0, 10).map((dash) => {
+                            const isSelected = dash.id === selectedDashboardId;
+                            return (
+                              <div
+                                key={dash.id}
+                                className={`
+                                  flex items-center gap-2 px-3 py-2 rounded-xl text-sm
+                                  transition-colors duration-150 cursor-pointer
+                                  ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
+                                `}
+                                onClick={() => onDashboardClick?.(dash.id)}
+                                title={dash.label}
+                              >
+                                <span className="truncate block">{dash.label}</span>
+                              </div>
+                            );
+                          })}
+                          {dashboards.length > 10 && (
+                            <div className="px-3 py-2 text-[11px] text-gray-500 border-t border-gray-100">
+                              +{dashboards.length - 10} more
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="px-3 py-3 text-center">
+                          <p className="text-[12px] text-gray-400">No dashboards yet</p>
                         </div>
                       )}
                     </div>

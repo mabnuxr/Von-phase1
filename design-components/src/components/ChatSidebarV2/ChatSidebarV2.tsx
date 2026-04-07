@@ -658,48 +658,59 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 )}
 
                 {/* Dashboards Section (modular — only renders when dashboards prop is provided) */}
-                {!isLoading && dashboards && dashboards.length > 0 && (
-                  <DashboardSection
-                    dashboards={dashboards}
-                    selectedDashboardId={selectedDashboardId}
-                    onDashboardClick={onDashboardClick}
-                    onRenameDashboard={onRenameDashboard}
-                    hasMoreDashboards={hasMoreDashboards}
-                    onLoadMoreDashboards={onLoadMoreDashboards}
-                  />
+                {!isLoading && dashboards && (
+                  <>
+                    {dashboards.length > 0 ? (
+                      <DashboardSection
+                        dashboards={dashboards}
+                        selectedDashboardId={selectedDashboardId}
+                        onDashboardClick={onDashboardClick}
+                        onRenameDashboard={onRenameDashboard}
+                        hasMoreDashboards={hasMoreDashboards}
+                        onLoadMoreDashboards={onLoadMoreDashboards}
+                      />
+                    ) : (
+                      <div className="mb-3">
+                        <SectionHeader label="Dashboards" />
+                        <div className="px-3 py-3 text-center">
+                          <p className="text-[12px] text-gray-400">
+                            Dashboards you create will appear here.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Chats Section (root items not in folders) */}
-                {!isLoading && rootItems.length > 0 && (
+                {!isLoading && (
                   <div className="mb-2">
                     <SectionHeader label="Chats" />
-                    <div>
-                      {rootItems.map((item) => (
-                        <ConversationItem
-                          key={item.id}
-                          item={item}
-                          isSelected={item.id === selectedItemId}
-                          onClick={() => onItemClick?.(item.id)}
-                          onContextMenu={(e) => handleContextMenu(e, item)}
-                          isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                          isEditing={editingItemId === item.id && editingItemFolderId === null}
-                          onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                          onCancelEdit={handleCancelRename}
-                        />
-                      ))}
-                    </div>
+                    {rootItems.length > 0 ? (
+                      <div>
+                        {rootItems.map((item) => (
+                          <ConversationItem
+                            key={item.id}
+                            item={item}
+                            isSelected={item.id === selectedItemId}
+                            onClick={() => onItemClick?.(item.id)}
+                            onContextMenu={(e) => handleContextMenu(e, item)}
+                            isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                            isEditing={editingItemId === item.id && editingItemFolderId === null}
+                            onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                            onCancelEdit={handleCancelRename}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-[12px] text-gray-400">
+                          Your conversations will appear here.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
-
-                {/* Empty state */}
-                {!isLoading &&
-                  rootItems.length === 0 &&
-                  sortedFolders.length === 0 &&
-                  (!dashboards || dashboards.length === 0) && (
-                    <div className="py-3 text-center">
-                      <p className="text-[12px] text-gray-400">No chats yet</p>
-                    </div>
-                  )}
 
                 {/* Infinite scroll trigger */}
                 {loadMoreRef && <div ref={loadMoreRef} className="h-px flex-shrink-0" />}
