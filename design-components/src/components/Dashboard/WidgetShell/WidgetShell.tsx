@@ -17,7 +17,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   appliedFilters,
 }) => {
   return (
-    <div className="group h-full bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
+    <div className="group h-full bg-white rounded-2xl border border-gray-100 flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
       <div className="relative flex items-center px-3 py-2.5 border-b border-gray-100 shrink-0">
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-medium text-gray-900 truncate">{title}</h3>
@@ -40,7 +40,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
           )}
         </div>
       </div>
-      <div className="flex-1 min-h-0">{children}</div>
+      <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
     </div>
   );
 };
