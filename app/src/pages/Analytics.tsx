@@ -239,19 +239,9 @@ const Analytics = () => {
 
   const { unfiledConversations } = useChatSidebarV2();
 
-  // Auto-select the most recent dashboard-builder conversation on first load
-  const hasInitializedChatRef = useRef(false);
-  useEffect(() => {
-    if (!hasInitializedChatRef.current && activeChatId === null) {
-      const dashboardConv = unfiledConversations.find(
-        (c) => c.mode === "dashboard-builder",
-      );
-      if (dashboardConv) {
-        hasInitializedChatRef.current = true;
-        setActiveChatId(dashboardConv.conversationId);
-      }
-    }
-  }, [activeChatId, unfiledConversations, setActiveChatId]);
+  // Select the most recent conversation each time the panel opens
+  // (ref declared here so it's available before the effect below)
+  const prevChatPanelOpenRef = useRef(false);
 
   // Local fallback for conversations created during this session before they're
   // reflected in the sidebar list
@@ -339,6 +329,27 @@ const Analytics = () => {
       chatSwitchConfirmLabel,
     ],
   );
+
+  // Select the most recent conversation each time the panel opens, routed
+  // through the guarded setter so edit-mode context isn't silently lost.
+  // Skips auto-selection when a deep link already set the active conversation.
+  useEffect(() => {
+    const justOpened = isChatPanelOpen && !prevChatPanelOpenRef.current;
+    prevChatPanelOpenRef.current = isChatPanelOpen;
+
+    if (!justOpened) return;
+
+    if (conversationIdFromParams) return;
+
+    if (unfiledConversations.length === 0) return;
+
+    guardedSetActiveChatId(unfiledConversations[0].conversationId);
+  }, [
+    isChatPanelOpen,
+    unfiledConversations,
+    guardedSetActiveChatId,
+    conversationIdFromParams,
+  ]);
 
   const guardedNewChat = useCallback(() => {
     const action = () => {
