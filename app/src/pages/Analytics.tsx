@@ -239,8 +239,13 @@ const Analytics = () => {
   const { unfiledConversations } = useChatSidebarV2();
 
   // Select the most recent dashboard-builder conversation each time the panel opens
+  const prevChatPanelOpenRef = useRef(false);
   useEffect(() => {
-    if (!isChatPanelOpen) return;
+    const justOpened = isChatPanelOpen && !prevChatPanelOpenRef.current;
+    prevChatPanelOpenRef.current = isChatPanelOpen;
+
+    if (!justOpened) return;
+    if (unfiledConversations.length === 0) return;
 
     setActiveChatId(unfiledConversations[0].conversationId);
   }, [isChatPanelOpen, unfiledConversations, setActiveChatId]);

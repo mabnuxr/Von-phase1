@@ -216,7 +216,7 @@ export function useSendMessage() {
         >(chatSidebarKeys.sidebar());
         const topConversationId =
           sidebarData?.pages[0]?.unfiled.conversations[0]?.conversationId;
-        if (topConversationId !== context.conversationId) {
+        if (sidebarData && topConversationId !== context.conversationId) {
           queryClient.invalidateQueries({
             queryKey: chatSidebarKeys.sidebar(),
           });
