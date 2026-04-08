@@ -336,7 +336,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     >
       <DashboardLayout.Header>
         {/* Title row: name + description | chat + close */}
-        <DashboardLayout.HeaderRow>
+        <DashboardLayout.HeaderRow
+          className={isDrilldownOpen ? "relative z-[45] bg-white" : ""}
+        >
           <DashboardLayout.HeaderRow.Left>
             <div className="min-w-0">
               {isRenamingTitle ? (
