@@ -33,6 +33,7 @@ import type {
   DashboardScheduleResponse,
 } from "../../../types/dashboard";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
+import { EditModeBanner } from "../EditModeBanner";
 import type {
   WidgetConfig,
   GridConfig,
@@ -137,6 +138,8 @@ interface AnalyticsViewProps {
   isRefetchingData?: boolean;
   /** Whether a background refresh is in progress (Pusher-driven) */
   isRefreshing?: boolean;
+  /** Whether the drilldown panel is open (hides inline edit banner to avoid duplication) */
+  isDrilldownOpen?: boolean;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -190,6 +193,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onDeleteSchedule,
   isRefetchingData,
   isRefreshing,
+  isDrilldownOpen,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -663,24 +667,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           />
         </ErrorBoundary>
 
-        {/* Edit mode banner — full-width sticky bottom */}
-        <AnimatePresence>
-          {isEditMode && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="sticky bottom-0 z-10 -mx-4"
-            >
-              <div className="bg-gray-900 text-white text-sm px-4 py-4 items-center text-center rounded-2xl w-fit mx-auto">
-                You're in edit mode. Use the chat to make changes, then click{" "}
-                <span className="font-semibold">Save</span> in the toolbar to
-                save them.
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Edit mode banner — full-width sticky bottom (hidden when drilldown is open; parent renders its own) */}
+        <EditModeBanner
+          visible={isEditMode && !isDrilldownOpen}
+          className="sticky bottom-0 z-10 -mx-4"
+        />
       </DashboardLayout.Canvas>
     </DashboardLayout>
   );
