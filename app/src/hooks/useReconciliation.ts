@@ -157,7 +157,8 @@ export function useReconciliation({
         (e) => e.event?.type === "DASHBOARD_READY",
       );
       const reconciledDashboard = dashboardReadyEvent
-        ? (dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? undefined
+        ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ??
+          undefined)
         : undefined;
 
       type RunFinishedWithExtras = Omit<RunFinishedEvent, "result"> & {

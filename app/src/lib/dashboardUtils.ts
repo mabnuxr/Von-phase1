@@ -452,7 +452,7 @@ function transformMessagesForV2(
         (e) => e.event?.type === "DASHBOARD_READY",
       );
       const persistedDashboard = dashboardReadyEvent
-        ? (dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null
+        ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null)
         : null;
 
       // Extract execution metadata from RUN_FINISHED (these stay on RUN_FINISHED)

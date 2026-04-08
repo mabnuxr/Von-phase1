@@ -567,7 +567,7 @@ export function useV2EventProcessor(
         // Extract dashboard metadata from DASHBOARD_READY event
         const dashboardReadyPayload =
           eventType === "DASHBOARD_READY"
-            ? (wrapper.event as DashboardReadyEvent).dashboard ?? null
+            ? ((wrapper.event as DashboardReadyEvent).dashboard ?? null)
             : undefined;
 
         // Extract executionId and isDashboardBuilderMode from RUN_FINISHED event
@@ -725,7 +725,7 @@ export function useV2EventProcessor(
       (e) => e.event?.type === "DASHBOARD_READY",
     );
     const seededDashboard = dashboardReadyEvent
-      ? (dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null
+      ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null)
       : null;
     const runFinishedEvent = mergedEvents.find(
       (e) => e.event?.type === "RUN_FINISHED",
