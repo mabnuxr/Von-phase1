@@ -126,11 +126,11 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
 
   return (
     <div
-      className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors"
+      className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-200 hover:shadow-md transition-all"
       onClick={onDrillDown}
     >
       {(appliedFilters || queryInfo || onDrillDown) && (
-        <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+        <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
           {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
           {onDrillDown && (
@@ -147,27 +147,37 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
           )}
         </div>
       )}
-      {title && <p className="text-xs text-gray-700 mb-1 truncate">{title}</p>}
-      {subtitle && <p className="text-[10px] text-gray-400 -mt-0.5 mb-1 truncate">{subtitle}</p>}
+      {title && (
+        <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full tracking-wide uppercase">
+          {title}
+        </p>
+      )}
+      {subtitle && (
+        <p className="text-[10px] text-gray-400 -mt-1 mb-1.5 truncate max-w-full">{subtitle}</p>
+      )}
 
-      <p className="text-xl font-semibold text-gray-900 tabular-nums truncate">{displayValue}</p>
+      <p className="text-2xl font-bold text-gray-900 tabular-nums truncate max-w-full">
+        {displayValue}
+      </p>
 
       {hasComparison && comparisonText && (
-        <div className="flex items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 mt-2">
           {cmpVal > 0 && <ArrowUpIcon size={12} weight="bold" className={arrowClassName} />}
           {cmpVal < 0 && <ArrowDownIcon size={12} weight="bold" className={arrowClassName} />}
           {cmpVal === 0 && <MinusIcon size={12} weight="bold" className="text-gray-500" />}
           <span className={textClassName}>{comparisonText}</span>
-          {comparison.label && <span className="text-xs text-gray-700">{comparison.label}</span>}
+          {comparison.label && (
+            <span className="text-xs text-gray-400 font-normal">{comparison.label}</span>
+          )}
         </div>
       )}
 
       {progress !== undefined && (
-        <div className="mt-3">
+        <div className="mt-3 w-full">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-700">Progress</span>
+            <span className="text-[10px] text-gray-500">Progress</span>
             {targetDisplay && target && (
-              <span className="text-[10px] text-gray-700">
+              <span className="text-[10px] text-gray-500">
                 {target.label}: {targetDisplay}
               </span>
             )}
@@ -182,13 +192,13 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
             />
           </div>
           <div className="flex items-center justify-end mt-0.5">
-            <span className="text-[10px] font-medium text-gray-600">{Math.round(progress)}%</span>
+            <span className="text-[10px] font-medium text-gray-500">{Math.round(progress)}%</span>
           </div>
         </div>
       )}
 
       {sparkline && (
-        <div className="mt-2">
+        <div className="mt-2 w-full">
           <Sparkline data={sparkline.data} type={sparkline.type} accentColor={config.accentColor} />
         </div>
       )}

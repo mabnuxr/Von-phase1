@@ -8,16 +8,17 @@ const WidgetSkeleton: React.FC<{ widget: WidgetConfig }> = ({ widget }) => {
   switch (widget.type) {
     case 'counter':
       return (
-        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center">
-          <div className="h-3 w-20 bg-gray-100 rounded animate-pulse mb-2" />
-          <div className="h-7 w-28 bg-gray-100 rounded animate-pulse" />
+        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex flex-col items-center justify-center">
+          <div className="h-3 w-24 bg-gray-100 rounded animate-pulse mb-2.5" />
+          <div className="h-7 w-28 bg-gray-100 rounded animate-pulse mb-2" />
+          <div className="h-3 w-20 bg-gray-50 rounded animate-pulse" />
         </div>
       );
 
     case 'chart':
       return (
-        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
-          <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-100">
             <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
           </div>
           <div className="flex-1 p-3 flex items-end gap-2">
@@ -34,8 +35,8 @@ const WidgetSkeleton: React.FC<{ widget: WidgetConfig }> = ({ widget }) => {
 
     case 'table':
       return (
-        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
-          <div className="px-3 py-2.5 border-b border-gray-100">
+        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-100">
             <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
           </div>
           <div className="flex-1 p-3 space-y-2.5">
@@ -57,7 +58,7 @@ const WidgetSkeleton: React.FC<{ widget: WidgetConfig }> = ({ widget }) => {
 
     default:
       return (
-        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-xs p-3">
+        <div className="h-full bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
           <div className="h-4 w-32 bg-gray-100 rounded animate-pulse mb-3" />
           <div className="h-20 bg-gray-50 rounded animate-pulse" />
         </div>
