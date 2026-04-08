@@ -3,6 +3,7 @@ import type {
   Message as ChatMessage,
   TimelineStep,
   RunFinishedEvent,
+  DashboardReadyEvent,
 } from "@vonlabs/design-components";
 import type { ChatItem } from "@vonlabs/design-components";
 
@@ -271,7 +272,7 @@ export interface V2LiveData {
     string,
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
-  /** Dashboard metadata from the current run's RUN_FINISHED event (null if none) */
+  /** Dashboard metadata from the current run's dashboard_ready event (null if none) */
   dashboard?: DashboardMetadata | null;
   /** execution_id for workflow execution approval (dry_run completed, pending approval) */
   executionId?: string | null;
@@ -445,7 +446,16 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
-      // Extract dashboard and execution metadata from persisted events
+      // Extract dashboard metadata from persisted DASHBOARD_READY event
+      const dashboardReadyEvent = findLast(
+        msg.events,
+        (e) => e.event?.type === "DASHBOARD_READY",
+      );
+      const persistedDashboard = dashboardReadyEvent
+        ? (dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null
+        : null;
+
+      // Extract execution metadata from RUN_FINISHED (these stay on RUN_FINISHED)
       const runFinishedEvent = findLast(
         msg.events,
         (e) => e.event?.type === "RUN_FINISHED",
@@ -454,14 +464,12 @@ function transformMessagesForV2(
         ? (
             runFinishedEvent.event as RunFinishedEvent & {
               result: {
-                dashboard?: DashboardMetadata | null;
                 execution_id?: string | null;
                 is_dashboard_builder_mode?: boolean;
               };
             }
           ).result
         : null;
-      const persistedDashboard = runFinishedResult?.dashboard ?? null;
       const persistedExecutionId = runFinishedResult?.execution_id ?? null;
       const persistedIsDashboardBuilderMode =
         runFinishedResult?.is_dashboard_builder_mode ?? false;

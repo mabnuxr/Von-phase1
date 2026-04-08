@@ -24,12 +24,12 @@ import type {
   AguiEventWrapper,
   TimelineStep,
   RunFinishedEvent,
+  DashboardReadyEvent,
 } from "@vonlabs/design-components";
 
 /** RUN_FINISHED result extended with optional fields the backend emits. */
-type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
+type RunFinishedEventExtended = Omit<RunFinishedEvent, "result"> & {
   result: RunFinishedEvent["result"] & {
-    dashboard?: DashboardMetadata | null;
     execution_id?: string | null;
     approval_type?: string | null;
     is_dashboard_builder_mode?: boolean;
@@ -43,6 +43,7 @@ import {
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 import { conversationsService } from "../services/conversationsService";
+import { findLast } from "../utils/findLast";
 import useChatStore from "../store/chatStore";
 
 /** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
@@ -86,6 +87,7 @@ const AGUI_EVENTS = [
   "agent.step_finished",
   "agent.run_finished",
   "agent.run_error",
+  "agent.dashboard_ready",
   "agent.research_results_start",
   "agent.research_results_content",
   "agent.research_results_end",
@@ -562,20 +564,21 @@ export function useV2EventProcessor(
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
-        // Extract dashboard and executionId from RUN_FINISHED event
-        const runFinishedDashboard =
-          eventType === "RUN_FINISHED"
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result
-                ?.dashboard ?? null)
+        // Extract dashboard metadata from DASHBOARD_READY event
+        const dashboardReadyPayload =
+          eventType === "DASHBOARD_READY"
+            ? (wrapper.event as DashboardReadyEvent).dashboard ?? null
             : undefined;
+
+        // Extract executionId and isDashboardBuilderMode from RUN_FINISHED event
         const runFinishedExecutionId =
           eventType === "RUN_FINISHED"
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+            ? ((wrapper.event as RunFinishedEventExtended).result
                 ?.execution_id ?? null)
             : undefined;
         const runFinishedIsDashboardBuilderMode =
           eventType === "RUN_FINISHED"
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+            ? ((wrapper.event as RunFinishedEventExtended).result
                 ?.is_dashboard_builder_mode ?? false)
             : undefined;
 
@@ -591,19 +594,18 @@ export function useV2EventProcessor(
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
 
-          // Update dashboard when RUN_FINISHED arrives with dashboard metadata
-          if (runFinishedDashboard !== undefined) {
+          // Update dashboard when DASHBOARD_READY arrives
+          if (dashboardReadyPayload !== undefined) {
             if (import.meta.env.DEV) {
               console.log(
-                "[useV2EventProcessor] Dashboard metadata received:",
-                runFinishedDashboard,
+                "[useV2EventProcessor] dashboard_ready received:",
+                dashboardReadyPayload,
               );
             }
-            setDashboard(runFinishedDashboard);
-            // Signal auto-open — only for live events, not seeding
-            if (runFinishedDashboard) {
+            setDashboard(dashboardReadyPayload);
+            if (dashboardReadyPayload) {
               setLiveDashboardKey(
-                `${runFinishedDashboard.dashboard_id}:${runFinishedDashboard.dashboard_version}`,
+                `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`,
               );
             }
           }
@@ -717,20 +719,23 @@ export function useV2EventProcessor(
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
-    // Extract dashboard and execution metadata from seeded events (for page refresh)
+    // Extract dashboard from DASHBOARD_READY event, execution metadata from RUN_FINISHED
+    const dashboardReadyEvent = findLast(
+      mergedEvents,
+      (e) => e.event?.type === "DASHBOARD_READY",
+    );
+    const seededDashboard = dashboardReadyEvent
+      ? (dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null
+      : null;
     const runFinishedEvent = mergedEvents.find(
       (e) => e.event?.type === "RUN_FINISHED",
     );
-    const seededDashboard = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
-          ?.dashboard ?? null)
-      : null;
     const seededExecutionId = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+      ? ((runFinishedEvent.event as RunFinishedEventExtended).result
           ?.execution_id ?? null)
       : null;
     const seededIsDashboardBuilderMode = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+      ? ((runFinishedEvent.event as RunFinishedEventExtended).result
           ?.is_dashboard_builder_mode ?? false)
       : false;
 
