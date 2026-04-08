@@ -17,11 +17,11 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   appliedFilters,
 }) => {
   return (
-    <div className="group h-full bg-white rounded-2xl border border-gray-100 flex flex-col shadow-xs cursor-pointer hover:border-gray-200 transition-colors">
-      <div className="relative flex items-center px-3 py-2.5 border-b border-gray-100 shrink-0">
+    <div className="group h-full bg-white rounded-2xl border border-gray-100 flex flex-col shadow-sm cursor-default hover:border-gray-200 transition-all">
+      <div className="relative flex items-center px-4 py-3 border-b border-gray-100 shrink-0">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-medium text-gray-900 truncate">{title}</h3>
-          {subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate">{subtitle}</p>}
+          <h3 className="text-sm font-semibold text-gray-800 truncate">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-0.5">
           {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
@@ -32,7 +32,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
                 e.stopPropagation();
                 onDrillDown();
               }}
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
+              className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-default shrink-0"
               title="View data"
             >
               <TableIcon size={14} />

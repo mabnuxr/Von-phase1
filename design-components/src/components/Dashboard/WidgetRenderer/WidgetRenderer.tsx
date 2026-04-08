@@ -67,19 +67,21 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
         if (widget.query_failed || (widget.config as CounterWidgetConfig).value === null) {
           return (
             <div
-              className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-xs px-3 py-2.5 flex flex-col justify-center cursor-pointer hover:border-gray-200 transition-colors"
+              className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-200 hover:shadow-md transition-all"
               onClick={drillDownHandler}
             >
               {(appliedFilters || widget.queryInfo) && (
-                <div className="absolute top-2 right-2 flex items-center gap-0.5 z-10">
+                <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
                   {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
                   {widget.queryInfo && <QueryInfoPopover queryInfo={widget.queryInfo} />}
                 </div>
               )}
               {widget.title && (
-                <p className="text-xs text-gray-700 mb-1 truncate">{widget.title}</p>
+                <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full tracking-wide uppercase">
+                  {widget.title}
+                </p>
               )}
-              <p className="text-2xl font-semibold text-gray-400 tabular-nums">—</p>
+              <p className="text-2xl font-bold text-gray-300 tabular-nums">—</p>
             </div>
           );
         }
