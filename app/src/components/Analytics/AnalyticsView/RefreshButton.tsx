@@ -172,11 +172,11 @@ interface RefreshButtonProps {
   isScheduled: boolean;
   isPaused: boolean;
   isMutating: boolean;
-  onCreateSchedule: (config: ScheduleConfigRequest) => void;
-  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
-  onPauseSchedule: () => void;
-  onResumeSchedule: () => void;
-  onDeleteSchedule: () => void;
+  onCreateSchedule: (config: ScheduleConfigRequest) => Promise<unknown>;
+  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => Promise<unknown>;
+  onPauseSchedule: () => Promise<unknown>;
+  onResumeSchedule: () => Promise<unknown>;
+  onDeleteSchedule: () => Promise<unknown>;
 }
 
 export const RefreshButton: React.FC<RefreshButtonProps> = ({
@@ -220,14 +220,18 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
     if (canRefresh) toggleVisibility();
   };
 
-  const handleSubmitSchedule = useCallback(() => {
+  const handleSubmitSchedule = useCallback(async () => {
     const config = pickerScheduleToApi(pickerSchedule);
-    if (isScheduled) {
-      onUpdateSchedule(config);
-    } else {
-      onCreateSchedule(config);
+    try {
+      if (isScheduled) {
+        await onUpdateSchedule(config);
+      } else {
+        await onCreateSchedule(config);
+      }
+      hide();
+    } catch {
+      // Error toast is shown by the mutation hook; keep popover open for retry
     }
-    hide();
   }, [pickerSchedule, isScheduled, onCreateSchedule, onUpdateSchedule, hide]);
 
   // Summary text for collapsed schedule header
@@ -381,9 +385,13 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
                   <div className="flex items-center gap-1.5 pt-0.5 border-t border-gray-100">
                     {isPaused ? (
                       <button
-                        onClick={() => {
-                          onResumeSchedule();
-                          hide();
+                        onClick={async () => {
+                          try {
+                            await onResumeSchedule();
+                            hide();
+                          } catch {
+                            // Error toast shown by mutation hook
+                          }
                         }}
                         disabled={isMutating}
                         className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -393,9 +401,13 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
                       </button>
                     ) : (
                       <button
-                        onClick={() => {
-                          onPauseSchedule();
-                          hide();
+                        onClick={async () => {
+                          try {
+                            await onPauseSchedule();
+                            hide();
+                          } catch {
+                            // Error toast shown by mutation hook
+                          }
                         }}
                         disabled={isMutating}
                         className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -405,9 +417,13 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
                       </button>
                     )}
                     <button
-                      onClick={() => {
-                        onDeleteSchedule();
-                        hide();
+                      onClick={async () => {
+                        try {
+                          await onDeleteSchedule();
+                          hide();
+                        } catch {
+                          // Error toast shown by mutation hook
+                        }
                       }}
                       disabled={isMutating}
                       className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
