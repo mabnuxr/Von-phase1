@@ -6,22 +6,20 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback, memo } from "react";
-import {
-  useGuardedNavigate,
-  useNavigationGuard,
-} from "../providers/NavigationGuard";
-import { useAppShell } from "../hooks/useAppShell";
-import { useDashboardQuery } from "../hooks/useDashboardQuery";
-import { useDashboardFilters } from "../hooks/useDashboardFilters";
-import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
-import { useTableServerPagination } from "../hooks/useTableServerPagination";
-import { useDrilldown } from "../hooks/useDrilldown";
-import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
-import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
-import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
-import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
-import { DrilldownPanel } from "./Analytics/DrilldownPanel";
+import { useCallback, memo } from 'react';
+import { useGuardedNavigate, useNavigationGuard } from '../providers/NavigationGuard';
+import { useAppShell } from '../hooks/useAppShell';
+import { useDashboardQuery } from '../hooks/useDashboardQuery';
+import { useDashboardFilters } from '../hooks/useDashboardFilters';
+import { useAnalyticsTools } from '../hooks/useAnalyticsTools';
+import { useTableServerPagination } from '../hooks/useTableServerPagination';
+import { useDrilldown } from '../hooks/useDrilldown';
+import { useDashboardUpdate } from '../hooks/useDashboardUpdate';
+import { useDashboardSchedule } from '../hooks/useDashboardSchedule';
+import { useDashboardRefreshEvents } from '../hooks/useDashboardRefreshEvents';
+import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from './Analytics';
+import { DrilldownPanel } from './Analytics/DrilldownPanel';
+import { EditModeBanner } from './Analytics/EditModeBanner';
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -37,14 +35,14 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const navigate = useGuardedNavigate();
   const { collapseSidebar } = useAppShell();
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
-  const dashboardTitle = data?.dashboard?.title ?? "";
+  const dashboardTitle = data?.dashboard?.title ?? '';
   const isEditable = data?.dashboard?.isEditable ?? false;
 
   useNavigationGuard({
     when: isEditable,
-    title: "Dashboard in edit mode",
-    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
-    confirmLabel: "Switch Anyway",
+    title: 'Dashboard in edit mode',
+    body: `You have unsaved changes on ${dashboardTitle || 'this dashboard'}. Are you sure you want to switch?`,
+    confirmLabel: 'Switch Anyway',
   });
 
   const {
@@ -79,7 +77,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
     },
-    [handleUpdate],
+    [handleUpdate]
   );
 
   const dashboard = data?.dashboard ?? null;
@@ -99,19 +97,10 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleCommitPendingRow,
     handleApply,
     handleClearAll,
-  } = useDashboardFilters(
-    dashboardId,
-    dashboard?.filters?.definitions ?? [],
-    activeFilters,
-  );
+  } = useDashboardFilters(dashboardId, dashboard?.filters?.definitions ?? [], activeFilters);
 
-  const {
-    mergedWidgets,
-    handlePageChange,
-    handleSortChange,
-    loadingPanels,
-    activeSorts,
-  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const { mergedWidgets, handlePageChange, handleSortChange, loadingPanels, activeSorts } =
+    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   const {
     isOpen: isDrilldownOpen,
@@ -133,14 +122,14 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const handleExpand = useCallback(() => {
     navigate(
       `/redirecting?to=${encodeURIComponent(`/dashboard/${dashboardId}?conversationId=${conversationId}`)}`,
-      collapseSidebar,
+      collapseSidebar
     );
   }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
   return (
     <div
       style={{
-        position: "relative",
+        position: 'relative',
       }}
       className="h-full flex-1 min-w-0"
     >
@@ -201,20 +190,23 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             isRefreshing={isRefreshing}
             isDrilldownOpen={isDrilldownOpen}
           />
+          {/* Edit mode banner — floats above drilldown panel when both are active */}
+          <EditModeBanner
+            visible={dashboard.isEditable && isDrilldownOpen}
+            className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
+          />
           <DrilldownPanel
             isOpen={isDrilldownOpen}
             onClose={closeDrilldown}
             widgetTitle={
               drilldownTitle ||
-              (drilldownPanelId &&
-                dashboard.widgets?.[drilldownPanelId]?.title) ||
-              "Drilldown"
+              (drilldownPanelId && dashboard.widgets?.[drilldownPanelId]?.title) ||
+              'Drilldown'
             }
             query={
               drilldownQuery ||
-              (drilldownPanelId &&
-                dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
-              ""
+              (drilldownPanelId && dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
+              ''
             }
             data={drilldownData}
             pagination={drilldownPagination}

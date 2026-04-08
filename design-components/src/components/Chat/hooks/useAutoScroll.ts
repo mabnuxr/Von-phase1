@@ -54,6 +54,22 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
     [messages]
   );
 
+  // Detect when the latest assistant message has an active approval step.
+  const hasAwaitingApproval = useMemo(() => {
+    const lastAssistant = [...messages].reverse().find((m) => m.type === 'assistant');
+    return lastAssistant?.timelineSteps?.some((s) => s.status === 'awaiting-approval') ?? false;
+  }, [messages]);
+
+  // When an approval step appears, re-enable auto-scroll so that subsequent
+  // re-renders (as the approval card lays out) keep scrolling to bottom.
+  const prevHasAwaitingApprovalRef = useRef(false);
+  useEffect(() => {
+    if (hasAwaitingApproval && !prevHasAwaitingApprovalRef.current) {
+      shouldAutoScrollRef.current = true;
+    }
+    prevHasAwaitingApprovalRef.current = hasAwaitingApproval;
+  }, [hasAwaitingApproval]);
+
   // Auto-scroll to bottom when new messages arrive or content updates
   useEffect(() => {
     if (messages.length === 0) return;
@@ -71,14 +87,14 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
           // Scroll again after lazy content loads (markdown, images)
           setTimeout(() => scrollToBottom('auto'), 100);
         }
-      } else if (isStreaming || isNewMessage) {
-        // Smooth scroll for streaming updates
+      } else if (isStreaming || isNewMessage || hasAwaitingApproval) {
+        // Smooth scroll for streaming updates and approval card rendering
         requestAnimationFrame(() => {
           scrollToBottom('smooth');
         });
       }
     }
-  }, [messages, scrollToBottom, isStreaming]);
+  }, [messages, scrollToBottom, isStreaming, hasAwaitingApproval]);
 
   /** Call before dispatching a user message to force-scroll to bottom */
   const prepareForNewMessage = useCallback(() => {
