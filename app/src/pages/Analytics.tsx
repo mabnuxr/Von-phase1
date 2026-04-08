@@ -15,6 +15,7 @@ import {
 } from "../components/Analytics";
 import { Tooltip, useVisibilityToggle } from "@vonlabs/design-components";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
+import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
 import { ChatSession } from "../components/chat/ChatSession";
@@ -188,6 +189,12 @@ function DashboardCanvas({
         onDeleteSchedule={handleDeleteSchedule}
         isRefetchingData={isFetching && !isLoading}
         isRefreshing={isRefreshing}
+        isDrilldownOpen={isDrilldownOpen}
+      />
+      {/* Edit mode banner — floats above drilldown panel when both are active */}
+      <EditModeBanner
+        visible={dashboard.isEditable && isDrilldownOpen}
+        className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}
