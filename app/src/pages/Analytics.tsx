@@ -188,6 +188,7 @@ function DashboardCanvas({
         onDeleteSchedule={handleDeleteSchedule}
         isRefetchingData={isFetching && !isLoading}
         isRefreshing={isRefreshing}
+        isDrilldownOpen={isDrilldownOpen}
       />
       <DrilldownPanel
         isOpen={isDrilldownOpen}

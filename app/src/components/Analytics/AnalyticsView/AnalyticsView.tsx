@@ -137,6 +137,8 @@ interface AnalyticsViewProps {
   isRefetchingData?: boolean;
   /** Whether a background refresh is in progress (Pusher-driven) */
   isRefreshing?: boolean;
+  /** Whether the drilldown panel is open (first header row stays above backdrop) */
+  isDrilldownOpen?: boolean;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -190,6 +192,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onDeleteSchedule,
   isRefetchingData,
   isRefreshing,
+  isDrilldownOpen,
 }) => {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -332,7 +335,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     >
       <DashboardLayout.Header>
         {/* Title row: name + description | chat + close */}
-        <DashboardLayout.HeaderRow>
+        <DashboardLayout.HeaderRow
+          className={isDrilldownOpen ? "relative z-[45] bg-white" : ""}
+        >
           <DashboardLayout.HeaderRow.Left>
             <div className="min-w-0">
               {isRenamingTitle ? (

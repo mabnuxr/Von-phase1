@@ -199,6 +199,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             editModePhase={editModePhase}
             isRefetchingData={isFetching && !isLoading}
             isRefreshing={isRefreshing}
+            isDrilldownOpen={isDrilldownOpen}
           />
           <DrilldownPanel
             isOpen={isDrilldownOpen}
