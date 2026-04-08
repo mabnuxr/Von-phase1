@@ -83,26 +83,3 @@ export async function parseEmlContent(
     crm_context: email.headers?.find((h) => h.key === "x-crm-context")?.value,
   };
 }
-
-/**
- * Build a Gmail compose URL from parsed EML fields.
- * Uses body_plain (not body_full) because compose URLs only support plain text.
- */
-export function buildGmailComposeUrl(card: {
-  to: string;
-  subject: string;
-  body_plain: string;
-  cc?: string[];
-  bcc?: string[];
-}): string {
-  const params = new URLSearchParams({
-    view: "cm",
-    fs: "1",
-    to: card.to,
-    su: card.subject,
-    body: card.body_plain,
-  });
-  if (card.cc?.length) params.set("cc", card.cc.join(","));
-  if (card.bcc?.length) params.set("bcc", card.bcc.join(","));
-  return `https://mail.google.com/mail/?${params.toString()}`;
-}

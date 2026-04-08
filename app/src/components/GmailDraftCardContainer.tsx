@@ -15,12 +15,10 @@ import {
 import type { FileArtifact, EmailData } from "@vonlabs/design-components";
 import { fileUploadService } from "../services/fileUploadService";
 import { apiClient, ApiError } from "../services/apiClient";
-import { parseEmlContent, buildGmailComposeUrl } from "../lib/emailUtils";
+import { parseEmlContent } from "../lib/emailUtils";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router-dom";
-
-const COMPOSE_URL_SAFE_LIMIT = 7500;
 
 interface GmailDraftCardContainerProps {
   conversationId: string;
@@ -105,17 +103,6 @@ export const GmailDraftCardContainer: React.FC<
   });
 
   const handleOpenInGmail = useCallback(async () => {
-    const parsed = parsedQuery.data;
-    if (!parsed) return;
-
-    // Short email → use compose URL directly (no API, no Gmail connection needed)
-    const composeUrl = buildGmailComposeUrl(parsed);
-    if (composeUrl.length < COMPOSE_URL_SAFE_LIMIT) {
-      window.open(composeUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    // Long email → create draft via API
     setIsCreatingDraft(true);
     try {
       const result = await createGmailDraft(conversationId, artifact.fileId);
@@ -286,17 +273,12 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
 
   const emails: EmailData[] = [];
   const emailToArtifactIndex: number[] = [];
-  const parsedCards: (Omit<import("../lib/emailUtils").DraftCard, "type"> | null)[] = [];
 
   parsedQueries.forEach((pq, i) => {
     const parsed = pq.data;
-    if (!parsed) {
-      parsedCards.push(null);
-      return;
-    }
+    if (!parsed) return;
 
     emailToArtifactIndex.push(i);
-    parsedCards.push(parsed);
     emails.push({
       to: toArray(parsed.to),
       cc: parsed.cc,
@@ -319,17 +301,8 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   const handleOpenInGmail = async (index: number) => {
     const artifactIdx = emailToArtifactIndex[index];
     const a = artifacts[artifactIdx];
-    const parsed = parsedCards[artifactIdx];
-    if (!a || !parsed) return;
+    if (!a) return;
 
-    // Short email → use compose URL directly (no API, no Gmail connection needed)
-    const composeUrl = buildGmailComposeUrl(parsed);
-    if (composeUrl.length < COMPOSE_URL_SAFE_LIMIT) {
-      window.open(composeUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    // Long email → create draft via API
     setIsCreatingDraft(true);
     try {
       const result = await createGmailDraft(conversationId, a.fileId);
