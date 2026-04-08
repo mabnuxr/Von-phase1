@@ -303,9 +303,9 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
         <Tooltip content="Schedule refresh">
           <button
             onClick={handleDropdownToggle}
-            disabled={isDisabled}
+            disabled={!canRefresh}
             className={`inline-flex items-center justify-center w-[22px] h-[34px] border rounded-r-xl transition-colors ${
-              isDisabled ? baseStyles : open ? activeStyles : baseStyles
+              !canRefresh ? baseStyles : open ? activeStyles : baseStyles
             }`}
           >
             <CaretDownIcon
