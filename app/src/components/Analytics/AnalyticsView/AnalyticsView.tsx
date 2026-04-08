@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
   BuildingsIcon,
@@ -10,31 +10,36 @@ import {
   SpinnerGapIcon,
   XIcon,
   PencilSimpleIcon,
-} from '@phosphor-icons/react';
-import vonFilledLogo from '../../../assets/von-filled-logo.svg';
-import { DashboardLayout, DashboardGrid, ErrorBoundary, Tooltip } from '@vonlabs/design-components';
-import { AnalyticsFilters } from '../AnalyticsFilters';
-import type { DashboardFilterDefinition } from '../../../types/dashboard';
-import { StatusLine } from './StatusLine';
-import { SaveButton } from './SaveButton';
-import { useCreatorName } from '../../../hooks/useCreatorName';
-import { SharePopover } from './SharePopover';
-import { RefreshButton } from './RefreshButton';
-import { DashboardStatus } from '../../../types/dashboard';
+} from "@phosphor-icons/react";
+import vonFilledLogo from "../../../assets/von-filled-logo.svg";
+import {
+  DashboardLayout,
+  DashboardGrid,
+  ErrorBoundary,
+  Tooltip,
+} from "@vonlabs/design-components";
+import { AnalyticsFilters } from "../AnalyticsFilters";
+import type { DashboardFilterDefinition } from "../../../types/dashboard";
+import { StatusLine } from "./StatusLine";
+import { SaveButton } from "./SaveButton";
+import { useCreatorName } from "../../../hooks/useCreatorName";
+import { SharePopover } from "./SharePopover";
+import { RefreshButton } from "./RefreshButton";
+import { DashboardStatus } from "../../../types/dashboard";
 import type {
   Dashboard,
   RefreshInfo,
   ScheduleConfigRequest,
   DashboardScheduleResponse,
-} from '../../../types/dashboard';
-import type { MutationPhase } from '../../../hooks/useMutationPhase';
-import { EditModeBanner } from '../EditModeBanner';
+} from "../../../types/dashboard";
+import type { MutationPhase } from "../../../hooks/useMutationPhase";
+import { EditModeBanner } from "../EditModeBanner";
 import type {
   WidgetConfig,
   GridConfig,
   LayoutItem,
   AppliedWidgetFilter,
-} from '@vonlabs/design-components';
+} from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
   dashboard: Dashboard;
@@ -42,7 +47,10 @@ interface AnalyticsViewProps {
   /** Filter definitions from the dashboard */
   filterDefinitions: DashboardFilterDefinition[];
   /** Current filter state in API-native format */
-  filterState: Record<string, { operator: string; value?: unknown; include_blank?: boolean }>;
+  filterState: Record<
+    string,
+    { operator: string; value?: unknown; include_blank?: boolean }
+  >;
   /** Pending rows where user hasn't picked a field yet */
   filterPendingRows: { tempId: string }[];
   /** Number of active filters */
@@ -55,12 +63,16 @@ interface AnalyticsViewProps {
     filterId: string,
     operator: string,
     value?: unknown,
-    includeBlank?: boolean
+    includeBlank?: boolean,
   ) => void;
   onRemoveFilter: (filterId: string) => void;
   onAddFilter: () => void;
   onRemovePendingRow: (tempId: string) => void;
-  onCommitPendingRow: (pendingId: string, filterId: string, defaultOperator: string) => void;
+  onCommitPendingRow: (
+    pendingId: string,
+    filterId: string,
+    defaultOperator: string,
+  ) => void;
   onApplyFilters: () => void;
   onClearAll: () => void;
   onRefresh: () => Promise<void>;
@@ -96,9 +108,16 @@ interface AnalyticsViewProps {
   /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
   /** Callback when a chart data point is clicked (point-level drilldown) */
-  onPointDrillDown?: (panelId: string, drillFilters: Record<string, unknown>) => void;
+  onPointDrillDown?: (
+    panelId: string,
+    drillFilters: Record<string, unknown>,
+  ) => void;
   /** Server-side table sort handler */
-  onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
+  onTableSortChange?: (
+    panelId: string,
+    columnId: string,
+    order: "asc" | "desc" | null,
+  ) => void;
   /** Current sort state per panel */
   tableSortStates?: Record<string, { orderBy: string; orderByAsc: boolean }>;
   /** Called when the owner renames the dashboard */
@@ -153,7 +172,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   isChatOpen,
   onEditModeChange,
-  editModePhase = 'idle',
+  editModePhase = "idle",
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -194,12 +213,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
     // Pre-compute display-ready filter info once per active definition
     const stringify = (v: unknown) => {
-      if (v == null) return '';
-      if (typeof v === 'object' && v !== null && 'start' in v && 'end' in v) {
+      if (v == null) return "";
+      if (typeof v === "object" && v !== null && "start" in v && "end" in v) {
         const r = v as { start: string; end: string };
         return `${r.start} – ${r.end}`;
       }
-      return typeof v === 'object' ? JSON.stringify(v) : String(v);
+      return typeof v === "object" ? JSON.stringify(v) : String(v);
     };
 
     const enrichedDefs = filterDefinitions
@@ -207,7 +226,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       .map((def) => {
         const state = filterState[def.id];
         const operatorLabel =
-          def.valid_operators?.find((op) => op.value === state.operator)?.label ?? state.operator;
+          def.valid_operators?.find((op) => op.value === state.operator)
+            ?.label ?? state.operator;
         const values = Array.isArray(state.value)
           ? state.value.map(stringify)
           : state.value != null
@@ -310,13 +330,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     <DashboardLayout
       className={
         isEditMode
-          ? 'transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200'
-          : 'transition-all duration-200'
+          ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
+          : "transition-all duration-200"
       }
     >
       <DashboardLayout.Header>
         {/* Title row: name + description | chat + close */}
-        <DashboardLayout.HeaderRow className={isDrilldownOpen ? 'relative z-[45] bg-white' : ''}>
+        <DashboardLayout.HeaderRow
+          className={isDrilldownOpen ? "relative z-[45] bg-white" : ""}
+        >
           <DashboardLayout.HeaderRow.Left>
             <div className="min-w-0">
               {isRenamingTitle ? (
@@ -326,8 +348,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={commitRename}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') commitRename();
-                    if (e.key === 'Escape') {
+                    if (e.key === "Enter") commitRename();
+                    if (e.key === "Escape") {
                       setEditValue(dashboard.title);
                       setIsRenamingTitle(false);
                     }
@@ -354,17 +376,25 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   )}
                   {dashboard.isOwner && onRename && (
                     <Tooltip
-                      content={isSaved ? 'Rename dashboard' : 'Save the dashboard to rename'}
+                      content={
+                        isSaved
+                          ? "Rename dashboard"
+                          : "Save the dashboard to rename"
+                      }
                     >
                       <button
-                        onClick={isSaved ? () => setIsRenamingTitle(true) : undefined}
+                        onClick={
+                          isSaved ? () => setIsRenamingTitle(true) : undefined
+                        }
                         disabled={!isSaved}
                         className={`transition-opacity ${
-                          isEditMode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          isEditMode
+                            ? "opacity-100"
+                            : "opacity-0 group-hover:opacity-100"
                         } ${
                           isSaved
-                            ? 'text-gray-700 hover:text-gray-900 cursor-pointer'
-                            : 'text-gray-500 cursor-not-allowed'
+                            ? "text-gray-700 hover:text-gray-900 cursor-pointer"
+                            : "text-gray-500 cursor-not-allowed"
                         }`}
                       >
                         <PencilSimpleIcon size={16} />
@@ -384,8 +414,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <Tooltip
                   content={
                     dashboard.isSharedWithTenant
-                      ? 'This dashboard is shared with your organization'
-                      : 'This dashboard is private'
+                      ? "This dashboard is shared with your organization"
+                      : "This dashboard is private"
                   }
                 >
                   <span className="inline-flex items-center justify-center text-gray-700 cursor-default">
@@ -400,7 +430,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {isCreatorLoading ? (
                   <span className="bg-gray-200 rounded animate-pulse w-16 h-3" />
                 ) : (
-                  <span className="text-gray-800 font-medium">{creatorName}</span>
+                  <span className="text-gray-800 font-medium">
+                    {creatorName}
+                  </span>
                 )}
               </span>
             )}
@@ -410,8 +442,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 disabled={!isSaved}
                 className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
                   !isSaved
-                    ? 'text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed'
-                    : 'text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer'
+                    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
                 }`}
               >
                 <ArrowsOutSimpleIcon size={13} />
@@ -501,21 +533,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 {isEditMode && dashboard.dashboardVersion >= 1 && (
                   <Tooltip content="Reverts to previous saved version">
                     <button
-                      onClick={revertPhase === 'idle' ? handleRevertFromEditMode : undefined}
+                      onClick={
+                        revertPhase === "idle"
+                          ? handleRevertFromEditMode
+                          : undefined
+                      }
                       disabled={
-                        revertPhase !== 'idle' || dashboard.status !== DashboardStatus.Draft
+                        revertPhase !== "idle" ||
+                        dashboard.status !== DashboardStatus.Draft
                       }
                       className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
                         dashboard.status !== DashboardStatus.Draft
-                          ? 'text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed'
-                          : revertPhase === 'pending'
-                            ? 'text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed'
-                            : revertPhase === 'success'
-                              ? 'text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default'
-                              : 'text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer'
+                          ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                          : revertPhase === "pending"
+                            ? "text-gray-500 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                            : revertPhase === "success"
+                              ? "text-emerald-700 bg-emerald-50 border-emerald-200 cursor-default"
+                              : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
                       }`}
                     >
-                      {revertPhase === 'pending' ? (
+                      {revertPhase === "pending" ? (
                         <SpinnerGapIcon size={14} className="animate-spin" />
                       ) : (
                         <ClockCounterClockwiseIcon size={14} />
@@ -532,7 +569,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 />
 
                 {/* Edit / Save toggle */}
-                {isEditMode || savePhase !== 'idle' || dashboard.dashboardVersion < 1 ? (
+                {isEditMode ||
+                savePhase !== "idle" ||
+                dashboard.dashboardVersion < 1 ? (
                   <SaveButton
                     savePhase={savePhase}
                     onSave={handleSaveFromEditMode}
@@ -541,15 +580,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 ) : (
                   <Tooltip content="Edit dashboard">
                     <button
-                      onClick={editModePhase === 'idle' ? handleEnterEditMode : undefined}
-                      disabled={editModePhase !== 'idle'}
+                      onClick={
+                        editModePhase === "idle"
+                          ? handleEnterEditMode
+                          : undefined
+                      }
+                      disabled={editModePhase !== "idle"}
                       className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
-                        editModePhase === 'pending'
-                          ? 'border-gray-800 bg-gray-800 text-white cursor-not-allowed'
-                          : 'border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
+                        editModePhase === "pending"
+                          ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
+                          : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
                       }`}
                     >
-                      {editModePhase === 'pending' ? (
+                      {editModePhase === "pending" ? (
                         <SpinnerGapIcon size={13} className="animate-spin" />
                       ) : (
                         <PencilSimpleIcon size={13} />
@@ -567,8 +610,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       <DashboardLayout.Canvas
         className={`relative ${
           isEditMode
-            ? 'bg-gray-50 transition-colors duration-200'
-            : 'transition-colors duration-200'
+            ? "bg-gray-50 transition-colors duration-200"
+            : "transition-colors duration-200"
         }`}
       >
         {/* Save toast — absolute top-center, no layout impact */}
@@ -584,8 +627,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
                 <CheckCircleIcon size={16} weight="fill" />
                 {isFirstSave
-                  ? 'Dashboard is created. You can access the dashboard from the side panel.'
-                  : 'Dashboard is updated. You can access the dashboard from the side panel.'}
+                  ? "Dashboard is created. You can access the dashboard from the side panel."
+                  : "Dashboard is updated. You can access the dashboard from the side panel."}
               </div>
             </motion.div>
           )}

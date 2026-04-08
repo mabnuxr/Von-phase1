@@ -1,26 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLineRightIcon, PlusIcon } from '@phosphor-icons/react';
-import { useDashboardQuery } from '../hooks/useDashboardQuery';
-import { useDashboardFilters } from '../hooks/useDashboardFilters';
-import { useAnalyticsTools } from '../hooks/useAnalyticsTools';
-import { useTableServerPagination } from '../hooks/useTableServerPagination';
-import { useDrilldown } from '../hooks/useDrilldown';
-import { useDashboardUpdate } from '../hooks/useDashboardUpdate';
-import { useResizablePane } from '../hooks/useResizablePane';
-import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from '../components/Analytics';
-import { Tooltip, useVisibilityToggle } from '@vonlabs/design-components';
-import { DrilldownPanel } from '../components/Analytics/DrilldownPanel';
-import { EditModeBanner } from '../components/Analytics/EditModeBanner';
-import { ChatPicker } from '../components/Analytics/ChatPicker';
-import { ConversationMoreMenu } from '../components/Analytics/ConversationMoreMenu';
-import { ChatSession } from '../components/chat/ChatSession';
-import { AnalyticsChatEmptyState } from '../components/AnalyticsChatEmptyState';
-import { useDashboardRefreshEvents } from '../hooks/useDashboardRefreshEvents';
-import { useDashboardSchedule } from '../hooks/useDashboardSchedule';
-import { useGlobalChat } from '../providers/GlobalChat';
-import { useNavigationGuard } from '../providers/NavigationGuard';
-import { useChatSidebarV2 } from '../hooks/useChatSidebarV2';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
+import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
+import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
+import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDrilldown } from "../hooks/useDrilldown";
+import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
+import { useResizablePane } from "../hooks/useResizablePane";
+import {
+  AnalyticsView,
+  AnalyticsSkeleton,
+  AnalyticsError,
+} from "../components/Analytics";
+import { Tooltip, useVisibilityToggle } from "@vonlabs/design-components";
+import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
+import { EditModeBanner } from "../components/Analytics/EditModeBanner";
+import { ChatPicker } from "../components/Analytics/ChatPicker";
+import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
+import { ChatSession } from "../components/chat/ChatSession";
+import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { useGlobalChat } from "../providers/GlobalChat";
+import { useNavigationGuard } from "../providers/NavigationGuard";
+import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
 interface DashboardCanvasProps {
   dashboardId: string;
@@ -33,7 +37,11 @@ interface DashboardCanvasProps {
  * fully resets on navigation — but lives inside Analytics so the chat panel
  * (rendered alongside it) remains untouched.
  */
-function DashboardCanvas({ dashboardId, onChatClick, isChatOpen }: DashboardCanvasProps) {
+function DashboardCanvas({
+  dashboardId,
+  onChatClick,
+  isChatOpen,
+}: DashboardCanvasProps) {
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
 
   const {
@@ -56,7 +64,7 @@ function DashboardCanvas({ dashboardId, onChatClick, isChatOpen }: DashboardCanv
     (newName: string) => {
       handleUpdate({ dashboard_name: newName });
     },
-    [handleUpdate]
+    [handleUpdate],
   );
 
   const dashboard = data?.dashboard ?? null;
@@ -76,9 +84,18 @@ function DashboardCanvas({ dashboardId, onChatClick, isChatOpen }: DashboardCanv
     handleCommitPendingRow,
     handleApply,
     handleClearAll,
-  } = useDashboardFilters(dashboardId, dashboard?.filters?.definitions ?? [], activeFilters);
-  const { mergedWidgets, handlePageChange, handleSortChange, loadingPanels, activeSorts } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
   // Drilldown
   const {
@@ -185,12 +202,13 @@ function DashboardCanvas({ dashboardId, onChatClick, isChatOpen }: DashboardCanv
         widgetTitle={
           drilldownTitle ||
           (drilldownPanelId && dashboard.widgets?.[drilldownPanelId]?.title) ||
-          'Drilldown'
+          "Drilldown"
         }
         query={
           drilldownQuery ||
-          (drilldownPanelId && dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
-          ''
+          (drilldownPanelId &&
+            dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
+          ""
         }
         data={drilldownData}
         pagination={drilldownPagination}
@@ -215,11 +233,16 @@ const Analytics = () => {
   const [searchParams] = useSearchParams();
 
   // Read conversationId from query params (deep-link support: "View in Dashboard" CTA)
-  const conversationIdFromParams = searchParams.get('conversationId');
+  const conversationIdFromParams = searchParams.get("conversationId");
 
   // Global chat state — persists across dashboard navigation
-  const { activeChatId, setActiveChatId, isChatPanelOpen, openChatPanel, closeChatPanel } =
-    useGlobalChat();
+  const {
+    activeChatId,
+    setActiveChatId,
+    isChatPanelOpen,
+    openChatPanel,
+    closeChatPanel,
+  } = useGlobalChat();
 
   const { unfiledConversations } = useChatSidebarV2();
 
@@ -229,7 +252,9 @@ const Analytics = () => {
 
   // Local fallback for conversations created during this session before they're
   // reflected in the sidebar list
-  const [createdConversationId, setCreatedConversationId] = useState<string | null>(null);
+  const [createdConversationId, setCreatedConversationId] = useState<
+    string | null
+  >(null);
   const {
     isVisible: isRenamingChat,
     show: startRenamingChat,
@@ -248,7 +273,7 @@ const Analytics = () => {
         setActiveChatId(conversationId);
       }
     },
-    [dashboardId, setActiveChatId]
+    [dashboardId, setActiveChatId],
   );
 
   // Update refs on dashboard change and reset the local created-conversation
@@ -273,7 +298,7 @@ const Analytics = () => {
   // Fetch dashboard metadata for the chat panel (React Query cache — no duplicate request
   // since DashboardCanvas calls this same hook with the same key)
   const { data } = useDashboardQuery(dashboardId);
-  const dashboardTitle = data?.dashboard?.title ?? '';
+  const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
   const isEditable = data?.dashboard?.isEditable ?? false;
 
@@ -281,15 +306,15 @@ const Analytics = () => {
   // Modal is rendered by NavigationGuardProvider — no manual modal here.
   const { guard } = useNavigationGuard({
     when: isEditable,
-    title: 'Dashboard in edit mode',
-    body: `You have unsaved changes on ${dashboardTitle || 'this dashboard'}. Are you sure you want to switch?`,
-    confirmLabel: 'Switch Anyway',
+    title: "Dashboard in edit mode",
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
+    confirmLabel: "Switch Anyway",
   });
 
   // ── Chat switch guard (Modal 2): blocks chat switching while in edit mode ──
-  const chatSwitchTitle = 'Switch chat?';
-  const chatSwitchBody = `Your current chat has edit context for ${dashboardTitle || 'this dashboard'}. Switching chats will lose this context.`;
-  const chatSwitchConfirmLabel = 'Switch Chat';
+  const chatSwitchTitle = "Switch chat?";
+  const chatSwitchBody = `Your current chat has edit context for ${dashboardTitle || "this dashboard"}. Switching chats will lose this context.`;
+  const chatSwitchConfirmLabel = "Switch Chat";
 
   const guardedSetActiveChatId = useCallback(
     (chatId: string | null) => {
@@ -303,7 +328,13 @@ const Analytics = () => {
         return;
       setActiveChatId(chatId);
     },
-    [guard, setActiveChatId, chatSwitchTitle, chatSwitchBody, chatSwitchConfirmLabel]
+    [
+      guard,
+      setActiveChatId,
+      chatSwitchTitle,
+      chatSwitchBody,
+      chatSwitchConfirmLabel,
+    ],
   );
 
   // Select the most recent conversation each time the panel opens, routed
@@ -320,7 +351,12 @@ const Analytics = () => {
     if (unfiledConversations.length === 0) return;
 
     guardedSetActiveChatId(unfiledConversations[0].conversationId);
-  }, [isChatPanelOpen, unfiledConversations, guardedSetActiveChatId, conversationIdFromParams]);
+  }, [
+    isChatPanelOpen,
+    unfiledConversations,
+    guardedSetActiveChatId,
+    conversationIdFromParams,
+  ]);
 
   const guardedNewChat = useCallback(() => {
     const action = () => {
@@ -336,7 +372,13 @@ const Analytics = () => {
     )
       return;
     action();
-  }, [guard, setActiveChatId, chatSwitchTitle, chatSwitchBody, chatSwitchConfirmLabel]);
+  }, [
+    guard,
+    setActiveChatId,
+    chatSwitchTitle,
+    chatSwitchBody,
+    chatSwitchConfirmLabel,
+  ]);
 
   const {
     widthCss: chatPaneWidth,
@@ -361,9 +403,9 @@ const Analytics = () => {
       <div
         className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
         style={{
-          width: isChatPanelOpen ? chatPaneWidth : '0px',
-          overflow: isChatPanelOpen ? undefined : 'hidden',
-          transition: isResizing ? 'none' : 'width 0.3s ease',
+          width: isChatPanelOpen ? chatPaneWidth : "0px",
+          overflow: isChatPanelOpen ? undefined : "hidden",
+          transition: isResizing ? "none" : "width 0.3s ease",
         }}
       >
         {/* Resize handle */}
@@ -372,7 +414,7 @@ const Analytics = () => {
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-indigo-500/30 transition-colors z-10 group touch-none"
-          style={{ marginLeft: '-3px' }}
+          style={{ marginLeft: "-3px" }}
         >
           <div className="absolute inset-y-0 left-1/2 w-0.5 bg-transparent group-hover:bg-indigo-400 transition-colors" />
         </div>
