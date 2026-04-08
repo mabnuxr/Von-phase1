@@ -357,8 +357,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
                 />
               ) : (
-                <div className="flex items-center gap-1.5 group">
-                  <h1 className="text-base font-semibold text-gray-900 truncate">
+                <div className="flex items-center gap-1.5">
+                  <h1
+                    className={`text-base font-semibold text-gray-900 truncate ${
+                      dashboard.isOwner && onRename && isSaved
+                        ? "cursor-pointer"
+                        : ""
+                    }`}
+                    onDoubleClick={
+                      dashboard.isOwner && onRename && isSaved
+                        ? () => setIsRenamingTitle(true)
+                        : undefined
+                    }
+                  >
                     {dashboard.title}
                   </h1>
                   {dashboard.description && (
@@ -374,36 +385,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       </button>
                     </Tooltip>
                   )}
-                  {dashboard.isOwner && onRename && (
-                    <Tooltip
-                      content={
-                        isSaved
-                          ? "Rename dashboard"
-                          : "Save the dashboard to rename"
-                      }
-                    >
-                      <button
-                        onClick={
-                          isSaved ? () => setIsRenamingTitle(true) : undefined
-                        }
-                        disabled={!isSaved}
-                        className={`transition-opacity ${
-                          isEditMode
-                            ? "opacity-100"
-                            : "opacity-0 group-hover:opacity-100"
-                        } ${
-                          isSaved
-                            ? "text-gray-700 hover:text-gray-900 cursor-pointer"
-                            : "text-gray-500 cursor-not-allowed"
-                        }`}
-                      >
-                        <PencilSimpleIcon size={16} />
-                      </button>
-                    </Tooltip>
-                  )}
                 </div>
               )}
             </div>
+            {!isEditMode && !isRefetchingData && !isRefreshing && (
+              <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
+            )}
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
@@ -509,9 +496,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
-            {!isEditMode && !isRefetchingData && !isRefreshing && (
-              <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
-            )}
             <RefreshButton
               onRefresh={onRefresh}
               canRefresh={isSaved}
