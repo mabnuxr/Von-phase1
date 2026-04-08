@@ -1141,3 +1141,21 @@ td[data-streamdown='table-cell'] {
     font-size: 0.6875rem !important;
   }
 }
+
+/* ── Shared shimmer animation ────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  50% {
+    background-position: 50% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 250% 100%;
+  animation: shimmer 2s linear infinite;
+}
