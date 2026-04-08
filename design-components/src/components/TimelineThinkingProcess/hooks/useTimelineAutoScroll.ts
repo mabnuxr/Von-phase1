@@ -12,13 +12,11 @@ export function useTimelineAutoScroll({
   awaitingApprovalStep,
   isCollapsed,
   visibleSteps,
-  steps,
 }: {
   isThinking: boolean;
   awaitingApprovalStep: TimelineStep | undefined;
   isCollapsed: boolean;
   visibleSteps: TimelineStep[];
-  steps: TimelineStep[];
 }): React.RefObject<HTMLDivElement | null> {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userHasScrolledRef = useRef(false);
@@ -46,7 +44,7 @@ export function useTimelineAutoScroll({
 
     container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [visibleSteps.length]);
+  }, [visibleSteps.length, isCollapsed]);
 
   // Reset scroll tracking when thinking starts or an approval step arrives
   useEffect(() => {
@@ -70,7 +68,7 @@ export function useTimelineAutoScroll({
         }
       });
     }
-  }, [visibleSteps.length, isCollapsed, isThinking, steps, awaitingApprovalStep]);
+  }, [visibleSteps.length, isCollapsed, isThinking, awaitingApprovalStep]);
 
   return scrollContainerRef;
 }

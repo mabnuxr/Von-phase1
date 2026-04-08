@@ -139,7 +139,6 @@ export function useTimelineState({
     awaitingApprovalStep,
     isCollapsed,
     visibleSteps,
-    steps,
   });
 
   return {
