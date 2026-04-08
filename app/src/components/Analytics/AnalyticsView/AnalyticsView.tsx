@@ -130,7 +130,9 @@ interface AnalyticsViewProps {
   isSchedulePaused: boolean;
   isScheduleMutating: boolean;
   onCreateSchedule: (config: ScheduleConfigRequest) => Promise<unknown>;
-  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => Promise<unknown>;
+  onUpdateSchedule: (
+    config: Partial<ScheduleConfigRequest>,
+  ) => Promise<unknown>;
   onPauseSchedule: () => Promise<unknown>;
   onResumeSchedule: () => Promise<unknown>;
   onDeleteSchedule: () => Promise<unknown>;

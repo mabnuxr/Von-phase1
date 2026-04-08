@@ -173,7 +173,9 @@ interface RefreshButtonProps {
   isPaused: boolean;
   isMutating: boolean;
   onCreateSchedule: (config: ScheduleConfigRequest) => Promise<unknown>;
-  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => Promise<unknown>;
+  onUpdateSchedule: (
+    config: Partial<ScheduleConfigRequest>,
+  ) => Promise<unknown>;
   onPauseSchedule: () => Promise<unknown>;
   onResumeSchedule: () => Promise<unknown>;
   onDeleteSchedule: () => Promise<unknown>;
@@ -287,9 +289,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
           <button
             onClick={handleRefreshClick}
             disabled={isDisabled}
-            className={`inline-flex items-center justify-center w-[34px] h-[34px] border border-r-0 rounded-l-xl transition-colors ${
-              isDisabled ? baseStyles : open ? activeStyles : baseStyles
-            }`}
+            className={`inline-flex items-center justify-center w-[34px] h-[34px] border border-r-0 rounded-l-xl transition-colors ${baseStyles}`}
           >
             {isRefreshing ? (
               <SpinnerGapIcon size={14} className="animate-spin" />
