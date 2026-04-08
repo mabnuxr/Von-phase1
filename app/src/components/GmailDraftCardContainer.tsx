@@ -65,7 +65,7 @@ function getGmailErrorCode(e: unknown): string | null {
   const resp = e.response as Record<string, unknown>;
   const detail = resp.detail;
   if (detail && typeof detail === "object") {
-    return (detail as Record<string, unknown>).code as string ?? null;
+    return ((detail as Record<string, unknown>).code as string) ?? null;
   }
   return null;
 }
@@ -106,7 +106,11 @@ export const GmailDraftCardContainer: React.FC<
     setIsCreatingDraft(true);
     try {
       const result = await createGmailDraft(conversationId, artifact.fileId);
-      window.open(buildDraftComposeUrl(result), "_blank", "noopener,noreferrer");
+      window.open(
+        buildDraftComposeUrl(result),
+        "_blank",
+        "noopener,noreferrer",
+      );
     } catch (e) {
       const errorCode = getGmailErrorCode(e);
       if (errorCode === "gmail_scope_insufficient") {
@@ -306,7 +310,11 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
     setIsCreatingDraft(true);
     try {
       const result = await createGmailDraft(conversationId, a.fileId);
-      window.open(buildDraftComposeUrl(result), "_blank", "noopener,noreferrer");
+      window.open(
+        buildDraftComposeUrl(result),
+        "_blank",
+        "noopener,noreferrer",
+      );
     } catch (e) {
       const errorCode = getGmailErrorCode(e);
       if (errorCode === "gmail_scope_insufficient") {
