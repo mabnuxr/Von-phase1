@@ -70,8 +70,8 @@ export interface DashboardMetadata {
   dashboard_id: string;
   dashboard_name: string;
   dashboard_version: number;
-  panel_count: number;
-  query_count: number;
+  panel_count?: number;
+  query_count?: number;
 }
 
 export interface Message {
