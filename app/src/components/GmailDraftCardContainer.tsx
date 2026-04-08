@@ -136,7 +136,7 @@ export const GmailDraftCardContainer: React.FC<
     } finally {
       setIsCreatingDraft(false);
     }
-  }, [conversationId, artifact.fileId, parsedQuery.data, showToast, navigate]);
+  }, [conversationId, artifact.fileId, showToast, navigate]);
 
   // Pending or loading → skeleton
   if (artifact.isPending || urlQuery.isLoading || parsedQuery.isLoading) {
