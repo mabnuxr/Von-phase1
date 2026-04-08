@@ -6,7 +6,7 @@
  * Shows <ArtifactCardSkeleton> while loading or if any artifact is pending.
  */
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   EmailComposer,
@@ -14,12 +14,11 @@ import {
 } from "@vonlabs/design-components";
 import type { FileArtifact, EmailData } from "@vonlabs/design-components";
 import { fileUploadService } from "../services/fileUploadService";
-import {
-  parseEmlContent,
-  buildGmailComposeUrl,
-  type DraftCard,
-} from "../lib/emailUtils";
+import { apiClient, ApiError } from "../services/apiClient";
+import { parseEmlContent } from "../lib/emailUtils";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useToast } from "../hooks/useToast";
+import { useNavigate } from "react-router-dom";
 
 interface GmailDraftCardContainerProps {
   conversationId: string;
@@ -36,10 +35,48 @@ function toArray(to: string): string[] {
     .filter(Boolean);
 }
 
+interface CreateDraftResponse {
+  draft_id: string;
+  message_id: string;
+  gmail_url: string;
+}
+
+async function createGmailDraft(
+  conversationId: string,
+  fileId: string,
+): Promise<CreateDraftResponse> {
+  return apiClient.post<CreateDraftResponse>(
+    "/api/v1/gsuite/gmail/create-draft",
+    { file_id: fileId, conversation_id: conversationId },
+  );
+}
+
+/** Build a Gmail URL that opens a draft directly in compose mode. */
+function buildDraftComposeUrl(result: CreateDraftResponse): string {
+  if (result.message_id) {
+    return `https://mail.google.com/mail/u/0/#drafts?compose=${result.message_id}`;
+  }
+  return result.gmail_url;
+}
+
+/** Extract `detail.code` from an ApiError response body, if present. */
+function getGmailErrorCode(e: unknown): string | null {
+  if (!(e instanceof ApiError) || !e.response) return null;
+  const resp = e.response as Record<string, unknown>;
+  const detail = resp.detail;
+  if (detail && typeof detail === "object") {
+    return ((detail as Record<string, unknown>).code as string) ?? null;
+  }
+  return null;
+}
+
 export const GmailDraftCardContainer: React.FC<
   GmailDraftCardContainerProps
 > = ({ conversationId, artifact }) => {
   const { isGmailEnabled } = useFeatureFlag();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
 
   // Step 1 — get presigned download URL
   const urlQuery = useQuery({
@@ -64,6 +101,46 @@ export const GmailDraftCardContainer: React.FC<
     staleTime: Infinity,
     gcTime: 10 * 60 * 1000,
   });
+
+  const handleOpenInGmail = useCallback(async () => {
+    setIsCreatingDraft(true);
+    try {
+      const result = await createGmailDraft(conversationId, artifact.fileId);
+      window.open(
+        buildDraftComposeUrl(result),
+        "_blank",
+        "noopener,noreferrer",
+      );
+    } catch (e) {
+      const errorCode = getGmailErrorCode(e);
+      if (errorCode === "gmail_scope_insufficient") {
+        showToast({
+          message: "Gmail permissions have changed. Please reconnect Gmail.",
+          variant: "error",
+          action: {
+            label: "Reconnect",
+            onClick: () => navigate("/settings?tab=integrations"),
+          },
+        });
+      } else if (e instanceof ApiError && e.statusCode === 403) {
+        showToast({
+          message: "Connect Gmail to open long emails as drafts.",
+          variant: "error",
+          action: {
+            label: "Connect",
+            onClick: () => navigate("/settings?tab=integrations"),
+          },
+        });
+      } else {
+        showToast({
+          message: "Failed to create Gmail draft. Please try again.",
+          variant: "error",
+        });
+      }
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  }, [conversationId, artifact.fileId, showToast, navigate]);
 
   // Pending or loading → skeleton
   if (artifact.isPending || urlQuery.isLoading || parsedQuery.isLoading) {
@@ -98,27 +175,27 @@ export const GmailDraftCardContainer: React.FC<
     );
   }
 
-  const card: DraftCard = { type: "email_draft", ...parsed };
-  const gmailUrl = buildGmailComposeUrl(card);
-
   const emailData: EmailData = {
     to: toArray(parsed.to),
     cc: parsed.cc,
     bcc: parsed.bcc,
     subject: parsed.subject,
     body: parsed.body_full,
+    bodyPlain: parsed.body_plain,
+    isHtml: parsed.isHtml,
   };
 
   return (
     <EmailComposer
       emails={[emailData]}
       onOpenInGmail={
-        isGmailEnabled && gmailUrl
+        isGmailEnabled
           ? () => {
-              window.open(gmailUrl, "_blank", "noopener,noreferrer");
+              void handleOpenInGmail();
             }
           : undefined
       }
+      isCreatingDraft={isCreatingDraft}
     />
   );
 };
@@ -138,6 +215,9 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   artifacts,
 }) => {
   const { isGmailEnabled } = useFeatureFlag();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
 
   // Fetch presigned URLs for all artifacts in parallel
   const urlQueries = useQueries({
@@ -196,23 +276,23 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   }
 
   const emails: EmailData[] = [];
-  const gmailUrls: (string | undefined)[] = [];
+  const emailToArtifactIndex: number[] = [];
 
-  for (const pq of parsedQueries) {
+  parsedQueries.forEach((pq, i) => {
     const parsed = pq.data;
-    if (!parsed) continue;
+    if (!parsed) return;
 
-    const card: DraftCard = { type: "email_draft", ...parsed };
-    gmailUrls.push(buildGmailComposeUrl(card));
-
+    emailToArtifactIndex.push(i);
     emails.push({
       to: toArray(parsed.to),
       cc: parsed.cc,
       bcc: parsed.bcc,
       subject: parsed.subject,
       body: parsed.body_full,
+      bodyPlain: parsed.body_plain,
+      isHtml: parsed.isHtml,
     });
-  }
+  });
 
   if (emails.length === 0) {
     return (
@@ -222,17 +302,59 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
     );
   }
 
+  const handleOpenInGmail = async (index: number) => {
+    const artifactIdx = emailToArtifactIndex[index];
+    const a = artifacts[artifactIdx];
+    if (!a) return;
+
+    setIsCreatingDraft(true);
+    try {
+      const result = await createGmailDraft(conversationId, a.fileId);
+      window.open(
+        buildDraftComposeUrl(result),
+        "_blank",
+        "noopener,noreferrer",
+      );
+    } catch (e) {
+      const errorCode = getGmailErrorCode(e);
+      if (errorCode === "gmail_scope_insufficient") {
+        showToast({
+          message: "Gmail permissions have changed. Please reconnect Gmail.",
+          variant: "error",
+          action: {
+            label: "Reconnect",
+            onClick: () => navigate("/settings?tab=integrations"),
+          },
+        });
+      } else if (e instanceof ApiError && e.statusCode === 403) {
+        showToast({
+          message: "Connect Gmail to open long emails as drafts.",
+          variant: "error",
+          action: {
+            label: "Connect",
+            onClick: () => navigate("/settings?tab=integrations"),
+          },
+        });
+      } else {
+        showToast({
+          message: "Failed to create Gmail draft. Please try again.",
+          variant: "error",
+        });
+      }
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  };
+
   return (
     <EmailComposer
       emails={emails}
       onOpenInGmail={
         isGmailEnabled
-          ? (index: number) => {
-              const url = gmailUrls[index];
-              if (url) window.open(url, "_blank", "noopener,noreferrer");
-            }
+          ? (index: number) => void handleOpenInGmail(index)
           : undefined
       }
+      isCreatingDraft={isCreatingDraft}
     />
   );
 };
