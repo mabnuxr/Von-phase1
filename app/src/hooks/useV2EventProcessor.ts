@@ -106,7 +106,7 @@ export interface UseV2EventProcessorReturn {
   stoppedByUser: boolean;
   runErrorMessage: string;
   dashboard: DashboardMetadata | null;
-  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  /** Key used to trigger auto-open. Set by live Pusher events, reconciliation, and gap-fill (not seeding). */
   liveDashboardKey: string | null;
   /** execution_id from RUN_FINISHED for workflow execution approval (dry_run completed) */
   executionId: string | null;
@@ -128,6 +128,12 @@ export interface UseV2EventProcessorReturn {
   applyTransformResult: (
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
+    options?: {
+      dashboard?: DashboardMetadata | null;
+      executionId?: string | null;
+      isDashboardBuilderMode?: boolean;
+      triggerAutoOpen?: boolean;
+    },
   ) => void;
   handleRunFinished: (runId: string, elapsedTime: number) => void;
 }
@@ -176,7 +182,7 @@ export function useV2EventProcessor(
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
-  /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
+  /** Key used to trigger auto-open. Set by live Pusher events, reconciliation, and gap-fill (not seeding). */
   const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
@@ -209,6 +215,8 @@ export function useV2EventProcessor(
         dashboard?: DashboardMetadata | null;
         executionId?: string | null;
         isDashboardBuilderMode?: boolean;
+        /** When true, also set liveDashboardKey to trigger auto-open (e.g. from reconciliation). */
+        triggerAutoOpen?: boolean;
       },
     ) => {
       flushSync(() => {
@@ -224,6 +232,11 @@ export function useV2EventProcessor(
         setRunErrorMessage(result.runErrorMessage);
         if (options?.dashboard !== undefined) {
           setDashboard(options.dashboard);
+          if (options.triggerAutoOpen && options.dashboard) {
+            setLiveDashboardKey(
+              `${options.dashboard.dashboard_id}:${options.dashboard.dashboard_version}`,
+            );
+          }
         }
         if (options?.executionId !== undefined) {
           setExecutionId(options.executionId);
@@ -448,7 +461,24 @@ export function useV2EventProcessor(
 
           eventsRef.current.set(runId, filledEvents);
           const gapResult = transformAguiToTimelineSteps(filledEvents);
-          applyTransformResult(gapResult, runId);
+
+          // Extract dashboard metadata from gap-filled events so the
+          // preview pane opens even when the live event was missed.
+          const gapDashboardEvt = findLast(
+            filledEvents,
+            (e) => e.event?.type === "DASHBOARD_READY",
+          );
+          const gapDashboard = gapDashboardEvt
+            ? ((gapDashboardEvt.event as DashboardReadyEvent).dashboard ??
+              undefined)
+            : undefined;
+
+          applyTransformResult(gapResult, runId, {
+            dashboard: gapDashboard,
+            // Only auto-open during active streaming (mid-stream gap-fill),
+            // not when backfilling gaps for a completed run on page load.
+            triggerAutoOpen: !finishedRunsRef.current.has(runId),
+          });
 
           if (import.meta.env.DEV) {
             console.log(
@@ -500,6 +530,22 @@ export function useV2EventProcessor(
               finishedRunEvents.sort((a, b) => a.sequence - b.sequence);
             }
           }
+
+          // Still process DASHBOARD_READY even for finished runs so the
+          // preview pane opens when the event arrives after run_finished.
+          if (eventType === "DASHBOARD_READY") {
+            const payload =
+              (wrapper.event as DashboardReadyEvent).dashboard ?? null;
+            if (payload) {
+              flushSync(() => {
+                setDashboard(payload);
+                setLiveDashboardKey(
+                  `${payload.dashboard_id}:${payload.dashboard_version}`,
+                );
+              });
+            }
+          }
+
           if (import.meta.env.DEV) {
             console.log(
               "[useV2EventProcessor] Accumulated late event for finished run:",

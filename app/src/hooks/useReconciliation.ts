@@ -56,6 +56,7 @@ export interface UseReconciliationConfig {
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
       isDashboardBuilderMode?: boolean;
+      triggerAutoOpen?: boolean;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
@@ -184,6 +185,7 @@ export function useReconciliation({
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
         isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
+        triggerAutoOpen: true,
       });
 
       // Step 7: Handle run completion
