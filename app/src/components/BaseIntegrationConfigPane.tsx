@@ -1125,7 +1125,7 @@ export function BaseIntegrationConfigPane({
                     integrationId === "gong"
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
                       : integrationId === "jiminny"
-                        ? "https://jiminny.github.io/customer-api-docs/"
+                        ? "https://help.jiminny.com/en/articles/9527212-what-is-the-jiminny-api"
                         : integrationId === "zendesk"
                           ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
                           : integrationId === "snowflake"
