@@ -159,6 +159,7 @@ export type {
   ToolCallResultEvent,
   StepFinishedEvent,
   RunFinishedEvent,
+  DashboardReadyEvent,
   ToolCall,
   ToolResult,
   TableData,

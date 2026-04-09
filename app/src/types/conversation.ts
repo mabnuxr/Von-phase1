@@ -98,15 +98,15 @@ export interface MessageReference {
 }
 
 /**
- * Dashboard metadata from RUN_FINISHED event
- * Sent by backend when a dashboard is created
+ * Dashboard metadata from dashboard_ready event
+ * Sent by backend when a dashboard is created or updated
  */
 export interface DashboardMetadata {
   dashboard_id: string;
   dashboard_name: string;
   dashboard_version: number;
-  panel_count: number;
-  query_count: number;
+  panel_count?: number;
+  query_count?: number;
 }
 
 /**
@@ -126,7 +126,7 @@ export interface Message {
   /** References returned by the backend (e.g. dashboard references) */
   references?: MessageReference[];
   /**
-   * Dashboard metadata from RUN_FINISHED event (assistant messages only)
+   * Dashboard metadata from dashboard_ready event (assistant messages only)
    * Present when a dashboard was created during this run
    */
   dashboard?: DashboardMetadata;
