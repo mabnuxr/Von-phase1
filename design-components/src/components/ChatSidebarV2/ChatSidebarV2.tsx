@@ -156,6 +156,23 @@ export interface ChatSidebarProps {
 }
 
 // ============================================================================
+// Empty State Components
+// ============================================================================
+
+const SectionEmptyState: React.FC<{
+  message: string;
+}> = ({ message }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3, ease: 'easeOut' }}
+    className="mx-1 my-1 px-3 py-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/50"
+  >
+    <p className="text-[12px] text-gray-400 leading-tight">{message}</p>
+  </motion.div>
+);
+
+// ============================================================================
 // Dashboard Section (with show more / show less)
 // ============================================================================
 
@@ -672,11 +689,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     ) : (
                       <div className="mb-3">
                         <SectionHeader label="Dashboards" />
-                        <div className="px-3 py-3 text-center">
-                          <p className="text-[12px] text-gray-400">
-                            Dashboards you create will appear here.
-                          </p>
-                        </div>
+                        <SectionEmptyState message="No dashboards yet. Chat with Von to create one." />
                       </div>
                     )}
                   </>
@@ -703,11 +716,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         ))}
                       </div>
                     ) : (
-                      <div className="px-3 py-3 text-center">
-                        <p className="text-[12px] text-gray-400">
-                          Your conversations will appear here.
-                        </p>
-                      </div>
+                      <SectionEmptyState message="No conversations yet. Start a new chat to get going." />
                     )}
                   </div>
                 )}
