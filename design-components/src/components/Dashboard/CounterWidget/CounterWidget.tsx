@@ -126,7 +126,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
 
   return (
     <div
-      className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-200 hover:shadow-md transition-all"
+      className="group relative h-full bg-white border border-gray-200 px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
       onClick={onDrillDown}
     >
       {(appliedFilters || queryInfo || onDrillDown) && (

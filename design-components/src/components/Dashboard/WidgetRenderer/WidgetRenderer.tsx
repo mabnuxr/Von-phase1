@@ -67,7 +67,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
         if (widget.query_failed || (widget.config as CounterWidgetConfig).value === null) {
           return (
             <div
-              className="group relative h-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-200 hover:shadow-md transition-all"
+              className="group relative h-full bg-white border border-gray-200 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
               onClick={drillDownHandler}
             >
               {(appliedFilters || widget.queryInfo) && (
