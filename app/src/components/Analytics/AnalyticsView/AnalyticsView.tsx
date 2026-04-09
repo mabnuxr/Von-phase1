@@ -129,11 +129,13 @@ interface AnalyticsViewProps {
   isScheduled: boolean;
   isSchedulePaused: boolean;
   isScheduleMutating: boolean;
-  onCreateSchedule: (config: ScheduleConfigRequest) => void;
-  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
-  onPauseSchedule: () => void;
-  onResumeSchedule: () => void;
-  onDeleteSchedule: () => void;
+  onCreateSchedule: (config: ScheduleConfigRequest) => Promise<unknown>;
+  onUpdateSchedule: (
+    config: Partial<ScheduleConfigRequest>,
+  ) => Promise<unknown>;
+  onPauseSchedule: () => Promise<unknown>;
+  onResumeSchedule: () => Promise<unknown>;
+  onDeleteSchedule: () => Promise<unknown>;
   /** Whether widget data is being refetched (e.g. after filter change) */
   isRefetchingData?: boolean;
   /** Whether a background refresh is in progress (Pusher-driven) */

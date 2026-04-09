@@ -197,30 +197,30 @@ export function useDashboardSchedule(dashboardId: string) {
 
   // ─── Handlers ───────────────────────────────────────────────
   const handleCreateSchedule = useCallback(
-    (config: ScheduleConfigRequest) => {
-      createMutation.mutate(config);
-    },
+    (config: ScheduleConfigRequest) => createMutation.mutateAsync(config),
     [createMutation],
   );
 
   const handleUpdateSchedule = useCallback(
-    (config: Partial<ScheduleConfigRequest>) => {
-      updateMutation.mutate(config);
-    },
+    (config: Partial<ScheduleConfigRequest>) =>
+      updateMutation.mutateAsync(config),
     [updateMutation],
   );
 
-  const handlePauseSchedule = useCallback(() => {
-    pauseMutation.mutate();
-  }, [pauseMutation]);
+  const handlePauseSchedule = useCallback(
+    () => pauseMutation.mutateAsync(),
+    [pauseMutation],
+  );
 
-  const handleResumeSchedule = useCallback(() => {
-    resumeMutation.mutate();
-  }, [resumeMutation]);
+  const handleResumeSchedule = useCallback(
+    () => resumeMutation.mutateAsync(),
+    [resumeMutation],
+  );
 
-  const handleDeleteSchedule = useCallback(() => {
-    deleteMutation.mutate();
-  }, [deleteMutation]);
+  const handleDeleteSchedule = useCallback(
+    () => deleteMutation.mutateAsync(),
+    [deleteMutation],
+  );
 
   return {
     schedule,

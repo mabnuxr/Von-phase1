@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  ArrowsClockwiseIcon,
+  ArrowClockwiseIcon,
   CalendarBlankIcon,
   CaretDownIcon,
   PauseIcon,
@@ -172,11 +172,13 @@ interface RefreshButtonProps {
   isScheduled: boolean;
   isPaused: boolean;
   isMutating: boolean;
-  onCreateSchedule: (config: ScheduleConfigRequest) => void;
-  onUpdateSchedule: (config: Partial<ScheduleConfigRequest>) => void;
-  onPauseSchedule: () => void;
-  onResumeSchedule: () => void;
-  onDeleteSchedule: () => void;
+  onCreateSchedule: (config: ScheduleConfigRequest) => Promise<unknown>;
+  onUpdateSchedule: (
+    config: Partial<ScheduleConfigRequest>,
+  ) => Promise<unknown>;
+  onPauseSchedule: () => Promise<unknown>;
+  onResumeSchedule: () => Promise<unknown>;
+  onDeleteSchedule: () => Promise<unknown>;
 }
 
 export const RefreshButton: React.FC<RefreshButtonProps> = ({
@@ -195,11 +197,6 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   onDeleteSchedule,
 }) => {
   const { isVisible: open, hide, toggleVisibility } = useVisibilityToggle();
-  const {
-    isVisible: scheduleOpen,
-    hide: hideSchedule,
-    toggleVisibility: toggleSchedule,
-  } = useVisibilityToggle();
 
   // ScheduleFields local form state
   const [pickerSchedule, setPickerSchedule] = useState<Schedule>(() =>
@@ -215,30 +212,29 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
     );
   }, [open, schedule]);
 
-  // Close accordion when popover closes
-  useEffect(() => {
-    if (!open) hideSchedule();
-  }, [open, hideSchedule]);
+  const handleRefreshClick = () => {
+    if (canRefresh && !isRefreshing) {
+      onRefresh();
+    }
+  };
 
-  const handleToggle = () => {
+  const handleDropdownToggle = () => {
     if (canRefresh) toggleVisibility();
   };
 
-  const handleSubmitSchedule = useCallback(() => {
+  const handleSubmitSchedule = useCallback(async () => {
     const config = pickerScheduleToApi(pickerSchedule);
-    if (isScheduled) {
-      onUpdateSchedule(config);
-    } else {
-      onCreateSchedule(config);
+    try {
+      if (isScheduled) {
+        await onUpdateSchedule(config);
+      } else {
+        await onCreateSchedule(config);
+      }
+      hide();
+    } catch {
+      // Error toast is shown by the mutation hook; keep popover open for retry
     }
-    hideSchedule();
-  }, [
-    pickerSchedule,
-    isScheduled,
-    onCreateSchedule,
-    onUpdateSchedule,
-    hideSchedule,
-  ]);
+  }, [pickerSchedule, isScheduled, onCreateSchedule, onUpdateSchedule, hide]);
 
   // Summary text for collapsed schedule header
   const scheduleSummary = useMemo(() => {
@@ -248,35 +244,81 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
     );
   }, [isScheduled, schedule, pickerSchedule.timezone]);
 
-  return (
-    <div className="relative">
+  const isDisabled = !canRefresh || isRefreshing;
+
+  const baseStyles = isDisabled
+    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer";
+
+  const dropdownBaseStyles = !canRefresh
+    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer";
+
+  const activeStyles =
+    "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer";
+
+  // Non-owner or no schedule permission: simple icon button
+  if (!isOwner) {
+    return (
       <Tooltip
         content={
-          canRefresh
-            ? isOwner
-              ? "Refresh & schedule"
-              : "Refresh now"
-            : "Save the dashboard to refresh data"
+          canRefresh ? "Refresh now" : "Save the dashboard to refresh data"
         }
       >
         <button
-          onClick={handleToggle}
-          disabled={!canRefresh || isRefreshing}
-          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${
-            !canRefresh || isRefreshing
-              ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-              : open
-                ? "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer"
-                : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-          }`}
+          onClick={handleRefreshClick}
+          disabled={isDisabled}
+          className={`inline-flex items-center justify-center w-[34px] h-[34px] border rounded-xl transition-colors ${baseStyles}`}
         >
           {isRefreshing ? (
             <SpinnerGapIcon size={14} className="animate-spin" />
           ) : (
-            <ArrowsClockwiseIcon size={14} />
+            <ArrowClockwiseIcon size={14} />
           )}
         </button>
       </Tooltip>
+    );
+  }
+
+  // Owner: split button — primary refresh + dropdown for schedule
+  return (
+    <div className="relative">
+      <div className="inline-flex items-stretch">
+        {/* Primary action: Refresh now */}
+        <Tooltip
+          content={
+            canRefresh ? "Refresh now" : "Save the dashboard to refresh data"
+          }
+        >
+          <button
+            onClick={handleRefreshClick}
+            disabled={isDisabled}
+            className={`inline-flex items-center justify-center w-[34px] h-[34px] border border-r-0 rounded-l-xl transition-colors ${baseStyles}`}
+          >
+            {isRefreshing ? (
+              <SpinnerGapIcon size={14} className="animate-spin" />
+            ) : (
+              <ArrowClockwiseIcon size={14} />
+            )}
+          </button>
+        </Tooltip>
+
+        {/* Dropdown toggle: Schedule refresh */}
+        <Tooltip content="Schedule refresh">
+          <button
+            onClick={handleDropdownToggle}
+            disabled={!canRefresh}
+            className={`inline-flex items-center justify-center w-[22px] h-[34px] border rounded-r-xl transition-colors ${
+              open && canRefresh ? activeStyles : dropdownBaseStyles
+            }`}
+          >
+            <CaretDownIcon
+              size={10}
+              className={`transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+            />
+          </button>
+        </Tooltip>
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -287,150 +329,115 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.1 }}
-              className="absolute right-0 top-full mt-1.5 z-[9999] bg-white rounded-2xl shadow-lg border border-gray-100 p-1 w-[272px]"
+              className="absolute right-0 top-full mt-1.5 z-[9999] bg-white rounded-2xl shadow-lg border border-gray-100 w-[272px]"
             >
-              <div className="py-0.5">
-                {/* Refresh now */}
+              <div className="px-2.5 pb-2 pt-2 flex flex-col gap-2">
+                {/* Schedule header with summary */}
+                <div className="flex items-center gap-1.5 px-0.5">
+                  <CalendarBlankIcon
+                    size={14}
+                    className="text-gray-800 flex-shrink-0"
+                  />
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className="text-sm font-medium text-gray-900">
+                      Schedule refresh
+                    </span>
+                    {isScheduled && scheduleSummary && (
+                      <span className="text-[11px] text-gray-500 truncate">
+                        {isPaused ? (
+                          <span className="text-amber-600">
+                            Paused &middot;{" "}
+                          </span>
+                        ) : null}
+                        {scheduleSummary}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Reusable SchedulePicker in inline (headerless) mode */}
+                <ScheduleFields
+                  schedule={pickerSchedule}
+                  onScheduleChange={setPickerSchedule}
+                  frequencies={DASHBOARD_FREQUENCIES}
+                />
+
+                {/* Submit / Update */}
                 <button
-                  onClick={() => {
-                    onRefresh();
-                    hide();
-                  }}
-                  className="w-full rounded-xl flex items-center gap-1.5 px-3 py-2 text-sm text-gray-900 bg-transparent hover:bg-gray-50 transition-colors cursor-pointer text-left"
+                  onClick={handleSubmitSchedule}
+                  disabled={isMutating}
+                  className={`w-full h-[34px] rounded-xl text-sm font-medium transition-colors ${
+                    isMutating
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-800 border border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                  }`}
                 >
-                  <ArrowsClockwiseIcon size={14} className="text-gray-800" />
-                  Refresh now
+                  {isMutating ? (
+                    <span className="flex items-center justify-center gap-1.5">
+                      <SpinnerGapIcon size={14} className="animate-spin" />
+                      Saving...
+                    </span>
+                  ) : isScheduled ? (
+                    "Update schedule"
+                  ) : (
+                    "Schedule"
+                  )}
                 </button>
 
-                {/* Schedule refresh — accordion header (owner only) */}
-                {isOwner && (
-                  <button
-                    onClick={() => toggleSchedule()}
-                    className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer text-left ${
-                      scheduleOpen
-                        ? "bg-gray-50"
-                        : "bg-transparent hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <CalendarBlankIcon
-                        size={14}
-                        className="text-gray-800 flex-shrink-0"
-                      />
-                      <div className="flex flex-col items-start min-w-0">
-                        <span className="text-gray-900">Schedule refresh</span>
-                        {isScheduled && !scheduleOpen && scheduleSummary && (
-                          <span className="text-[11px] text-gray-500 truncate">
-                            {isPaused ? (
-                              <span className="text-amber-600">
-                                Paused &middot;{" "}
-                              </span>
-                            ) : null}
-                            {scheduleSummary}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <CaretDownIcon
-                      size={12}
-                      className={`text-gray-400 flex-shrink-0 transition-transform duration-150 ${
-                        scheduleOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </button>
+                {/* Pause / Resume / Delete — only when a schedule exists */}
+                {isScheduled && (
+                  <div className="flex items-center gap-1.5 pt-0.5 border-t border-gray-100">
+                    {isPaused ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await onResumeSchedule();
+                            hide();
+                          } catch {
+                            // Error toast shown by mutation hook
+                          }
+                        }}
+                        disabled={isMutating}
+                        className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PlayIcon size={12} weight="bold" />
+                        Resume
+                      </button>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await onPauseSchedule();
+                            hide();
+                          } catch {
+                            // Error toast shown by mutation hook
+                          }
+                        }}
+                        disabled={isMutating}
+                        className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <PauseIcon size={12} weight="bold" />
+                        Pause
+                      </button>
+                    )}
+                    <button
+                      onClick={async () => {
+                        try {
+                          await onDeleteSchedule();
+                          hide();
+                        } catch {
+                          // Error toast shown by mutation hook
+                        }
+                      }}
+                      disabled={isMutating}
+                      className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <TrashIcon size={12} />
+                      Remove
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* Schedule accordion content (owner only) */}
-              {isOwner && (
-                <AnimatePresence initial={false}>
-                  {scheduleOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.15, ease: "easeOut" }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-2.5 pb-2 pt-1 border-t border-gray-100 flex flex-col gap-2">
-                        {/* Reusable SchedulePicker in inline (headerless) mode */}
-                        <ScheduleFields
-                          schedule={pickerSchedule}
-                          onScheduleChange={setPickerSchedule}
-                          frequencies={DASHBOARD_FREQUENCIES}
-                        />
-
-                        {/* Submit / Update */}
-                        <button
-                          onClick={handleSubmitSchedule}
-                          disabled={isMutating}
-                          className={`w-full h-[34px] rounded-xl text-sm font-medium transition-colors ${
-                            isMutating
-                              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                              : "bg-white text-gray-800 border border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                          }`}
-                        >
-                          {isMutating ? (
-                            <span className="flex items-center justify-center gap-1.5">
-                              <SpinnerGapIcon
-                                size={14}
-                                className="animate-spin"
-                              />
-                              Saving...
-                            </span>
-                          ) : isScheduled ? (
-                            "Update schedule"
-                          ) : (
-                            "Schedule"
-                          )}
-                        </button>
-
-                        {/* Pause / Resume / Delete — only when a schedule exists */}
-                        {isScheduled && (
-                          <div className="flex items-center gap-1.5 pt-0.5 border-t border-gray-100">
-                            {isPaused ? (
-                              <button
-                                onClick={() => {
-                                  onResumeSchedule();
-                                  hideSchedule();
-                                }}
-                                disabled={isMutating}
-                                className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <PlayIcon size={12} weight="bold" />
-                                Resume
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  onPauseSchedule();
-                                  hideSchedule();
-                                }}
-                                disabled={isMutating}
-                                className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <PauseIcon size={12} weight="bold" />
-                                Pause
-                              </button>
-                            )}
-                            <button
-                              onClick={() => {
-                                onDeleteSchedule();
-                                hideSchedule();
-                              }}
-                              disabled={isMutating}
-                              className="flex-1 flex items-center justify-center gap-1.5 h-[30px] rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <TrashIcon size={12} />
-                              Remove
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
             </motion.div>
           </>
         )}
