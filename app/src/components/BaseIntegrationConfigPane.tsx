@@ -282,7 +282,7 @@ export function BaseIntegrationConfigPane({
           }
         } else if (integrationId === "jiminny") {
           if (jiminnyApiKey) {
-            updateData.accessKey = jiminnyApiKey;
+            (updateData as Record<string, unknown>).apiKey = jiminnyApiKey;
           }
         } else if (integrationId === "chorus") {
           if (chorusUsername) {
@@ -340,13 +340,11 @@ export function BaseIntegrationConfigPane({
               ? gongAccessKey
               : integrationId === "fathom"
                 ? fathomApiKey
-                : integrationId === "jiminny"
-                  ? jiminnyApiKey
-                  : integrationId === "zendesk"
-                    ? zendeskEmail
-                    : integrationId === "snowflake"
-                      ? snowflakeDomain
-                      : undefined,
+                : integrationId === "zendesk"
+                  ? zendeskEmail
+                  : integrationId === "snowflake"
+                    ? snowflakeDomain
+                    : undefined,
           accessSecret:
             integrationId === "gong"
               ? gongAccessSecret
@@ -371,11 +369,13 @@ export function BaseIntegrationConfigPane({
           apiKey:
             integrationId === "attention"
               ? attentionApiKey
-              : integrationId === "claricopilot"
-                ? clariUsername
-                : integrationId === "snowflake"
-                  ? snowflakeAccountId
-                  : undefined,
+              : integrationId === "jiminny"
+                ? jiminnyApiKey
+                : integrationId === "claricopilot"
+                  ? clariUsername
+                  : integrationId === "snowflake"
+                    ? snowflakeAccountId
+                    : undefined,
         });
 
         // Clear sensitive credentials from state after creation
