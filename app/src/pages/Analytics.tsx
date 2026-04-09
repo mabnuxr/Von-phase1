@@ -23,7 +23,6 @@ import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
-import { useNavigationGuard } from "../providers/NavigationGuard";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 
 interface DashboardCanvasProps {
@@ -300,45 +299,9 @@ const Analytics = () => {
   const { data } = useDashboardQuery(dashboardId);
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
-  const isEditable = data?.dashboard?.isEditable ?? false;
 
-  // ── Navigation guard (Modal 1): blocks route navigation while in edit mode.
-  // Modal is rendered by NavigationGuardProvider — no manual modal here.
-  const { guard } = useNavigationGuard({
-    when: isEditable,
-    title: "Dashboard in edit mode",
-    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
-    confirmLabel: "Switch Anyway",
-  });
 
-  // ── Chat switch guard (Modal 2): blocks chat switching while in edit mode ──
-  const chatSwitchTitle = "Switch chat?";
-  const chatSwitchBody = `Your current chat has edit context for ${dashboardTitle || "this dashboard"}. Switching chats will lose this context.`;
-  const chatSwitchConfirmLabel = "Switch Chat";
-
-  const guardedSetActiveChatId = useCallback(
-    (chatId: string | null) => {
-      if (
-        guard(() => setActiveChatId(chatId), {
-          title: chatSwitchTitle,
-          body: chatSwitchBody,
-          confirmLabel: chatSwitchConfirmLabel,
-        })
-      )
-        return;
-      setActiveChatId(chatId);
-    },
-    [
-      guard,
-      setActiveChatId,
-      chatSwitchTitle,
-      chatSwitchBody,
-      chatSwitchConfirmLabel,
-    ],
-  );
-
-  // Select the most recent conversation each time the panel opens, routed
-  // through the guarded setter so edit-mode context isn't silently lost.
+  // Select the most recent conversation each time the panel opens.
   // Skips auto-selection when a deep link already set the active conversation.
   useEffect(() => {
     const justOpened = isChatPanelOpen && !prevChatPanelOpenRef.current;
@@ -350,35 +313,18 @@ const Analytics = () => {
 
     if (unfiledConversations.length === 0) return;
 
-    guardedSetActiveChatId(unfiledConversations[0].conversationId);
+    setActiveChatId(unfiledConversations[0].conversationId);
   }, [
     isChatPanelOpen,
     unfiledConversations,
-    guardedSetActiveChatId,
+    setActiveChatId,
     conversationIdFromParams,
   ]);
 
-  const guardedNewChat = useCallback(() => {
-    const action = () => {
-      setActiveChatId(null);
-      setCreatedConversationId(null);
-    };
-    if (
-      guard(action, {
-        title: chatSwitchTitle,
-        body: chatSwitchBody,
-        confirmLabel: chatSwitchConfirmLabel,
-      })
-    )
-      return;
-    action();
-  }, [
-    guard,
-    setActiveChatId,
-    chatSwitchTitle,
-    chatSwitchBody,
-    chatSwitchConfirmLabel,
-  ]);
+  const handleNewChat = useCallback(() => {
+    setActiveChatId(null);
+    setCreatedConversationId(null);
+  }, [setActiveChatId]);
 
   const {
     widthCss: chatPaneWidth,
@@ -423,13 +369,13 @@ const Analytics = () => {
         <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-gray-100">
           <ChatPicker
             activeChatId={activeChatId}
-            onSelect={guardedSetActiveChatId}
+            onSelect={setActiveChatId}
             isRenaming={isRenamingChat}
             onRenameEnd={stopRenamingChat}
           />
           <Tooltip content="New chat">
             <button
-              onClick={guardedNewChat}
+              onClick={handleNewChat}
               className="flex-shrink-0 inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <PlusIcon size={14} weight="bold" />
