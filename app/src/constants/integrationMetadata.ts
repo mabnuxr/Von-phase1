@@ -131,8 +131,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   jiminny: {
     id: "jiminny",
     name: "Jiminny",
-    description:
-      "Ask about Jiminny calls and get Von's conversation insights",
+    description: "Ask about Jiminny calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/jiminny.svg",
     category: "Call Recorder",
