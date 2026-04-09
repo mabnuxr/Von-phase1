@@ -191,17 +191,15 @@ export function ReportTable({
     const containerWidth = wrapperRef.current?.clientWidth ?? 0;
     const colWidths: number[] = [];
 
+    const cols = formattedOptions.columns as Array<{ width?: number }>;
     for (let i = 0; i < probeData.length; i++) {
-      if (probeData[i].hasExplicitWidth) {
-        const cols = formattedOptions.columns as Array<{ width?: number }>;
-        colWidths.push(cols[i]?.width ?? 60);
-        continue;
-      }
       const tdW = probeTds[i] ? (probeTds[i] as HTMLElement).offsetWidth : 60;
       const thW = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 60;
-      // +6px buffer: probe uses longest string but proportional fonts mean
-      // a different value with same char count can be wider (e.g. 'M' vs 'E')
-      colWidths.push(Math.min(Math.max(tdW, thW, 60) + 6, MAX_COL_WIDTH));
+      // +8px buffer: covers cell border (1px) + proportional font variations
+      const measured = Math.min(Math.max(tdW, thW, 60) + 8, MAX_COL_WIDTH);
+      // Explicit backend width is a floor — probe can only widen, never shrink.
+      const explicit = probeData[i].hasExplicitWidth ? (cols[i]?.width ?? 60) : 0;
+      colWidths.push(Math.max(measured, explicit));
     }
 
     // Distribute surplus proportionally so table fills container

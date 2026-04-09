@@ -24,9 +24,13 @@
   --hcg-pagination-button-selected-background: #1e293b;
   --hcg-pagination-button-selected-color: #ffffff;
 
-  /* Default mode padding — set via Grid Lite's official variable API */
+  /* Grid Lite's font shorthand on cells (specificity 0-2-3) overrides our
+     direct font-size rules, so we set the CSS variables it reads instead. */
   --hcg-padding: 8px;
   --hcg-header-vertical-padding: 6px;
+  --hcg-font-size: 14px;
+  --hcg-header-font-size: 13px;
+  --hcg-font-family: var(--font-family-sans, inherit);
 
   font-family: inherit;
   border: none;
@@ -40,24 +44,25 @@
   table-layout: fixed;
 }
 
-/* Probe table: matches Grid Lite's actual cell padding for accurate measurement */
+/* Probe table: must match Grid Lite's actual cell font + padding for accurate
+   width measurement. Padding matches --hcg-padding; font matches --hcg-font-size. */
 .report-grid-probe th {
   font-size: 13px;
   font-weight: 600;
-  padding: 0 15px; /* match Grid Lite's default --hcg-padding per side */
+  padding: 0 8px;
 }
 .report-grid-probe td {
   font-size: 14px;
   font-weight: 400;
-  padding: 0 15px;
+  padding: 0 8px;
 }
 .report-grid-compact .report-grid-probe th {
   font-size: 11px;
-  padding: 0 15px; /* Grid Lite still uses 15px even in compact — our !important doesn't override */
+  padding: 0 4px;
 }
 .report-grid-compact .report-grid-probe td {
   font-size: 12px;
-  padding: 0 15px;
+  padding: 0 4px;
 }
 
 /* Prevent columns from being resized to near-invisible */
@@ -134,17 +139,8 @@
 .report-grid-compact .hcg-container {
   --hcg-padding: 4px;
   --hcg-header-vertical-padding: 4px;
-}
-
-/* Force padding — CSS variable override alone doesn't beat Grid Lite's defaults */
-.report-grid-compact .hcg-header-cell {
-  font-size: 11px;
-  padding: 4px !important;
-}
-
-.report-grid-compact .hcg-table td {
-  font-size: 12px;
-  padding: 4px !important;
+  --hcg-font-size: 12px;
+  --hcg-header-font-size: 11px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
