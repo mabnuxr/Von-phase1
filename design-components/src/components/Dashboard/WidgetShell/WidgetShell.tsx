@@ -17,7 +17,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   appliedFilters,
 }) => {
   return (
-    <div className="group h-full bg-white rounded-2xl border border-gray-100 flex flex-col shadow-sm cursor-default hover:border-gray-200 transition-all">
+    <div className="group h-full bg-white border border-gray-200 flex flex-col cursor-default hover:border-gray-300 transition-all overflow-hidden">
       <div className="relative flex items-center px-4 py-3 border-b border-gray-100 shrink-0">
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-gray-800 truncate">{title}</h3>

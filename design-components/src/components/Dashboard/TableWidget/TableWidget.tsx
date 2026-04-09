@@ -111,9 +111,11 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [theadHeight, setTheadHeight] = useState(30);
+  const [theadHeight, setTheadHeight] = useState(26);
+  const [tableHeight, setTableHeight] = useState(0);
+  const [colWidths, setColWidths] = useState<number[]>([]);
 
-  // Measure the actual thead height once the grid renders.
+  // Measure the actual thead/table height and column widths once the grid renders.
   // stableOptions is the dependency because a new grid (with potentially
   // different header content) is created whenever options change.
   useEffect(() => {
@@ -126,15 +128,22 @@ const TableWidget: React.FC<TableWidgetProps> = ({
       if (thead) {
         setTheadHeight(thead.getBoundingClientRect().height);
       }
+      const table = el.querySelector('.hcg-table') as HTMLElement | null;
+      if (table) {
+        setTableHeight(table.offsetHeight);
+        const ths = table.querySelectorAll('thead th');
+        const widths: number[] = [];
+        ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
+        setColWidths(widths);
+      }
     });
     return () => cancelAnimationFrame(raf);
   }, [stableOptions]);
 
-  // Derive column widths from gridOptions so skeleton aligns with the real table
-  const skeletonColWidths = useMemo(() => {
-    const cols = (stableOptions as { columns?: Array<{ width?: number }> }).columns;
-    if (!cols || cols.length === 0) return null;
-    return cols.map((c) => c.width);
+  // Derive column count from gridOptions so skeleton matches the real table
+  const skeletonColCount = useMemo(() => {
+    const cols = (stableOptions as { columns?: Array<unknown> }).columns;
+    return cols?.length ?? 6;
   }, [stableOptions]);
 
   return (
@@ -150,30 +159,60 @@ const TableWidget: React.FC<TableWidgetProps> = ({
         <ReportTable
           options={stableOptions}
           hidePagination
+          compact
           onSortChange={hasServerPagination ? onSortChange : undefined}
           sortState={hasServerPagination ? sortState : undefined}
           onCellClick={onCellClick}
           disableTooltip
         />
 
+        {/* Empty filler rows below data — spreadsheet look */}
+        {tableHeight > 0 && !isLoading && (
+          <table aria-hidden className="table-filler" style={{ top: tableHeight }}>
+            {colWidths.length > 0 && (
+              <colgroup>
+                {colWidths.map((w, i) => (
+                  <col key={i} style={{ width: w }} />
+                ))}
+              </colgroup>
+            )}
+            <tbody>
+              {Array.from({ length: 50 }).map((_, i) => (
+                <tr key={i}>
+                  {Array.from({ length: colWidths.length || skeletonColCount }).map((_, j) => (
+                    <td key={j} />
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
         {/* Shimmer covers body rows while headers stay visible */}
         {isLoading && (
           <div className="table-skeleton" style={{ top: theadHeight }}>
             <table className="table-skeleton-table">
-              {skeletonColWidths && (
+              {colWidths.length > 0 && (
                 <colgroup>
-                  {skeletonColWidths.map((w, j) => (
-                    <col key={j} style={w ? { width: `${w}px` } : undefined} />
+                  {colWidths.map((w, i) => (
+                    <col key={i} style={{ width: w }} />
                   ))}
                 </colgroup>
               )}
               <tbody>
                 {Array.from({ length: skeletonRows }).map((_, i) => (
                   <tr key={i} className="table-skeleton-row">
-                    {(skeletonColWidths ?? Array.from({ length: 6 })).map((_, j) => (
+                    {Array.from({ length: skeletonColCount }).map((_, j) => (
                       <td key={j} className="table-skeleton-td">
                         <div className="table-skeleton-cell" />
                       </td>
+                    ))}
+                  </tr>
+                ))}
+                {Array.from({ length: 50 }).map((_, i) => (
+                  <tr key={`f${i}`}>
+                    {Array.from({ length: skeletonColCount }).map((_, j) => (
+                      <td key={j} className="table-skeleton-td" />
                     ))}
                   </tr>
                 ))}
