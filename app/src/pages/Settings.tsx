@@ -12,12 +12,14 @@ import {
   EnvelopeIcon,
   UsersIcon,
   BrainIcon,
+  ChartBarIcon,
 } from "@phosphor-icons/react";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
+import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
@@ -172,6 +174,13 @@ const Settings = () => {
         icon: <UsersIcon size={20} weight="regular" />,
       },
     ],
+    usage: [
+      {
+        id: "usage",
+        label: "Usage",
+        icon: <ChartBarIcon size={20} weight="regular" />,
+      },
+    ],
   };
 
   const renderContent = () => {
@@ -186,6 +195,8 @@ const Settings = () => {
         return <ManageUsersTab />;
       case "memory":
         return <OrgContextTab />;
+      case "usage":
+        return <UsageTab />;
       default:
         return null;
     }
