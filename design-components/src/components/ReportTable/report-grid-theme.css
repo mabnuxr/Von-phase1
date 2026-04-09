@@ -107,6 +107,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   text-align: left !important;
+  line-height: normal !important;
 }
 
 /* Row hover */
