@@ -305,7 +305,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
             onClick={handleDropdownToggle}
             disabled={!canRefresh}
             className={`inline-flex items-center justify-center w-[22px] h-[34px] border rounded-r-xl transition-colors ${
-              !canRefresh ? baseStyles : open ? activeStyles : baseStyles
+              open && canRefresh ? activeStyles : baseStyles
             }`}
           >
             <CaretDownIcon
