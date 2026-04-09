@@ -250,6 +250,10 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
     ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
     : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer";
 
+  const dropdownBaseStyles = !canRefresh
+    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer";
+
   const activeStyles =
     "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer";
 
@@ -305,7 +309,7 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
             onClick={handleDropdownToggle}
             disabled={!canRefresh}
             className={`inline-flex items-center justify-center w-[22px] h-[34px] border rounded-r-xl transition-colors ${
-              open && canRefresh ? activeStyles : baseStyles
+              open && canRefresh ? activeStyles : dropdownBaseStyles
             }`}
           >
             <CaretDownIcon
