@@ -78,6 +78,9 @@ export function BaseIntegrationConfigPane({
   // Attention API key configuration state
   const [attentionApiKey, setAttentionApiKey] = useState("");
 
+  // Jiminny API key configuration state
+  const [jiminnyApiKey, setJiminnyApiKey] = useState("");
+
   // Chorus username/password configuration state
   const [chorusUsername, setChorusUsername] = useState("");
   const [chorusPassword, setChorusPassword] = useState("");
@@ -153,6 +156,14 @@ export function BaseIntegrationConfigPane({
     if (integrationId === "attention") {
       if (!hasExistingCredentials) {
         if (!attentionApiKey) {
+          errors.push("API Key is required");
+        }
+      }
+    }
+
+    if (integrationId === "jiminny") {
+      if (!hasExistingCredentials) {
+        if (!jiminnyApiKey) {
           errors.push("API Key is required");
         }
       }
@@ -269,6 +280,10 @@ export function BaseIntegrationConfigPane({
           if (attentionApiKey) {
             updateData.accessKey = attentionApiKey;
           }
+        } else if (integrationId === "jiminny") {
+          if (jiminnyApiKey) {
+            (updateData as Record<string, unknown>).apiKey = jiminnyApiKey;
+          }
         } else if (integrationId === "chorus") {
           if (chorusUsername) {
             updateData.accessKey = chorusUsername;
@@ -354,11 +369,13 @@ export function BaseIntegrationConfigPane({
           apiKey:
             integrationId === "attention"
               ? attentionApiKey
-              : integrationId === "claricopilot"
-                ? clariUsername
-                : integrationId === "snowflake"
-                  ? snowflakeAccountId
-                  : undefined,
+              : integrationId === "jiminny"
+                ? jiminnyApiKey
+                : integrationId === "claricopilot"
+                  ? clariUsername
+                  : integrationId === "snowflake"
+                    ? snowflakeAccountId
+                    : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -371,6 +388,9 @@ export function BaseIntegrationConfigPane({
         }
         if (integrationId === "attention") {
           setAttentionApiKey("");
+        }
+        if (integrationId === "jiminny") {
+          setJiminnyApiKey("");
         }
         if (integrationId === "chorus") {
           setChorusUsername("");
@@ -738,6 +758,39 @@ export function BaseIntegrationConfigPane({
                 </>
               )}
 
+              {/* Jiminny-specific fields */}
+              {integrationId === "jiminny" && (
+                <>
+                  <div className="jiminny-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Key"
+                      value={jiminnyApiKey}
+                      onChange={(e) => setJiminnyApiKey(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Jiminny API key"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API key"
+                          : "Your Jiminny API key"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .jiminny-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
               {/* Chorus-specific fields */}
               {integrationId === "chorus" && (
                 <>
@@ -1062,6 +1115,7 @@ export function BaseIntegrationConfigPane({
           {/* Help & Security Notice - shown for credential-based integrations */}
           {(integrationId === "gong" ||
             integrationId === "fathom" ||
+            integrationId === "jiminny" ||
             integrationId === "zendesk" ||
             integrationId === "snowflake") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
@@ -1070,11 +1124,13 @@ export function BaseIntegrationConfigPane({
                   href={
                     integrationId === "gong"
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
-                      : integrationId === "zendesk"
-                        ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
-                        : integrationId === "snowflake"
-                          ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
-                          : "https://developers.fathom.ai/quickstart"
+                      : integrationId === "jiminny"
+                        ? "https://help.jiminny.com/en/articles/9527212-what-is-the-jiminny-api"
+                        : integrationId === "zendesk"
+                          ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
+                          : integrationId === "snowflake"
+                            ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
+                            : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1082,11 +1138,13 @@ export function BaseIntegrationConfigPane({
                 >
                   {integrationId === "gong"
                     ? "How to generate API credentials"
-                    : integrationId === "zendesk"
-                      ? "Generating a new API token"
-                      : integrationId === "snowflake"
-                        ? "How to generate a key pair"
-                        : "How to generate an API key"}
+                    : integrationId === "jiminny"
+                      ? "How to generate API credentials"
+                      : integrationId === "zendesk"
+                        ? "Generating a new API token"
+                        : integrationId === "snowflake"
+                          ? "How to generate a key pair"
+                          : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -1110,7 +1168,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" || integrationId === "snowflake" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button

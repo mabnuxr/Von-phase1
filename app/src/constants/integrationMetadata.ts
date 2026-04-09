@@ -128,6 +128,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",
   },
+  jiminny: {
+    id: "jiminny",
+    name: "Jiminny",
+    description:
+      "Ask about Jiminny calls and get Von's conversation insights",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/jiminny.svg",
+    category: "Call Recorder",
+  },
   // Knowledge base integrations
   googledrive: {
     id: "googledrive",
@@ -291,6 +300,7 @@ export function getIntegrationLogoPath(type: string): string {
     CHORUS: "chorus",
     CLARI_COPILOT: "claricopilot",
     ATTENTION: "attention",
+    JIMINNY: "jiminny",
     HIGHSPOT: "highspot",
     SEISMIC: "seismic",
     CONFLUENCE: "confluence",
@@ -334,6 +344,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     chorus: "CHORUS",
     claricopilot: "CLARI_COPILOT",
     attention: "ATTENTION",
+    jiminny: "JIMINNY",
     highspot: "HIGHSPOT",
     seismic: "SEISMIC",
     confluence: "CONFLUENCE",
@@ -371,6 +382,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     CHORUS: "chorus",
     CLARI_COPILOT: "claricopilot",
     ATTENTION: "attention",
+    JIMINNY: "jiminny",
     HIGHSPOT: "highspot",
     SEISMIC: "seismic",
     CONFLUENCE: "confluence",
@@ -409,6 +421,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     CHORUS: "chorus",
     CLARI_COPILOT: "claricopilot",
     ATTENTION: "attention",
+    JIMINNY: "jiminny",
     HIGHSPOT: "highspot",
     SEISMIC: "seismic",
     CONFLUENCE: "confluence",
@@ -451,6 +464,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   chorus: ["tenant"],
   claricopilot: ["tenant"],
   attention: ["tenant"],
+  jiminny: ["tenant"],
   zendesk: ["tenant"],
   outreachengage: ["tenant"],
 
