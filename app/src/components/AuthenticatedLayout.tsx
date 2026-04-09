@@ -4,6 +4,7 @@ import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
 import { LaunchDarklyIdentityContext } from "./LaunchDarkly";
+import { GlobalChatProvider } from "../providers/GlobalChat";
 
 /**
  * Layout wrapper for authenticated routes.
@@ -28,8 +29,10 @@ export function AuthenticatedLayout() {
   }, [identifyUser]);
 
   return (
-    <LaunchDarklyIdentityContext.Provider value={isIdentified}>
-      <Outlet />
-    </LaunchDarklyIdentityContext.Provider>
+    <GlobalChatProvider>
+      <LaunchDarklyIdentityContext.Provider value={isIdentified}>
+        <Outlet />
+      </LaunchDarklyIdentityContext.Provider>
+    </GlobalChatProvider>
   );
 }

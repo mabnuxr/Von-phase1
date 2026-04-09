@@ -1,6 +1,9 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { InfiniteData } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import useChatStore from "../store/chatStore";
+import { chatSidebarKeys } from "./useChatSidebar";
+import type { ChatSidebarResponse } from "../types/chatSidebar";
 import type {
   MessageWithStreaming,
   MessageFileAttachment,
@@ -61,6 +64,8 @@ interface MutationContext {
  * ```
  */
 export function useSendMessage() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (payload: SendMessagePayload) => {
       if (import.meta.env.DEV) {
@@ -128,6 +133,7 @@ export function useSendMessage() {
         status: "completed",
         fileAttachments: payload.fileAttachments,
         command: payload.command,
+        references: payload.references,
       };
 
       // Create optimistic assistant message with streaming state
@@ -199,6 +205,21 @@ export function useSendMessage() {
             "->",
             response.messageId,
           );
+        }
+      }
+
+      // Silently invalidate sidebar cache if this conversation isn't already
+      // the most recent one, so the sort order stays fresh.
+      if (context) {
+        const sidebarData = queryClient.getQueryData<
+          InfiniteData<ChatSidebarResponse>
+        >(chatSidebarKeys.sidebar());
+        const topConversationId =
+          sidebarData?.pages[0]?.unfiled.conversations[0]?.conversationId;
+        if (sidebarData && topConversationId !== context.conversationId) {
+          queryClient.invalidateQueries({
+            queryKey: chatSidebarKeys.sidebar(),
+          });
         }
       }
     },

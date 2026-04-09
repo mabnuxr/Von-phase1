@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Editor, Extension } from '@tiptap/react';
 import type { FileAttachment } from '../FileAttachment/types';
+import type { MentionItem } from '../../Mentions/types';
 /**
  * Build mode for ask/build toggle
  */
@@ -169,17 +170,6 @@ export interface StandardChatInputProps {
   onFileError?: (error: string, message: string) => void;
 
   /**
-   * Reference context shown above the input
-   * Shows which dashboard/report the user is referencing
-   */
-  referenceContext?: ReferenceContext;
-
-  /**
-   * Callback when the reference is removed
-   */
-  onRemoveReference?: () => void;
-
-  /**
    * Show formatting toolbar for rich text editing
    * @default true
    */
@@ -320,4 +310,14 @@ export interface StandardChatInputProps {
    * Extra Tiptap extensions to inject into the editor (e.g. mention chip).
    */
   additionalExtensions?: Extension[];
+
+  /**
+   * Selected mention items to display as preview cards above the editor
+   */
+  selectedMentions?: MentionItem[];
+
+  /**
+   * Callback when a mention preview card is removed
+   */
+  onRemoveMention?: (id: string) => void;
 }

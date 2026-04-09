@@ -14,7 +14,9 @@
  */
 
 import { useCallback, useMemo, useState, Profiler } from "react";
-import { Chat, ConversationMode } from "@vonlabs/design-components";
+import { Chat } from "@vonlabs/design-components";
+import type { MentionItem } from "@vonlabs/design-components";
+import { MentionItemType } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -22,6 +24,7 @@ import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useTeamMembers } from "../hooks/useTeam";
+import { useDashboardList } from "../hooks/useDashboardList";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
@@ -32,11 +35,11 @@ const NewConversation = () => {
   const {
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
-    isDeepResearchEnabled,
     isTenantDisabled,
     isSlashCommandsEnabled,
     isFileUploadEnabled,
     isScheduledCommandsEnabled,
+    isDeepResearchEnabled,
   } = useFeatureFlag();
 
   const {
@@ -76,6 +79,25 @@ const NewConversation = () => {
     handleSendTest,
   } = useCommandsPanel(user?.id);
 
+  // @ Mention: lazily fetch dashboard list only after user types "@"
+  const [mentionsActivated, setMentionsActivated] = useState(false);
+  const handleMentionsActivated = useCallback(() => {
+    setMentionsActivated(true);
+  }, []);
+  const { data: dashboardListData, isLoading: isLoadingMentions } =
+    useDashboardList(mentionsActivated);
+
+  const mentionItems: MentionItem[] = useMemo(
+    () =>
+      dashboardListData?.data.map((d) => ({
+        id: d.dashboard_id,
+        name: d.dashboard_name,
+        type: MentionItemType.Dashboard,
+        version: d.dashboard_version,
+      })) ?? [],
+    [dashboardListData],
+  );
+
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
@@ -101,12 +123,6 @@ const NewConversation = () => {
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
-
-  const availableAgentModes = useMemo(() => {
-    const modes: ConversationMode[] = [ConversationMode.Auto];
-    if (isDeepResearchEnabled) modes.push(ConversationMode.DashboardBuilder);
-    return modes;
-  }, [isDeepResearchEnabled]);
 
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {
@@ -142,17 +158,13 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
-        placeholder="Ask von anything"
-        variant="floating"
+        placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"
         banner={banner}
         disableSubmit={!canSubmit || isCreating}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
-        availableAgentModes={availableAgentModes}
-        isAgentLocked={false}
-        lockedConversationMode={ConversationMode.Auto}
         thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}
         useStandardInput={isAgentV2Flag}
         enableFileUpload={isFileUploadEnabled}
@@ -174,6 +186,10 @@ const NewConversation = () => {
         teamMembers={teamMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
+        enableMentions={isDeepResearchEnabled}
+        mentionItems={mentionItems}
+        isLoadingMentions={isLoadingMentions}
+        onMentionsActivated={handleMentionsActivated}
       />
     </Profiler>
   );

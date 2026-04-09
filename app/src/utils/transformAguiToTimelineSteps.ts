@@ -165,6 +165,9 @@ const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   salesforce_tooling_query: "salesforce",
   salesforce_tooling_mutate: "salesforce",
 
+  // Salesforce Chatter
+  salesforce_chatter_read: "salesforce",
+
   // Gong tools
   search_gong_calls: "gong",
   get_gong_call_transcript: "gong",
@@ -249,6 +252,9 @@ interface DetectedApprovalData {
     record_count: number;
     description?: string;
   }>;
+  // Approval expiry (populated from TOOL_CALL_END event data, not from tool args)
+  expiresAt?: number;
+  ttlSeconds?: number;
 }
 
 /**
@@ -1004,6 +1010,27 @@ export function transformAguiToTimelineSteps(
                 );
               }
             }
+
+            // Populate approval expiry from ttl_seconds in event data
+            const ttlSeconds = (event as { ttl_seconds?: number }).ttl_seconds;
+            if (step.approval && ttlSeconds != null) {
+              const eventTime = new Date(wrapper.timestamp).getTime();
+              step.approval.expiresAt = eventTime + ttlSeconds * 1000;
+              step.approval.ttlSeconds = ttlSeconds;
+
+              // On replay (page refresh), if TTL has already passed, mark as expired
+              // so buttons don't reappear for a dead approval.
+              // This covers the case where the latest message has an expired approval
+              // but goes through the live V2 path in dashboardUtils (which skips
+              // the unconditional awaiting-approval → expired cleanup).
+              if (
+                Date.now() >= step.approval.expiresAt &&
+                step.status === "awaiting-approval"
+              ) {
+                step.status = "expired" as StepStatus;
+                step.errorMessage = DEFAULT_EXPIRED_APPROVAL_MESSAGE;
+              }
+            }
           }
         }
         break;
@@ -1043,7 +1070,13 @@ export function transformAguiToTimelineSteps(
                 const result = JSON.parse(accumulated);
 
                 // Parse and update step (same logic as content handling)
-                if (step.status === "awaiting-approval") {
+                // Also match 'expired' — on replay, the TTL check in TOOL_CALL_END may
+                // have already marked the step expired before this event is processed.
+                // The backend's TOOL_CALL_RESULT is authoritative and should override.
+                if (
+                  step.status === "awaiting-approval" ||
+                  step.status === "expired"
+                ) {
                   // Handle approval results — check expired first so a malformed
                   // response with both approved:true and status:"expired" is
                   // treated as expired (the more restrictive outcome).
@@ -1162,7 +1195,11 @@ export function transformAguiToTimelineSteps(
               }
 
               // Handle approval tool results that were accepted
-              if (step.status === "awaiting-approval") {
+              // Also match 'expired' — backend TOOL_CALL_RESULT overrides client-side TTL expiry.
+              if (
+                step.status === "awaiting-approval" ||
+                step.status === "expired"
+              ) {
                 try {
                   const result = JSON.parse(event.content);
 
@@ -1437,7 +1474,11 @@ export function transformAguiToTimelineSteps(
           const result = JSON.parse(accumulatedResult);
 
           // Handle approval results
-          if (step.status === "awaiting-approval") {
+          // Also match 'expired' — backend TOOL_CALL_RESULT overrides client-side TTL expiry.
+          if (
+            step.status === "awaiting-approval" ||
+            step.status === "expired"
+          ) {
             if (result.success === false && result.retry === true) {
               // Validation error — agent sent bad args, will retry.
               ({ currentStep, currentStepNumber } = removeRetriedStep(

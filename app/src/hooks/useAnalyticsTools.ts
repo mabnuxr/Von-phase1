@@ -1,10 +1,14 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useVisibilityToggle } from "@vonlabs/design-components";
 import { dashboardService } from "../services/dashboardService";
+import { ApiError } from "../services/apiClient";
 import { dashboardKeys } from "./useDashboardQuery";
 import { sidebarDashboardKeys } from "./useSidebarDashboards";
 import { useMutationPhase } from "./useMutationPhase";
 import { useToast } from "./useToast";
+
+const SAVE_TOAST_DURATION_MS = 3000;
 
 /**
  * Hook that provides all action handlers for AnalyticsView toolbar.
@@ -16,22 +20,24 @@ export function useAnalyticsTools(dashboardId: string) {
 
   // ─── Save ─────────────────────────────────────────────────────
   const isFirstSaveRef = useRef(false);
+  const {
+    isVisible: showSaveToast,
+    show: showToastNow,
+    hide: hideToastNow,
+  } = useVisibilityToggle(false);
+  const saveToastTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(saveToastTimerRef.current), []);
 
   const saveMutation = useMutation({
-    mutationFn: (version?: number) =>
-      dashboardService.publishDashboard(dashboardId, version),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    mutationFn: async (version?: number) => {
+      await dashboardService.publishDashboard(dashboardId, version);
+      await queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: sidebarDashboardKeys.all,
-      });
-      showToast({
-        message: isFirstSaveRef.current
-          ? "Dashboard is created. You can access the dashboard from the side panel."
-          : "Dashboard is updated. You can access the dashboard from the side panel.",
-        variant: "success",
       });
     },
     onMutate: async () => {
@@ -42,10 +48,23 @@ export function useAnalyticsTools(dashboardId: string) {
   });
 
   const handleSave = useCallback(
-    (isFirstSave?: boolean) => {
+    ({
+      isFirstSave,
+      onSuccess,
+    }: { isFirstSave?: boolean; onSuccess?: () => void } = {}) => {
       isFirstSaveRef.current = isFirstSave ?? false;
 
       saveMutation.mutate(undefined, {
+        onSuccess: () => {
+          onSuccess?.();
+          // Show inline save toast
+          showToastNow();
+          clearTimeout(saveToastTimerRef.current);
+          saveToastTimerRef.current = setTimeout(
+            hideToastNow,
+            SAVE_TOAST_DURATION_MS,
+          );
+        },
         onError: (error) => {
           console.error("[useAnalyticsTools] Save failed:", error);
           showToast({
@@ -55,7 +74,7 @@ export function useAnalyticsTools(dashboardId: string) {
         },
       });
     },
-    [saveMutation, showToast],
+    [saveMutation, showToast, showToastNow, hideToastNow],
   );
 
   const savePhase = useMutationPhase(
@@ -65,11 +84,13 @@ export function useAnalyticsTools(dashboardId: string) {
 
   // ─── Revert to Saved ───────────────────────────────────────────
   const revertMutation = useMutation({
-    mutationFn: () => dashboardService.revertToPublished(dashboardId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    mutationFn: async () => {
+      await dashboardService.revertToPublished(dashboardId);
+      await queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+    },
+    onSuccess: () => {
       showToast({
         message: "Dashboard reverted to last saved version.",
         variant: "success",
@@ -82,17 +103,21 @@ export function useAnalyticsTools(dashboardId: string) {
     },
   });
 
-  const handleRevert = useCallback(() => {
-    revertMutation.mutate(undefined, {
-      onError: (error) => {
-        console.error("[useAnalyticsTools] Revert failed:", error);
-        showToast({
-          message: "Failed to revert dashboard. Please try again.",
-          variant: "error",
-        });
-      },
-    });
-  }, [revertMutation, showToast]);
+  const handleRevert = useCallback(
+    ({ onSuccess }: { onSuccess?: () => void } = {}) => {
+      revertMutation.mutate(undefined, {
+        onSuccess,
+        onError: (error) => {
+          console.error("[useAnalyticsTools] Revert failed:", error);
+          showToast({
+            message: "Failed to revert dashboard. Please try again.",
+            variant: "error",
+          });
+        },
+      });
+    },
+    [revertMutation, showToast],
+  );
 
   const revertPhase = useMutationPhase(
     revertMutation.isPending,
@@ -127,6 +152,34 @@ export function useAnalyticsTools(dashboardId: string) {
     shareMutation.isSuccess,
   );
 
+  // ─── Edit Mode ─────────────────────────────────────────────────
+  const editModeMutation = useMutation({
+    mutationFn: async (isEditable: boolean) => {
+      await dashboardService.updateDashboard(dashboardId, {
+        is_editable: isEditable,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      });
+    },
+    onMutate: () =>
+      queryClient.cancelQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      }),
+    onError: (error: unknown) => {
+      console.error("[useAnalyticsTools] Edit mode toggle failed:", error);
+      showToast({
+        message: "Failed to toggle edit mode. Please try again.",
+        variant: "error",
+      });
+    },
+  });
+
+  const editModePhase = useMutationPhase(
+    editModeMutation.isPending,
+    editModeMutation.isSuccess,
+  );
+
   // ─── Refresh ───────────────────────────────────────────────────
   const refreshMutation = useMutation({
     mutationFn: () => dashboardService.triggerRefresh(dashboardId),
@@ -148,13 +201,43 @@ export function useAnalyticsTools(dashboardId: string) {
       await refreshMutation.mutateAsync();
     } catch (error) {
       console.error("[useAnalyticsTools] Refresh failed:", error);
+      if (error instanceof ApiError) {
+        const errorCode = (error.response as { error?: { code?: string } })
+          ?.error?.code;
+
+        if (errorCode === "APP_DASHBOARD_REFRESH_IN_PROGRESS") {
+          showToast({
+            message:
+              "A refresh is already in progress. Please wait and try again.",
+            variant: "warning",
+          });
+        } else if (errorCode === "APP_DASHBOARD_REFRESH_COOLDOWN") {
+          showToast({
+            message: error.message,
+            variant: "warning",
+          });
+        } else {
+          showToast({
+            message: "Failed to refresh dashboard. Please try again.",
+            variant: "error",
+          });
+        }
+      } else {
+        showToast({
+          message: "Failed to refresh dashboard. Please try again.",
+          variant: "error",
+        });
+      }
     }
-  }, [refreshMutation]);
+  }, [refreshMutation, showToast]);
 
   return {
     handleSave,
     savePhase,
     saveMutation,
+    // Save toast state (consumed by AnalyticsView for inline toast rendering)
+    showSaveToast,
+    isFirstSave: isFirstSaveRef.current,
     handleRevert,
     revertPhase,
     revertMutation,
@@ -163,5 +246,7 @@ export function useAnalyticsTools(dashboardId: string) {
     sharePhase,
     handleRefresh,
     refreshMutation,
+    editModeMutation,
+    editModePhase,
   };
 }

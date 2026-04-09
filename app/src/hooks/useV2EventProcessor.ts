@@ -32,6 +32,7 @@ type RunFinishedEventWithDashboard = Omit<RunFinishedEvent, "result"> & {
     dashboard?: DashboardMetadata | null;
     execution_id?: string | null;
     approval_type?: string | null;
+    is_dashboard_builder_mode?: boolean;
   };
 };
 import type { DashboardMetadata } from "../types/conversation";
@@ -102,20 +103,21 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
-  phase: "plan-proposed" | "ask" | null;
   dashboard: DashboardMetadata | null;
   /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
   liveDashboardKey: string | null;
   /** execution_id from RUN_FINISHED for workflow execution approval (dry_run completed) */
   executionId: string | null;
+  /** Whether the current/last run is a dashboard builder response */
+  isDashboardBuilderMode: boolean;
   markStopped: () => void;
-  markTimedOut: () => void;
   clearPendingStop: () => void;
   /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
   resumeTimer: () => void;
   /** Undo the optimistic timer resume when the approval API fails. */
   pauseTimerOnApprovalFailure: () => void;
-  invalidateApproval: () => void;
+  invalidateApproval: (skipRefetch?: boolean) => void;
+  expireApprovalStep: (stepId: string) => void;
   // Exposed refs for reconciliation hook
   eventsRef: React.MutableRefObject<Map<string, AguiEventWrapper[]>>;
   finishedRunsRef: React.MutableRefObject<Set<string>>;
@@ -171,11 +173,11 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
-  const [phase, setPhase] = useState<"plan-proposed" | "ask" | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
   /** Key set ONLY by live Pusher events (not seeding), used to trigger auto-open. */
   const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
+  const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
@@ -202,9 +204,9 @@ export function useV2EventProcessor(
       result: ReturnType<typeof transformAguiToTimelineSteps>,
       runId: string,
       options?: {
-        phase?: "plan-proposed" | "ask" | null;
         dashboard?: DashboardMetadata | null;
         executionId?: string | null;
+        isDashboardBuilderMode?: boolean;
       },
     ) => {
       flushSync(() => {
@@ -218,14 +220,14 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
-        if (options?.phase !== undefined) {
-          setPhase(options.phase);
-        }
         if (options?.dashboard !== undefined) {
           setDashboard(options.dashboard);
         }
         if (options?.executionId !== undefined) {
           setExecutionId(options.executionId);
+        }
+        if (options?.isDashboardBuilderMode !== undefined) {
+          setIsDashboardBuilderMode(options.isDashboardBuilderMode);
         }
       });
     },
@@ -278,6 +280,7 @@ export function useV2EventProcessor(
           setIsDeepResearchRunning(deepResearchRunning);
           setRunErrorMessage(options.errorMessage ?? errorMsg);
           setExecutionId(null);
+          setIsDashboardBuilderMode(false);
         });
       } else {
         flushSync(() => {
@@ -310,77 +313,87 @@ export function useV2EventProcessor(
     pendingStopRef.current = false;
   }, []);
 
-  const invalidateApproval = useCallback(() => {
-    // Mark all active runs as finished so their events are no longer processed
-    for (const [runId] of eventsRef.current) {
-      if (!finishedRunsRef.current.has(runId)) {
-        finishedRunsRef.current.add(runId);
-      }
-    }
-
-    // Reset live state synchronously so React commits the update before this
-    // function returns.  The functional updater reads React's latest committed
-    // state (avoiding races with queued updates).  Note: `flushSync` guarantees
-    // the DOM is updated, but the `timelineSteps` state variable captured by
-    // the enclosing closure is NOT updated until the next render — any code that
-    // needs the new steps immediately after this call must read via the ref.
-    flushSync(() => {
-      setTimelineSteps((prev) => {
-        const next = prev.map((step) => {
-          if (step.status === "awaiting-approval") {
-            return { ...step, status: "expired" as const };
-          }
-          if (step.status === "in-progress" || step.status === "pending") {
-            return { ...step, status: "complete" as const };
-          }
-          return step;
-        });
-        timelineStepsRef.current = next;
-        return next;
-      });
-      setIsAwaitingApproval(false);
-      setIsThinking(false);
-      setIsFinalResponseStreaming(false);
-      setExecutionId(null);
-    });
-    timerOnRunTerminated(true);
-    lastEventTimeRef.current = 0;
-
-    // Trigger event persistence: onRunComplete calls forceCompleteMessage which
-    // persists events from eventsRef into the chatStore message, then
-    // refetchMessages() replaces the optimistic message with the server's
-    // version.  dashboardUtils post-processing unconditionally marks any
-    // remaining awaiting-approval steps as expired for non-streaming messages,
-    // and propagates the expired status to the message level — so no
-    // separate markMessageExpired call is needed here.
-    try {
-      onRunComplete?.();
-    } catch (err) {
-      console.error("[invalidateApproval] onRunComplete failed:", err);
-    }
-  }, [timerOnRunTerminated, onRunComplete]);
-
-  const markTimedOut = useCallback(() => {
-    if (import.meta.env.DEV) {
-      console.log(
-        "[useV2EventProcessor] Run timed out — no new events received",
+  const expireApprovalStep = useCallback((stepId: string) => {
+    setTimelineSteps((prev) => {
+      const next = prev.map((step) =>
+        step.id === stepId && step.status === "awaiting-approval"
+          ? { ...step, status: "expired" as const }
+          : step,
       );
-    }
+      timelineStepsRef.current = next;
 
-    // Persist timeout status in chatStore so the message shows the error banner
-    // and doesn't resurrect as "streaming" after a page refresh
-    const messages =
-      useChatStore.getState().messages[conversationId ?? ""] || [];
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const m = messages[i];
-      if (m.role === "assistant" && m.isStreaming) {
-        useChatStore.getState().markMessageTimeout(conversationId ?? "", m.id);
-        break;
+      // Derive flags from updated steps rather than unconditionally resetting
+      const stillAwaiting = next.some((s) => s.status === "awaiting-approval");
+      const stillThinking = next.some(
+        (s) => s.status === "in-progress" || s.status === "pending",
+      );
+      setIsAwaitingApproval(stillAwaiting);
+      setIsThinking(stillThinking || stillAwaiting);
+
+      return next;
+    });
+  }, []);
+
+  const invalidateApproval = useCallback(
+    (skipRefetch?: boolean) => {
+      // Mark all active runs as finished so their events are no longer processed
+      for (const [runId] of eventsRef.current) {
+        if (!finishedRunsRef.current.has(runId)) {
+          finishedRunsRef.current.add(runId);
+        }
       }
-    }
 
-    terminateRun({ stoppedByUser: false, errorMessage: "Request timed out" });
-  }, [conversationId, terminateRun]);
+      // Reset live state synchronously so React commits the update before this
+      // function returns.  The functional updater reads React's latest committed
+      // state (avoiding races with queued updates).  Note: `flushSync` guarantees
+      // the DOM is updated, but the `timelineSteps` state variable captured by
+      // the enclosing closure is NOT updated until the next render — any code that
+      // needs the new steps immediately after this call must read via the ref.
+      flushSync(() => {
+        setTimelineSteps((prev) => {
+          const next = prev.map((step) => {
+            if (step.status === "awaiting-approval") {
+              return { ...step, status: "expired" as const };
+            }
+            if (step.status === "in-progress" || step.status === "pending") {
+              return { ...step, status: "complete" as const };
+            }
+            return step;
+          });
+          timelineStepsRef.current = next;
+          return next;
+        });
+        setIsAwaitingApproval(false);
+        setIsThinking(false);
+        setIsFinalResponseStreaming(false);
+        setExecutionId(null);
+      });
+      timerOnRunTerminated(true);
+      lastEventTimeRef.current = 0;
+
+      // Trigger event persistence: onRunComplete calls forceCompleteMessage which
+      // persists events from eventsRef into the chatStore message, then
+      // refetchMessages() replaces the optimistic message with the server's
+      // version.  dashboardUtils post-processing unconditionally marks any
+      // remaining awaiting-approval steps as expired for non-streaming messages,
+      // and propagates the expired status to the message level — so no
+      // separate markMessageExpired call is needed here.
+      //
+      // When skipRefetch is true (called from handleSendMessage), we skip
+      // onRunComplete because forceCompleteStreamingMessages() handles event
+      // persistence, and the refetchMessages() inside onRunComplete would
+      // fire before the new message's Pusher events arrive, overwriting
+      // the optimistic state with stale backend data.
+      if (!skipRefetch) {
+        try {
+          onRunComplete?.();
+        } catch (err) {
+          console.error("[invalidateApproval] onRunComplete failed:", err);
+        }
+      }
+    },
+    [timerOnRunTerminated, onRunComplete],
+  );
 
   const handleRunFinished = useCallback(
     (runId: string, elapsed: number) => {
@@ -520,8 +533,8 @@ export function useV2EventProcessor(
               setCurrentRunId(run_id);
               setRunErrorMessage("");
               setDashboard(null);
-              setPhase(null);
               setExecutionId(null);
+              setIsDashboardBuilderMode(false);
             });
             timerOnRunStarted(run_id);
           } else {
@@ -549,12 +562,7 @@ export function useV2EventProcessor(
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
 
-        // Extract phase, dashboard, and executionId from RUN_FINISHED event
-        const runFinishedPhase =
-          eventType === "RUN_FINISHED"
-            ? ((wrapper.event as RunFinishedEventWithDashboard).result?.phase ??
-              null)
-            : undefined;
+        // Extract dashboard and executionId from RUN_FINISHED event
         const runFinishedDashboard =
           eventType === "RUN_FINISHED"
             ? ((wrapper.event as RunFinishedEventWithDashboard).result
@@ -564,6 +572,11 @@ export function useV2EventProcessor(
           eventType === "RUN_FINISHED"
             ? ((wrapper.event as RunFinishedEventWithDashboard).result
                 ?.execution_id ?? null)
+            : undefined;
+        const runFinishedIsDashboardBuilderMode =
+          eventType === "RUN_FINISHED"
+            ? ((wrapper.event as RunFinishedEventWithDashboard).result
+                ?.is_dashboard_builder_mode ?? false)
             : undefined;
 
         // Update state synchronously
@@ -578,10 +591,6 @@ export function useV2EventProcessor(
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
 
-          // Update phase when RUN_FINISHED arrives
-          if (runFinishedPhase !== undefined) {
-            setPhase(runFinishedPhase);
-          }
           // Update dashboard when RUN_FINISHED arrives with dashboard metadata
           if (runFinishedDashboard !== undefined) {
             if (import.meta.env.DEV) {
@@ -601,6 +610,10 @@ export function useV2EventProcessor(
           // Update executionId when RUN_FINISHED arrives with workflow execution approval
           if (runFinishedExecutionId !== undefined) {
             setExecutionId(runFinishedExecutionId);
+          }
+          // Update isDashboardBuilderMode when RUN_FINISHED arrives
+          if (runFinishedIsDashboardBuilderMode !== undefined) {
+            setIsDashboardBuilderMode(runFinishedIsDashboardBuilderMode);
           }
         });
 
@@ -704,14 +717,10 @@ export function useV2EventProcessor(
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
-    // Extract phase and dashboard from seeded events (for page refresh)
+    // Extract dashboard and execution metadata from seeded events (for page refresh)
     const runFinishedEvent = mergedEvents.find(
       (e) => e.event?.type === "RUN_FINISHED",
     );
-    const seededPhase = runFinishedEvent
-      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
-          ?.phase ?? null)
-      : null;
     const seededDashboard = runFinishedEvent
       ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
           ?.dashboard ?? null)
@@ -720,6 +729,10 @@ export function useV2EventProcessor(
       ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
           ?.execution_id ?? null)
       : null;
+    const seededIsDashboardBuilderMode = runFinishedEvent
+      ? ((runFinishedEvent.event as RunFinishedEventWithDashboard).result
+          ?.is_dashboard_builder_mode ?? false)
+      : false;
 
     eventsRef.current.set(runId, mergedEvents);
 
@@ -739,9 +752,9 @@ export function useV2EventProcessor(
 
       currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
-        phase: seededPhase,
         dashboard: seededDashboard,
         executionId: seededExecutionId,
+        isDashboardBuilderMode: seededIsDashboardBuilderMode,
       });
 
       if (!result.isThinking && !finishedRunsRef.current.has(runId)) {
@@ -754,15 +767,15 @@ export function useV2EventProcessor(
       // The persisted message path (dashboardUtils) renders the correct elapsed
       // and timeline from msg.events. Setting currentRunId here would force the
       // V2 live path, which shows elapsedTime=0 before the timer is seeded.
-      // However, we still need to set phase and dashboard for UI components that
+      // However, we still need to set dashboard/executionId for UI components that
       // depend on them (e.g., DashboardPanel, approval buttons).
       // Mark as finished FIRST (synchronously via ref) to prevent race conditions
       // with late Pusher events before state updates complete.
       finishedRunsRef.current.add(runId);
       flushSync(() => {
-        setPhase(seededPhase);
         setDashboard(seededDashboard);
         setExecutionId(seededExecutionId);
+        setIsDashboardBuilderMode(seededIsDashboardBuilderMode);
       });
     } else {
       // Active run, not yet tracked by Pusher (page refresh recovery).
@@ -775,9 +788,9 @@ export function useV2EventProcessor(
       });
       currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
-        phase: seededPhase,
         dashboard: seededDashboard,
         executionId: seededExecutionId,
+        isDashboardBuilderMode: seededIsDashboardBuilderMode,
       });
     }
 
@@ -857,16 +870,16 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
-    phase,
     dashboard,
     liveDashboardKey,
     executionId,
+    isDashboardBuilderMode,
     markStopped,
-    markTimedOut,
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,
     pauseTimerOnApprovalFailure: timerOnApprovalFailed,
     invalidateApproval,
+    expireApprovalStep,
     eventsRef,
     finishedRunsRef,
     lastEventTimeRef,

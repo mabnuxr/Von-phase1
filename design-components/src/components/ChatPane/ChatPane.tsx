@@ -23,8 +23,6 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
   onSendMessage,
   onStop,
   isStreaming = false,
-  referenceContext,
-  onRemoveReference,
   isCollapsed = false,
   onToggleCollapse,
   onNewChat,
@@ -164,8 +162,6 @@ export const ChatPane: React.FC<ChatPaneProps> = ({
           onVoiceInput={enableVoiceInput ? onVoiceInput : undefined}
           isRecording={isRecording}
           mode="build"
-          referenceContext={referenceContext}
-          onRemoveReference={onRemoveReference}
           showModeSelector={showModeSelector}
           autoEditMode={autoEditMode}
           onAutoEditModeChange={onAutoEditModeChange}

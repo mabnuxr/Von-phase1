@@ -11,9 +11,9 @@ import { ConversationMode } from './types';
 function getConversationModeDisplay(mode: ConversationMode) {
   switch (mode) {
     case ConversationMode.Auto:
-      return { label: 'Ask Mode', description: 'Chat, research, get answers' };
+      return { label: 'Ask Von', description: 'Any revenue question or task' };
     case ConversationMode.DashboardBuilder:
-      return { label: 'Dashboard Mode', description: 'Create and edit dashboards' };
+      return { label: 'Build Dashboards', description: 'All of Ask Von + build dashboards' };
     default:
       return { label: 'Unknown Mode', description: 'An unknown conversation mode' };
   }

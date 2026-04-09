@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import {
   conversationsService,
@@ -271,81 +270,6 @@ export function useBulkArtifacts(
     retryDelay: (attemptIndex) =>
       Math.min(1000 * 2 ** attemptIndex, ARTIFACT_MAX_RETRY_DELAY),
   });
-}
-
-/**
- * Hook for fetching IQ artifacts for Deep Research data tables
- *
- * Used after a deep research sample run completes to show the data tables info.
- * Fetches artifact summaries and filters by category "iq".
- *
- * @param conversationId - ID of the conversation
- * @param runId - Run ID of the message (null to disable)
- * @param enabled - Whether to enable the query (default: true). Set to false to delay fetching until sample run completes.
- * @returns Result with IQ artifact summaries and data tables info
- */
-export function useDeepResearchArtifacts(
-  conversationId: string | null,
-  runId: string | null,
-  enabled: boolean = true,
-) {
-  // Only fetch the list of artifacts when enabled (after sample run completes)
-  const listQuery = useMessageArtifacts(conversationId, runId, enabled);
-
-  // Filter artifacts by source_context = "dashboard_builder_plan"
-  const vonIqArtifacts = useMemo(
-    () =>
-      listQuery.data?.artifacts.filter(
-        (artifact) => artifact.source_context === "dashboard_builder_plan",
-      ) ?? [],
-    [listQuery.data?.artifacts],
-  );
-
-  // Calculate artifact count from artifacts that will be shown in drawer
-  // Only show artifacts with source_context = "dashboard_builder_plan"
-  const dataTablesInfo = useMemo(() => {
-    const allArtifacts = listQuery.data?.artifacts ?? [];
-    const displayableArtifacts = allArtifacts.filter(
-      (s) => s.source_context === "dashboard_builder_plan",
-    );
-    return displayableArtifacts.length > 0
-      ? {
-          tableCount: displayableArtifacts.length,
-          // processedRecords and totalRecords will be populated when we fetch full content
-          processedRecords: undefined as number | undefined,
-          totalRecords: undefined as number | undefined,
-        }
-      : null;
-  }, [listQuery.data?.artifacts]);
-
-  // Filter allArtifacts to only include dashboard_builder_plan artifacts
-  const allArtifacts = useMemo(
-    () =>
-      listQuery.data?.artifacts.filter(
-        (artifact) => artifact.source_context === "dashboard_builder_plan",
-      ) ?? [],
-    [listQuery.data?.artifacts],
-  );
-
-  return {
-    // List metadata
-    conversationId: listQuery.data?.conversation_id ?? conversationId,
-    runId: listQuery.data?.run_id ?? runId,
-    totalCount: listQuery.data?.total_count ?? 0,
-    // IQ artifact summaries (filtered by category)
-    vonIqArtifacts,
-    // All artifact summaries
-    allArtifacts,
-    // Data tables info for the DataTablesCard component
-    dataTablesInfo,
-    // Loading states
-    isLoading: listQuery.isLoading,
-    // Error states
-    isError: listQuery.isError,
-    error: listQuery.error,
-    // Refetch function
-    refetch: listQuery.refetch,
-  };
 }
 
 /**

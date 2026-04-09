@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
 import type { SidebarItem } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
@@ -9,6 +9,7 @@ import { useTitleAnimation } from "../hooks/useTitleAnimation";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
+import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
 
 /**
@@ -57,7 +58,8 @@ export function ChatSidebarV2Container({
   onSettingsClick,
   onLogoutClick,
 }: ChatSidebarV2ContainerProps) {
-  const navigate = useNavigate();
+  const navigate = useGuardedNavigate();
+  const { dashboardId } = useParams<{ dashboardId: string }>();
 
   const {
     folders,
@@ -194,6 +196,7 @@ export function ChatSidebarV2Container({
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
       dashboards={sidebarDashboards}
+      selectedDashboardId={dashboardId}
       hasMoreDashboards={hasMoreDashboards}
       onLoadMoreDashboards={loadMoreDashboards}
       onRenameDashboard={renameDashboard}

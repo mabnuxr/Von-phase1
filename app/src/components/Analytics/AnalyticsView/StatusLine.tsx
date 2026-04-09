@@ -1,33 +1,31 @@
-import { formatRelativeTime } from "@vonlabs/design-components";
-import { DashboardStatus } from "../../../types/dashboard";
+import { ensureUTC, formatRelativeTime } from "@vonlabs/design-components";
 
 interface StatusLineProps {
-  state: DashboardStatus;
-  lastSavedAt?: string | null;
   lastRefreshedAt?: string | null;
 }
 
-export const StatusLine: React.FC<StatusLineProps> = ({
-  state,
-  lastSavedAt,
-  lastRefreshedAt,
-}) => {
-  const isDraft = state === DashboardStatus.Draft;
-  const colorClass = isDraft ? "text-amber-700" : "text-emerald-700";
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const StatusLine: React.FC<StatusLineProps> = ({ lastRefreshedAt }) => {
+  const refreshedLabel = lastRefreshedAt
+    ? formatRelativeTime(lastRefreshedAt)
+    : null;
+
+  if (!refreshedLabel) return null;
+
+  const isStale =
+    !!lastRefreshedAt &&
+    Date.now() - new Date(ensureUTC(lastRefreshedAt)).getTime() > DAY_MS;
 
   return (
-    <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none">
-      <span className={`${colorClass} font-medium`}>
-        {isDraft ? "Draft" : "Saved"}
-      </span>
-      {lastSavedAt && (
-        <span className={colorClass}>{formatRelativeTime(lastSavedAt)}</span>
-      )}
-      {lastRefreshedAt && (
-        <span className="text-gray-700">
-          · Refreshed {formatRelativeTime(lastRefreshedAt)}
-        </span>
-      )}
+    <span
+      className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1.5 leading-none border ${
+        isStale
+          ? "bg-amber-50 border-amber-200 text-amber-700"
+          : "bg-gray-50 border-gray-100 text-gray-700"
+      }`}
+    >
+      Refreshed {refreshedLabel}
     </span>
   );
 };

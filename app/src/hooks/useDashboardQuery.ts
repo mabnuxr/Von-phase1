@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
-import { applyWidgetTheme } from "../utils/applyWidgetTheme";
 import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
@@ -49,6 +48,10 @@ interface RawApiWidget {
   highcharts: Record<string, unknown> | null;
   gridOptions: Record<string, unknown> | null;
   query_failed?: boolean;
+  drilldown?: {
+    query_ref: string;
+    column_map: Array<{ data_key: string; sql_expression: string }>;
+  } | null;
   pagination?: {
     page: number;
     limit: number;
@@ -61,6 +64,11 @@ interface RawApiWidget {
   };
 }
 
+interface RawApiQuery {
+  sql: string;
+  description?: string;
+}
+
 interface RawApiDashboardResponse {
   id: string;
   title: string;
@@ -71,17 +79,20 @@ interface RawApiDashboardResponse {
   is_shared_with_tenant: boolean;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
+  queries?: Record<string, RawApiQuery>;
+  is_editable?: boolean;
   ui_config?: {
     panel_layouts?: Record<
       string,
       { x: number; y: number; w: number; h: number }
     >;
     color_palette?: string | null;
-    color_palette_global?: string | null;
   };
   filters?: DashboardFilters;
   created_at: string;
   updated_at: string;
+  created_by?: string;
+  created_by_name?: string;
   refresh_info: {
     last_refreshed_at: string;
   };
@@ -89,7 +100,18 @@ interface RawApiDashboardResponse {
 
 // ─── API Response Adapter ───────────────────────────────────────
 
-function adaptWidget(raw: RawApiWidget): WidgetConfig {
+function adaptWidget(
+  raw: RawApiWidget,
+  queries?: Record<string, RawApiQuery>,
+): WidgetConfig {
+  const queryInfo =
+    raw.query_ref && queries?.[raw.query_ref]
+      ? {
+          sql: queries[raw.query_ref].sql,
+          description: queries[raw.query_ref].description,
+        }
+      : undefined;
+
   if (raw.type === "kpi" && raw.kpi) {
     return {
       id: raw.id,
@@ -97,6 +119,8 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
       title: raw.title,
       config: raw.kpi,
       query_failed: raw.query_failed,
+      drilldown: raw.drilldown ?? null,
+      queryInfo,
     };
   }
 
@@ -109,6 +133,7 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         type: raw.type as WidgetConfig["type"],
         title: raw.title,
         config: {},
+        queryInfo,
       } as WidgetConfig;
     }
     // Normalize yAxis to array — API may return a single object
@@ -128,6 +153,8 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
         chartType: ((chartObj.type as string) ?? "bar") as ChartType,
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
+      drilldown: raw.drilldown ?? null,
+      queryInfo,
     };
   }
 
@@ -150,6 +177,8 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
             }
           : undefined,
       },
+      drilldown: raw.drilldown ?? null,
+      queryInfo,
     } as unknown as WidgetConfig;
   }
 
@@ -159,6 +188,8 @@ function adaptWidget(raw: RawApiWidget): WidgetConfig {
     type: raw.type as WidgetConfig["type"],
     title: raw.title,
     config: {},
+    drilldown: raw.drilldown ?? null,
+    queryInfo,
   } as WidgetConfig;
 }
 
@@ -167,7 +198,7 @@ function adaptApiResponse(
 ): DashboardMetadataResponse {
   const widgets: Record<string, WidgetConfig> = {};
   for (const [key, apiWidget] of Object.entries(raw.widgets)) {
-    widgets[key] = adaptWidget(apiWidget);
+    widgets[key] = adaptWidget(apiWidget, raw.queries);
   }
 
   return {
@@ -211,16 +242,17 @@ function adaptApiResponse(
                 ? raw.filters.definitions
                 : [],
               state: raw.filters.state ?? {},
+              defaults: raw.filters.defaults ?? {},
             }
           : undefined,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
-        createdBy: "",
+        createdBy: raw.created_by ?? "",
+        createdByName: raw.created_by_name ?? undefined,
         analysisId: "",
+        isEditable: raw.is_editable ?? false,
         uiConfig: raw.ui_config
           ? {
-              colorPaletteGlobal:
-                raw.ui_config.color_palette_global ?? undefined,
               panelLayouts: raw.ui_config.panel_layouts,
             }
           : undefined,
@@ -282,11 +314,6 @@ export function useDashboardQuery(dashboardId: string | undefined) {
         );
 
         const { dashboard, refreshInfo } = response.data;
-
-        // Inject frontend color palette into widget configs
-        dashboard.widgets = applyWidgetTheme(
-          dashboard.widgets,
-        ) as typeof dashboard.widgets;
 
         // Extract active filter values from the filter state
         const activeFilters: Record<string, unknown> =

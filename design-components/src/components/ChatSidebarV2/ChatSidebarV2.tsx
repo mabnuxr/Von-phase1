@@ -1,12 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  SidebarSimpleIcon,
-  PlusCircleIcon,
-  ChalkboardIcon,
-  ChalkboardTeacherIcon,
-  DotsThreeIcon,
-} from '@phosphor-icons/react';
+import { SidebarSimpleIcon, PlusCircleIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
@@ -23,6 +17,7 @@ import {
   getFolderContextMenuItems,
   getDashboardContextMenuItems,
 } from './utils';
+import { ensureUTC } from '../../utils/ensureUTC';
 
 /**
  * Convert an ISO timestamp (or any Date-parseable string) to a human-readable
@@ -31,7 +26,7 @@ import {
 function formatRelativeTime(dateStr: string | undefined): string {
   if (!dateStr) return 'Just now';
   const now = Date.now();
-  const then = new Date(dateStr).getTime();
+  const then = new Date(ensureUTC(dateStr)).getTime();
   if (Number.isNaN(then)) return 'Just now';
   const diffMs = now - then;
   if (diffMs < 0) return 'Just now';
@@ -196,7 +191,7 @@ const DashboardRow: React.FC<{
   const [editValue, setEditValue] = useState(dash.label);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showDotsButton = dash.isOwner && (isHovered || isMenuOpen) && !isEditing;
+  const showDotsButton = (isHovered || isMenuOpen) && !isEditing;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -235,20 +230,6 @@ const DashboardRow: React.FC<{
       title={dash.label}
     >
       <div className="flex items-center gap-2.5 flex-1 min-w-0">
-        {dash.visibility === 'org' ? (
-          <ChalkboardTeacherIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 mb-[1px] flex-shrink-0"
-          />
-        ) : (
-          <ChalkboardIcon
-            size={16}
-            weight="regular"
-            className="text-gray-800 mb-[1px] flex-shrink-0"
-          />
-        )}
-
         {isEditing ? (
           <input
             ref={inputRef}
@@ -312,15 +293,6 @@ const DashboardSection: React.FC<{
     dashboard: null,
   });
 
-  // Sort: pinned first, then by label
-  const sortedDashboards = useMemo(() => {
-    return [...dashboards].sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return a.label.localeCompare(b.label);
-    });
-  }, [dashboards]);
-
   const handleOpenContextMenu = (e: React.MouseEvent, dash: DashboardSidebarItem) => {
     e.preventDefault();
     e.stopPropagation();
@@ -336,7 +308,7 @@ const DashboardSection: React.FC<{
     <div className="mb-3">
       <SectionHeader label="Dashboards" />
       <div>
-        {sortedDashboards.map((dash) => (
+        {dashboards.map((dash) => (
           <DashboardRow
             key={dash.id}
             dash={dash}
@@ -363,13 +335,13 @@ const DashboardSection: React.FC<{
       <ContextMenu
         isOpen={contextMenu.isOpen}
         onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
-        items={getDashboardContextMenuItems()}
+        items={getDashboardContextMenuItems({ isOwner: contextMenu.dashboard?.isOwner })}
         fixedPosition={contextMenu.position}
         width={180}
         onItemClick={(menuItem) => {
           const dash = contextMenu.dashboard;
           if (!dash) return;
-          if (menuItem.id === 'rename') {
+          if (menuItem.id === 'rename' && dash.isOwner) {
             setEditingId(dash.id);
           }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
@@ -456,6 +428,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     dropdownPosition,
     isFoldersHovered,
     foldersDropdownPosition,
+    isDashboardsHovered,
+    dashboardsDropdownPosition,
 
     // Inline folder creation
     isCreatingFolder,
@@ -469,6 +443,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // Refs
     chatButtonRef,
     foldersButtonRef,
+    dashboardsButtonRef,
     avatarButtonRef,
 
     // Derived state
@@ -507,6 +482,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     // UI handlers
     handleChatsHover,
     handleFoldersHover,
+    handleDashboardsHover,
     handleAvatarClick,
     handleCloseProfile,
   } = useChatSidebarState({
@@ -563,6 +539,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           foldersDropdownPosition={foldersDropdownPosition}
           foldersButtonRef={foldersButtonRef}
           onFoldersHover={handleFoldersHover}
+          dashboards={dashboards}
+          selectedDashboardId={selectedDashboardId}
+          onDashboardClick={onDashboardClick}
+          isDashboardsHovered={isDashboardsHovered}
+          dashboardsDropdownPosition={dashboardsDropdownPosition}
+          dashboardsButtonRef={dashboardsButtonRef}
+          onDashboardsHover={handleDashboardsHover}
           userName={userName}
           userEmail={userEmail}
           avatarSrc={avatarSrc}
@@ -675,48 +658,59 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 )}
 
                 {/* Dashboards Section (modular — only renders when dashboards prop is provided) */}
-                {!isLoading && dashboards && dashboards.length > 0 && (
-                  <DashboardSection
-                    dashboards={dashboards}
-                    selectedDashboardId={selectedDashboardId}
-                    onDashboardClick={onDashboardClick}
-                    onRenameDashboard={onRenameDashboard}
-                    hasMoreDashboards={hasMoreDashboards}
-                    onLoadMoreDashboards={onLoadMoreDashboards}
-                  />
+                {!isLoading && dashboards && (
+                  <>
+                    {dashboards.length > 0 ? (
+                      <DashboardSection
+                        dashboards={dashboards}
+                        selectedDashboardId={selectedDashboardId}
+                        onDashboardClick={onDashboardClick}
+                        onRenameDashboard={onRenameDashboard}
+                        hasMoreDashboards={hasMoreDashboards}
+                        onLoadMoreDashboards={onLoadMoreDashboards}
+                      />
+                    ) : (
+                      <div className="mb-3">
+                        <SectionHeader label="Dashboards" />
+                        <div className="px-3 py-3 text-center">
+                          <p className="text-[12px] text-gray-400">
+                            Dashboards you create will appear here.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Chats Section (root items not in folders) */}
-                {!isLoading && rootItems.length > 0 && (
+                {!isLoading && (
                   <div className="mb-2">
                     <SectionHeader label="Chats" />
-                    <div>
-                      {rootItems.map((item) => (
-                        <ConversationItem
-                          key={item.id}
-                          item={item}
-                          isSelected={item.id === selectedItemId}
-                          onClick={() => onItemClick?.(item.id)}
-                          onContextMenu={(e) => handleContextMenu(e, item)}
-                          isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
-                          isEditing={editingItemId === item.id && editingItemFolderId === null}
-                          onSaveEdit={(newName) => handleSaveRename(item, newName)}
-                          onCancelEdit={handleCancelRename}
-                        />
-                      ))}
-                    </div>
+                    {rootItems.length > 0 ? (
+                      <div>
+                        {rootItems.map((item) => (
+                          <ConversationItem
+                            key={item.id}
+                            item={item}
+                            isSelected={item.id === selectedItemId}
+                            onClick={() => onItemClick?.(item.id)}
+                            onContextMenu={(e) => handleContextMenu(e, item)}
+                            isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                            isEditing={editingItemId === item.id && editingItemFolderId === null}
+                            onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                            onCancelEdit={handleCancelRename}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-3 text-center">
+                        <p className="text-[12px] text-gray-400">
+                          Your conversations will appear here.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
-
-                {/* Empty state */}
-                {!isLoading &&
-                  rootItems.length === 0 &&
-                  sortedFolders.length === 0 &&
-                  (!dashboards || dashboards.length === 0) && (
-                    <div className="py-3 text-center">
-                      <p className="text-[12px] text-gray-400">No chats yet</p>
-                    </div>
-                  )}
 
                 {/* Infinite scroll trigger */}
                 {loadMoreRef && <div ref={loadMoreRef} className="h-px flex-shrink-0" />}

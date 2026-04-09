@@ -11,15 +11,18 @@ export interface IntegrationMetadata {
   personalDescription?: string;
   logoPath: string;
   disabled?: boolean;
+  /** Optional note shown below the description */
+  note?: string;
   category:
     | "CRM"
     | "Call Recorder"
-    | "Internal Documents"
+    | "Knowledge base"
     | "Sales Engagement"
     | "Data Warehouse"
     | "Customer Support"
     | "Calendar"
-    | "Other";
+    | "Note Takers"
+    | "Communication";
 }
 
 /**
@@ -50,9 +53,19 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     id: "gong",
     name: "Gong",
     description: "Ask about Gong calls and get Von's conversation insights",
+    note: "If you have a Gong Engage license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
     category: "Call Recorder",
+  },
+  gongengage: {
+    id: "gongengage",
+    name: "Gong Engage",
+    description: "Analyse flows and manage engagement actions from Gong Engage",
+    note: "Set up your Gong call recorder to start using Gong Engage",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
+    category: "Sales Engagement",
   },
   fathom: {
     id: "fathom",
@@ -115,14 +128,23 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
     category: "Call Recorder",
   },
-  // Internal Documents integrations
+  // Knowledge base integrations
   googledrive: {
     id: "googledrive",
     name: "Google Drive",
     description: "Search and reference documents from your Google Drive",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
+  },
+  notion: {
+    id: "notion",
+    name: "Notion",
+    description:
+      "Search, read, and update Notion pages, databases, and comments",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/notion.svg",
+    category: "Knowledge base",
   },
   gmail: {
     id: "gmail",
@@ -130,7 +152,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Draft and send emails directly from your Gmail account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg",
-    category: "Other",
+    category: "Communication",
   },
   highspot: {
     id: "highspot",
@@ -138,7 +160,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Access sales enablement content and analytics from Highspot",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Highspot.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   seismic: {
@@ -147,7 +169,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Sync sales content and enablement materials from Seismic",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Seismic.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   confluence: {
@@ -156,7 +178,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Connect Confluence to access team documentation and wikis",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Confluence.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   guru: {
@@ -165,7 +187,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Access knowledge base and team wiki from Guru",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Guru.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   intercom: {
@@ -174,18 +196,18 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Import customer conversations and support data from Intercom",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Intercom.svg",
-    category: "Internal Documents",
+    category: "Knowledge base",
     disabled: true,
   },
   // Sales Engagement integrations
-  outreach: {
-    id: "outreach",
-    name: "Outreach",
-    description: "Sync sales sequences and engagement data from Outreach",
+  outreachengage: {
+    id: "outreachengage",
+    name: "Outreach Engage",
+    description:
+      "Manage sequences, log calls, and create tasks in Outreach Engage",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
     category: "Sales Engagement",
-    disabled: true,
   },
   salesloft_engagement: {
     id: "salesloft_engagement",
@@ -250,7 +272,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "Search meeting notes, transcripts, and AI-generated summaries",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
-    category: "Call Recorder",
+    category: "Note Takers",
   },
 } as const;
 
@@ -274,6 +296,7 @@ export function getIntegrationLogoPath(type: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -284,7 +307,7 @@ export function getIntegrationLogoPath(type: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -293,6 +316,7 @@ export function getIntegrationLogoPath(type: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -313,6 +337,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     salesforce: "SALESFORCE",
     hubspot: "HUBSPOT",
     gong: "GONG",
+    gongengage: "GONG_ENGAGE",
     fathom: "FATHOM",
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
@@ -326,7 +351,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     confluence: "CONFLUENCE",
     guru: "GURU",
     intercom: "INTERCOM",
-    outreach: "OUTREACH",
+    outreachengage: "OUTREACH_ENGAGE",
     salesloft: "SALESLOFT",
     salesloft_engagement: "SALESLOFT_ENGAGEMENT",
     snowflake: "SNOWFLAKE",
@@ -335,6 +360,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     pylon: "PYLON",
     gmail: "GMAIL",
     granola: "GRANOLA",
+    notion: "NOTION",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -349,6 +375,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     GOOGLE_CALENDAR: "googlecalendar",
@@ -362,7 +389,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -371,6 +398,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -389,6 +417,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
     GONG: "gong",
+    GONG_ENGAGE: "gongengage",
     FATHOM: "fathom",
     ZOOM: "zoom",
     CHORUS: "chorus",
@@ -399,7 +428,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     CONFLUENCE: "confluence",
     GURU: "guru",
     INTERCOM: "intercom",
-    OUTREACH: "outreach",
+    OUTREACH_ENGAGE: "outreachengage",
     SALESLOFT: "salesloft",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -408,6 +437,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     PYLON: "pylon",
     GMAIL: "gmail",
     GRANOLA: "granola",
+    NOTION: "notion",
   };
 
   const integrationId =
@@ -430,12 +460,14 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],
+  gongengage: ["tenant"],
   fathom: ["tenant"],
   zoom: ["tenant"],
   chorus: ["tenant"],
   claricopilot: ["tenant"],
   attention: ["tenant"],
   zendesk: ["tenant"],
+  outreachengage: ["tenant"],
 
   // Personal integrations - user-level only
   hubspot: ["user"],
@@ -447,13 +479,13 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   confluence: ["user"],
   guru: ["user"],
   intercom: ["user"],
-  outreach: ["user"],
   salesloft: ["user"],
   salesloft_engagement: ["user"],
   snowflake: ["tenant"],
   databricks: ["user"],
   pylon: ["user"],
   granola: ["user"],
+  notion: ["tenant"],
 };
 
 /**

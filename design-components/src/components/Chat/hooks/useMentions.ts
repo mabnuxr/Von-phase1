@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { Editor, Extension, JSONContent } from '@tiptap/react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import type { MentionItem } from '../../Mentions/types';
+import { MentionItemType } from '../../Mentions/constants';
 import {
   MentionChip,
   createMentionSuggestion,
@@ -16,6 +17,8 @@ export interface UseMentionsOptions {
   onSelectMention?: (item: MentionItem) => void;
   /** Called when the user first types "@" — use to lazy-load mention items */
   onMentionsActivated?: () => void;
+  /** Dashboard mention to auto-add (e.g. current dashboard context). Updated on dashboard switch. */
+  dashboardMention?: MentionItem | null;
 }
 
 export interface UseMentionsReturn {
@@ -35,6 +38,14 @@ export interface UseMentionsReturn {
   handleCloseMentionsList: () => void;
   /** Extract all mentions from editor doc at send time */
   extractMentions: (editor: Editor | null) => MentionItem[];
+  /** Mentions selected as preview cards (shown above the editor) */
+  selectedMentions: MentionItem[];
+  /** Remove a selected mention card by id */
+  removeSelectedMention: (id: string) => void;
+  /** Clear all selected mentions (e.g. after send) */
+  clearSelectedMentions: () => void;
+  /** Whether a dashboard mention is already selected (limit: 1 per message) */
+  isDashboardLimitReached: boolean;
 }
 
 /**
@@ -47,23 +58,85 @@ function filterItems(items: MentionItem[], search: string): MentionItem[] {
 }
 
 /**
+ * Remove all mention nodes with a given id from a Tiptap editor.
+ */
+function removeMentionNodeById(editor: Editor, mentionId: string) {
+  const { doc, tr } = editor.state;
+  // Collect positions in reverse so deletions don't shift earlier positions
+  const positions: { from: number; to: number }[] = [];
+  doc.descendants((node, pos) => {
+    if (node.type.name === 'mention' && node.attrs.id === mentionId) {
+      positions.push({ from: pos, to: pos + node.nodeSize });
+    }
+  });
+  for (let i = positions.length - 1; i >= 0; i--) {
+    tr.delete(positions[i].from, positions[i].to);
+  }
+  if (positions.length > 0) {
+    editor.view.dispatch(tr);
+  }
+}
+
+/**
  * Unified hook for @ mention functionality.
  *
  * Replaces useMentionInputState + useMentionsKeyboardNav by leveraging
  * Tiptap's built-in suggestion plugin for "@" detection, overlay lifecycle,
  * keyboard navigation, and Escape handling.
  *
- * The existing MentionsOverlay component is reused as the dropdown UI.
+ * Selected mentions are displayed as preview cards above the editor
+ * (like file attachments) rather than inline chips.
  */
 export function useMentions({
   enableMentions,
   mentionItems,
   onSelectMention,
   onMentionsActivated,
+  dashboardMention,
 }: UseMentionsOptions): UseMentionsReturn {
   const [suggestionState, setSuggestionState] =
     useState<MentionSuggestionState>(INITIAL_SUGGESTION_STATE);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>(() =>
+    dashboardMention ? [dashboardMention] : []
+  );
+
+  // Track whether the user explicitly dismissed the current dashboard mention
+  const dashboardDismissedRef = useRef(false);
+
+  // Sync dashboard mention into selectedMentions on dashboard switch
+  const prevDashboardIdRef = useRef(dashboardMention?.id);
+  useEffect(() => {
+    const prevId = prevDashboardIdRef.current;
+
+    if (!dashboardMention) {
+      // Dashboard mention cleared — remove the previous dashboard mention
+      prevDashboardIdRef.current = undefined;
+      dashboardDismissedRef.current = false;
+      if (prevId) {
+        setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
+      }
+      return;
+    }
+
+    prevDashboardIdRef.current = dashboardMention.id;
+
+    if (prevId !== dashboardMention.id) {
+      // Dashboard changed — replace old with new, reset dismissed state
+      dashboardDismissedRef.current = false;
+      setSelectedMentions((prev) => {
+        const withoutOld = prev.filter((m) => m.id !== prevId && m.id !== dashboardMention.id);
+        return [dashboardMention, ...withoutOld];
+      });
+    } else if (!dashboardDismissedRef.current) {
+      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
+      setSelectedMentions((prev) => {
+        const exists = prev.some((m) => m.id === dashboardMention.id);
+        if (!exists) return [dashboardMention, ...prev];
+        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
+      });
+    }
+  }, [dashboardMention, selectedMentions.length]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
@@ -73,15 +146,47 @@ export function useMentions({
   const filteredItemsRef = useRef<MentionItem[]>([]);
   const onSelectMentionRef = useRef(onSelectMention);
   onSelectMentionRef.current = onSelectMention;
+  const editorRef = useRef<Editor | null>(null);
 
   // Keep highlightedIndexRef in sync
   highlightedIndexRef.current = highlightedIndex;
 
-  // Filter items by current query
-  const filteredItems = useMemo(
-    () => filterItems(mentionItems, suggestionState.query),
-    [mentionItems, suggestionState.query]
+  // A dashboard mention is already selected — block further dashboard selections
+  const isDashboardLimitReached = selectedMentions.some(
+    (m) => m.type === MentionItemType.Dashboard
   );
+
+  // Filter items by current query, excluding already-selected mentions.
+  // When a dashboard is currently in the viewport (dashboardMention), prioritize it first.
+  const filteredItems = useMemo(() => {
+    let items: MentionItem[];
+    if (isDashboardLimitReached) {
+      // When limit is reached, show all items (they'll render disabled)
+      items = filterItems(mentionItems, suggestionState.query);
+    } else {
+      const selectedIds = new Set(selectedMentions.map((m) => m.id));
+      const available = mentionItems.filter((item) => !selectedIds.has(item.id));
+      items = filterItems(available, suggestionState.query);
+    }
+
+    // Mark and move the currently open dashboard to the top of the list
+    if (dashboardMention) {
+      const currentId = dashboardMention.id;
+      const current = items
+        .filter((item) => item.id === currentId)
+        .map((item) => ({ ...item, isCurrent: true }));
+      const rest = items.filter((item) => item.id !== currentId);
+      items = [...current, ...rest];
+    }
+
+    return items;
+  }, [
+    mentionItems,
+    suggestionState.query,
+    selectedMentions,
+    isDashboardLimitReached,
+    dashboardMention,
+  ]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight when query changes
@@ -98,8 +203,14 @@ export function useMentions({
     ((props: { id: string; label: string; mentionType: string; version: number }) => void) | null
   >(null);
 
+  const isDashboardLimitReachedRef = useRef(isDashboardLimitReached);
+  isDashboardLimitReachedRef.current = isDashboardLimitReached;
+
   const handleOverlaySelect = useCallback((item: MentionItem) => {
-    // Use Tiptap's suggestion command if available (inserts node into editor)
+    // Block selection when dashboard limit is reached
+    if (isDashboardLimitReachedRef.current) return;
+
+    // Use Tiptap's suggestion command to clean up the @query text
     if (suggestionCommandRef.current) {
       suggestionCommandRef.current({
         id: item.id,
@@ -109,7 +220,39 @@ export function useMentions({
       });
       suggestionCommandRef.current = null;
     }
+
+    // Remove the inline mention node that was just inserted — we show it
+    // as a preview card above the editor instead.
+    if (editorRef.current) {
+      // Use requestAnimationFrame to ensure the node is inserted before we remove it
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          removeMentionNodeById(editorRef.current, item.id);
+        }
+      });
+    }
+
+    // Add to selected mentions (avoid duplicates)
+    setSelectedMentions((prev) => (prev.some((m) => m.id === item.id) ? prev : [...prev, item]));
+
     onSelectMentionRef.current?.(item);
+  }, []);
+
+  const removeSelectedMention = useCallback(
+    (id: string) => {
+      // If removing the current dashboard mention, mark it as dismissed
+      // so the sync effect doesn't re-add it
+      if (dashboardMention && id === dashboardMention.id) {
+        dashboardDismissedRef.current = true;
+      }
+      setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
+    },
+    [dashboardMention]
+  );
+
+  const clearSelectedMentions = useCallback(() => {
+    dashboardDismissedRef.current = false;
+    setSelectedMentions([]);
   }, []);
 
   const handleCloseMentionsList = useCallback(() => {
@@ -140,7 +283,7 @@ export function useMentions({
       onSelect: handleOverlaySelect,
     });
 
-    // Extend the suggestion config to capture the command function
+    // Extend the suggestion config to capture the command function and editor ref
     const originalRender = suggestion.render!;
     suggestion.render = () => {
       const renderer = originalRender();
@@ -148,10 +291,12 @@ export function useMentions({
         ...renderer,
         onStart(props: SuggestionProps<MentionItem>) {
           suggestionCommandRef.current = props.command;
+          editorRef.current = props.editor;
           renderer.onStart?.(props);
         },
         onUpdate(props: SuggestionProps<MentionItem>) {
           suggestionCommandRef.current = props.command;
+          editorRef.current = props.editor;
           renderer.onUpdate?.(props);
         },
       };
@@ -196,5 +341,9 @@ export function useMentions({
     handleSelectMention: handleOverlaySelect,
     handleCloseMentionsList,
     extractMentions,
+    selectedMentions,
+    removeSelectedMention,
+    clearSelectedMentions,
+    isDashboardLimitReached,
   };
 }

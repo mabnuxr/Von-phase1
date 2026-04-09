@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useVisibilityToggle, Tooltip } from "@vonlabs/design-components";
 import { useToast } from "../../../hooks/useToast";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
+import { UnsavedChangesModal } from "../UnsavedChangesModal";
 
 interface SharePopoverProps {
   isSharedWithTenant: boolean;
@@ -45,11 +46,28 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
     toggleVisibility();
   };
 
+  const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+
   const isDisabled = sharePhase === "pending" || sharePhase === "success";
   const hasChanged = selectedShared !== isSharedWithTenant;
+  const isMakingPrivate = isSharedWithTenant && !selectedShared;
 
   const handleShare = () => {
+    if (isMakingPrivate) {
+      hide();
+      setShowPrivateConfirm(true);
+      return;
+    }
     onShare(selectedShared);
+  };
+
+  const handleConfirmPrivate = () => {
+    setShowPrivateConfirm(false);
+    onShare(false);
+  };
+
+  const handleCancelPrivate = () => {
+    setShowPrivateConfirm(false);
   };
 
   const handleCopyLink = async () => {
@@ -154,19 +172,20 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
                     {sharePhase === "pending" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <SpinnerGapIcon size={14} className="animate-spin" />
-                        Sharing
+                        {!selectedShared ? "Making Private" : "Sharing"}
                       </span>
                     )}
                     {sharePhase === "success" && (
                       <span className="flex items-center justify-center gap-1.5">
                         <CheckIcon size={14} weight="bold" />
-                        Shared
+                        {!selectedShared ? "Made Private" : "Shared"}
                       </span>
                     )}
-                    {sharePhase === "idle" && "Share"}
+                    {sharePhase === "idle" &&
+                      (isMakingPrivate ? "Make Private" : "Share")}
                   </button>
 
-                  {selectedShared && onCopyLink && (
+                  {isSharedWithTenant && onCopyLink && (
                     <button
                       onClick={handleCopyLink}
                       className="w-full h-[34px] rounded-xl text-sm font-medium text-gray-800 border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -183,6 +202,15 @@ export const SharePopover: React.FC<SharePopoverProps> = ({
           </>
         )}
       </AnimatePresence>
+
+      <UnsavedChangesModal
+        isOpen={showPrivateConfirm}
+        title="Make dashboard private?"
+        body="Your team will lose access to this dashboard. Only you will be able to view and edit it."
+        confirmLabel="Yes, Make Private"
+        onConfirm={handleConfirmPrivate}
+        onCancel={handleCancelPrivate}
+      />
     </div>
   );
 };

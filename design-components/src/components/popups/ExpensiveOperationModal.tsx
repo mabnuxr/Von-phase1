@@ -26,6 +26,11 @@ export interface ExpensiveOperationModalProps {
    * Operation description (e.g., "Create Dashboard")
    */
   operationName: string;
+
+  /**
+   * Optional body text. Defaults to creation-specific copy.
+   */
+  description?: string;
 }
 
 // ============================================================================
@@ -77,6 +82,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
   onConfirm,
   onCancel,
   operationName,
+  description = 'Are you sure you want to skip? The dashboard and underlying data sources will not be created.',
 }) => {
   return (
     <AnimatePresence>
@@ -116,10 +122,7 @@ export const ExpensiveOperationModal: React.FC<ExpensiveOperationModalProps> = (
               </div>
 
               {/* Description */}
-              <p className="text-[13px] text-gray-800 leading-relaxed mb-4">
-                Are you sure you want to skip? The dashboard and underlying data sources will not be
-                created.
-              </p>
+              <p className="text-[13px] text-gray-800 leading-relaxed mb-4">{description}</p>
 
               {/* Action buttons */}
               <div className="flex items-center gap-2">

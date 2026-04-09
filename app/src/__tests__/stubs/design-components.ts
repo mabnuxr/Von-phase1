@@ -29,3 +29,13 @@ export {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
 } from "../../../../design-components/src/components/Chat/types";
+
+// ReportTable types & utils
+export type { ReportColumn } from "../../../../design-components/src/components/ReportTable/ReportTable";
+export {
+  buildGridOptions,
+  autoSizeGridColumns,
+  applyColumnFormats,
+  getDataTableColumns,
+  formatValue,
+} from "../../../../design-components/src/components/ReportTable/reportTableUtils";

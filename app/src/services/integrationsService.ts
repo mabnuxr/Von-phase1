@@ -13,6 +13,7 @@ export const IntegrationType = {
   GMAIL: "GMAIL",
   ZOOM: "ZOOM",
   SNOWFLAKE: "SNOWFLAKE",
+  NOTION: "NOTION",
 } as const;
 
 export type IntegrationType =

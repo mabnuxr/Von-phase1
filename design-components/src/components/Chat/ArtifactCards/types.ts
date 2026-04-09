@@ -10,8 +10,6 @@ export interface EmailDraftArtifact {
   bodyFull: string;
   cc?: string[];
   bcc?: string[];
-  /** e.g. "Opportunity: Acme Q2 | Stage: Proposal | Amount: $120k" */
-  crmContext?: string;
   gmailUrl: string;
   isPending?: boolean;
 }

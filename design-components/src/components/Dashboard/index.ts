@@ -25,21 +25,13 @@ export type {
   TextWidgetConfig,
   TableWidgetConfig,
   TablePaginationInfo,
+  SortState,
+  DrilldownConfig,
+  DrilldownColumnMapping,
+  DrillFilters,
+  QueryInfo,
+  AppliedWidgetFilter,
 } from './types';
 
 // ── DashboardLayout (Compound component) ────────────────────────────
 export { DashboardLayout } from './DashboardLayout';
-
-// ── DashboardCustomization (Theme provider) ─────────────────────────
-export {
-  DashboardCustomizationProvider,
-  useDashboardCustomization,
-  chartThemes,
-  chartThemeIds,
-  multiSwatchColors,
-} from './DashboardCustomization';
-export type {
-  DashboardCustomizationState,
-  ChartThemeId,
-  ChartThemePalette,
-} from './DashboardCustomization';

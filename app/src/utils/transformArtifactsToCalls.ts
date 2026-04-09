@@ -318,30 +318,15 @@ function transformRowToEmail(
 }
 
 /**
- * Sort function for conversations by relevance and recency
+ * Sort function for conversations by date descending (most recent first)
  */
-function sortByRelevanceAndRecency(
-  a: { relevanceScore?: number; recencyScore?: number; date: string },
-  b: { relevanceScore?: number; recencyScore?: number; date: string },
+function sortByDateDescending(
+  a: { date?: string | null },
+  b: { date?: string | null },
 ): number {
-  const relevanceA = a.relevanceScore ?? 0;
-  const relevanceB = b.relevanceScore ?? 0;
-
-  // Primary sort: by relevance score descending
-  if (relevanceA !== relevanceB) {
-    return relevanceB - relevanceA;
-  }
-
-  // Tiebreaker: by recency score descending
-  const recencyA = a.recencyScore ?? 0;
-  const recencyB = b.recencyScore ?? 0;
-
-  if (recencyA !== recencyB) {
-    return recencyB - recencyA;
-  }
-
-  // Final fallback: by date descending
-  return new Date(b.date).getTime() - new Date(a.date).getTime();
+  const timeA = a.date ? new Date(a.date).getTime() : 0;
+  const timeB = b.date ? new Date(b.date).getTime() : 0;
+  return timeB - timeA;
 }
 
 /**
@@ -509,7 +494,7 @@ function transformFetchConversationToEmail(
  * Separate calls and emails from bulk RAG artifacts
  * Supports both row-based artifacts (execute_conversation_search) and
  * single-conversation artifacts (fetch_conversation)
- * Returns both arrays sorted by relevance with recency tiebreaker
+ * Returns both arrays sorted by date descending (most recent first)
  */
 export function separateCallsAndEmails(
   bulkRagArtifacts:
@@ -587,9 +572,9 @@ export function separateCallsAndEmails(
     }
   }
 
-  // Sort both by relevance with recency tiebreaker
-  calls.sort(sortByRelevanceAndRecency);
-  emails.sort(sortByRelevanceAndRecency);
+  // Sort both by date descending (most recent first)
+  calls.sort(sortByDateDescending);
+  emails.sort(sortByDateDescending);
 
   return { calls, emails };
 }

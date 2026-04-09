@@ -1,296 +1,74 @@
-import { useState, useRef, useLayoutEffect, useEffect, Fragment } from 'react';
-import { InfoIcon, CopyIcon, CheckIcon } from '@phosphor-icons/react';
-import { Streamdown } from 'streamdown';
-import { ThinkingBlock } from './ThinkingBlock';
-import { ToolCallItem } from './ToolCallItem';
-import { MessageAreaError } from './MessageAreaError';
+import { UserMessage } from './UserMessage';
+import { AssistantMessageV1 } from './AssistantMessageV1';
+import { AssistantMessageV2 } from './AssistantMessageV2';
+import { MessageStatusIndicators } from './MessageStatusIndicators';
+import { FileArtifactsSection } from './FileArtifactsSection';
+import { IntegrationBlockSection } from './IntegrationBlockSection';
 import { MessageActions } from './MessageActions';
-import { MessageFilePreview } from './FileAttachment/MessageFilePreview';
-import { SalesforceLink } from './SalesforceLink';
-import { TiptapViewer } from '../TiptapEditor';
-import { Tooltip } from '../Tooltip';
-import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import type { MessageFileAttachment, MessageStatus } from './types';
-import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
-import { CommandPreview } from '../Commands/CommandPreview';
+import type { MentionItem } from '../Mentions/types';
+import type { FileArtifact } from './ArtifactCards';
 import type { Command } from '../Commands/types';
-import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
-
-/**
- * Format message timestamp: time only if within 24h, date only otherwise
- */
-function formatMessageTimestamp(date: Date): string {
-  const now = new Date();
-  const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-  if (diffHours < 24) {
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-}
-
-/**
- * Full date + time string for tooltip
- */
-function formatFullTimestamp(date: Date): string {
-  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  return `${dateStr} · ${timeStr}`;
-}
-
-/**
- * Get user initials from name or email
- */
-function getUserInitials(name?: string, email?: string): string {
-  // Try to get initials from name first
-  if (name && name.trim()) {
-    const parts = name.trim().split(/\s+/);
-
-    if (parts.length >= 2) {
-      // First and last name
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    } else if (parts.length === 1 && parts[0].length > 0) {
-      // Single name, take first character
-      return parts[0][0].toUpperCase();
-    }
-  }
-
-  // Fallback to email
-  if (email && email.trim()) {
-    const emailUsername = email.split('@')[0];
-    if (emailUsername.length >= 2) {
-      return emailUsername.substring(0, 2).toUpperCase();
-    } else if (emailUsername.length === 1) {
-      return emailUsername[0].toUpperCase();
-    }
-  }
-
-  // Final fallback
-  return 'U';
-}
 
 export interface ChatMessageProps {
-  /**
-   * Type of message
-   */
   type: 'user' | 'assistant';
-
-  /**
-   * Message content
-   */
   content: string;
-
-  /**
-   * File attachments for user messages
-   */
   attachments?: MessageFileAttachment[];
-
-  /**
-   * Thought content (for assistant messages)
-   */
+  mentions?: MentionItem[];
   thoughtContent?: string;
-
-  /**
-   * Reasoning content from AI SDK (Claude thinking blocks)
-   */
   reasoningContent?: string;
-
-  /**
-   * Timestamp of the message
-   */
   timestamp?: Date;
-
-  /**
-   * Whether the message is in a loading state
-   * @default false
-   */
   isLoading?: boolean;
-
-  /**
-   * Active tab for assistant messages
-   * @default 'output'
-   */
   activeTab?: 'output' | 'sources' | 'thought';
-
-  /**
-   * Whether the message is currently streaming
-   */
   isStreaming?: boolean;
-
-  /**
-   * Whether the reasoning is currently streaming
-   */
   isReasoningStreaming?: boolean;
-
-  /**
-   * User's name (for user messages)
-   */
   userName?: string;
-
-  /**
-   * User's email (for user messages)
-   */
   userEmail?: string;
-
-  /**
-   * Message status from backend persistence
-   * Includes 'timeout' for client-side timeout recovery
-   * Includes 'expired' for expired approval requests
-   */
   status?: MessageStatus;
-
-  /**
-   * Error message if status is 'failed'
-   */
   errorMessage?: string;
-
-  /**
-   * Complete event stream from backend (event array architecture)
-   * Enables event-driven rendering of agent execution
-   */
   events?: import('./types').AguiEventWrapper[];
-
-  /**
-   * Tool calls made during this message (AGUI)
-   * @deprecated Use stepMessages with tool calls instead
-   */
+  /** @deprecated Use stepMessages with tool calls instead */
   toolCalls?: import('./types').ToolCall[];
-
-  /**
-   * Multiple step messages (for multi-step agent responses)
-   * Each step message contains its content and associated tool calls
-   */
   stepMessages?: import('./types').StepMessage[];
-
-  /**
-   * Whether this message should be displayed in compressed form
-   * @default false
-   */
   isCompressed?: boolean;
-
-  /**
-   * Message ID (for artifact fetching)
-   */
   messageId?: string;
-
-  /**
-   * Conversation ID (for artifact fetching)
-   */
   conversationId?: string;
-
-  /**
-   * Callback when user clicks on an artifact (from either V1 or V2 thinking process)
-   * The consumer should render the appropriate UI with fetched data
-   */
   onArtifactClick?: (
     artifactId: string,
     toolName: string,
     artifactType: string,
     runId: string
   ) => void;
-
-  /**
-   * Whether the response was stopped by user
-   */
   stoppedByUser?: boolean;
-
-  /**
-   * Callback when user approves a Salesforce CRUD operation
-   */
   onApprove?: (toolCallId: string, runId: string) => void;
-
-  /**
-   * Callback when user rejects a Salesforce CRUD operation
-   */
   onReject?: (toolCallId: string, runId: string) => void;
-
-  /**
-   * Run ID of the current streaming session (required for approval resume)
-   */
+  /** Callback when an approval expires (TTL reached) */
+  onExpire?: (stepId: string) => void;
   runId?: string;
-
-  /**
-   * Whether this is the latest message in the conversation
-   * Used to control visibility of approval buttons
-   */
   isLatestMessage?: boolean;
-
-  /**
-   * Enable additional actions menu (three dots with convert to dashboard, etc.)
-   * Controlled by feature flag in parent component
-   * @default false
-   */
   enableActions?: boolean;
-
-  /**
-   * Callback when convert to dashboard is clicked
-   */
   onConvertToDashboard?: (messageId: string) => void;
-
-  /**
-   * Callback when transparency (data sources) button is clicked
-   */
   onTransparencyClick?: (messageId: string) => void;
-
-  /**
-   * Whether to show the transparency button
-   * @default true
-   */
   showTransparency?: boolean;
-
-  /**
-   * Salesforce instance URL for building deep links in approval cards
-   * Example: "https://mycompany.my.salesforce.com"
-   */
   salesforceInstanceUrl?: string;
-
-  /**
-   * Enable deep links for Salesforce URLs in artifact pane DataTable
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
   enableDeepLinks?: boolean;
-
-  // ============================================================================
-  // V2 Thinking Process Props (TimelineThinkingProcess component)
-  // ============================================================================
-
-  /**
-   * Version of thinking process component to use
-   * @default 'v1'
-   */
+  // Dashboard Builder / Plan Approval
+  dashboard?: import('./types').DashboardMetadata | null;
+  executionId?: string | null;
+  isDashboardBuilderMode?: boolean;
+  onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
+  onRejectPlan?: (runId: string, executionId: string) => void;
+  onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+  onMentionClick?: (mention: MentionItem) => void;
+  // V2 Thinking Process
   thinkingProcessVersion?: 'v1' | 'v2';
-
-  /**
-   * Timeline steps for v2 thinking process visualization
-   */
   timelineSteps?: TimelineStep[];
-
-  /**
-   * Elapsed time in seconds for v2 thinking process
-   */
   thinkingElapsedTime?: number;
-
-  /**
-   * Final response content for v2 (separated from reasoning steps)
-   * This is the content from TEXT_MESSAGE with parent_message_id
-   */
   v2FinalResponse?: string;
-
-  /**
-   * Callback when a file attachment pill is clicked (for preview/download)
-   */
   onFileClick?: (attachment: MessageFileAttachment) => void;
-
-  /**
-   * Agent-generated file artifacts associated with this message
-   */
+  // File artifacts
   artifacts?: FileArtifact[];
-
-  /**
-   * Callback when user clicks on a file artifact card to open the viewer
-   */
   onFileArtifactClick?: (
     fileId: string,
     fileName: string,
@@ -298,58 +76,47 @@ export interface ChatMessageProps {
     mimeType: string,
     pdfPreviewFileId?: string
   ) => void;
-
-  /**
-   * Callback to download an agent-generated file artifact
-   */
   onArtifactDownload?: (fileId: string) => void;
-
-  /**
-   * Callback when user clicks Google Drive button on an artifact card
-   */
   onGoogleDriveClick?: (fileId: string) => void;
-
-  /**
-   * Whether Google Drive export is enabled (feature flag is on)
-   */
   isDriveEnabled?: boolean;
-
-  /**
-   * Whether Google Drive is connected (user has authenticated)
-   */
   isDriveConnected?: boolean;
-
-  /**
-   * Tooltip text for the Google Drive button
-   */
   driveTooltip?: string;
-
-  /**
-   * File ID of the artifact currently being exported to Drive (shows spinner)
-   */
   driveLoadingFileId?: string | null;
-
-  /**
-   * Custom renderer for artifact cards (e.g. email_draft → GmailDraftCard).
-   * Return a ReactNode to override the default FileArtifactCard, or null to use the default.
-   */
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
-
-  /**
-   * Quick command used for this user message (shows expandable chip)
-   */
+  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
-  /** Fetches a presigned download URL for a command's data source file */
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+  integrationBlock?: {
+    blockCode?: string;
+    message: string;
+    integrationType: string;
+  };
+  isIntegrationConnected?: (integrationType: string) => boolean;
+  onIntegrate?: (integrationType: string) => void;
+  getIntegrationMetadata?: (integrationType: string) => {
+    name: string;
+    logoPath: string;
+    description?: string;
+  } | null;
+  compact?: boolean;
+  researchResults?: {
+    isStreaming: boolean;
+    isCompleted: boolean;
+    content: string;
+    metadata: import('./DeepResearch/types').ResearchResultsMetadata | null;
+    messageId: string | null;
+  } | null;
+  onSourcesClick?: () => void;
 }
 
 /**
- * Individual chat message component with full-width Claude-style layout
+ * Individual chat message component - delegates to UserMessage or assistant rendering
  */
 export const ChatMessage: React.FC<ChatMessageProps> = ({
   type,
   content,
   attachments,
+  mentions,
   reasoningContent,
   isStreaming = false,
   isReasoningStreaming = false,
@@ -365,19 +132,18 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isLatestMessage,
   onApprove,
   onReject,
+  onExpire,
   runId = '',
   enableActions = false,
   onConvertToDashboard,
   onTransparencyClick,
   showTransparency = true,
   salesforceInstanceUrl,
-  // V2 Thinking Process props
   thinkingProcessVersion = 'v1',
   timelineSteps,
   thinkingElapsedTime,
   v2FinalResponse,
   onFileClick,
-  // File artifacts
   artifacts,
   onFileArtifactClick,
   onArtifactDownload,
@@ -387,90 +153,77 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   driveTooltip,
   driveLoadingFileId,
   renderArtifactCard,
+  renderGroupedEmailArtifacts,
   command,
   onRequestFilePreviewUrl,
+  integrationBlock,
+  isIntegrationConnected,
+  onIntegrate,
+  getIntegrationMetadata,
+  compact = false,
+  dashboard,
+  executionId,
+  isDashboardBuilderMode = false,
+  onApprovePlan,
+  onRejectPlan,
+  onDashboardPreview,
+  onMentionClick,
+  researchResults,
 }) => {
   const isUser = type === 'user';
-  const userInitials = isUser ? getUserInitials(userName, userEmail) : 'A';
 
-  // Ref and state for measuring user message height (for alignment)
-  const userMessageRef = useRef<HTMLDivElement>(null);
-  const [isSingleLine, setIsSingleLine] = useState(true);
-  const [copiedUser, setCopiedUser] = useState(false);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Shared condition for dashboard builder approval visibility
+  const showDashboardBuilderApproval =
+    (isDashboardBuilderMode || executionId) &&
+    executionId &&
+    isLatestMessage &&
+    status !== 'expired' &&
+    status !== 'timeout' &&
+    status !== 'failed';
 
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    };
-  }, []);
-
-  // Measure user message height to determine alignment
-  useLayoutEffect(() => {
-    if (isUser && userMessageRef.current) {
-      // Single line threshold ~36px (accounts for line-height + padding)
-      const height = userMessageRef.current.offsetHeight;
-      setIsSingleLine(height <= 36);
-    }
-  }, [isUser, content]);
-
-  // Handle artifact click (from either V1 ToolCallItem or V2 TimelineThinkingProcess)
-  // Delegates to parent via callback - parent decides how to render the artifact UI
-  const handleArtifactClick = (
-    artifactId: string,
-    toolName: string,
-    artifactType: string,
-    runId: string
-  ) => {
-    onArtifactClick?.(artifactId, toolName, artifactType, runId);
-  };
-
-  const handleCopyUser = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      setCopiedUser(true);
-      copyTimeoutRef.current = setTimeout(() => setCopiedUser(false), 2000);
-    } catch (error) {
-      console.error('Failed to copy:', error);
-    }
-  };
-
-  const isTimestampOlderThan24h =
-    !!timestamp && (Date.now() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
-
-  const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
+  const showResearchResults =
+    isLatestMessage &&
+    researchResults &&
+    (researchResults.isStreaming || researchResults.isCompleted) &&
+    researchResults.content;
 
   return (
     <div className="w-full group ">
-      {/* Full-width section with alternating backgrounds */}
       <div
         className={`
           w-full transition-all duration-300
-          ${isUser ? 'pt-6 bg-white' : `pt-6 ${isStreaming ? 'min-h-112.5' : ''} bg-white`}
+          ${isUser ? `${compact ? 'pt-3' : 'pt-6'} bg-white` : `${compact ? 'pt-3' : 'pt-6'} ${isStreaming ? 'min-h-112.5' : ''} bg-white`}
         `}
       >
-        {/* Centered container */}
-        <div className="px-2">
+        <div className={compact ? 'px-6' : 'px-4'}>
           <div className={`max-w-4xl mx-auto ${isUser ? 'flex justify-end' : ''}`}>
-            {/* Message layout */}
             <div className={`${isUser ? 'max-w-3xl' : 'w-full'}`}>
-              {/* Horizontal layout: Avatar + Content (reversed for user) */}
-              <div
-                className={`flex gap-3 ${isUser ? `flex-row-reverse ${isSingleLine ? 'items-center' : 'items-start'}` : 'items-start'}`}
-              >
-                {/* Avatar and Status Badge */}
-                <div className="flex items-start gap-2 shrink-0">
-                  {isUser ? (
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                      {userInitials}
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-7 h-7 rounded-full overflow-hidden shrink-0">
+              {isUser ? (
+                <UserMessage
+                  content={content}
+                  userName={userName}
+                  userEmail={userEmail}
+                  timestamp={timestamp}
+                  attachments={attachments}
+                  mentions={mentions}
+                  command={command}
+                  onFileClick={onFileClick}
+                  onMentionClick={onMentionClick}
+                  onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                  compact={compact}
+                />
+              ) : (
+                /* Assistant message layout */
+                <div className={compact ? 'flex flex-col gap-2' : 'flex gap-3 items-start'}>
+                  {/* Avatar — hidden in compact mode */}
+                  {!compact && (
+                    <div className="flex items-start gap-2 shrink-0 @max-[550px]/chat:hidden">
+                      <div
+                        className={`${compact ? 'w-6 h-6' : 'w-7 h-7'} rounded-full overflow-hidden shrink-0`}
+                      >
                         <svg
-                          width="28"
-                          height="28"
+                          width={compact ? '24' : '28'}
+                          height={compact ? '24' : '28'}
                           viewBox="0 0 28 28"
                           fill="none"
                           xmlns="http://www.w3.org/2000/svg"
@@ -507,354 +260,111 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           </defs>
                         </svg>
                       </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Content Column */}
-                <div className="flex-1 min-w-0 -mt-0.5">
-                  {/* For V1 assistant messages: check for errors first (error replaces content) */}
-                  {!isUser &&
-                  status === 'failed' &&
-                  errorMessage &&
-                  thinkingProcessVersion !== 'v2' ? (
-                    <MessageAreaError message={errorMessage} />
-                  ) : !isUser ? (
-                    <div>
-                      {/* V2 Thinking Process - skip entirely when stopped before any events arrived */}
-                      {thinkingProcessVersion === 'v2' && !isStoppedImmediately && (
-                        <div className="mb-4">
-                          <TimelineThinkingProcess
-                            steps={timelineSteps || []}
-                            isThinking={isStreaming && !stoppedByUser}
-                            isStreaming={isStreaming && !stoppedByUser}
-                            autoCollapse={
-                              !!v2FinalResponse ||
-                              status === 'timeout' ||
-                              status === 'expired' ||
-                              (status === 'failed' && !!errorMessage) ||
-                              !!stoppedByUser
-                            }
-                            elapsedTime={thinkingElapsedTime}
-                            onApprove={onApprove ? (stepId) => onApprove(stepId, runId) : undefined}
-                            onReject={onReject ? (stepId) => onReject(stepId, runId) : undefined}
-                            onArtifactClick={handleArtifactClick}
-                            salesforceInstanceUrl={salesforceInstanceUrl}
-                          />
-                        </div>
-                      )}
-
-                      {/* V2 Error - shown below thinking process (failed only; timeout has its own indicator) */}
-                      {thinkingProcessVersion === 'v2' && status === 'failed' && errorMessage && (
-                        <MessageAreaError message={errorMessage} />
-                      )}
-
-                      {/* V2 Final Response - rendered after timeline (not shown on error) */}
-                      {thinkingProcessVersion === 'v2' &&
-                        v2FinalResponse &&
-                        status !== 'timeout' &&
-                        status !== 'expired' &&
-                        !(status === 'failed' && errorMessage) && (
-                          <div className="markdown-content max-w-none">
-                            <Streamdown
-                              parseIncompleteMarkdown={isStreaming}
-                              isAnimating={isStreaming}
-                              controls={{ table: true }}
-                              components={{ a: SalesforceLink }}
-                            >
-                              {v2FinalResponse}
-                            </Streamdown>
-                          </div>
-                        )}
-
-                      {/* V1 Thinking Process - Original ThinkingBlock components */}
-                      {thinkingProcessVersion === 'v1' && (
-                        <>
-                          {isStreaming &&
-                            !content &&
-                            !reasoningContent &&
-                            (!stepMessages || stepMessages.length === 0) && (
-                              <ThinkingBlock content="" isStreaming={true} status="streaming" />
-                            )}
-
-                          {/* Thinking Block - Show immediately when reasoning starts */}
-                          {(isReasoningStreaming || reasoningContent) && (
-                            <ThinkingBlock
-                              content={reasoningContent || ''}
-                              isStreaming={isReasoningStreaming}
-                              status={status}
-                              messageId={messageId}
-                              isLatestMessage={isLatestMessage}
-                              onApprove={onApprove}
-                              onReject={onReject}
-                              runId={runId}
-                              salesforceInstanceUrl={salesforceInstanceUrl}
-                            />
-                          )}
-
-                          {/* Render stepMessages if available (AGUI multi-step responses) */}
-                          {stepMessages && stepMessages.length > 0 ? (
-                            <div className="space-y-4">
-                              {/* STREAMING STRATEGY: Split intermediate steps from final output */}
-                              {isStreaming ? (
-                                // While streaming: ALL steps go in ThinkingBlock (collapsed), summary shown in header
-                                <ThinkingBlock
-                                  key="thinking-block"
-                                  isStreaming={isStreaming}
-                                  status={status}
-                                  stepMessages={stepMessages}
-                                  onArtifactClick={handleArtifactClick}
-                                  messageId={messageId}
-                                  isLatestMessage={isLatestMessage}
-                                  onApprove={onApprove}
-                                  onReject={onReject}
-                                  runId={runId}
-                                  salesforceInstanceUrl={salesforceInstanceUrl}
-                                />
-                              ) : (
-                                // After completion: Show intermediate steps in ThinkingBlock + final step outside
-                                <>
-                                  {stepMessages.length > 1 && (
-                                    <ThinkingBlock
-                                      key="thinking-block"
-                                      messageId={messageId}
-                                      isStreaming={false}
-                                      status={status}
-                                      stepMessages={stepMessages.slice(0, -1)}
-                                      onArtifactClick={handleArtifactClick}
-                                      isLatestMessage={isLatestMessage}
-                                      onApprove={onApprove}
-                                      onReject={onReject}
-                                      runId={runId}
-                                      salesforceInstanceUrl={salesforceInstanceUrl}
-                                    />
-                                  )}
-
-                                  {/* Final Message - Rendered outside ThinkingBlock after completion */}
-                                  {(() => {
-                                    const finalStep = stepMessages[stepMessages.length - 1];
-                                    return (
-                                      <div className="space-y-3">
-                                        {/* Final step content */}
-                                        {finalStep.content && (
-                                          <div className="markdown-content max-w-none">
-                                            <Streamdown
-                                              parseIncompleteMarkdown={false}
-                                              isAnimating={false}
-                                              controls={{ table: true }}
-                                              components={{ a: SalesforceLink }}
-                                            >
-                                              {finalStep.content}
-                                            </Streamdown>
-                                          </div>
-                                        )}
-
-                                        {/* Tool calls for final step */}
-                                        {finalStep.toolCalls && finalStep.toolCalls.length > 0 && (
-                                          <div className="space-y-2">
-                                            {finalStep.toolCalls.map((toolCall) => (
-                                              <ToolCallItem
-                                                key={toolCall.id}
-                                                toolCall={toolCall}
-                                                onArtifactClick={handleArtifactClick}
-                                                isStreaming={false}
-                                                isLatestMessage={isLatestMessage}
-                                                onApprove={onApprove}
-                                                onReject={onReject}
-                                                runId={runId}
-                                                salesforceInstanceUrl={salesforceInstanceUrl}
-                                              />
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
-                                </>
-                              )}
-                            </div>
-                          ) : (
-                            /* Fallback: render plain content if no stepMessages */
-                            content && (
-                              <div className="markdown-content max-w-none">
-                                <Streamdown
-                                  parseIncompleteMarkdown={isStreaming}
-                                  isAnimating={isStreaming}
-                                  controls={{ table: true }}
-                                  components={{ a: SalesforceLink }}
-                                >
-                                  {content}
-                                </Streamdown>
-                              </div>
-                            )
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    // User messages - with file attachments and text
-                    <div
-                      ref={userMessageRef}
-                      className="bg-gray-50 border border-gray-100 rounded-2xl px-3 py-2 overflow-hidden wrap-break-word"
-                    >
-                      {command && (
-                        <CommandPreview
-                          command={command}
-                          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-                          hasContentBelow={!!(content || (attachments && attachments.length > 0))}
-                        />
-                      )}
-                      {attachments && attachments.length > 0 && (
-                        <div className={command ? 'mt-2' : undefined}>
-                          <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
-                        </div>
-                      )}
-                      {/* Text content - render markdown using TiptapViewer */}
-                      {content && (
-                        <TiptapViewer
-                          content={content}
-                          className="markdown-content prose-sm max-w-none text-left"
-                        />
-                      )}
                     </div>
                   )}
 
-                  {/* User message hover actions: timestamp + copy */}
-                  {isUser && (
-                    <div className="flex items-center justify-end gap-1.5 mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                      {timestamp && (
-                        <Tooltip
-                          content={formatFullTimestamp(timestamp)}
-                          enabled={isTimestampOlderThan24h}
-                          placement="bottom"
-                        >
-                          <span className="text-xs text-gray-400 select-none">
-                            {formatMessageTimestamp(timestamp)}
-                          </span>
-                        </Tooltip>
-                      )}
-                      {content && (
-                        <button
-                          onClick={handleCopyUser}
-                          className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-500 transition-colors cursor-pointer"
-                          title={copiedUser ? 'Copied!' : 'Copy message'}
-                          aria-label={copiedUser ? 'Copied!' : 'Copy message'}
-                        >
-                          {copiedUser ? (
-                            <CheckIcon size={14} className="text-green-500" weight="bold" />
-                          ) : (
-                            <CopyIcon size={14} />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* File artifact cards (agent-generated documents) */}
-                  {!isUser && artifacts && artifacts.length > 0 && !isStreaming && (
-                    <div className="mt-3 space-y-3">
-                      {artifacts.map((artifact) => {
-                        // Allow app layer to override rendering for specific artifact types (e.g. email_draft)
-                        if (renderArtifactCard) {
-                          const custom = renderArtifactCard(artifact);
-                          if (custom) return <Fragment key={artifact.fileId}>{custom}</Fragment>;
-                        }
-
-                        const handleOpen = onFileArtifactClick
-                          ? () =>
-                              onFileArtifactClick(
-                                artifact.fileId,
-                                artifact.fileName,
-                                artifact.artifactType,
-                                artifact.mimeType,
-                                artifact.pdfPreview?.id
-                              )
-                          : undefined;
-
-                        return (
-                          <FileArtifactCard
-                            key={artifact.fileId}
-                            artifact={artifact}
-                            onClick={handleOpen}
-                            onOpen={handleOpen}
-                            onDownload={
-                              onArtifactDownload
-                                ? () => onArtifactDownload(artifact.fileId)
-                                : undefined
-                            }
-                            onGoogleDriveClick={
-                              onGoogleDriveClick
-                                ? () => onGoogleDriveClick(artifact.fileId)
-                                : undefined
-                            }
-                            isDriveEnabled={isDriveEnabled}
-                            isDriveConnected={isDriveConnected}
-                            driveTooltip={driveTooltip}
-                            isDriveLoading={driveLoadingFileId === artifact.fileId}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Show stopped indicator for assistant messages */}
-                  {!isUser && stoppedByUser && (
-                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="shrink-0 mt-0.5">
-                        <InfoIcon size={20} className="text-indigo-600" />
-                      </div>
-                      <span className="text-sm text-gray-800 leading-relaxed flex-1">
-                        Response stopped by the user
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Show timeout indicator for assistant messages */}
-                  {!isUser && status === 'timeout' && (
-                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-                      <div className="shrink-0 mt-0.5">
-                        <InfoIcon size={20} className="text-indigo-600" />
-                      </div>
-                      <span className="text-sm text-gray-800 leading-relaxed flex-1">
-                        Request timed out
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Show expired approval indicator for assistant messages */}
-                  {!isUser && status === 'expired' && (
-                    <div className="max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
-                      <div className="shrink-0 mt-0.5">
-                        <InfoIcon size={20} className="text-gray-500" />
-                      </div>
-                      <span className="text-sm text-gray-800 leading-relaxed flex-1">
-                        {errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Message Actions - show for completed/stopped assistant messages (not during approval wait) */}
-                  {!isUser &&
-                    !isStreaming &&
-                    !timelineSteps?.some((s) => s.status === 'awaiting-approval') && (
-                      <MessageActions
-                        messageContent={
-                          // For v2 thinking process, only use the final response (not intermediate steps)
-                          thinkingProcessVersion === 'v2' && v2FinalResponse
-                            ? v2FinalResponse
-                            : stepMessages && stepMessages.length > 0
-                              ? stepMessages.map((s) => s.content).join('\n\n')
-                              : content
-                        }
-                        messageId={messageId || ''}
-                        enableActions={enableActions}
-                        onConvertToDashboard={onConvertToDashboard}
-                        onTransparencyClick={onTransparencyClick}
-                        showTransparency={showTransparency}
+                  {/* Content Column */}
+                  <div className={compact ? 'w-full min-w-0' : 'flex-1 min-w-0 -mt-0.5'}>
+                    {thinkingProcessVersion === 'v2' ? (
+                      <AssistantMessageV2
+                        content={content}
+                        v2FinalResponse={v2FinalResponse}
+                        isStreaming={isStreaming}
+                        status={status}
+                        errorMessage={errorMessage}
+                        timelineSteps={timelineSteps}
+                        thinkingElapsedTime={thinkingElapsedTime}
+                        stoppedByUser={stoppedByUser}
+                        isLatestMessage={isLatestMessage}
+                        runId={runId}
+                        salesforceInstanceUrl={salesforceInstanceUrl}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        onExpire={onExpire}
+                        onArtifactClick={onArtifactClick}
+                        dashboard={dashboard}
+                        executionId={executionId}
+                        isDashboardBuilderMode={isDashboardBuilderMode}
+                        onApprovePlan={onApprovePlan}
+                        onRejectPlan={onRejectPlan}
+                        onDashboardPreview={onDashboardPreview}
+                        researchResults={researchResults}
+                      />
+                    ) : (
+                      <AssistantMessageV1
+                        content={content}
+                        reasoningContent={reasoningContent}
+                        isStreaming={isStreaming}
+                        isReasoningStreaming={isReasoningStreaming}
+                        status={status}
+                        errorMessage={errorMessage}
+                        stepMessages={stepMessages}
+                        messageId={messageId}
+                        isLatestMessage={isLatestMessage}
+                        onApprove={onApprove}
+                        onReject={onReject}
+                        runId={runId}
+                        salesforceInstanceUrl={salesforceInstanceUrl}
+                        onArtifactClick={onArtifactClick}
                       />
                     )}
+
+                    {/* File artifact cards (agent-generated documents) */}
+                    {artifacts && artifacts.length > 0 && !isStreaming && (
+                      <FileArtifactsSection
+                        artifacts={artifacts}
+                        onFileArtifactClick={onFileArtifactClick}
+                        onArtifactDownload={onArtifactDownload}
+                        onGoogleDriveClick={onGoogleDriveClick}
+                        isDriveEnabled={isDriveEnabled}
+                        isDriveConnected={isDriveConnected}
+                        driveTooltip={driveTooltip}
+                        driveLoadingFileId={driveLoadingFileId}
+                        renderArtifactCard={renderArtifactCard}
+                        renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
+                      />
+                    )}
+
+                    {/* Integration write blocked card */}
+                    {integrationBlock && !isStreaming && (
+                      <IntegrationBlockSection
+                        integrationBlock={integrationBlock}
+                        isIntegrationConnected={isIntegrationConnected}
+                        onIntegrate={onIntegrate}
+                        getIntegrationMetadata={getIntegrationMetadata}
+                      />
+                    )}
+
+                    {/* Status indicators (stopped, timeout, expired) */}
+                    <MessageStatusIndicators
+                      stoppedByUser={stoppedByUser}
+                      status={status}
+                      errorMessage={errorMessage}
+                    />
+
+                    {/* Message Actions - show for completed/stopped assistant messages */}
+                    {!isStreaming &&
+                      !timelineSteps?.some((s) => s.status === 'awaiting-approval') &&
+                      !showDashboardBuilderApproval &&
+                      (!showResearchResults || researchResults?.isCompleted) && (
+                        <MessageActions
+                          messageContent={
+                            thinkingProcessVersion === 'v2' && v2FinalResponse
+                              ? v2FinalResponse
+                              : stepMessages && stepMessages.length > 0
+                                ? stepMessages.map((s) => s.content).join('\n\n')
+                                : content
+                          }
+                          messageId={messageId || ''}
+                          enableActions={enableActions}
+                          onConvertToDashboard={onConvertToDashboard}
+                          onTransparencyClick={onTransparencyClick}
+                          showTransparency={showTransparency}
+                        />
+                      )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

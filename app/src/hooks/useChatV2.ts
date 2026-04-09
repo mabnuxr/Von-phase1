@@ -2,7 +2,7 @@
  * useChatV2 - Orchestrator hook for V2 chat container
  *
  * Composes all V2-specific hooks and returns everything
- * the ChatV2Container needs to render. Business logic only — no JSX.
+ * chat leaf components need to render. Business logic only — no JSX.
  *
  * Handles both regular V2 chat and deep research mode.
  */
@@ -17,7 +17,6 @@ import type {
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
-import { ConversationMode } from "@vonlabs/design-components";
 import { ReferenceType } from "../types/conversation";
 import type {
   MessageWithStreaming,
@@ -51,8 +50,6 @@ export interface UseChatV2Props {
   currentConversation: Conversation;
   conversationMessages: MessageWithStreaming[];
   refetchMessages: () => Promise<unknown>;
-  lockedConversationMode: ConversationMode;
-  isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   salesforceInstanceUrl?: string;
@@ -61,7 +58,6 @@ export interface UseChatV2Props {
   isDeepLinksEnabled: boolean;
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
-  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   onCollapseSidebar: () => void;
   /** References (dashboard/widget context) to send with each message */
   references?: MessageReference[];
@@ -74,8 +70,6 @@ export function useChatV2(props: UseChatV2Props) {
     currentConversation,
     conversationMessages,
     refetchMessages,
-    lockedConversationMode,
-    syncConversationModeToBackend,
     onCollapseSidebar,
     references,
   } = props;
@@ -83,17 +77,6 @@ export function useChatV2(props: UseChatV2Props) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { downloadBlob } = useFileDownload();
-
-  const chatType: ConversationMode =
-    currentConversation.mode || ConversationMode.Auto;
-
-  // Deep research mode is active if:
-  // 1. Agent is locked to dashboard-builder (has messages), OR
-  // 2. Conversation mode is dashboard-builder (backend confirmed)
-  const isDeepResearchMode =
-    (lockedConversationMode === ConversationMode.DashboardBuilder ||
-      chatType === ConversationMode.DashboardBuilder) &&
-    conversationMessages.length > 0;
 
   // Pusher connection (single instance)
   const pusherConfig = useMemo(
@@ -177,6 +160,10 @@ export function useChatV2(props: UseChatV2Props) {
   // Keep ref in sync with latest processor value
   v2ProcessorRef.current = v2Processor;
 
+  const chatType = v2Processor.isDashboardBuilderMode
+    ? ("dashboard-builder" as const)
+    : currentConversation.mode || "auto";
+
   // User message + error processing (writes to chatStore)
   useUserMessageProcessor(channel, conversationId);
 
@@ -216,7 +203,6 @@ export function useChatV2(props: UseChatV2Props) {
     onStateUpdate: v2Processor.applyTransformResult,
     onRunFinished: v2Processor.handleRunFinished,
     onReconcile: refetchMessages as () => void,
-    onTimeout: v2Processor.markTimedOut,
   });
 
   // Send message
@@ -395,9 +381,9 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
-        phase: v2Processor.phase,
         dashboard: v2Processor.dashboard,
         executionId: v2Processor.executionId,
+        isDashboardBuilderMode: v2Processor.isDashboardBuilderMode,
       }),
     [
       conversationMessages,
@@ -412,9 +398,9 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
-      v2Processor.phase,
       v2Processor.dashboard,
       v2Processor.executionId,
+      v2Processor.isDashboardBuilderMode,
     ],
   );
 
@@ -445,6 +431,10 @@ export function useChatV2(props: UseChatV2Props) {
     },
     [conversationId],
   );
+
+  const handleExpire = useCallback((stepId: string) => {
+    v2ProcessorRef.current?.expireApprovalStep(stepId);
+  }, []);
 
   // Transparency handler
   const handleTransparencyClick = useCallback(
@@ -557,20 +547,15 @@ export function useChatV2(props: UseChatV2Props) {
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
 
-      // If awaiting approval, invalidate the old run so its events don't interfere
+      // If awaiting approval, invalidate the old run so its events don't interfere.
+      // skipRefetch=true: forceCompleteStreamingMessages() below handles event
+      // persistence, and refetching now would overwrite the new message's optimistic state.
       if (v2Processor.isAwaitingApproval) {
-        v2Processor.invalidateApproval();
+        v2Processor.invalidateApproval(true);
       }
 
       // Persist any in-flight V2 state before sending a new message
       forceCompleteStreamingMessages();
-
-      const currentMessages =
-        useChatStore.getState().messages[conversationId] || [];
-      if (currentMessages.length === 0 && options?.agentMode) {
-        // Update conversation mode before sending first message
-        await syncConversationModeToBackend(options.agentMode);
-      }
 
       let fileAttachments;
       if (hasFileAttachments) {
@@ -632,7 +617,6 @@ export function useChatV2(props: UseChatV2Props) {
       hasFileAttachments,
       sendMessage,
       clearFileAttachments,
-      syncConversationModeToBackend,
       uploadPendingFiles,
       references,
     ],
@@ -649,12 +633,8 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   return {
-    // Mode
-    isDeepResearchMode,
-
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
-    phase: v2Processor.phase,
     dashboard: v2Processor.dashboard,
     liveDashboardKey: v2Processor.liveDashboardKey,
 
@@ -672,6 +652,7 @@ export function useChatV2(props: UseChatV2Props) {
     handleStopStreaming,
     handleApproval,
     handleRejection,
+    handleExpire,
     handlePlanApproval,
     handlePlanRejection,
 

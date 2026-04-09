@@ -3,7 +3,7 @@
  *
  * Shared logic for the "create conversation on first message" pattern used in:
  * - NewConversation.tsx  (regular chat)
- * - AnalyticsNewConversationContainer.tsx  (analytics chat pane)
+ * - ChatSession.tsx  (analytics chat pane, new-conversation flow)
  *
  * Returns:
  *   handleSendMessage  — call with message content (+ optional SendMessageOptions)
@@ -14,7 +14,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { ConversationMode } from "@vonlabs/design-components";
 import type {
   SendMessageOptions,
   FileAttachment,
@@ -55,12 +54,6 @@ export interface UseCreateAndSendMessageOptions {
   title?: string;
 
   /**
-   * If provided, the conversation is locked to this mode.
-   * If undefined, the mode comes from SendMessageOptions.agentMode (regular chat).
-   */
-  fixedMode?: ConversationMode;
-
-  /**
    * References to attach to the first message (e.g. a dashboard reference).
    */
   references?: MessageReference[];
@@ -89,7 +82,6 @@ export function useCreateAndSendMessage({
   agentVersion = "v2",
   isAgentV2 = true,
   title = "",
-  fixedMode,
   references,
   onCreated,
   navigateOnCreate = false,
@@ -145,6 +137,41 @@ export function useCreateAndSendMessage({
       setIsCreating(true);
 
       // Show user message + thinking indicator immediately, before any API call.
+      // Build command early so it's visible in the pending message.
+      const command: MessageCommand | undefined = options?.command
+        ? {
+            id: options.command.id,
+            name: options.command.name,
+            prompt: options.command.prompt,
+            dataSources: options.command.dataSources
+              ?.filter((ds) => ds.s3Key)
+              ?.map((ds) => ({
+                fileId: ds.id,
+                fileName: ds.name,
+                fileSize: ds.size,
+                mimeType: ds.type,
+                extension: ds.extension,
+                category: ds.category,
+                s3Key: ds.s3Key!,
+              })),
+          }
+        : undefined;
+
+      const mentionRefsForOptimistic: MessageReference[] = (
+        options?.mentions ?? []
+      ).map((m) => ({
+        refId: `${ReferenceType.Dashboard}-${m.id}`,
+        type: ReferenceType.Dashboard,
+        context: {
+          dashboardId: m.id,
+          dashboardVersion: m.version,
+          dashboardName: m.name,
+        },
+      }));
+      const optimisticReferences =
+        mentionRefsForOptimistic.length > 0
+          ? [...(references ?? []), ...mentionRefsForOptimistic]
+          : references;
       const tempId = `temp-${Date.now()}`;
       setPendingMessages([
         {
@@ -158,6 +185,10 @@ export function useCreateAndSendMessage({
           createdBy: null,
           isStreaming: false,
           status: "completed",
+          ...(command ? { command } : {}),
+          ...(optimisticReferences?.length
+            ? { references: optimisticReferences }
+            : {}),
         },
         {
           id: `${tempId}-assistant`,
@@ -178,20 +209,8 @@ export function useCreateAndSendMessage({
       let succeeded = false;
 
       try {
-        // Resolve conversation mode
-        const mode: ConversationMode | undefined =
-          fixedMode ??
-          ((): ConversationMode | undefined => {
-            const agentMode = options?.agentMode as
-              | ConversationMode
-              | undefined;
-            return agentMode && agentMode !== ConversationMode.Auto
-              ? agentMode
-              : undefined;
-          })();
-
-        // 1. Create the conversation
-        const res = await createConversation({ title, agentVersion, mode });
+        // 1. Create the conversation (always auto mode)
+        const res = await createConversation({ title, agentVersion });
         newId = res.conversation.conversationId;
 
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
@@ -201,7 +220,7 @@ export function useCreateAndSendMessage({
         uploadedFiles = await uploadPendingFiles(newId);
 
         // 4. Seed chatStore synchronously before transitioning so the receiving
-        //    component (Conversation.tsx / AnalyticsChatContainer) sees messages
+        //    component (Conversation.tsx / ChatSession) sees messages
         //    immediately on mount instead of flashing blank then re-populating.
         //    We pass these IDs to sendMessage so its onMutate skips duplicate seeding.
         const now = new Date().toISOString();
@@ -224,6 +243,10 @@ export function useCreateAndSendMessage({
           isStreaming: false,
           status: "completed",
           ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
+          ...(command ? { command } : {}),
+          ...(optimisticReferences?.length
+            ? { references: optimisticReferences }
+            : {}),
         });
         store.addMessage(newId, {
           id: optimisticAssistantId,
@@ -282,25 +305,6 @@ export function useCreateAndSendMessage({
             ? [...(references ?? []), ...mentionRefs]
             : references;
 
-        const command: MessageCommand | undefined = options?.command
-          ? {
-              id: options.command.id,
-              name: options.command.name,
-              prompt: options.command.prompt,
-              dataSources: options.command.dataSources
-                ?.filter((ds) => ds.s3Key)
-                ?.map((ds) => ({
-                  fileId: ds.id,
-                  fileName: ds.name,
-                  fileSize: ds.size,
-                  mimeType: ds.type,
-                  extension: ds.extension,
-                  category: ds.category,
-                  s3Key: ds.s3Key!,
-                })),
-            }
-          : undefined;
-
         await sendMessage({
           conversationId: newId,
           content,
@@ -334,7 +338,7 @@ export function useCreateAndSendMessage({
           });
         } else {
           // 7. Notify parent — chatStore already seeded so receiving component
-          //    (e.g. AnalyticsChatContainer) renders messages immediately on mount.
+          //    (e.g. ChatSession) renders messages immediately on mount.
           onCreated?.(newId);
         }
       } catch (error) {
@@ -366,7 +370,6 @@ export function useCreateAndSendMessage({
       agentVersion,
       clearFiles,
       createConversation,
-      fixedMode,
       isSidebarV2,
       navigate,
       navigateOnCreate,

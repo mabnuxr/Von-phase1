@@ -10,7 +10,6 @@
 
 import { Profiler } from "react";
 import { Chat, FilePreviewModal } from "@vonlabs/design-components";
-import type { ConversationMode } from "@vonlabs/design-components";
 
 import type { MessageWithStreaming } from "../types/conversation";
 import type { User } from "../services";
@@ -31,8 +30,6 @@ export interface ChatV1ContainerProps {
   hasNextMessagePage: boolean;
   isFetchingNextMessagePage: boolean;
   refetchMessages: () => Promise<unknown>;
-  lockedConversationMode: ConversationMode;
-  isAgentLocked: boolean;
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   salesforceInstanceUrl?: string;
@@ -42,7 +39,6 @@ export interface ChatV1ContainerProps {
   isSourcesEnabled: boolean;
   isFileUploadEnabled: boolean;
   isScheduledCommandsEnabled: boolean;
-  syncConversationModeToBackend: (mode: ConversationMode) => Promise<void>;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
 }
@@ -54,8 +50,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isFetchingNextMessagePage,
     fetchNextMessagePage,
     hasNextMessagePage,
-    lockedConversationMode,
-    isAgentLocked,
     canSubmit,
     onDisabledInteraction,
     salesforceInstanceUrl,
@@ -93,8 +87,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     user: props.user,
     conversationMessages: props.conversationMessages,
     refetchMessages: props.refetchMessages,
-    lockedConversationMode: props.lockedConversationMode,
-    isAgentLocked: props.isAgentLocked,
     canSubmit: props.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction,
     isSalesforceReady: canSubmit,
@@ -104,7 +96,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     isDeepLinksEnabled: props.isDeepLinksEnabled,
     isSourcesEnabled: props.isSourcesEnabled,
     isFileUploadEnabled: props.isFileUploadEnabled,
-    syncConversationModeToBackend: props.syncConversationModeToBackend,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
@@ -164,8 +155,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         isLoading={false}
         loadMoreRef={loadMoreMessagesRef}
         isFetchingMore={isFetchingNextMessagePage}
-        placeholder="Ask von anything"
-        variant="floating"
+        placeholder="Reply.."
         height="100%"
         width="100%"
         showMessagesFromIndex={showMessagesFromIndex}
@@ -193,8 +183,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         enableDeepLinks={isDeepLinksEnabled}
         thinkingProcessVersion="v1"
         useStandardInput={false}
-        isAgentLocked={isAgentLocked}
-        lockedConversationMode={lockedConversationMode}
         controlledAttachments={fileAttachmentState}
         onRemoveAttachment={handleRemoveAttachment}
         onFilesSelected={handleFilesSelected}

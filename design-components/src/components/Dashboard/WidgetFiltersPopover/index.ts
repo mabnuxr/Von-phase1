@@ -1,0 +1,1 @@
+export { WidgetFiltersPopover } from './WidgetFiltersPopover';

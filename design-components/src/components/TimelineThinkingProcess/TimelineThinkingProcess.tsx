@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircleIcon, CaretDownIcon, CaretRightIcon } from '@phosphor-icons/react';
 import type { TimelineThinkingProcessProps } from './types';
@@ -6,7 +6,7 @@ import { CONTAINER_HEIGHT } from './constants';
 import { formatElapsedTime } from './utils';
 import { useTimelineState } from './hooks';
 import { StepRow, PlaceholderStepRow, AnimatedDots } from './components';
-import { ThinkingDrawer, type ThinkingStepDetail } from '../ThinkingDrawer';
+import { ThinkingDrawer } from '../ThinkingDrawer';
 
 // ============================================================================
 // Main Component
@@ -39,6 +39,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   onExpandStep,
   onApprove,
   onReject,
+  onExpire,
   onArtifactClick,
   onApproveRecord,
   onRejectRecord,
@@ -48,24 +49,25 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
   rejectedRecordIds,
   salesforceInstanceUrl,
 }) => {
-  // Use custom hook for state management
   const {
     isDrawerOpen,
     isCollapsed,
     selectedStepForDrawer,
+    drawerSteps,
     scrollContainerRef,
     localApprovalState,
-    setIsDrawerOpen,
-    setSelectedStepForDrawer,
-    handleToggleCollapse,
+    closeDrawer,
+    toggleCollapse,
     toggleStep,
     handleExpandStep,
     markAsApproved,
     markAsRejected,
+    shouldShowPlaceholder,
     allComplete,
     visibleSteps,
     awaitingApprovalStep,
-    getStepDisplayMode,
+    isStepExpanded,
+    summary,
   } = useTimelineState({
     steps,
     isThinking,
@@ -74,85 +76,12 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
     initiallyCollapsed,
   });
 
-  // Convert steps to drawer format
-  const drawerSteps: ThinkingStepDetail[] = useMemo(
-    () =>
-      steps.map((step) => ({
-        id: step.id,
-        title: step.text,
-        description: step.description || step.text,
-        status:
-          step.status === 'warning' ||
-          step.status === 'error' ||
-          step.status === 'awaiting-approval'
-            ? 'complete'
-            : step.status,
-        queryId: step.queryId,
-      })),
-    [steps]
-  );
-
-  // Determine if we should show a placeholder step for the "next" step
-  // Show placeholder when:
-  // - We're thinking AND
-  // - Either no steps yet, OR all current steps are complete (no in-progress step)
-  // Don't show after approval steps (waiting for user action)
-  const shouldShowPlaceholder = useMemo(() => {
-    if (!isThinking) return false;
-
-    // No steps yet - show placeholder
-    if (visibleSteps.length === 0) return true;
-
-    const lastStep = visibleSteps[visibleSteps.length - 1];
-
-    // Don't show after approval steps that are still waiting for user action.
-    // If the user has locally approved/rejected (optimistic UI), treat the step
-    // as resolved and allow the placeholder to show.
-    const lastStepToolCallId = lastStep?.approval?.toolCallId || lastStep?.id;
-    const isLocallyResolved = lastStepToolCallId
-      ? localApprovalState.has(lastStepToolCallId)
-      : false;
-
-    if (lastStep?.status === 'awaiting-approval' && !isLocallyResolved) return false;
-
-    // If there's an in-progress step, don't show placeholder (that step has its own spinner)
-    const hasInProgressStep = visibleSteps.some((s) => s.status === 'in-progress');
-    if (hasInProgressStep) return false;
-
-    // All steps complete, show placeholder for next expected step
-    return true;
-  }, [isThinking, visibleSteps, localApprovalState]);
-
-  // Compute summary for header - shows "Thinking" for reasoning, tool name for tool calls
-  // When autoCollapse is true (final response streaming), don't show summary
-  const summary = useMemo(() => {
-    if (steps.length === 0 || autoCollapse) return '';
-
-    if (isThinking) {
-      // Find the current in-progress step
-      const inProgressStep = steps.find((s) => s.status === 'in-progress');
-      const currentStep = inProgressStep || steps[steps.length - 1];
-
-      if (!currentStep) return '';
-
-      // For reasoning steps, show "Thinking"
-      if (currentStep.type === 'reasoning') {
-        return 'Thinking';
-      }
-
-      // For tool calls and other steps, show the step text (tool name)
-      return currentStep.text;
-    }
-
-    return '';
-  }, [steps, isThinking, autoCollapse]);
-
   return (
     <>
       <div className="bg-gray-50/50 rounded-xl border border-gray-100 overflow-hidden p-1">
         {/* Header - always visible */}
         <button
-          onClick={handleToggleCollapse}
+          onClick={toggleCollapse}
           className="w-full px-2 p-1 flex items-center justify-between cursor-pointer"
         >
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -214,8 +143,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
               >
                 <div className="space-y-0">
                   {visibleSteps.map((step, idx) => {
-                    const displayMode = getStepDisplayMode(step, idx);
-                    const isExpanded = displayMode === 'expanded';
+                    const isExpanded = isStepExpanded(step, idx);
 
                     // Always use StepRow - description is always visible outside expanded block
                     // The isExpanded prop controls whether code/approval/sub-steps are shown
@@ -274,6 +202,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
                               }
                             : undefined
                         }
+                        onExpire={onExpire ? () => onExpire(step.id) : undefined}
                         onArtifactClick={onArtifactClick}
                         isLocallyApproved={isLocallyApproved}
                         isLocallyRejected={isLocallyRejected}
@@ -302,10 +231,7 @@ export const TimelineThinkingProcess: React.FC<TimelineThinkingProcessProps> = (
       {/* Thinking Drawer - for expanded step view */}
       <ThinkingDrawer
         isOpen={isDrawerOpen}
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setSelectedStepForDrawer(null);
-        }}
+        onClose={closeDrawer}
         steps={drawerSteps}
         onQueryClick={onQueryClick}
         queries={queries}

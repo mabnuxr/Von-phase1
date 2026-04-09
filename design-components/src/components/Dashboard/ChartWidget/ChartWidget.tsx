@@ -1,79 +1,12 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, memo } from 'react';
 import Highcharts from 'highcharts';
 import 'highcharts/modules/xrange';
 import 'highcharts/modules/funnel';
-import 'highcharts/modules/pattern-fill';
+import 'highcharts/highcharts-more';
 import HighchartsReact from 'highcharts-react-official';
-import type { ChartWidgetConfig } from '../types';
-import { useOptionalDashboardCustomization } from '../DashboardCustomization';
+import type { ChartWidgetConfig, DrilldownConfig, DrillFilters } from '../types';
 
-// ── Pattern helpers ───────────────────────────────────────────
-
-function hatchPattern(lightBase: string, darkStroke: string, id: string): Highcharts.PatternObject {
-  return {
-    pattern: {
-      id,
-      path: {
-        d: 'M 0 10 L 10 0 M -2 2 L 2 -2 M 8 12 L 12 8',
-        stroke: darkStroke,
-        strokeWidth: 1,
-      },
-      width: 10,
-      height: 10,
-      backgroundColor: lightBase,
-      opacity: 0.85,
-    },
-  };
-}
-
-function dotPattern(lightBase: string, dotColor: string, id: string): Highcharts.PatternObject {
-  return {
-    pattern: {
-      id,
-      path: {
-        d: 'M 3 3 m -0.75 0 a 0.75 0.75 0 1 0 1.5 0 a 0.75 0.75 0 1 0 -1.5 0 M 9 9 m -0.75 0 a 0.75 0.75 0 1 0 1.5 0 a 0.75 0.75 0 1 0 -1.5 0',
-        fill: dotColor,
-        stroke: dotColor,
-        strokeWidth: 0.25,
-      },
-      width: 12,
-      height: 12,
-      backgroundColor: lightBase,
-      opacity: 0.85,
-    },
-  };
-}
-
-function gridDotPattern(baseColor: string, dotColor: string, id: string): Highcharts.PatternObject {
-  return {
-    pattern: {
-      id,
-      path: {
-        d: 'M 5 5 m -0.7 0 a 0.7 0.7 0 1 0 1.4 0 a 0.7 0.7 0 1 0 -1.4 0',
-        fill: dotColor,
-        stroke: dotColor,
-        strokeWidth: 0.2,
-      },
-      width: 10,
-      height: 10,
-      backgroundColor: baseColor,
-    },
-  };
-}
-
-// ── Chart type detection ──────────────────────────────────────
-
-type ChartCategory = 'bar' | 'line' | 'donut' | 'other';
-
-function detectChartCategory(config: ChartWidgetConfig): ChartCategory {
-  const ct = config.chartType?.toLowerCase() ?? '';
-  if (['bar', 'column'].includes(ct)) return 'bar';
-  if (['line', 'area', 'line-bar', 'column-line', 'line-line'].includes(ct)) return 'line';
-  if (['pie', 'donut'].includes(ct)) return 'donut';
-  return 'other';
-}
-
-// ── Theme-aware options ───────────────────────────────────────
+// ── Chart options ────────────────────────────────────────────
 
 const BASE_CHART_OPTIONS: Highcharts.Options = {
   chart: {
@@ -116,100 +49,67 @@ const GRID_LINE_COLOR = '#f3f4f6';
 const LINE_COLOR = '#e5e7eb';
 const TICK_COLOR = '#e5e7eb';
 
-export interface ChartWidgetProps {
-  config: ChartWidgetConfig;
+/**
+ * Resolve a dot-separated property path against a Highcharts point object.
+ *
+ * Paths starting with "point." are stripped since the caller already holds
+ * the point reference (e.g. "point.name" → reads point["name"]).
+ */
+function getNestedValue(point: Highcharts.Point, path: string): unknown {
+  const effectivePath = path.startsWith('point.') ? path.slice(6) : path;
+  const parts = effectivePath.split('.');
+  let current: unknown = point;
+  for (const part of parts) {
+    if (current == null || typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
 }
 
-/**
- * Single chart component that accepts a highcharts config and applies
- * the active dashboard theme (patterns, colors) from context.
- * Falls back gracefully if no provider is present.
- */
-const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
+export interface ChartWidgetProps {
+  config: ChartWidgetConfig;
+  /** Drilldown config with column_map for point-level drilldown. */
+  drilldown?: DrilldownConfig | null;
+  /** Called when a chart data point is clicked and column_map is present. */
+  onPointClick?: (drillFilters: DrillFilters) => void;
+}
+
+const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
 
-  // Read theme — returns null if no provider is present
-  const customization = useOptionalDashboardCustomization();
-
-  const category = detectChartCategory(config);
-  const palette = customization?.palette;
-
   const options = useMemo(() => {
     const raw = config.highchartsOptions as Highcharts.Options;
+    const autoLegend = {};
 
-    // If no theme palette, use raw options with base styling
-    if (!palette) {
-      return {
-        ...BASE_CHART_OPTIONS,
-        ...raw,
-        chart: {
-          ...BASE_CHART_OPTIONS.chart,
-          ...(raw.chart ?? {}),
-          reflow: false,
-        },
-        title: { text: undefined },
+    const cleanSeries = ((raw.series ?? []) as Record<string, unknown>[]).map((s) => {
+      const { color, fillColor, fillOpacity, ...rest } = s;
+      const cleaned: Record<string, unknown> = {
+        ...rest,
+        borderColor: '#ffffff',
+        borderWidth: 1,
       };
-    }
+      if (typeof color === 'string') cleaned.color = color;
+      if (
+        fillColor != null &&
+        !(typeof fillColor === 'object' && (fillColor as Record<string, unknown>).pattern)
+      ) {
+        cleaned.fillColor = fillColor;
+      }
+      if (typeof fillOpacity === 'number') cleaned.fillOpacity = fillOpacity;
+      if (Array.isArray(cleaned.data)) {
+        cleaned.data = (cleaned.data as Record<string, unknown>[]).map((d) => {
+          if (d && typeof d === 'object' && d.color && typeof d.color !== 'string') {
+            const dCopy = { ...d };
+            delete dCopy.color;
+            return dCopy;
+          }
+          return d;
+        });
+      }
+      return cleaned;
+    }) as unknown as Highcharts.SeriesOptionsType[];
 
-    const themeId = palette.id;
-
-    // Apply themed patterns based on chart category
-    let themedSeries = raw.series;
-
-    if (category === 'bar' && raw.series) {
-      themedSeries = (raw.series as Highcharts.SeriesColumnOptions[]).map((s, i) => {
-        const [light, dark] = palette.hatchPairs[i % palette.hatchPairs.length];
-        return {
-          ...s,
-          color: hatchPattern(light, dark, `bar-hatch-${themeId}-${i}`),
-          borderColor: dark,
-        };
-      }) as Highcharts.SeriesOptionsType[];
-    } else if (category === 'line' && raw.series) {
-      themedSeries = (raw.series as Highcharts.SeriesAreaOptions[]).flatMap((s, i) => {
-        const color = palette.chartColors[i % palette.chartColors.length];
-        return [
-          // Gradient fill layer
-          {
-            ...s,
-            name: s.name,
-            color: 'transparent',
-            lineWidth: 0,
-            marker: { enabled: false },
-            enableMouseTracking: false,
-            showInLegend: false,
-            fillOpacity: 1,
-            fillColor: {
-              linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-              stops: [
-                [0, `${color}30`],
-                [1, `${color}00`],
-              ] as [number, string][],
-            },
-          },
-          // Line + dot pattern layer
-          {
-            ...s,
-            color,
-            fillColor: gridDotPattern('transparent', `${color}35`, `line-grid-dot-${themeId}-${i}`),
-          },
-        ];
-      }) as Highcharts.SeriesOptionsType[];
-    } else if (category === 'donut' && raw.series) {
-      themedSeries = (raw.series as Highcharts.SeriesPieOptions[]).map((s) => ({
-        ...s,
-        data: ((s.data ?? []) as Array<{ name?: string; y?: number }>).map((d, i) => {
-          const [base, dot] = palette.dotPairs[i % palette.dotPairs.length];
-          return {
-            ...d,
-            color: dotPattern(base, dot, `donut-dot-${themeId}-${i}`),
-          };
-        }),
-      })) as Highcharts.SeriesOptionsType[];
-    }
-
-    // Build themed axis options
     const xAxisDefaults = {
       labels: { style: AXIS_LABEL_STYLE },
       lineColor: LINE_COLOR,
@@ -223,27 +123,34 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
 
     return {
       ...BASE_CHART_OPTIONS,
+      ...autoLegend,
       ...raw,
       chart: {
         ...BASE_CHART_OPTIONS.chart,
         ...(raw.chart ?? {}),
+        animation: false,
         reflow: false,
       },
-      xAxis: { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },
+      xAxis: Array.isArray(raw.xAxis)
+        ? raw.xAxis.map((x) => ({ ...xAxisDefaults, ...(x as object) }))
+        : { ...xAxisDefaults, ...((raw.xAxis as object) ?? {}) },
       yAxis: raw.yAxis
         ? (Array.isArray(raw.yAxis) ? raw.yAxis : [raw.yAxis]).map((y) => ({
             ...yAxisDefaults,
             ...(y as object),
           }))
         : yAxisDefaults,
-      colors: palette.chartColors,
       title: { text: undefined },
-      series: themedSeries,
+      series: cleanSeries,
       plotOptions: {
         ...(raw.plotOptions ?? {}),
+        series: {
+          animation: false,
+          ...(((raw.plotOptions as Record<string, unknown>)?.series as object) ?? {}),
+        },
         column: {
           borderRadius: 6,
-          borderWidth: 1,
+          borderWidth: 0,
           groupPadding: 0.1,
           pointPadding: 0.05,
           ...(((raw.plotOptions as Record<string, unknown>)?.column as object) ?? {}),
@@ -272,7 +179,62 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
         },
       },
     };
-  }, [config.highchartsOptions, palette, category]);
+  }, [config.highchartsOptions]);
+
+  // Inject point click handler when column_map is present for point-level drilldown
+  const finalOptions = useMemo(() => {
+    const columnMap = drilldown?.column_map;
+    if (!columnMap?.length || !onPointClick) return options;
+
+    const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
+    const existingSeriesOpts = (existingPlotOptions.series ?? {}) as Record<string, unknown>;
+    const existingPointOpts = (existingSeriesOpts.point as Record<string, unknown>) ?? {};
+    const existingPointEvents = (existingPointOpts.events as Record<string, unknown>) ?? {};
+    const existingClickHandler = existingPointEvents.click as
+      | ((this: Highcharts.Point, event: Highcharts.PointClickEventObject) => void)
+      | undefined;
+
+    return {
+      ...options,
+      plotOptions: {
+        ...existingPlotOptions,
+        series: {
+          ...existingSeriesOpts,
+          cursor: 'pointer',
+          point: {
+            ...existingPointOpts,
+            events: {
+              ...existingPointEvents,
+              click(this: Highcharts.Point, event: Highcharts.PointClickEventObject) {
+                // Preserve any existing click handler from backend config
+                if (existingClickHandler) {
+                  existingClickHandler.call(this, event);
+                }
+
+                const filters: Record<string, unknown> = {};
+                for (const { data_key } of columnMap) {
+                  // Special-case series.name — access the typed accessor directly
+                  // rather than traversing via generic property lookup on a class instance
+                  const value =
+                    data_key === 'series.name' ? this.series?.name : getNestedValue(this, data_key);
+                  if (value != null) {
+                    filters[data_key] = value;
+                  } else {
+                    console.warn(
+                      `[ChartWidget] drilldown data_key "${data_key}" resolved to null/undefined on point click`
+                    );
+                  }
+                }
+                if (Object.keys(filters).length > 0) {
+                  onPointClick(filters);
+                }
+              },
+            },
+          },
+        },
+      },
+    } as Highcharts.Options;
+  }, [options, drilldown, onPointClick]);
 
   useEffect(() => {
     const el = sizeRef.current;
@@ -307,12 +269,12 @@ const ChartWidget: React.FC<ChartWidgetProps> = ({ config }) => {
         <HighchartsReact
           ref={chartRef}
           highcharts={Highcharts}
-          options={options}
+          options={finalOptions}
           containerProps={{ style: { height: '100%', width: '100%' } }}
         />
       </div>
     </div>
   );
-};
+});
 
 export { ChartWidget };

@@ -28,7 +28,10 @@ export const FEATURE_FLAGS = {
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
   GMAIL: "enableGmail",
+  GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
+  NOTION: "enableNotion",
+  OUTREACH_ENGAGE: "enableOutreachEngage",
 } as const;
 
 /**
@@ -145,9 +148,24 @@ export function useFeatureFlag() {
     isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
 
     /**
+     * Controls whether Gong Engage integration is visible
+     */
+    isGongEngageEnabled: flags[FEATURE_FLAGS.GONG_ENGAGE] === true,
+
+    /**
      * Controls whether Granola integration is visible
      */
     isGranolaEnabled: flags[FEATURE_FLAGS.GRANOLA] === true,
+
+    /**
+     * Controls whether Notion integration is visible
+     */
+    isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
+
+    /**
+     * Controls whether Outreach engagement integration is visible
+     */
+    isOutreachEngageEnabled: flags[FEATURE_FLAGS.OUTREACH_ENGAGE] === true,
 
     /**
      * Raw flags object for advanced usage

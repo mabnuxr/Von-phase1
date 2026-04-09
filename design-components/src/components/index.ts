@@ -121,12 +121,15 @@ export {
   FileArtifactCard,
   DashboardArtifactCard,
   GmailDraftCard,
+  EmailComposer,
   ArtifactCardSkeleton,
 } from './Chat';
 export type {
   FileArtifactCardProps,
   DashboardArtifactCardProps,
   GmailDraftCardProps,
+  EmailComposerProps,
+  EmailData,
   FileArtifact,
   ArtifactType,
   EmailDraftArtifact,
@@ -172,6 +175,14 @@ export type { IconProps } from './Chat/icons';
 export { Dropdown } from './Dropdown';
 export type { DropdownProps, DropdownItem } from './Dropdown';
 
+// Form-level Select (single-value dropdown for forms)
+export { Select } from './forms/dropdown';
+export type { SelectProps, SelectOption } from './forms/dropdown';
+
+// Multi-select dropdown
+export { MultiSelectDropdown } from './forms/dropdown';
+export type { MultiSelectDropdownProps, MultiSelectDropdownOption } from './forms/dropdown';
+
 // Chat Molecules
 export { TabSwitcher } from './TabSwitcher';
 export type { TabSwitcherProps, TabSwitcherTab } from './TabSwitcher';
@@ -213,10 +224,6 @@ export type {
   MentionsListProps,
   MentionStripProps,
 } from './Mentions';
-
-// Deep Research Chat - specialized chat UI for deep research mode
-export { DeepResearchChat, DeepResearchNotificationBar } from './Chat';
-export type { DeepResearchChatProps } from './Chat';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
 export type {
@@ -300,8 +307,10 @@ export type { FileChipProps, ChipFile, FileIconStackProps } from './FileChip';
 // ============================================================================
 // SCHEDULE PICKER (General-purpose recurring schedule configuration)
 // ============================================================================
+export { ScheduleFields } from './SchedulePicker';
 export { SchedulePicker } from './SchedulePicker';
 export type {
+  ScheduleFieldsProps,
   SchedulePickerProps,
   Schedule,
   ScheduleFrequency,
@@ -312,6 +321,7 @@ export {
   SCHEDULE_DAYS,
   SCHEDULE_TIMES,
   DEFAULT_SCHEDULE,
+  LOCAL_TIMEZONE,
   formatScheduleBadge,
   normalizeFrequency,
 } from './SchedulePicker';
@@ -428,11 +438,24 @@ export type { TiptapEditorProps, EditorToolbarProps } from './TiptapEditor';
 export {
   ReportTable,
   buildGridOptions,
+  autoSizeGridColumns,
+  applyColumnFormats,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  escapeHtml,
+  LongTextPopover,
 } from './ReportTable';
-export type { ReportTableProps, ReportColumn, ColumnType, AIReasoningData } from './ReportTable';
+export type {
+  ReportTableProps,
+  ReportColumn,
+  ColumnType,
+  AIReasoningData,
+  ServerSortState,
+  ExpandPopoverState,
+} from './ReportTable';
 
 // ============================================================================
 // ARTIFACT VIEWER (Single artifact display drawer)
@@ -456,13 +479,11 @@ export type {
 export {
   DeepResearchResults,
   DeepResearchThinkingIndicator,
-  DataTablesCard,
   DeepResearchApprovalCard,
   DeepResearchDataTablesDrawer,
 } from './Chat';
 export type {
   DeepResearchNotificationBarProps,
-  DataTablesCardProps,
   DeepResearchApprovalCardProps,
   DeepResearchAction,
   DataSourceInfo,
@@ -522,6 +543,9 @@ export type { UseIsTruncatedReturn } from '../hooks';
 export { useVisibilityToggle } from '../hooks';
 export type { UseVisibilityToggleReturn } from '../hooks';
 
+export { useCopyToClipboard } from '../hooks';
+export type { UseCopyToClipboardReturn } from '../hooks';
+
 // ============================================================================
 // FILTER
 // ============================================================================
@@ -539,11 +563,6 @@ export {
   CounterWidget,
   TextWidget,
   DashboardLayout,
-  DashboardCustomizationProvider,
-  useDashboardCustomization,
-  chartThemes,
-  chartThemeIds,
-  multiSwatchColors,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -559,7 +578,5 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
-  DashboardCustomizationState,
-  ChartThemeId,
-  ChartThemePalette,
+  AppliedWidgetFilter,
 } from './Dashboard';

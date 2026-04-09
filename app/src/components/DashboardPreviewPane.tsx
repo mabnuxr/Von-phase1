@@ -6,13 +6,23 @@
  * Expand navigates to the full dashboard page with conversationId.
  */
 
-import { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, memo } from "react";
+import {
+  useGuardedNavigate,
+  useNavigationGuard,
+} from "../providers/NavigationGuard";
+import { useAppShell } from "../hooks/useAppShell";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
+import { useDrilldown } from "../hooks/useDrilldown";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
+import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
+import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
+import { DrilldownPanel } from "./Analytics/DrilldownPanel";
+import { EditModeBanner } from "./Analytics/EditModeBanner";
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -20,31 +30,51 @@ interface DashboardPreviewPaneProps {
   onClose: () => void;
 }
 
-export function DashboardPreviewPane({
+export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   dashboardId,
   conversationId,
   onClose,
 }: DashboardPreviewPaneProps) {
-  const navigate = useNavigate();
-  const { data, isLoading, error } = useDashboardQuery(dashboardId);
+  const navigate = useGuardedNavigate();
+  const { collapseSidebar } = useAppShell();
+  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+  const dashboardTitle = data?.dashboard?.title ?? "";
+  const isEditable = data?.dashboard?.isEditable ?? false;
+
+  useNavigationGuard({
+    when: isEditable,
+    title: "Dashboard in edit mode",
+    body: `You have unsaved changes on ${dashboardTitle || "this dashboard"}. Are you sure you want to switch?`,
+    confirmLabel: "Switch Anyway",
+  });
+
   const {
     handleSave,
     savePhase,
+    showSaveToast,
+    isFirstSave,
     handleRevert,
     revertPhase,
     handleShare,
     sharePhase,
     handleRefresh,
+    editModeMutation,
+    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
-
-  const handleColorThemeChange = useCallback(
-    (themeId: string) => {
-      handleUpdate({ ui_config: { color_palette_global: themeId } });
-    },
-    [handleUpdate],
-  );
+  const { isRefreshing } = useDashboardRefreshEvents(dashboardId);
+  const {
+    schedule,
+    isScheduled,
+    isPaused: isSchedulePaused,
+    isMutating: isScheduleMutating,
+    handleCreateSchedule,
+    handleUpdateSchedule,
+    handlePauseSchedule,
+    handleResumeSchedule,
+    handleDeleteSchedule,
+  } = useDashboardSchedule(dashboardId);
 
   const handleRename = useCallback(
     (newName: string) => {
@@ -56,13 +86,57 @@ export function DashboardPreviewPane({
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+  const {
+    definitions: filterDefinitions,
+    filterState,
+    pendingRows: filterPendingRows,
+    activeCount: filterActiveCount,
+    canApply: filterCanApply,
+    isApplying: filterIsApplying,
+    handleFilterChange,
+    handleRemoveFilter,
+    handleAddFilter,
+    handleRemovePendingRow,
+    handleCommitPendingRow,
+    handleApply,
+    handleClearAll,
+  } = useDashboardFilters(
+    dashboardId,
+    dashboard?.filters?.definitions ?? [],
+    activeFilters,
+  );
 
-  const { mergedWidgets, handlePageChange, loadingPanels } =
-    useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+  const {
+    mergedWidgets,
+    handlePageChange,
+    handleSortChange,
+    loadingPanels,
+    activeSorts,
+  } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
+
+  const {
+    isOpen: isDrilldownOpen,
+    panelId: drilldownPanelId,
+    title: drilldownTitle,
+    query: drilldownQuery,
+    data: drilldownData,
+    pagination: drilldownPagination,
+    currentSort: drilldownSort,
+    isLoading: isDrilldownLoading,
+    isError: isDrilldownError,
+    openDrilldown,
+    openPointDrilldown,
+    closeDrilldown,
+    changePage: changeDrilldownPage,
+    changeSort: changeDrilldownSort,
+  } = useDrilldown(dashboardId);
 
   const handleExpand = useCallback(() => {
-    navigate(`/dashboard/${dashboardId}?conversationId=${conversationId}`);
-  }, [navigate, dashboardId, conversationId]);
+    navigate(
+      `/redirecting?to=${encodeURIComponent(`/dashboard/${dashboardId}?conversationId=${conversationId}`)}`,
+      collapseSidebar,
+    );
+  }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
   return (
     <div
@@ -76,27 +150,88 @@ export function DashboardPreviewPane({
       ) : error || !dashboard ? (
         <AnalyticsError error={error?.message ?? null} />
       ) : (
-        <AnalyticsView
-          dashboard={dashboard}
-          refreshInfo={refreshInfo}
-          activeFilters={activeFilters}
-          onRefresh={handleRefresh}
-          onSave={handleSave}
-          savePhase={savePhase}
-          onRevert={handleRevert}
-          revertPhase={revertPhase}
-          onShare={handleShare}
-          sharePhase={sharePhase}
-          onExpand={handleExpand}
-          onClose={onClose}
-          onTablePageChange={handlePageChange}
-          loadingTablePanels={loadingPanels}
-          paginatedWidgets={mergedWidgets}
-          defaultColorTheme={dashboard.uiConfig?.colorPaletteGlobal}
-          onColorThemeChange={handleColorThemeChange}
-          onRename={handleRename}
-        />
+        <>
+          <AnalyticsView
+            dashboard={dashboard}
+            refreshInfo={refreshInfo}
+            filterDefinitions={filterDefinitions}
+            filterState={filterState}
+            filterPendingRows={filterPendingRows}
+            filterActiveCount={filterActiveCount}
+            filterCanApply={filterCanApply}
+            filterIsApplying={filterIsApplying}
+            onFilterChange={handleFilterChange}
+            onRemoveFilter={handleRemoveFilter}
+            onAddFilter={handleAddFilter}
+            onRemovePendingRow={handleRemovePendingRow}
+            onCommitPendingRow={handleCommitPendingRow}
+            onApplyFilters={handleApply}
+            onClearAll={handleClearAll}
+            onRefresh={handleRefresh}
+            onSave={handleSave}
+            savePhase={savePhase}
+            showSaveToast={showSaveToast}
+            isFirstSave={isFirstSave}
+            onRevert={handleRevert}
+            revertPhase={revertPhase}
+            onShare={handleShare}
+            sharePhase={sharePhase}
+            onExpand={handleExpand}
+            onClose={onClose}
+            onTablePageChange={handlePageChange}
+            loadingTablePanels={loadingPanels}
+            paginatedWidgets={mergedWidgets}
+            onDrillDown={openDrilldown}
+            onPointDrillDown={openPointDrilldown}
+            onTableSortChange={handleSortChange}
+            tableSortStates={activeSorts}
+            onRename={handleRename}
+            hideCreatorChip
+            schedule={schedule}
+            isScheduled={isScheduled}
+            isSchedulePaused={isSchedulePaused}
+            isScheduleMutating={isScheduleMutating}
+            onCreateSchedule={handleCreateSchedule}
+            onUpdateSchedule={handleUpdateSchedule}
+            onPauseSchedule={handlePauseSchedule}
+            onResumeSchedule={handleResumeSchedule}
+            onDeleteSchedule={handleDeleteSchedule}
+            onEditModeChange={editModeMutation.mutate}
+            editModePhase={editModePhase}
+            isRefetchingData={isFetching && !isLoading}
+            isRefreshing={isRefreshing}
+            isDrilldownOpen={isDrilldownOpen}
+          />
+          {/* Edit mode banner — floats above drilldown panel when both are active */}
+          <EditModeBanner
+            visible={dashboard.isEditable && isDrilldownOpen}
+            className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
+          />
+          <DrilldownPanel
+            isOpen={isDrilldownOpen}
+            onClose={closeDrilldown}
+            widgetTitle={
+              drilldownTitle ||
+              (drilldownPanelId &&
+                dashboard.widgets?.[drilldownPanelId]?.title) ||
+              "Drilldown"
+            }
+            query={
+              drilldownQuery ||
+              (drilldownPanelId &&
+                dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
+              ""
+            }
+            data={drilldownData}
+            pagination={drilldownPagination}
+            isLoading={isDrilldownLoading}
+            isError={isDrilldownError}
+            onPageChange={changeDrilldownPage}
+            onSortChange={changeDrilldownSort}
+            sortState={drilldownSort}
+          />
+        </>
       )}
     </div>
   );
-}
+});

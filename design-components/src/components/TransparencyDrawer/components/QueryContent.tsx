@@ -148,7 +148,7 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
                 <CaretRightIcon size={12} weight="bold" className="text-gray-500" />
               )}
               <span className="text-xs font-medium text-gray-700 uppercase tracking-wide">
-                SQL Query
+                {query.queryLabel || 'SQL Query'}
               </span>
             </div>
             {query.duration && (

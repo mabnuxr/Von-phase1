@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "./useDashboardQuery";
 import { useUserPusherChannel } from "./useUserPusherChannel";
@@ -10,6 +10,8 @@ import {
   type DashboardRefreshCompletedEvent,
 } from "../types/userChannelEvents";
 
+const REFRESH_SAFETY_TIMEOUT_MS = 60_000;
+
 export function useDashboardRefreshEvents(dashboardId: string) {
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -19,21 +21,28 @@ export function useDashboardRefreshEvents(dashboardId: string) {
     userId: user?.id,
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   useEffect(() => {
     if (!userChannel) {
       return;
     }
+
+    let safetyTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleRefreshStarted = (data: DashboardRefreshStartedEvent) => {
       if (data.dashboardId !== dashboardId) {
         return;
       }
 
-      showToast({
-        message:
-          "Dashboard refresh started, widgets will be refreshed automatically once its complete.",
-        variant: "info",
-      });
+      setIsRefreshing(true);
+
+      // Safety: if REFRESH_COMPLETED never fires, clear after timeout
+      if (safetyTimer) clearTimeout(safetyTimer);
+      safetyTimer = setTimeout(
+        () => setIsRefreshing(false),
+        REFRESH_SAFETY_TIMEOUT_MS,
+      );
     };
 
     const handleRefreshCompleted = (data: DashboardRefreshCompletedEvent) => {
@@ -41,16 +50,22 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         return;
       }
 
-      showToast({
-        message: data.success
-          ? "Dashboard refresh complete! Your dashboard data has been updated."
-          : "Dashboard refresh failed. Please try again.",
-        variant: data.success ? "success" : "error",
-      });
+      if (!data.success) {
+        showToast({
+          message: "Dashboard refresh failed. Please try again.",
+          variant: "error",
+        });
+      }
 
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+
+      // Clear the safety timer since we got the completed event
+      if (safetyTimer) clearTimeout(safetyTimer);
+      safetyTimer = null;
+
+      setIsRefreshing(false);
     };
 
     userChannel.bind(
@@ -71,6 +86,12 @@ export function useDashboardRefreshEvents(dashboardId: string) {
         UserChannelEvents.DASHBOARD_REFRESH_COMPLETED,
         handleRefreshCompleted,
       );
+      if (safetyTimer) clearTimeout(safetyTimer);
+      // Reset on cleanup (dashboardId change or unmount) so the loading
+      // state doesn't stay stuck when navigating to a different dashboard
+      setIsRefreshing(false);
     };
   }, [userChannel, showToast, dashboardId, queryClient]);
+
+  return { isRefreshing };
 }

@@ -5,11 +5,18 @@ import {
   SidebarSimpleIcon,
   PlusCircleIcon,
   FolderSimpleIcon,
+  ChartBarIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import { FolderList } from './FolderList';
-import type { SidebarItem, Folder, FolderItemsMap, FolderLoadingMap } from '../ChatSidebarV2';
+import type {
+  SidebarItem,
+  Folder,
+  FolderItemsMap,
+  FolderLoadingMap,
+  DashboardSidebarItem,
+} from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
 
 export interface CollapsedSidebarProps {
@@ -35,6 +42,15 @@ export interface CollapsedSidebarProps {
   foldersDropdownPosition: { top: number; left: number };
   foldersButtonRef: React.RefObject<HTMLButtonElement | null>;
   onFoldersHover: (isHovering: boolean) => void;
+
+  // Hover dropdown state - Dashboards
+  dashboards?: DashboardSidebarItem[];
+  selectedDashboardId?: string;
+  onDashboardClick?: (id: string) => void;
+  isDashboardsHovered: boolean;
+  dashboardsDropdownPosition: { top: number; left: number };
+  dashboardsButtonRef: React.RefObject<HTMLButtonElement | null>;
+  onDashboardsHover: (isHovering: boolean) => void;
 
   // Profile
   userName?: string;
@@ -84,6 +100,13 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   foldersDropdownPosition,
   foldersButtonRef,
   onFoldersHover,
+  dashboards,
+  selectedDashboardId,
+  onDashboardClick,
+  isDashboardsHovered,
+  dashboardsDropdownPosition,
+  dashboardsButtonRef,
+  onDashboardsHover,
   userName,
   userEmail,
   avatarSrc,
@@ -102,7 +125,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   return (
     <div className="px-2 py-3 h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex text-sm flex-col antialiased font-sf">
       {/* Collapsed Header - Expand button */}
-      <div className="flex flex-col items-start pb-2 border-b border-gray-100 mb-2">
+      <div className="flex flex-col items-start pb-2">
         <TertiaryIconButton
           size="large"
           icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
@@ -181,6 +204,82 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
               )}
             </AnimatePresence>
           </div>
+
+          {/* Dashboards Icon with Hover Dropdown */}
+          {dashboards && (
+            <div
+              className="relative"
+              onMouseEnter={() => onDashboardsHover(true)}
+              onMouseLeave={() => onDashboardsHover(false)}
+            >
+              <button
+                ref={dashboardsButtonRef}
+                className={`
+                  flex items-center justify-center w-8 h-8
+                  rounded-lg border cursor-pointer
+                  transition-all duration-150
+                  ${isDashboardsHovered ? 'bg-gray-50 border-gray-200 shadow-xs text-gray-900' : 'bg-transparent border-transparent text-gray-800 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs hover:text-gray-900'}
+                `}
+                title="Dashboards"
+              >
+                <ChartBarIcon size={18} weight="regular" />
+              </button>
+
+              <AnimatePresence>
+                {isDashboardsHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed w-56 max-h-80 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[9999]"
+                    style={{
+                      top: dashboardsDropdownPosition.top,
+                      left: dashboardsDropdownPosition.left,
+                    }}
+                  >
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+                        Dashboards
+                      </span>
+                    </div>
+                    <div className="overflow-y-auto max-h-64 py-0.5">
+                      {dashboards.length > 0 ? (
+                        <>
+                          {dashboards.slice(0, 10).map((dash) => {
+                            const isSelected = dash.id === selectedDashboardId;
+                            return (
+                              <div
+                                key={dash.id}
+                                className={`
+                                  flex items-center gap-2 px-3 py-2 rounded-xl text-sm
+                                  transition-colors duration-150 cursor-pointer
+                                  ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
+                                `}
+                                onClick={() => onDashboardClick?.(dash.id)}
+                                title={dash.label}
+                              >
+                                <span className="truncate block">{dash.label}</span>
+                              </div>
+                            );
+                          })}
+                          {dashboards.length > 10 && (
+                            <div className="px-3 py-2 text-[11px] text-gray-500 border-t border-gray-100">
+                              +{dashboards.length - 10} more
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="px-3 py-3 text-center">
+                          <p className="text-[12px] text-gray-400">No dashboards yet</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Chats Icon with Hover Dropdown */}
           <div

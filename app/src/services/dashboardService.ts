@@ -7,6 +7,10 @@ import type {
   PanelRenderResponse,
   PanelDrilldownRequest,
   PanelDrilldownResponse,
+  ScheduleConfigRequest,
+  DashboardScheduleResponse,
+  FilterPatchPayload,
+  FilterPatchResponse,
 } from "../types/dashboard";
 
 /**
@@ -37,8 +41,8 @@ export interface DashboardListResponse {
 export interface DashboardUpdateRequest {
   dashboard_name?: string;
   description?: string;
+  is_editable?: boolean;
   ui_config?: {
-    color_palette_global?: string;
     [key: string]: unknown;
   };
 }
@@ -146,6 +150,74 @@ class DashboardService {
     return apiClient.post<PanelDrilldownResponse>(
       `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
       request,
+    );
+  }
+
+  // ─── Schedule ───────────────────────────────────────────────────
+
+  async getSchedule(dashboardId: string): Promise<DashboardScheduleResponse> {
+    return apiClient.get<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+    );
+  }
+
+  async createSchedule(
+    dashboardId: string,
+    config: ScheduleConfigRequest,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+      config,
+    );
+  }
+
+  async updateSchedule(
+    dashboardId: string,
+    config: Partial<ScheduleConfigRequest>,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.patch<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule`,
+      config,
+    );
+  }
+
+  async pauseSchedule(dashboardId: string): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule/pause`,
+    );
+  }
+
+  async resumeSchedule(
+    dashboardId: string,
+  ): Promise<DashboardScheduleResponse> {
+    return apiClient.post<DashboardScheduleResponse>(
+      `/api/v1/dashboards/${dashboardId}/schedule/resume`,
+    );
+  }
+
+  async deleteSchedule(dashboardId: string): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}/schedule`);
+  }
+
+  // ─── Filters ────────────────────────────────────────────────────
+
+  async updateFilters(
+    dashboardId: string,
+    filters?: FilterPatchPayload | null,
+    resetFields?: string[],
+  ): Promise<FilterPatchResponse> {
+    const body: Record<string, unknown> = {};
+    if (filters) body.filters = filters;
+    if (resetFields?.length) body.reset_fields = resetFields;
+    return apiClient.patch<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters`,
+      body,
+    );
+  }
+
+  async resetFilters(dashboardId: string): Promise<FilterPatchResponse> {
+    return apiClient.post<FilterPatchResponse>(
+      `/api/v1/dashboards/${dashboardId}/filters/reset`,
     );
   }
 }

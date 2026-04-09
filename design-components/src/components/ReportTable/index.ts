@@ -1,9 +1,14 @@
 export { ReportTable } from './ReportTable';
 export {
   buildGridOptions,
+  autoSizeGridColumns,
+  applyColumnFormats,
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
+  longTextExpandFormatter,
+  handleLongTextHover,
+  escapeHtml,
 } from './reportTableUtils';
 export type {
   ReportTableProps,
@@ -12,6 +17,7 @@ export type {
   DataSourceType,
   SourceReference,
   AIReasoningData,
+  ServerSortState,
 } from './ReportTable';
 export {
   OwnerCell,
@@ -24,3 +30,5 @@ export {
   TruncatedTextCell,
 } from './CellRenderers';
 export { SourcePopover, VonLogoButton } from './SourcePopover';
+export { LongTextPopover } from './LongTextPopover';
+export type { ExpandPopoverState } from './LongTextPopover';

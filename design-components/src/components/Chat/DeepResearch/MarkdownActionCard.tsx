@@ -12,6 +12,7 @@ import {
   ArrowRightIcon,
 } from '@phosphor-icons/react';
 import { Streamdown } from 'streamdown';
+import { chatRemarkPlugins } from '../chatRemarkPlugins';
 import { PrimaryButton, SecondaryButton } from '../../forms/buttons/ActionButtons';
 
 // ============================================================================
@@ -167,6 +168,7 @@ ${rows.join('\n')}`;
                   parseIncompleteMarkdown={false}
                   isAnimating={false}
                   controls={{ table: true }}
+                  remarkPlugins={chatRemarkPlugins}
                 >
                   {generateMarkdownTable()}
                 </Streamdown>
@@ -388,6 +390,7 @@ export const MarkdownActionCard: React.FC<MarkdownActionCardProps> = ({
             parseIncompleteMarkdown={isStreaming}
             isAnimating={isStreaming}
             controls={{ table: true }}
+            remarkPlugins={chatRemarkPlugins}
           >
             {markdown}
           </Streamdown>
