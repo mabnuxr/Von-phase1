@@ -300,7 +300,6 @@ const Analytics = () => {
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
 
-
   // Select the most recent conversation each time the panel opens.
   // Skips auto-selection when a deep link already set the active conversation.
   useEffect(() => {
