@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Grid, type GridOptions } from '@highcharts/grid-lite-react';
 import { addEvent } from '@highcharts/grid-lite/es-modules/Shared/Utilities.js';
 import { autoSizeGridColumns, applyColumnFormats, getDataTableColumns } from './reportTableUtils';
+import { formatD3Pattern } from '../../utils/formatKpiValue';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
@@ -96,6 +97,8 @@ export interface ReportTableProps {
   onCellClick?: (columnId: string, cellValue: unknown) => void;
   /** Disable the built-in truncation tooltip (e.g. when using a custom expand popover) */
   disableTooltip?: boolean;
+  /** Compact display mode — smaller fonts and tighter padding (used in dashboard widgets) */
+  compact?: boolean;
 }
 
 // ============================================================================
@@ -112,14 +115,127 @@ export function ReportTable({
   sortState,
   onCellClick,
   disableTooltip = false,
+  compact = false,
 }: ReportTableProps) {
   void sortState; // reserved for future initial-sort sync
 
-  // Apply column-level d3-format patterns, then auto-size columns.
-  // Both mutate in-place so values are set before Grid initializes.
-  const sizedOptions = useMemo(() => autoSizeGridColumns(applyColumnFormats(options)), [options]);
+  // ── Probe-table column measurement ────────────────────────────────────────
+  // Renders a hidden <table> (not Grid Lite) with the same CSS to measure true
+  // content widths. The probe table is fully under our control — no async init,
+  // no JS overrides from Grid Lite. Measured widths are set on Grid Lite columns.
+  const probeRef = useRef<HTMLTableElement>(null);
+
+  // Apply column-level d3-format patterns, then prepare options.
+  const formattedOptions = useMemo(
+    () => autoSizeGridColumns(applyColumnFormats(options)),
+    [options]
+  );
+
+  // Extract column ids + widest data values for the probe table
+  const probeData = useMemo(() => {
+    const cols = formattedOptions.columns as
+      | Array<{ id: string; width?: number; format?: string }>
+      | undefined;
+    if (!cols) return null;
+    const dtCols = getDataTableColumns(formattedOptions);
+    if (!dtCols) return null;
+
+    return cols.map((col) => {
+      // Header label (same logic as old autoSizeGridColumns)
+      const header = col.id
+        .replace(/^col_/, '')
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2');
+
+      // Find widest data value (sample first 100 rows)
+      const data = dtCols[col.id];
+      let widest = '';
+      if (data) {
+        const sample = data.length <= 100 ? data : data.slice(0, 100);
+        for (const val of sample) {
+          if (val == null) continue;
+          let text: string;
+          if (col.format && typeof col.format === 'string') {
+            const num = typeof val === 'number' ? val : Number(val);
+            if (!isNaN(num)) {
+              try {
+                text = formatD3Pattern(num, col.format);
+              } catch {
+                text = String(val);
+              }
+            } else {
+              text = String(val);
+            }
+          } else {
+            text = String(val);
+          }
+          if (text.length > widest.length) widest = text;
+        }
+      }
+      return { id: col.id, header, widest, hasExplicitWidth: !!col.width };
+    });
+  }, [formattedOptions]);
+
+  // Measure probe table after DOM commit (useLayoutEffect = before paint).
+  // Grid only renders after widths are known, so user never sees unsized state.
+  const [measuredWidths, setMeasuredWidths] = useState<number[] | null>(null);
+
+  useLayoutEffect(() => {
+    if (!probeRef.current || !probeData) return;
+
+    const MAX_COL_WIDTH = 500;
+    const probeTds = probeRef.current.querySelectorAll('tbody td');
+    const probeThs = probeRef.current.querySelectorAll('thead th');
+    if (probeTds.length === 0) return;
+
+    const containerWidth = wrapperRef.current?.clientWidth ?? 0;
+    const colWidths: number[] = [];
+
+    for (let i = 0; i < probeData.length; i++) {
+      if (probeData[i].hasExplicitWidth) {
+        const cols = formattedOptions.columns as Array<{ width?: number }>;
+        colWidths.push(cols[i]?.width ?? 60);
+        continue;
+      }
+      const tdW = probeTds[i] ? (probeTds[i] as HTMLElement).offsetWidth : 60;
+      const thW = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 60;
+      // +6px buffer: probe uses longest string but proportional fonts mean
+      // a different value with same char count can be wider (e.g. 'M' vs 'E')
+      colWidths.push(Math.min(Math.max(tdW, thW, 60) + 6, MAX_COL_WIDTH));
+    }
+
+    // Distribute surplus proportionally so table fills container
+    const total = colWidths.reduce((s, w) => s + w, 0);
+    if (containerWidth > 0 && total < containerWidth) {
+      const surplus = containerWidth - total;
+      let distributed = 0;
+      for (let i = 0; i < colWidths.length - 1; i++) {
+        const extra = Math.round(surplus * (colWidths[i] / total));
+        colWidths[i] += extra;
+        distributed += extra;
+      }
+      colWidths[colWidths.length - 1] += surplus - distributed;
+    }
+
+    setMeasuredWidths(colWidths);
+  }, [probeData, formattedOptions]);
+
+  // Apply measured widths to grid options
+  const sizedOptions = useMemo(() => {
+    const opts = autoSizeGridColumns(formattedOptions);
+    if (!measuredWidths) return opts;
+
+    const cols = opts.columns as Array<{ id: string; width?: number }> | undefined;
+    if (!cols) return opts;
+
+    for (let i = 0; i < cols.length && i < measuredWidths.length; i++) {
+      cols[i].width = measuredWidths[i];
+    }
+    return opts;
+  }, [formattedOptions, measuredWidths]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
+
   const [popoverReasoning, setPopoverReasoning] = useState<AIReasoningData | null>(null);
   const [popoverPosition, setPopoverPosition] = useState({ top: 0, left: 0 });
 
@@ -313,12 +429,53 @@ export function ReportTable({
   return (
     <div
       ref={wrapperRef}
-      className={`w-full flex flex-col h-full report-grid-wrapper highcharts-light ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
+      className={`w-full flex flex-col h-full relative report-grid-wrapper highcharts-light ${compact ? 'report-grid-compact' : ''} ${hidePagination ? 'report-grid-no-pagination' : ''} ${className}`}
       onClick={handleWrapperClick}
       onMouseOver={handleCellMouseEnter}
       onMouseOut={handleCellMouseLeave}
     >
-      <Grid options={sizedOptions} callback={onSortChange ? handleGridReady : undefined} />
+      {/* Hidden probe table for measuring true content widths.
+          Same CSS classes as Grid Lite → same padding/font → accurate widths. */}
+      {probeData && (
+        <table
+          ref={probeRef}
+          aria-hidden
+          className="report-grid-probe"
+          style={{
+            position: 'absolute',
+            visibility: 'hidden',
+            top: -9999,
+            left: -9999,
+            tableLayout: 'auto',
+            width: 'max-content',
+            whiteSpace: 'nowrap',
+            borderCollapse: 'collapse',
+          }}
+        >
+          <thead>
+            <tr>
+              {probeData.map((col) => (
+                <th key={col.id} className="hcg-header-cell" style={{ whiteSpace: 'nowrap' }}>
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {probeData.map((col) => (
+                <td key={col.id} style={{ whiteSpace: 'nowrap' }}>
+                  {col.widest}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      )}
+
+      {measuredWidths && (
+        <Grid options={sizedOptions} callback={onSortChange ? handleGridReady : undefined} />
+      )}
 
       {popoverReasoning && (
         <SourcePopover

@@ -77,7 +77,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
                 </div>
               )}
               {widget.title && (
-                <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full tracking-wide uppercase">
+                <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full">
                   {widget.title}
                 </p>
               )}

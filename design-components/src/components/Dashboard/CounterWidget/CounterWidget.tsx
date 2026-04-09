@@ -148,9 +148,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
         </div>
       )}
       {title && (
-        <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full tracking-wide uppercase">
-          {title}
-        </p>
+        <p className="text-xs font-medium text-gray-500 mb-1.5 truncate max-w-full">{title}</p>
       )}
       {subtitle && (
         <p className="text-[10px] text-gray-400 -mt-1 mb-1.5 truncate max-w-full">{subtitle}</p>
