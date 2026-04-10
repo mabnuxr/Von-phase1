@@ -14,6 +14,7 @@ export const IntegrationType = {
   ZOOM: "ZOOM",
   SNOWFLAKE: "SNOWFLAKE",
   NOTION: "NOTION",
+  JIMINNY: "JIMINNY",
 } as const;
 
 export type IntegrationType =

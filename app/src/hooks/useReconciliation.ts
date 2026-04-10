@@ -20,11 +20,13 @@ import { useCallback, useEffect, useRef } from "react";
 import type Pusher from "pusher-js";
 import type {
   AguiEventWrapper,
+  DashboardReadyEvent,
   RunFinishedEvent,
 } from "@vonlabs/design-components";
 import type { DashboardMetadata } from "../types/conversation";
 
 import { conversationsService } from "../services/conversationsService";
+import { findLast } from "../utils/findLast";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
@@ -54,6 +56,7 @@ export interface UseReconciliationConfig {
       dashboard?: DashboardMetadata | null;
       executionId?: string | null;
       isDashboardBuilderMode?: boolean;
+      triggerAutoOpen?: boolean;
     },
   ) => void;
   onRunFinished?: (runId: string, elapsedTime: number) => void;
@@ -149,10 +152,18 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 5b: Extract dashboard and executionId from RUN_FINISHED event (if present)
-      type RunFinishedWithDashboard = Omit<RunFinishedEvent, "result"> & {
+      // Step 5b: Extract dashboard from DASHBOARD_READY event, execution metadata from RUN_FINISHED
+      const dashboardReadyEvent = findLast(
+        mergedEvents,
+        (e) => e.event?.type === "DASHBOARD_READY",
+      );
+      const reconciledDashboard = dashboardReadyEvent
+        ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ??
+          undefined)
+        : undefined;
+
+      type RunFinishedWithExtras = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
-          dashboard?: DashboardMetadata | null;
           execution_id?: string | null;
           is_dashboard_builder_mode?: boolean;
         };
@@ -160,24 +171,21 @@ export function useReconciliation({
       const runFinishedEvent = mergedEvents.find(
         (e) => e.event?.type === "RUN_FINISHED",
       );
-      const reconciledDashboard = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
-            ?.dashboard ?? null)
-        : undefined;
       const reconciledExecutionId = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+        ? ((runFinishedEvent.event as RunFinishedWithExtras).result
             ?.execution_id ?? null)
         : undefined;
       const reconciledIsDashboardBuilderMode = runFinishedEvent
-        ? ((runFinishedEvent.event as RunFinishedWithDashboard).result
+        ? ((runFinishedEvent.event as RunFinishedWithExtras).result
             ?.is_dashboard_builder_mode ?? false)
         : undefined;
 
-      // Step 6: Update state (including dashboard/executionId/isDashboardBuilderMode from RUN_FINISHED)
+      // Step 6: Update state (dashboard from DASHBOARD_READY, executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
         dashboard: reconciledDashboard,
         executionId: reconciledExecutionId,
         isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
+        triggerAutoOpen: true,
       });
 
       // Step 7: Handle run completion

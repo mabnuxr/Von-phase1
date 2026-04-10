@@ -70,8 +70,8 @@ export interface DashboardMetadata {
   dashboard_id: string;
   dashboard_name: string;
   dashboard_version: number;
-  panel_count: number;
-  query_count: number;
+  panel_count?: number;
+  query_count?: number;
 }
 
 export interface Message {
@@ -355,6 +355,7 @@ export type AguiEvent =
   | StepFinishedEvent
   | RunFinishedEvent
   | RunErrorEvent
+  | DashboardReadyEvent
   // Deep Research events
   | ResearchResultsStartEvent
   | ResearchResultsContentEvent
@@ -459,6 +460,17 @@ export interface RunErrorEvent {
   run_id?: string;
   error?: string;
   message?: string;
+}
+
+export interface DashboardReadyEvent {
+  type: 'DASHBOARD_READY';
+  dashboard: {
+    dashboard_id: string;
+    dashboard_name: string;
+    dashboard_version: number;
+    panel_count?: number;
+    query_count?: number;
+  };
 }
 
 /**

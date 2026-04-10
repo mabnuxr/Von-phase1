@@ -16,3 +16,5 @@ export type { UseCopyToClipboardReturn } from './useCopyToClipboard';
 
 export { useCountdown } from './useCountdown';
 export type { CountdownPhase, CountdownState } from './useCountdown';
+
+export { usePortalPopover } from './usePortalPopover';

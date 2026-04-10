@@ -1,51 +1,91 @@
 /**
- * Custom theme overrides for Highcharts Grid Lite
- * to match the old TanStack ReportTable visual style.
+ * Custom theme overrides for Highcharts Grid Lite.
+ *
+ * Two display modes:
+ *   - Default (.report-grid-wrapper): Spacious — 8px padding, 14px body font
+ *   - Compact (.report-grid-compact): Dense   — 4px padding, 12px body font
  */
 
-/*
- * Light mode is forced via the `highcharts-light` class on the wrapper element.
- * Variables below only customize colors *beyond* HCG's built-in light defaults.
- */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Base styles (both modes)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .report-grid-wrapper .hcg-container {
-  --hcg-color: #111827;
-  --ig-default-color: #111827;
-  --hcg-row-hover-background: rgba(249, 250, 251, 0.5);
-  --hcg-header-background: #f9fafb;
-  --hcg-border-color: #f3f4f6;
-  --hcg-row-border-color: #f3f4f6;
-  --hcg-button-hover-background: #f3f4f6;
-  --hcg-button-color: #374151;
-  --hcg-button-hover-color: #111827;
-  --hcg-pagination-button-selected-background: #111827;
+  /* Color palette (slate-based BI look) */
+  --hcg-color: #334155;
+  --ig-default-color: #334155;
+  --hcg-row-hover-background: #f1f5f9;
+  --hcg-header-background: #f1f5f9;
+  --hcg-border-color: #e2e8f0;
+  --hcg-row-border-color: #e2e8f0;
+  --hcg-button-hover-background: #e2e8f0;
+  --hcg-button-color: #475569;
+  --hcg-button-hover-color: #1e293b;
+  --hcg-pagination-button-selected-background: #1e293b;
   --hcg-pagination-button-selected-color: #ffffff;
-}
 
-/* Wrapper */
-.report-grid-wrapper .hcg-container {
+  /* Grid Lite's font shorthand on cells (specificity 0-2-3) overrides our
+     direct font-size rules, so we set the CSS variables it reads instead. */
+  --hcg-padding: 8px;
+  --hcg-header-vertical-padding: 6px;
+  --hcg-font-size: 14px;
+  --hcg-header-font-size: 13px;
+  --hcg-font-family: var(--font-family-sans, inherit);
+
   font-family: inherit;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 0;
   overflow: hidden;
-  background: #ffffff;
+  background: transparent;
+}
+
+/* Fixed layout: measured column widths from probe table are exact pixels */
+.report-grid-wrapper .hcg-table {
+  table-layout: fixed;
+}
+
+/* Probe table: must match Grid Lite's actual cell font + padding for accurate
+   width measurement. Padding matches --hcg-padding; font matches --hcg-font-size. */
+.report-grid-probe th {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+.report-grid-probe td {
+  font-size: 14px;
+  font-weight: 400;
+  padding: 0 8px;
+}
+.report-grid-compact .report-grid-probe th {
+  font-size: 11px;
+  padding: 0 4px;
+}
+.report-grid-compact .report-grid-probe td {
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+/* Prevent columns from being resized to near-invisible */
+.report-grid-wrapper .hcg-table th,
+.report-grid-wrapper .hcg-table td {
+  min-width: 60px;
 }
 
 /* Header cells */
 .report-grid-wrapper .hcg-header-cell {
-  background: #f9fafb;
-  color: #1f2937;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  border-right: 1px solid #f3f4f6;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #cbd5e1;
+  border-right: 1px solid #e2e8f0;
   text-align: left !important;
+  white-space: nowrap;
 }
 
 .report-grid-wrapper .hcg-header-cell-content {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
+  font-weight: 600;
+  color: #475569;
   justify-content: flex-start !important;
   text-align: left !important;
 }
@@ -60,11 +100,54 @@
   flex: none;
 }
 
-/* ============================================
+/* Body cells */
+.report-grid-wrapper .hcg-table td {
+  font-size: 14px;
+  font-weight: 400;
+  color: #334155;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #eef2f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left !important;
+  line-height: normal !important;
+}
+
+/* Row hover */
+.report-grid-wrapper .hcg-table tbody tr {
+  background: #ffffff;
+  transition: background-color 0.15s;
+}
+.report-grid-wrapper .hcg-table tbody tr:hover td {
+  background: #f1f5f9;
+}
+
+/* Even row striping */
+.report-grid-wrapper .hcg-row-even td {
+  background: #f8fafc;
+}
+.report-grid-wrapper .hcg-row-even:hover td {
+  background: #f1f5f9;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Compact mode (.report-grid-compact) — dashboard table widget
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.report-grid-compact .hcg-container {
+  --hcg-padding: 4px;
+  --hcg-header-vertical-padding: 4px;
+  --hcg-font-size: 12px;
+  --hcg-header-font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    Header icon system (CSS background-image approach)
    Grid Lite AST strips viewBox from inline SVGs,
    so we use background-image data URIs instead.
-   ============================================ */
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Flex container for icon + label in header */
 .report-hdr-flex {
@@ -147,117 +230,85 @@
   opacity: 1;
 }
 
-/* Column resizer - match old 1px style */
+/* Column resizer — wider hit area, visible on hover */
 .report-grid-wrapper .hcg-column-resizer {
-  width: 1px;
+  width: 4px;
   background: transparent;
   cursor: col-resize;
   transform: translateX(50%);
-}
-.report-grid-wrapper .hcg-column-resizer:hover {
-  background: #d1d5db;
-}
-.report-grid-wrapper .hcg-column-resizer:active {
-  background: #9ca3af;
-}
-
-/* Body rows */
-.report-grid-wrapper .hcg-table tbody tr {
-  background: #ffffff;
   transition: background-color 0.15s;
 }
-
-/* Body cells */
-.report-grid-wrapper .hcg-table td {
-  font-size: 14px;
-  font-weight: 500;
-  color: #111827;
-  padding: 6px 12px;
-  background: #ffffff;
-  border-bottom: 1px solid #f3f4f6;
-  border-right: 1px solid #f3f4f6;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: left !important;
+.report-grid-wrapper .hcg-column-resizer:hover {
+  background: #94a3b8;
+}
+.report-grid-wrapper .hcg-column-resizer:active {
+  background: #64748b;
 }
 
-/* Row hover - match old hover:bg-gray-50/50 */
-.report-grid-wrapper .hcg-table tbody tr:hover td {
-  background: rgba(249, 250, 251, 0.5);
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   Pagination, scrollbar, misc
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Even row striping - disable; keep white like old design */
-.report-grid-wrapper .hcg-row-even td {
-  background: #ffffff;
-}
-.report-grid-wrapper .hcg-row-even:hover td {
-  background: rgba(249, 250, 251, 0.5);
-}
-
-/* Pagination */
 .report-grid-wrapper .hcg-pagination-wrapper {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e2e8f0;
   background: #ffffff;
-  padding: 12px 16px;
-  font-size: 13px;
-  color: #6b7280;
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #64748b;
 }
 
 .report-grid-wrapper .hcg-pagination-nav-buttons-container button,
 .report-grid-wrapper .hcg-pagination-controls-container button {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
-  border-radius: 0.5rem;
-  padding: 4px 8px;
-  min-width: 28px;
-  height: 28px;
-  color: #374151;
+  border-radius: 0.375rem;
+  padding: 3px 7px;
+  min-width: 26px;
+  height: 26px;
+  color: #475569;
   transition:
     background-color 0.15s,
     color 0.15s;
   cursor: pointer;
 }
 
-/* Inactive pagination buttons */
 .report-grid-wrapper .hcg-pagination-nav-buttons-container button:hover,
 .report-grid-wrapper .hcg-pagination-controls-container button:hover {
-  background: #f3f4f6;
+  background: #e2e8f0;
 }
 
-/* Active pagination page - match old bg-gray-900 text-white */
 .report-grid-wrapper .hcg-pagination-controls-container button[aria-current='page'],
 .report-grid-wrapper .hcg-pagination-controls-container button.hcg-pagination-active {
-  background: #111827;
+  background: #1e293b;
   color: #ffffff;
 }
 
 .report-grid-wrapper .hcg-pagination-info {
-  font-size: 13px;
-  color: #6b7280;
+  font-size: 12px;
+  color: #64748b;
 }
 
 /* Scrollbar styling */
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
+  height: 6px;
+  width: 6px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  border-radius: 4px;
+  background: #f1f5f9;
+  border-radius: 3px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
+  background: #cbd5e1;
+  border-radius: 3px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #94a3b8;
 }
 
 /* No data message */
 .report-grid-wrapper .hcg-no-data {
-  font-size: 14px;
-  color: #374151;
+  font-size: 13px;
+  color: #475569;
   padding: 48px 16px;
   background: #ffffff;
 }

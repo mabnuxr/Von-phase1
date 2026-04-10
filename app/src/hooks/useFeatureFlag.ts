@@ -33,6 +33,7 @@ export const FEATURE_FLAGS = {
   NOTION: "enableNotion",
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
+  JIMINNY: "enableJiminny",
 } as const;
 
 /**
@@ -173,6 +174,11 @@ export function useFeatureFlag() {
      */
     isSalesloftEngagementEnabled:
       flags[FEATURE_FLAGS.SALESLOFT_ENGAGEMENT] === true,
+
+    /**
+     * Controls whether Jiminny integration is visible
+     */
+    isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
 
     /**
      * Raw flags object for advanced usage

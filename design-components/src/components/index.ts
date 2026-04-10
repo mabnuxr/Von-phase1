@@ -236,6 +236,7 @@ export type {
   QueryInfo,
   MetricData,
   RunFinishedEvent,
+  DashboardReadyEvent,
 } from './Chat/index';
 
 // Export approval utility functions

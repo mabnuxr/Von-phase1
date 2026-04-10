@@ -19,8 +19,6 @@
   white-space: nowrap;
   flex: 1;
   color: #111827;
-  /* Reserve space so text doesn't render behind the button area */
-  padding-right: 28px;
 }
 
 /* Expand button — absolutely positioned, vertically centered */

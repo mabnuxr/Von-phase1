@@ -290,107 +290,6 @@ export function createCellFormatter(type: ColumnType): (this: { value: unknown }
 }
 
 // ============================================================================
-// Content-based Column Width Calculation
-// ============================================================================
-
-/** Approximate character width in pixels at 14px font, weight 500 */
-const CHAR_WIDTH_PX = 8.4;
-/** Padding inside each cell (6px left + 12px right from CSS, plus buffer) */
-const CELL_PADDING_PX = 28;
-/** Extra width for header icons (source/AI) + sort icon */
-const HEADER_ICON_WIDTH = 24;
-/** Sort icon space */
-const SORT_ICON_WIDTH = 16;
-
-const MIN_COL_WIDTH: Record<ColumnType, number> = {
-  boolean: 70,
-  number: 90,
-  currency: 100,
-  percentage: 90,
-  date: 120,
-  text: 80,
-  owner: 130,
-  picklist: 100,
-  multiPicklist: 130,
-  sentiment: 110,
-  email: 140,
-  phone: 120,
-  url: 140,
-  longText: 140,
-};
-
-/** Maximum column width — tooltips handle overflow beyond this */
-const MAX_COL_WIDTH = 280;
-
-/** Number of data rows to sample for width estimation */
-const SAMPLE_SIZE = 50;
-
-/**
- * Estimate the ideal pixel width for a column based on its header label,
- * data type, and a sample of actual cell values.
- */
-function estimateColumnWidth(col: ReportColumn, data: Record<string, unknown>[]): number {
-  const minW = MIN_COL_WIDTH[col.type] ?? 80;
-
-  // Header width: label chars + padding + icons
-  let headerWidth = col.label.length * CHAR_WIDTH_PX + CELL_PADDING_PX + SORT_ICON_WIDTH;
-  if (col.isAI || col.source) {
-    headerWidth += HEADER_ICON_WIDTH;
-  }
-
-  // For types with fixed-width rendering, use type-based min
-  if (col.type === 'boolean' || col.type === 'sentiment') {
-    return Math.min(Math.max(minW, headerWidth), MAX_COL_WIDTH);
-  }
-
-  // Sample data values to find the widest formatted value
-  const sampleRows = data.length <= SAMPLE_SIZE ? data : data.slice(0, SAMPLE_SIZE);
-  let maxContentWidth = 0;
-
-  for (const row of sampleRows) {
-    const val = row[col.id];
-    if (val === null || val === undefined) continue;
-
-    let displayLen: number;
-    switch (col.type) {
-      case 'currency':
-        displayLen = formatValue(val, 'currency').length;
-        break;
-      case 'percentage':
-        displayLen = formatValue(val, 'percentage').length;
-        break;
-      case 'number':
-        displayLen = formatValue(val, 'number').length;
-        break;
-      case 'date':
-        displayLen = formatValue(val, 'date').length;
-        break;
-      case 'owner':
-        // Avatar (24px) + gap (8px) + name text
-        displayLen = String(val).length;
-        maxContentWidth = Math.max(
-          maxContentWidth,
-          displayLen * CHAR_WIDTH_PX + 32 + CELL_PADDING_PX
-        );
-        continue;
-      default:
-        displayLen = String(val).length;
-        break;
-    }
-
-    maxContentWidth = Math.max(maxContentWidth, displayLen * CHAR_WIDTH_PX + CELL_PADDING_PX);
-  }
-
-  // AI columns need extra space for the reasoning button
-  if (col.isAI) {
-    maxContentWidth += 28;
-  }
-
-  const idealWidth = Math.max(minW, headerWidth, maxContentWidth);
-  return Math.min(idealWidth, MAX_COL_WIDTH);
-}
-
-// ============================================================================
 // Auto-size columns in pre-built gridOptions (e.g. from backend API)
 // ============================================================================
 
@@ -414,47 +313,17 @@ export function getDataTableColumns(options: GridOptions): Record<string, unknow
 }
 
 /**
- * Post-process gridOptions to auto-size columns that don't have an explicit width.
- * Works with both the new `data.dataTable` and deprecated `dataTable` formats.
- * Columns that already have a width set are left untouched.
+ * Prepare gridOptions for rendering. Ensures column resizing is enabled.
+ *
+ * Column widths are NOT calculated here — ReportTable uses a two-phase render:
+ * Phase 1 renders with table-layout:auto (Grid Lite auto-sizes to real CSS),
+ * then measures actual DOM widths and applies them in Phase 2.
  */
 export function autoSizeGridColumns(options: GridOptions): GridOptions {
   const columns = options.columns as
     | Array<{ id: string; width?: number; [key: string]: unknown }>
     | undefined;
   if (!columns || columns.length === 0) return options;
-
-  const dtCols = getDataTableColumns(options);
-  if (!dtCols) return options;
-
-  // Mutate column widths IN-PLACE. Grid Lite's async init via the React wrapper
-  // means a new options object passed through grid.update() doesn't reliably
-  // re-apply column widths. By mutating the original columns array, the widths
-  // are present when Grid.grid(container, options) first initializes.
-  for (const col of columns) {
-    if (col.width) continue;
-
-    const colData = dtCols[col.id];
-    if (!colData) continue;
-
-    const headerLabel = col.id
-      .replace(/^col_/, '')
-      .replace(/_/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2');
-    const headerWidth = headerLabel.length * CHAR_WIDTH_PX + CELL_PADDING_PX + SORT_ICON_WIDTH;
-
-    const sampleData = colData.length <= SAMPLE_SIZE ? colData : colData.slice(0, SAMPLE_SIZE);
-    let maxContentWidth = 0;
-    for (const val of sampleData) {
-      if (val === null || val === undefined) continue;
-      maxContentWidth = Math.max(
-        maxContentWidth,
-        String(val).length * CHAR_WIDTH_PX + CELL_PADDING_PX
-      );
-    }
-
-    col.width = Math.round(Math.min(Math.max(80, headerWidth, maxContentWidth), MAX_COL_WIDTH));
-  }
 
   // Ensure column resizing is always available
   const rendering = (options.rendering ?? {}) as Record<string, unknown>;
@@ -597,7 +466,8 @@ export function buildGridOptions(
     header: {
       formatter: createHeaderFormatter(col),
     },
-    width: col.width ?? col.minWidth ?? estimateColumnWidth(col, data),
+    // Only set explicit width when provided — CSS table-layout:auto handles sizing
+    ...(col.width || col.minWidth ? { width: col.width ?? col.minWidth } : {}),
     sorting: {
       enabled: col.sortable !== false,
     },

@@ -585,6 +585,7 @@ export function IntegrationsList({
     isNotionEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
+    isJiminnyEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -600,6 +601,7 @@ export function IntegrationsList({
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
       if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
         return false;
+      if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       return true;
     });
   }, [
@@ -612,6 +614,7 @@ export function IntegrationsList({
     isGongEngageEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
+    isJiminnyEnabled,
   ]);
 
   // Merge available apps with connected integrations

@@ -11,17 +11,15 @@
 
 /* Fixed row heights so JS pageSize calculation is exact */
 .table-widget-root .hcg-table thead th {
-  height: 30px;
-  max-height: 30px;
+  height: 26px;
+  max-height: 26px;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .table-widget-root .hcg-table tbody td {
-  height: 30px;
-  max-height: 30px;
+  height: 26px;
+  max-height: 26px;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 /* Hide rows-per-page selector — page size is auto-calculated from widget height */
@@ -34,6 +32,12 @@
   display: none;
 }
 
+/* Remove right border on last column to prevent doubling with widget border */
+.table-widget-root .hcg-table th:last-child,
+.table-widget-root .hcg-table td:last-child {
+  border-right: none;
+}
+
 /* ─── Server Pagination (matches HCG pagination style) ──────────── */
 
 .server-pagination-bar {
@@ -41,7 +45,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e2e8f0;
   background: #ffffff;
   padding: 8px 16px;
   flex-shrink: 0;
@@ -97,6 +101,34 @@
   border-color: #9ca3af;
 }
 
+/* ─── Empty filler rows below data (spreadsheet look) ────────── */
+
+.table-filler {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  z-index: 1;
+}
+
+.table-filler td {
+  height: 26px;
+  max-height: 26px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #eef2f7;
+}
+
+.table-filler td:last-child {
+  border-right: none;
+}
+
 /* ─── LongText expand button ─────────────────────────────────── */
 
 .dt-longtext-wrap {
@@ -112,8 +144,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  min-width: 0;
   color: #111827;
-  padding-right: 28px;
 }
 
 .dt-expand-btn {
@@ -167,13 +199,13 @@
 }
 
 .table-skeleton-td {
-  height: 30px;
-  max-height: 30px;
+  height: 26px;
+  max-height: 26px;
   box-sizing: border-box;
   /* Match the real grid cell padding from report-grid-theme.css */
-  padding: 6px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  border-right: 1px solid #f3f4f6;
+  padding: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #eef2f7;
 }
 
 .table-skeleton-cell {
