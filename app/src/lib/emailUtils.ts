@@ -1,12 +1,21 @@
 import PostalMime from "postal-mime";
+import DOMPurify from "dompurify";
 
 /**
- * Convert HTML to plain text using DOMParser.
- * Handles entity decoding (&amp; etc.), <br>/<p> as newlines, and tag stripping.
+ * Convert HTML to plain text preserving line breaks.
+ * Sanitizes first to prevent XSS, then renders into a hidden element
+ * and uses innerText for accurate visual representation.
  */
 function htmlToPlainText(html: string): string {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  return doc.body.textContent?.trim() || "";
+  const el = document.createElement("div");
+  el.style.position = "fixed";
+  el.style.left = "-9999px";
+  el.style.whiteSpace = "pre-wrap";
+  el.innerHTML = DOMPurify.sanitize(html);
+  document.body.appendChild(el);
+  const text = el.innerText;
+  document.body.removeChild(el);
+  return text.trim();
 }
 
 /** Shape of the draft_card payload returned by the backend tool result */
