@@ -63,11 +63,29 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
 
   const currentEmail = emails.length > 0 ? emails[activeTab] : null;
 
-  const handleCopyBody = useCallback(() => {
+  const handleCopyBody = useCallback(async () => {
     if (!currentEmail) return;
-    navigator.clipboard.writeText(currentEmail.bodyPlain ?? currentEmail.body);
-    setBodyCopied(true);
-    setTimeout(() => setBodyCopied(false), 2000);
+    const plainText = currentEmail.bodyPlain ?? currentEmail.body;
+
+    try {
+      if (currentEmail.isHtml && typeof ClipboardItem !== 'undefined') {
+        // Copy both HTML (for rich paste) and plain text (for plain paste)
+        const htmlBlob = new Blob([currentEmail.body], { type: 'text/html' });
+        const textBlob = new Blob([plainText], { type: 'text/plain' });
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plainText);
+      }
+      setBodyCopied(true);
+      setTimeout(() => setBodyCopied(false), 2000);
+    } catch {
+      // Fallback for browsers that don't support ClipboardItem
+      await navigator.clipboard.writeText(plainText);
+      setBodyCopied(true);
+      setTimeout(() => setBodyCopied(false), 2000);
+    }
   }, [currentEmail]);
 
   const sanitizedHtml = useMemo(() => {
