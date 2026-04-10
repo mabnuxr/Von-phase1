@@ -219,9 +219,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   },
   salesloft_engagement: {
     id: "salesloft_engagement",
-    name: "Salesloft Engage",
-    description:
-      "Query activities, enroll contacts in cadences, log calls, and create tasks in Salesloft",
+    name: "Salesloft",
+    description: "Manage cadences, log calls, and create tasks in Salesloft",
     personalDescription: "Connect your Salesloft account for sales engagement",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
