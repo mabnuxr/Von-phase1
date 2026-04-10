@@ -82,9 +82,13 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       setTimeout(() => setBodyCopied(false), 2000);
     } catch {
       // Fallback for browsers that don't support ClipboardItem
-      await navigator.clipboard.writeText(plainText);
-      setBodyCopied(true);
-      setTimeout(() => setBodyCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(plainText);
+        setBodyCopied(true);
+        setTimeout(() => setBodyCopied(false), 2000);
+      } catch {
+        // Clipboard unavailable (permissions denied / non-secure context)
+      }
     }
   }, [currentEmail]);
 
