@@ -584,6 +584,7 @@ export function IntegrationsList({
     isGongEngageEnabled,
     isNotionEnabled,
     isOutreachEngageEnabled,
+    isSalesloftEngagementEnabled,
     isJiminnyEnabled,
   } = useFeatureFlag();
 
@@ -598,6 +599,8 @@ export function IntegrationsList({
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
+      if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
+        return false;
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       return true;
     });
@@ -610,6 +613,7 @@ export function IntegrationsList({
     isNotionEnabled,
     isGongEngageEnabled,
     isOutreachEngageEnabled,
+    isSalesloftEngagementEnabled,
     isJiminnyEnabled,
   ]);
 
