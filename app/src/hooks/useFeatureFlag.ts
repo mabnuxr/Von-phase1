@@ -32,6 +32,7 @@ export const FEATURE_FLAGS = {
   GRANOLA: "enableGranola",
   NOTION: "enableNotion",
   OUTREACH_ENGAGE: "enableOutreachEngage",
+  SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
 } as const;
 
 /**
@@ -166,6 +167,12 @@ export function useFeatureFlag() {
      * Controls whether Outreach engagement integration is visible
      */
     isOutreachEngageEnabled: flags[FEATURE_FLAGS.OUTREACH_ENGAGE] === true,
+
+    /**
+     * Controls whether Salesloft engagement integration is visible
+     */
+    isSalesloftEngagementEnabled:
+      flags[FEATURE_FLAGS.SALESLOFT_ENGAGEMENT] === true,
 
     /**
      * Raw flags object for advanced usage

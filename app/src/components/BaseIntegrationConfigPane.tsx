@@ -78,6 +78,9 @@ export function BaseIntegrationConfigPane({
   // Attention API key configuration state
   const [attentionApiKey, setAttentionApiKey] = useState("");
 
+  // Salesloft API key configuration state
+  const [salesloftApiKey, setSalesloftApiKey] = useState("");
+
   // Chorus username/password configuration state
   const [chorusUsername, setChorusUsername] = useState("");
   const [chorusPassword, setChorusPassword] = useState("");
@@ -153,6 +156,14 @@ export function BaseIntegrationConfigPane({
     if (integrationId === "attention") {
       if (!hasExistingCredentials) {
         if (!attentionApiKey) {
+          errors.push("API Key is required");
+        }
+      }
+    }
+
+    if (integrationId === "salesloft_engagement") {
+      if (!hasExistingCredentials) {
+        if (!salesloftApiKey) {
           errors.push("API Key is required");
         }
       }
@@ -269,6 +280,10 @@ export function BaseIntegrationConfigPane({
           if (attentionApiKey) {
             updateData.accessKey = attentionApiKey;
           }
+        } else if (integrationId === "salesloft_engagement") {
+          if (salesloftApiKey) {
+            updateData.accessKey = salesloftApiKey;
+          }
         } else if (integrationId === "chorus") {
           if (chorusUsername) {
             updateData.accessKey = chorusUsername;
@@ -354,11 +369,13 @@ export function BaseIntegrationConfigPane({
           apiKey:
             integrationId === "attention"
               ? attentionApiKey
-              : integrationId === "claricopilot"
-                ? clariUsername
-                : integrationId === "snowflake"
-                  ? snowflakeAccountId
-                  : undefined,
+              : integrationId === "salesloft_engagement"
+                ? salesloftApiKey
+                : integrationId === "claricopilot"
+                  ? clariUsername
+                  : integrationId === "snowflake"
+                    ? snowflakeAccountId
+                    : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -371,6 +388,9 @@ export function BaseIntegrationConfigPane({
         }
         if (integrationId === "attention") {
           setAttentionApiKey("");
+        }
+        if (integrationId === "salesloft_engagement") {
+          setSalesloftApiKey("");
         }
         if (integrationId === "chorus") {
           setChorusUsername("");
@@ -738,6 +758,40 @@ export function BaseIntegrationConfigPane({
                 </>
               )}
 
+              {/* Salesloft Engagement-specific fields */}
+              {integrationId === "salesloft_engagement" && (
+                <>
+                  {/* API Key */}
+                  <div className="salesloft-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Key"
+                      value={salesloftApiKey}
+                      onChange={(e) => setSalesloftApiKey(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Salesloft API key"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API key"
+                          : "Your Salesloft API key"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .salesloft-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
               {/* Chorus-specific fields */}
               {integrationId === "chorus" && (
                 <>
@@ -1063,7 +1117,8 @@ export function BaseIntegrationConfigPane({
           {(integrationId === "gong" ||
             integrationId === "fathom" ||
             integrationId === "zendesk" ||
-            integrationId === "snowflake") && (
+            integrationId === "snowflake" ||
+            integrationId === "salesloft_engagement") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
                 <a
@@ -1074,7 +1129,9 @@ export function BaseIntegrationConfigPane({
                         ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
                         : integrationId === "snowflake"
                           ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
-                          : "https://developers.fathom.ai/quickstart"
+                          : integrationId === "salesloft_engagement"
+                            ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
+                            : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1086,7 +1143,9 @@ export function BaseIntegrationConfigPane({
                       ? "Generating a new API token"
                       : integrationId === "snowflake"
                         ? "How to generate a key pair"
-                        : "How to generate an API key"}
+                        : integrationId === "salesloft_engagement"
+                          ? "How to generate an API key"
+                          : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -1110,7 +1169,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" || integrationId === "snowflake" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button

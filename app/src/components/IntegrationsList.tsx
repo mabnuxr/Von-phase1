@@ -584,6 +584,7 @@ export function IntegrationsList({
     isGongEngageEnabled,
     isNotionEnabled,
     isOutreachEngageEnabled,
+    isSalesloftEngagementEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -597,6 +598,8 @@ export function IntegrationsList({
       if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
+      if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
+        return false;
       return true;
     });
   }, [
@@ -608,6 +611,7 @@ export function IntegrationsList({
     isNotionEnabled,
     isGongEngageEnabled,
     isOutreachEngageEnabled,
+    isSalesloftEngagementEnabled,
   ]);
 
   // Merge available apps with connected integrations

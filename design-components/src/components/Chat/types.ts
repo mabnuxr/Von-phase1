@@ -853,12 +853,23 @@ const OUTREACH_APPROVAL_TOOLS = new Set([
   'outreach_update_prospect',
 ]);
 
+const SALESLOFT_APPROVAL_TOOLS = new Set([
+  'salesloft_enroll_in_cadence',
+  'salesloft_manage_cadence',
+  'salesloft_log_call',
+  'salesloft_create_task',
+  'salesloft_update_task',
+  'salesloft_create_person',
+  'salesloft_update_person',
+]);
+
 export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
     toolName === 'create_command' ||
-    OUTREACH_APPROVAL_TOOLS.has(toolName)
+    OUTREACH_APPROVAL_TOOLS.has(toolName) ||
+    SALESLOFT_APPROVAL_TOOLS.has(toolName)
   );
 }
 

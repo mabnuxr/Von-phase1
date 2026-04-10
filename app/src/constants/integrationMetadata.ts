@@ -211,7 +211,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   },
   salesloft_engagement: {
     id: "salesloft_engagement",
-    name: "Salesloft",
+    name: "Salesloft Engage",
     description:
       "Query activities, enroll contacts in cadences, log calls, and create tasks in Salesloft",
     personalDescription: "Connect your Salesloft account for sales engagement",
@@ -480,7 +480,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   guru: ["user"],
   intercom: ["user"],
   salesloft: ["user"],
-  salesloft_engagement: ["user"],
+  salesloft_engagement: ["tenant"],
   snowflake: ["tenant"],
   databricks: ["user"],
   pylon: ["user"],
