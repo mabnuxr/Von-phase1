@@ -201,7 +201,7 @@ const Settings = () => {
       case "memory":
         return <OrgContextTab />;
       case "usage":
-        return <UsageTab />;
+        return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:
         return null;
     }
