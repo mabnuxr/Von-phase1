@@ -6,7 +6,14 @@ interface FeatureUsageCardProps {
   feature: FeatureUsage;
 }
 
-const BREAKDOWN_COLORS = ["#8039e9", "#f97316", "#22c55e", "#eab308", "#06b6d4", "#ec4899"];
+const BREAKDOWN_COLORS = [
+  "#8039e9",
+  "#f97316",
+  "#22c55e",
+  "#eab308",
+  "#06b6d4",
+  "#ec4899",
+];
 
 function toDeltas(points: UsagePoint[]): [number, number][] {
   const sorted = [...points].sort(
@@ -22,11 +29,12 @@ function toDeltas(points: UsagePoint[]): [number, number][] {
 }
 
 export function FeatureUsageCard({ feature }: FeatureUsageCardProps) {
-  const hasBreakdown = feature.breakdown && Object.keys(feature.breakdown).length > 0;
+  const hasBreakdown =
+    feature.breakdown && Object.keys(feature.breakdown).length > 0;
 
   // Build series
   let series: Highcharts.SeriesColumnOptions[];
-  let legendItems: { label: string; color: string; total: number }[] = [];
+  const legendItems: { label: string; color: string; total: number }[] = [];
   let grandTotal: number;
 
   if (hasBreakdown) {
@@ -35,7 +43,11 @@ export function FeatureUsageCard({ feature }: FeatureUsageCardProps) {
       const color = BREAKDOWN_COLORS[i % BREAKDOWN_COLORS.length];
       const data = toDeltas(bd.points);
       const total = data.reduce((sum, [, v]) => sum + v, 0);
-      legendItems.push({ label: type.charAt(0).toUpperCase() + type.slice(1), color, total });
+      legendItems.push({
+        label: type.charAt(0).toUpperCase() + type.slice(1),
+        color,
+        total,
+      });
       return { type: "column" as const, name: type, color, data };
     });
     grandTotal = legendItems.reduce((sum, l) => sum + l.total, 0);

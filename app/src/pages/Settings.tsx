@@ -33,7 +33,8 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled, isUsageMetricsEnabled } = useFeatureFlag();
+  const { isEmailCategorizationEnabled, isUsageMetricsEnabled } =
+    useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
