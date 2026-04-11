@@ -1,95 +1,130 @@
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
-import type { FeatureUsage } from "../../services/usageService";
+import type { FeatureUsage, UsagePoint } from "../../services/usageService";
 
 interface FeatureUsageCardProps {
   feature: FeatureUsage;
 }
 
-export function FeatureUsageCard({ feature }: FeatureUsageCardProps) {
-  const limit = feature.limit;
-  const color = "#8039e9";
+const BREAKDOWN_COLORS = ["#8039e9", "#f97316", "#22c55e", "#eab308", "#06b6d4", "#ec4899"];
 
-  // Convert cumulative Stigg values to daily deltas
-  const sorted = [...feature.points].sort(
+function toDeltas(points: UsagePoint[]): [number, number][] {
+  const sorted = [...points].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
-  const data = sorted.map((p, i) => [
-    new Date(p.timestamp).getTime(),
-    i === 0 ? p.value : Math.max(0, p.value - sorted[i - 1].value),
-  ]);
+  return sorted.map((p, i) => {
+    const ts = new Date(p.timestamp).getTime();
+    if (i === 0) return [ts, p.value] as [number, number];
+    const prev = sorted[i - 1].value;
+    const delta = p.value - prev;
+    return [ts, delta >= 0 ? delta : p.value] as [number, number];
+  });
+}
 
-  // Period total from deltas
-  const current = data.reduce((sum, [, v]) => sum + (v as number), 0);
+export function FeatureUsageCard({ feature }: FeatureUsageCardProps) {
+  const hasBreakdown = feature.breakdown && Object.keys(feature.breakdown).length > 0;
+
+  // Build series
+  let series: Highcharts.SeriesColumnOptions[];
+  let legendItems: { label: string; color: string; total: number }[] = [];
+  let grandTotal: number;
+
+  if (hasBreakdown) {
+    const entries = Object.entries(feature.breakdown!);
+    series = entries.map(([type, bd], i) => {
+      const color = BREAKDOWN_COLORS[i % BREAKDOWN_COLORS.length];
+      const data = toDeltas(bd.points);
+      const total = data.reduce((sum, [, v]) => sum + v, 0);
+      legendItems.push({ label: type.charAt(0).toUpperCase() + type.slice(1), color, total });
+      return { type: "column" as const, name: type, color, data };
+    });
+    grandTotal = legendItems.reduce((sum, l) => sum + l.total, 0);
+  } else {
+    const color = "#8039e9";
+    const data = toDeltas(feature.points);
+    grandTotal = data.reduce((sum, [, v]) => sum + v, 0);
+    series = [{ type: "column", data, color }];
+  }
 
   const options: Highcharts.Options = {
     chart: {
-      type: "area",
-      height: 80,
+      type: "column",
+      height: 160,
       backgroundColor: "transparent",
-      margin: [5, 0, 20, 0],
       style: { fontFamily: "inherit" },
     },
     title: { text: undefined },
     xAxis: {
       type: "datetime",
-      visible: true,
       labels: {
         format: "{value:%b %e}",
-        style: { color: "#d1d5db", fontSize: "9px" },
+        style: { color: "#9ca3af", fontSize: "9px" },
       },
-      lineWidth: 0,
+      lineColor: "#e5e7eb",
       tickLength: 0,
     },
-    yAxis: { visible: false },
+    yAxis: {
+      title: { text: undefined },
+      labels: { style: { color: "#9ca3af", fontSize: "9px" } },
+      gridLineColor: "#f3f4f6",
+    },
     legend: { enabled: false },
     tooltip: {
+      shared: hasBreakdown,
       headerFormat: "<b>{point.key:%b %e}</b><br/>",
-      pointFormat: "{point.y:,.0f}",
+      pointFormat: hasBreakdown
+        ? '<span style="color:{series.color}">●</span> {series.name}: <b>{point.y:,.0f}</b><br/>'
+        : "{point.y:,.0f}",
       style: { fontSize: "11px" },
     },
     plotOptions: {
-      area: {
-        lineWidth: 2,
-        lineColor: color,
-        fillColor: {
-          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [
-            [0, Highcharts.color(color).setOpacity(0.2).get("rgba") as string],
-            [1, Highcharts.color(color).setOpacity(0.02).get("rgba") as string],
-          ],
-        },
-        marker: { enabled: false },
+      column: {
+        stacking: hasBreakdown ? "normal" : undefined,
+        borderRadius: 2,
+        maxPointWidth: 16,
+        minPointLength: hasBreakdown ? 3 : 0,
+        pointPadding: 0.05,
+        groupPadding: 0.1,
+        borderWidth: 0,
       },
     },
-    series: [{ type: "area", data, color }],
+    series,
     credits: { enabled: false },
   };
 
   return (
-    <div className="rounded-lg border border-gray-100 p-3">
+    <div className="rounded-xl border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-1">
-        <div>
-          <p className="text-xs font-medium text-gray-700">
-            {feature.display_name}
-          </p>
-          {feature.reset_period && (
-            <p className="text-[10px] text-gray-400 capitalize">
-              Resets {feature.reset_period.toLowerCase()}
-            </p>
-          )}
-        </div>
-        <span className="text-xs font-medium text-gray-900 tabular-nums">
-          {limit
-            ? `${current.toLocaleString()} / ${limit.toLocaleString()}`
-            : current.toLocaleString()}
+        <p className="text-sm font-medium text-gray-900">
+          {feature.display_name}
+        </p>
+        <span className="text-sm font-medium text-gray-700 tabular-nums">
+          {grandTotal.toLocaleString()}
         </span>
       </div>
 
-      {data.length > 0 ? (
-        <HighchartsReact highcharts={Highcharts} options={options} />
+      {series.some((s) => (s.data as [number, number][])?.length > 0) ? (
+        <>
+          <HighchartsReact highcharts={Highcharts} options={options} />
+          {legendItems.length > 0 && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+              {legendItems.map((l) => (
+                <div key={l.label} className="flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-sm shrink-0"
+                    style={{ backgroundColor: l.color }}
+                  />
+                  <span className="text-[10px] text-gray-500">{l.label}</span>
+                  <span className="text-[10px] font-medium text-gray-700 tabular-nums">
+                    {l.total.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       ) : (
-        <div className="h-20 flex items-center justify-center text-gray-300 text-xs">
+        <div className="h-40 flex items-center justify-center text-gray-300 text-xs">
           No usage data for this period
         </div>
       )}

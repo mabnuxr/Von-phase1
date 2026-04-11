@@ -13,27 +13,46 @@ export interface UsagePoint {
 
 export type FeatureCategory = "tokens" | "integration" | "artifacts";
 
+export interface FeatureInfo {
+  feature_id: string;
+  display_name: string;
+  category: FeatureCategory;
+}
+
+export interface FeaturesResponse {
+  features: FeatureInfo[];
+  is_admin: boolean;
+}
+
+export interface BreakdownSeries {
+  total: number;
+  points: UsagePoint[];
+}
+
 export interface FeatureUsage {
   feature_id: string;
   display_name: string;
   category: FeatureCategory;
-  tenant_usage: number | null;
-  limit: number | null;
-  has_access: boolean | null;
-  reset_period: string | null;
   users: FeatureUserUsage[];
   points: UsagePoint[];
-}
-
-export interface UsageResponse {
-  features: FeatureUsage[];
+  breakdown?: Record<string, BreakdownSeries>;
 }
 
 export type UsagePeriod = "1d" | "7d" | "30d" | "60d";
 
 class UsageService {
-  async getUsage(period: UsagePeriod = "7d"): Promise<UsageResponse> {
-    return apiClient.get<UsageResponse>(`/api/v1/usage?period=${period}`);
+  async getFeatures(): Promise<FeaturesResponse> {
+    return apiClient.get<FeaturesResponse>("/api/v1/usage/features");
+  }
+
+  async getFeatureUsage(
+    featureId: string,
+    period: UsagePeriod = "7d",
+    userId?: string,
+  ): Promise<FeatureUsage> {
+    const params = new URLSearchParams({ period });
+    if (userId) params.set("user_id", userId);
+    return apiClient.get<FeatureUsage>(`/api/v1/usage/${featureId}?${params}`);
   }
 }
 

@@ -4,140 +4,184 @@ import type { FeatureUsage } from "../../services/usageService";
 
 interface TokenUsageCardProps {
   tokenFeatures: FeatureUsage[];
+  isLoading?: boolean;
 }
 
-const TOKEN_COLORS: Record<string, string> = {
-  "feature-input-tokens": "#8039e9",
-  "feature-output-tokens": "#f97316",
-  "feature-cache-write-tokens": "#eab308",
-  "feature-cache-read-tokens": "#22c55e",
-};
+const SERIES_CONFIG: {
+  id: string;
+  label: string;
+  color: string;
+}[] = [
+  { id: "feature-input-tokens", label: "Input Tokens", color: "#8039e9" },
+  { id: "feature-output-tokens", label: "Output Tokens", color: "#f97316" },
+  { id: "feature-cache-write-tokens", label: "Cache Write", color: "#eab308" },
+  { id: "feature-cache-read-tokens", label: "Cache Read", color: "#22c55e" },
+];
 
-const TOKEN_LABELS: Record<string, string> = {
-  "feature-input-tokens": "Input Tokens",
-  "feature-output-tokens": "Output Tokens",
-  "feature-cache-write-tokens": "Cache Write Tokens",
-  "feature-cache-read-tokens": "Cache Read Tokens",
-};
-
-function TokenSparkline({ feature }: { feature: FeatureUsage }) {
-  const color = TOKEN_COLORS[feature.feature_id] || "#8039e9";
-  const label = TOKEN_LABELS[feature.feature_id] || feature.display_name;
-
-  // Convert cumulative Stigg values to daily deltas
+function toDeltas(feature: FeatureUsage): [number, number][] {
   const sorted = [...feature.points].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
   );
-  const data = sorted.map((p, i) => [
-    new Date(p.timestamp).getTime(),
-    i === 0 ? p.value : Math.max(0, p.value - sorted[i - 1].value),
-  ]);
+  // Stigg returns cumulative values that reset at period boundaries.
+  // A decrease or reset to 0 means a new period started — use the raw value as the delta.
+  return sorted.map((p, i) => {
+    const ts = new Date(p.timestamp).getTime();
+    if (i === 0) return [ts, p.value] as [number, number];
+    const prev = sorted[i - 1].value;
+    const delta = p.value - prev;
+    // If value decreased, it's a reset — use the raw value as this period's usage
+    return [ts, delta >= 0 ? delta : p.value] as [number, number];
+  });
+}
 
-  // Sum of deltas for this period
-  const total = data.reduce((sum, [, v]) => sum + (v as number), 0);
+export function TokenUsageCard({
+  tokenFeatures,
+  isLoading,
+}: TokenUsageCardProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-gray-200 p-5 h-80 flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (tokenFeatures.length === 0) return null;
+
+  const featureMap = Object.fromEntries(
+    tokenFeatures.map((f) => [f.feature_id, f]),
+  );
+
+  // Build per-type deltas and totals
+  const perType: {
+    label: string;
+    color: string;
+    total: number;
+    deltas: Map<number, number>;
+  }[] = [];
+
+  for (const cfg of SERIES_CONFIG) {
+    const feature = featureMap[cfg.id];
+    if (!feature) continue;
+    const data = toDeltas(feature);
+    const total = data.reduce((sum, [, v]) => sum + v, 0);
+    if (total === 0 && data.length === 0) continue;
+
+    const deltas = new Map<number, number>();
+    for (const [ts, v] of data) deltas.set(ts, v);
+    perType.push({ label: cfg.label, color: cfg.color, total, deltas });
+  }
+
+  if (perType.length === 0) return null;
+
+  // Collect all unique timestamps
+  const allTimestamps = new Set<number>();
+  for (const t of perType) {
+    for (const ts of t.deltas.keys()) allTimestamps.add(ts);
+  }
+  const sortedTs = [...allTimestamps].sort();
+
+  // Build stacked series — each token type as a colored series
+  const series: Highcharts.SeriesColumnOptions[] = perType.map((t) => ({
+    type: "column" as const,
+    name: t.label,
+    color: t.color,
+    data: sortedTs.map((ts) => [ts, t.deltas.get(ts) ?? 0] as [number, number]),
+  }));
+
+  const grandTotal = perType.reduce((sum, t) => sum + t.total, 0);
 
   const options: Highcharts.Options = {
     chart: {
-      type: "area",
-      height: 80,
+      type: "column",
+      height: 260,
       backgroundColor: "transparent",
-      margin: [5, 0, 20, 0],
       style: { fontFamily: "inherit" },
     },
     title: { text: undefined },
     xAxis: {
       type: "datetime",
-      visible: true,
       labels: {
         format: "{value:%b %e}",
-        style: { color: "#d1d5db", fontSize: "9px" },
+        style: { color: "#9ca3af", fontSize: "10px" },
       },
-      lineWidth: 0,
+      lineColor: "#e5e7eb",
       tickLength: 0,
     },
-    yAxis: { visible: false },
+    yAxis: {
+      title: { text: undefined },
+      labels: {
+        style: { color: "#9ca3af", fontSize: "10px" },
+        formatter() {
+          const v = this.value as number;
+          if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+          if (v >= 1_000) return `${(v / 1_000).toFixed(0)}K`;
+          return String(v);
+        },
+      },
+      gridLineColor: "#f3f4f6",
+    },
     legend: { enabled: false },
     tooltip: {
-      headerFormat: "<b>{point.key:%b %e}</b><br/>",
-      pointFormat: "{point.y:,.0f} tokens",
+      useHTML: true,
+      formatter() {
+        const ts = this.x as number;
+        const date = Highcharts.dateFormat("%b %e", ts);
+        let html = `<b>${date}</b><br/>`;
+        for (const t of perType) {
+          const val = t.deltas.get(ts) ?? 0;
+          if (val > 0) {
+            html += `<span style="color:${t.color}">●</span> ${t.label}: <b>${val.toLocaleString()}</b><br/>`;
+          }
+        }
+        const total = perType.reduce(
+          (sum, t) => sum + (t.deltas.get(ts) ?? 0),
+          0,
+        );
+        html += `<b>Total: ${total.toLocaleString()}</b>`;
+        return html;
+      },
       style: { fontSize: "11px" },
     },
     plotOptions: {
-      area: {
-        lineWidth: 2,
-        lineColor: color,
-        fillColor: {
-          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-          stops: [
-            [0, Highcharts.color(color).setOpacity(0.2).get("rgba") as string],
-            [1, Highcharts.color(color).setOpacity(0.02).get("rgba") as string],
-          ],
-        },
-        marker: { enabled: false },
+      column: {
+        stacking: "normal",
+        borderRadius: 2,
+        maxPointWidth: 24,
+        minPointLength: 3,
+        pointPadding: 0.05,
+        groupPadding: 0.1,
+        borderWidth: 0,
       },
     },
-    series: [{ type: "area", data, color }],
+    series,
     credits: { enabled: false },
   };
 
   return (
-    <div className="rounded-lg border border-gray-100 p-3">
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-2 h-2 rounded-full shrink-0"
-            style={{ backgroundColor: color }}
-          />
-          <span className="text-xs text-gray-600">{label}</span>
-        </div>
-        <span className="text-xs font-medium text-gray-900 tabular-nums">
-          {total.toLocaleString()}
-        </span>
-      </div>
-      {data.length > 0 ? (
-        <HighchartsReact highcharts={Highcharts} options={options} />
-      ) : (
-        <div className="h-20 flex items-center justify-center text-gray-300 text-xs">
-          No data
-        </div>
-      )}
-    </div>
-  );
-}
-
-export function TokenUsageCard({ tokenFeatures }: TokenUsageCardProps) {
-  if (tokenFeatures.length === 0) return null;
-
-  const activeFeatures = tokenFeatures.filter(
-    (f) => (f.tenant_usage ?? 0) > 0 || f.points.some((p) => p.value > 0),
-  );
-
-  if (activeFeatures.length === 0) return null;
-
-  // Compute period totals from daily deltas (not cumulative Stigg values)
-  const grandTotal = tokenFeatures.reduce((sum, f) => {
-    const sorted = [...f.points].sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
-    const deltas = sorted.map((p, i) =>
-      i === 0 ? p.value : Math.max(0, p.value - sorted[i - 1].value),
-    );
-    return sum + deltas.reduce((s, v) => s + v, 0);
-  }, 0);
-
-  return (
     <div className="rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <p className="text-sm font-medium text-gray-900">LLM Token Usage</p>
         <span className="text-sm text-gray-500 tabular-nums">
           {grandTotal.toLocaleString()} total
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {activeFeatures.map((f) => (
-          <TokenSparkline key={f.feature_id} feature={f} />
+      <HighchartsReact highcharts={Highcharts} options={options} />
+
+      {/* Breakdown legend */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2">
+        {perType.map((t) => (
+          <div key={t.label} className="flex items-center gap-1.5">
+            <span
+              className="w-2.5 h-2.5 rounded-sm shrink-0"
+              style={{ backgroundColor: t.color }}
+            />
+            <span className="text-xs text-gray-500">{t.label}</span>
+            <span className="text-xs font-medium text-gray-700 tabular-nums">
+              {t.total.toLocaleString()}
+            </span>
+          </div>
         ))}
       </div>
     </div>

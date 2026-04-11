@@ -33,7 +33,7 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled } = useFeatureFlag();
+  const { isEmailCategorizationEnabled, isUsageMetricsEnabled } = useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
@@ -174,13 +174,17 @@ const Settings = () => {
         icon: <UsersIcon size={20} weight="regular" />,
       },
     ],
-    usage: [
-      {
-        id: "usage",
-        label: "Usage",
-        icon: <ChartBarIcon size={20} weight="regular" />,
-      },
-    ],
+    ...(isUsageMetricsEnabled
+      ? {
+          usage: [
+            {
+              id: "usage",
+              label: "Usage",
+              icon: <ChartBarIcon size={20} weight="regular" />,
+            },
+          ],
+        }
+      : {}),
   };
 
   const renderContent = () => {
