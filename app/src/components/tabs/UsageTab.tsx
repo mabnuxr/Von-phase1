@@ -6,7 +6,15 @@ import { UsagePortal } from "../usage/UsagePortal";
 const STIGG_API_KEY = import.meta.env.VITE_STIGG_CLIENT_KEY;
 
 export function UsageTab() {
-  const { user } = useUser();
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!STIGG_API_KEY || !user?.tenantId) {
     return (
