@@ -130,6 +130,8 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
         fields={fields}
         values={values}
         onFilterChange={handleBarChange}
+        onApply={onApply}
+        isApplying={isApplying}
       />
 
       {(canApply || activeCount > 0) && (

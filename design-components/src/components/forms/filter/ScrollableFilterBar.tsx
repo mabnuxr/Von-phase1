@@ -106,6 +106,18 @@ export interface ScrollableFilterBarProps {
   /** Current filter values keyed by field id */
   values: Record<string, FilterValue>;
   onFilterChange: (fieldId: string, value: FilterValue | null) => void;
+  /**
+   * Commit pending filter changes. When provided, the Apply button inside
+   * each filter popover calls this instead of just closing, so users can
+   * commit from the popover footer as well as from the outer Apply button.
+   */
+  onApply?: () => void;
+  /**
+   * True while a PATCH is in flight (Apply, Clear all, or Lock commit).
+   * Threaded to each popover so Apply + Lock buttons show a pending
+   * (spinner + disabled) state during the request.
+   */
+  isApplying?: boolean;
 }
 
 // ============================================================================
@@ -116,6 +128,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   fields,
   values,
   onFilterChange,
+  onApply,
+  isApplying = false,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -234,6 +248,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               locked={fieldLocked}
               onToggleLock={field.onToggleLock}
               canLock={field.canLock}
+              onApply={onApply}
+              isApplying={isApplying}
             >
               <div
                 className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}

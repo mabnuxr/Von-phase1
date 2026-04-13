@@ -18,6 +18,7 @@ import {
   LockSimpleIcon,
   CaretLeftIcon,
   CaretRightIcon,
+  SpinnerGapIcon,
 } from '@phosphor-icons/react';
 import { DayPicker, type DateRange } from 'react-day-picker';
 import 'react-day-picker/style.css';
@@ -147,6 +148,18 @@ export interface SplitFilterDropdownProps {
    * Defaults to true for back-compat.
    */
   canLock?: boolean;
+  /**
+   * When provided, clicking the popover's Apply button commits pending
+   * changes via this handler (in addition to closing the popover). With
+   * no handler, Apply just closes.
+   */
+  onApply?: () => void;
+  /**
+   * True while a PATCH is in flight (Apply or Lock commit). Used to show
+   * a spinner + disabled state on the Apply and Lock buttons so the user
+   * gets feedback before the server response resets the lock/value state.
+   */
+  isApplying?: boolean;
 }
 
 // ============================================================================
@@ -161,6 +174,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   locked = false,
   onToggleLock,
   canLock = true,
+  onApply,
+  isApplying = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -1099,45 +1114,69 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 </button>
                 {onToggleLock &&
                   (() => {
-                    const lockDisabled = !locked && !canLock;
+                    // Lock button disabled when not yet locked and the filter
+                    // isn't fully valid, OR while a PATCH is in flight (so
+                    // users get feedback instead of a click-with-no-response).
+                    const lockDisabled = isApplying || (!locked && !canLock);
                     return (
                       <button
                         onClick={lockDisabled ? undefined : onToggleLock}
                         disabled={lockDisabled}
                         title={
-                          locked
-                            ? 'Unlock filter'
-                            : canLock
-                              ? 'Lock filter'
-                              : 'Select a value before locking'
+                          isApplying
+                            ? 'Applying…'
+                            : locked
+                              ? 'Unlock filter'
+                              : canLock
+                                ? 'Lock filter'
+                                : 'Select a value before locking'
                         }
                         className={`inline-flex items-center gap-1 h-[26px] pl-1.5 pr-2 text-xs font-medium rounded-lg border transition-colors ${
-                          locked
-                            ? 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 cursor-pointer'
-                            : lockDisabled
-                              ? 'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
-                              : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-50 cursor-pointer'
+                          isApplying
+                            ? locked
+                              ? 'bg-gray-700 border-gray-700 text-white cursor-wait'
+                              : 'bg-white border-gray-200 text-gray-500 cursor-wait'
+                            : locked
+                              ? 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 cursor-pointer'
+                              : !canLock
+                                ? 'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
+                                : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-50 cursor-pointer'
                         }`}
                       >
-                        <LockSimpleIcon size={12} weight={locked ? 'bold' : 'regular'} />
+                        {isApplying ? (
+                          <SpinnerGapIcon size={12} className="animate-spin" />
+                        ) : (
+                          <LockSimpleIcon size={12} weight={locked ? 'bold' : 'regular'} />
+                        )}
                         {locked ? 'Unlock' : 'Lock'}
                       </button>
                     );
                   })()}
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    setSearch('');
-                  }}
-                  disabled={locked}
-                  className={`h-[26px] px-3 text-xs font-medium rounded-lg transition-colors ${
-                    locked
-                      ? 'bg-gray-200 text-gray-400 cursor-default'
-                      : 'text-white bg-gray-900 hover:bg-gray-800 cursor-pointer'
-                  }`}
-                >
-                  Apply
-                </button>
+                {(() => {
+                  // Apply button: when `onApply` is provided, it commits
+                  // pending changes via the outer Apply and closes the
+                  // popover. Without it, just closes (storybook fallback).
+                  const applyDisabled = locked || isApplying;
+                  return (
+                    <button
+                      onClick={() => {
+                        if (applyDisabled) return;
+                        if (onApply) onApply();
+                        setIsOpen(false);
+                        setSearch('');
+                      }}
+                      disabled={applyDisabled}
+                      className={`inline-flex items-center gap-1.5 h-[26px] px-3 text-xs font-medium rounded-lg transition-colors ${
+                        applyDisabled
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : 'text-white bg-gray-900 hover:bg-gray-800 cursor-pointer'
+                      }`}
+                    >
+                      {isApplying && <SpinnerGapIcon size={11} className="animate-spin" />}
+                      Apply
+                    </button>
+                  );
+                })()}
               </div>
             </motion.div>
           )}
