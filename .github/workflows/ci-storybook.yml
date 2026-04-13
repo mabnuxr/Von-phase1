@@ -16,6 +16,14 @@ on:
       - 'package-lock.json'
       - '.github/workflows/ci-storybook.yml'
 
+# Raise Node's default ~2GB heap so `storybook build` (12k+ modules through
+# Vite) doesn't OOM during chunk rendering. GH runners have ~7GB RAM so
+# 4096MB is safely within budget. Applies to every job in this workflow so
+# any `build-storybook` invocation (direct or via the chromatic action)
+# inherits it.
+env:
+  NODE_OPTIONS: --max-old-space-size=4096
+
 # Run from workspace root
 jobs:
   lint:

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
@@ -7,15 +7,18 @@ import type {
   DashboardFilterDefinition,
   DashboardFilterState,
   FilterPatchPayload,
+  FilterValue,
 } from "../types/dashboard";
 
 // ── Types ──────────────────────────────────────────────────────
 
-/** A single active filter in API-native format. */
+/** A single active filter in API-native format (v2 includes optional lock + resolved value). */
 export interface ActiveFilter {
   operator: string;
   value?: unknown;
   include_blank?: boolean;
+  is_locked?: boolean;
+  resolved_value?: unknown;
 }
 
 /**
@@ -35,52 +38,78 @@ let _nextId = 0;
 const tempId = () => `pending_${++_nextId}`;
 
 const NO_VALUE_OPERATORS = new Set(["is_blank", "is_not_blank"]);
+const BETWEEN_OPS = new Set(["between", "not_between"]);
+
+function normaliseFilter(val: unknown): ActiveFilter | null {
+  if (val === null || val === undefined) return null;
+
+  if (Array.isArray(val)) {
+    const items = val as { operator: string; value?: unknown }[];
+    if (items.length === 2) {
+      const [a, b] = items;
+      if (
+        (a.operator === "on_or_after" && b.operator === "on_or_before") ||
+        (a.operator === "greater_than_or_equal" &&
+          b.operator === "less_than_or_equal")
+      ) {
+        return { operator: "between", value: [a.value, b.value] };
+      }
+    }
+    if (items.length > 0 && items[0].operator) {
+      return { operator: items[0].operator, value: items[0].value };
+    }
+    return null;
+  }
+
+  if (typeof val === "object" && val !== null && "operator" in val) {
+    const item = val as {
+      operator: string;
+      value?: unknown;
+      include_blank?: boolean;
+      is_locked?: boolean;
+      resolved_value?: unknown;
+    };
+    return {
+      operator: item.operator,
+      ...(item.value !== undefined && { value: item.value }),
+      ...(item.include_blank && { include_blank: true }),
+      ...(item.is_locked && { is_locked: true }),
+      ...(item.resolved_value !== undefined && {
+        resolved_value: item.resolved_value,
+      }),
+    };
+  }
+  return null;
+}
 
 /**
  * Extract ActiveFilter entries from server state.
  * Server sends {operator, value} dicts, arrays of them, or null.
  */
 function normaliseServerState(
-  serverState: DashboardFilterState,
+  serverState: DashboardFilterState | undefined,
 ): FilterLocalState {
+  if (!serverState) return {};
   const out: FilterLocalState = {};
   for (const [key, val] of Object.entries(serverState)) {
-    if (val === null || val === undefined) continue;
+    const f = normaliseFilter(val);
+    if (f) out[key] = f;
+  }
+  return out;
+}
 
-    if (Array.isArray(val)) {
-      const items = val as { operator: string; value?: unknown }[];
-      if (items.length === 2) {
-        // Old dual-bound format → convert to between
-        const [a, b] = items;
-        if (
-          (a.operator === "on_or_after" && b.operator === "on_or_before") ||
-          (a.operator === "greater_than_or_equal" &&
-            b.operator === "less_than_or_equal")
-        ) {
-          out[key] = { operator: "between", value: [a.value, b.value] };
-          continue;
-        }
-      }
-      // Fallback: take the first item
-      if (items.length > 0 && items[0].operator) {
-        out[key] = { operator: items[0].operator, value: items[0].value };
-      }
-      continue;
+function normalisePanelState(
+  panelState: Record<string, Record<string, FilterValue>> | undefined,
+): Record<string, FilterLocalState> {
+  if (!panelState) return {};
+  const out: Record<string, FilterLocalState> = {};
+  for (const [panelId, filters] of Object.entries(panelState)) {
+    const normalised: FilterLocalState = {};
+    for (const [fid, val] of Object.entries(filters ?? {})) {
+      const f = normaliseFilter(val);
+      if (f) normalised[fid] = f;
     }
-
-    if (typeof val === "object" && "operator" in val) {
-      const item = val as {
-        operator: string;
-        value?: unknown;
-        include_blank?: boolean;
-      };
-      out[key] = {
-        operator: item.operator,
-        ...(item.value !== undefined && { value: item.value }),
-        ...(item.include_blank && { include_blank: true }),
-      };
-      continue;
-    }
+    out[panelId] = normalised;
   }
   return out;
 }
@@ -97,53 +126,205 @@ function statesEqual(a: FilterLocalState, b: FilterLocalState): boolean {
   return true;
 }
 
+function panelStatesEqual(
+  a: Record<string, FilterLocalState>,
+  b: Record<string, FilterLocalState>,
+): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    if (!(key in b)) return false;
+    if (!statesEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+function isFilterComplete(filter: ActiveFilter): boolean {
+  if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
+  if (
+    filter.value === undefined ||
+    filter.value === null ||
+    filter.value === ""
+  )
+    return false;
+  if (Array.isArray(filter.value)) {
+    if (filter.value.length === 0) return false;
+    if (BETWEEN_OPS.has(filter.operator)) {
+      return (
+        filter.value.length === 2 &&
+        filter.value[0] !== undefined &&
+        filter.value[0] !== null &&
+        filter.value[0] !== "" &&
+        filter.value[1] !== undefined &&
+        filter.value[1] !== null &&
+        filter.value[1] !== ""
+      );
+    }
+  }
+  return true;
+}
+
+/** Build a PATCH payload from localState vs serverState. */
+function buildPayload(
+  local: FilterLocalState,
+  server: FilterLocalState,
+): FilterPatchPayload {
+  const payload: FilterPatchPayload = {};
+
+  // Added or changed
+  for (const [filterId, filter] of Object.entries(local)) {
+    if (!isFilterComplete(filter)) continue;
+    const serverFilter = server[filterId];
+    if (
+      !serverFilter ||
+      JSON.stringify(serverFilter) !== JSON.stringify(filter)
+    ) {
+      const apiValue: Record<string, unknown> = { operator: filter.operator };
+      if (filter.value !== undefined) apiValue.value = filter.value;
+      if (filter.include_blank) {
+        apiValue.include_blank = true;
+      } else if (serverFilter?.include_blank) {
+        apiValue.include_blank = false;
+      }
+      if (filter.is_locked !== undefined) {
+        apiValue.is_locked = filter.is_locked;
+      } else if (serverFilter?.is_locked) {
+        apiValue.is_locked = false;
+      }
+      payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
+    }
+  }
+
+  // Removed
+  for (const filterId of Object.keys(server)) {
+    if (!(filterId in local)) payload[filterId] = null;
+  }
+
+  return payload;
+}
+
 // ── Hook ────────────────────────────────────────────────────────
 
+export interface UseDashboardFiltersOptions {
+  /** Panel-level server state: {panelId: {filterId: FilterValue}}. */
+  panelState?: Record<string, Record<string, FilterValue>>;
+  /** Dashboard-level owner-locked filters. */
+  lockedFilterState?: Record<string, FilterValue>;
+  /** Panel-level owner-locked filters: {panelId: {filterId: FilterValue}}. */
+  lockedPanelFilterState?: Record<string, Record<string, FilterValue>>;
+  /** Whether the current viewer owns the dashboard (controls lock toggle). */
+  isOwner?: boolean;
+}
+
 /**
- * Manages dashboard filter state with explicit Apply.
+ * Manages dashboard filter state with explicit Apply (v2).
  *
- * All edits (field, operator, value changes) are local-only.
- * Nothing is sent to the API until the user clicks Apply.
+ * Scope model:
+ * - `filterState` (dashboard-level): applied by `handleFilterChange` / `handleApply`.
+ * - `panelFilterState` (per panel): applied by `handlePanelFilterChange` / `handleApply`.
+ * - Locked state: owner-only; toggled via `handleCommitLock`, which PATCHes
+ *   the filter's current value + is_locked flag immediately (not staged).
+ *
+ * On Apply, a single PATCH is sent for dashboard-level changes plus one PATCH
+ * per dirty panel (backend endpoint accepts one `panel_id` at a time).
  */
 export function useDashboardFilters(
   dashboardId: string | undefined,
   definitions: DashboardFilterDefinition[],
   serverState: DashboardFilterState,
+  options: UseDashboardFiltersOptions = {},
 ) {
+  const {
+    panelState: serverPanelStateRaw,
+    lockedFilterState: serverLockedStateRaw,
+    lockedPanelFilterState: serverLockedPanelStateRaw,
+    isOwner = false,
+  } = options;
+
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // The last-known server state (normalised)
+  // Last-known normalised server state
   const serverNormalised = useRef<FilterLocalState>(
     normaliseServerState(serverState),
   );
+  const serverPanelNormalised = useRef<Record<string, FilterLocalState>>(
+    normalisePanelState(serverPanelStateRaw),
+  );
+  const serverLockedNormalised = useRef<FilterLocalState>(
+    normaliseServerState(serverLockedStateRaw),
+  );
+  const serverLockedPanelNormalised = useRef<Record<string, FilterLocalState>>(
+    normalisePanelState(serverLockedPanelStateRaw),
+  );
 
-  // Local working copy — edits happen here, not sent to API
+  // Local working copies
   const [localState, setLocalState] = useState<FilterLocalState>(() =>
     normaliseServerState(serverState),
   );
+  const [localPanelState, setLocalPanelState] = useState<
+    Record<string, FilterLocalState>
+  >(() => normalisePanelState(serverPanelStateRaw));
 
-  // Rows where user hasn't picked a field yet (UI-only)
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
-
-  // True from Apply click until the dashboard refetch completes with new data
   const [isApplying, setIsApplying] = useState(false);
 
-  // Sync from server when it changes (e.g. after refetch / apply success)
+  // Sync from server on refetch. `isApplying` reset lives in the
+  // mutation's `onSettled` so that lock-only commits (which don't
+  // change the user's filter state reference) still clear the pending
+  // state correctly.
   useEffect(() => {
     const normalised = normaliseServerState(serverState);
     serverNormalised.current = normalised;
     setLocalState(normalised);
     setPendingRows([]);
-    setIsApplying(false); // Refetch complete — unlock editing
   }, [serverState]);
+
+  useEffect(() => {
+    const normalised = normalisePanelState(serverPanelStateRaw);
+    serverPanelNormalised.current = normalised;
+    setLocalPanelState(normalised);
+  }, [serverPanelStateRaw]);
+
+  useEffect(() => {
+    serverLockedNormalised.current = normaliseServerState(serverLockedStateRaw);
+  }, [serverLockedStateRaw]);
+
+  useEffect(() => {
+    serverLockedPanelNormalised.current = normalisePanelState(
+      serverLockedPanelStateRaw,
+    );
+  }, [serverLockedPanelStateRaw]);
 
   const safeDefinitions = Array.isArray(definitions) ? definitions : [];
 
   const mutation = useMutation({
-    mutationFn: async (payload: FilterPatchPayload) => {
-      await dashboardService.updateFilters(dashboardId!, payload);
-      // Wait for the dashboard render refetch to complete before settling
+    mutationFn: async (
+      calls: Array<{
+        payload: FilterPatchPayload;
+        panelId?: string;
+        /** Top-level lock flag — the backend reads `request.is_locked` to
+         * decide whether to update `locked_filter_state`. Nested `is_locked`
+         * inside each filter value is discarded by `normalize_filter_values`. */
+        isLocked?: boolean;
+      }>,
+    ) => {
+      // Fan out PATCH requests in parallel. Each call targets a different
+      // scope (dashboard or a specific panel), so there's no write-ordering
+      // concern between them.
+      await Promise.all(
+        calls.map((call) =>
+          dashboardService.updateFilters(
+            dashboardId!,
+            call.payload,
+            undefined,
+            call.panelId !== undefined || call.isLocked !== undefined
+              ? { panelId: call.panelId, isLocked: call.isLocked }
+              : undefined,
+          ),
+        ),
+      );
       if (dashboardId) {
         await queryClient.invalidateQueries({
           queryKey: dashboardKeys.detail(dashboardId),
@@ -156,11 +337,19 @@ export function useDashboardFilters(
         variant: "error",
       });
       setLocalState(serverNormalised.current);
+      setLocalPanelState(serverPanelNormalised.current);
+    },
+    // Reset `isApplying` regardless of success/failure. Previously this
+    // relied on the `useEffect` on `serverState` changing, but a pure
+    // lock/unlock commit doesn't change the user's filter state — only
+    // the server-side `locked_filter_state` — so the effect never fired
+    // and the Lock/Apply buttons stayed in the spinner state forever.
+    onSettled: () => {
       setIsApplying(false);
     },
   });
 
-  // ── Local-only edits (no API calls) ─────────────────────────
+  // ── Dashboard-level edits ───────────────────────────────────
 
   const handleFilterChange = useCallback(
     (
@@ -169,23 +358,61 @@ export function useDashboardFilters(
       value?: unknown,
       includeBlank?: boolean,
     ) => {
-      const filter: ActiveFilter = {
-        operator,
-        ...(value !== undefined && { value }),
-        ...(includeBlank && { include_blank: true }),
-      };
-      setLocalState((prev) => ({ ...prev, [filterId]: filter }));
+      setLocalState((prev) => {
+        const existing = prev[filterId];
+        // If this filter is locked and caller is not owner, no-op
+        if (existing?.is_locked && !isOwner) return prev;
+        const filter: ActiveFilter = {
+          operator,
+          ...(value !== undefined && { value }),
+          ...(includeBlank && { include_blank: true }),
+          ...(existing?.is_locked && { is_locked: true }),
+        };
+        return { ...prev, [filterId]: filter };
+      });
     },
-    [],
+    [isOwner],
   );
 
-  const handleRemoveFilter = useCallback((filterId: string) => {
-    setLocalState((prev) => {
-      const next = { ...prev };
-      delete next[filterId];
-      return next;
-    });
-  }, []);
+  const handleRemoveFilter = useCallback(
+    (filterId: string) => {
+      setLocalState((prev) => {
+        const existing = prev[filterId];
+        if (existing?.is_locked && !isOwner) return prev;
+        const next = { ...prev };
+        delete next[filterId];
+        return next;
+      });
+    },
+    [isOwner],
+  );
+
+  // Immediate-commit clear — the Clear button in a filter popover fires
+  // this rather than just dropping the filter from local state. Sends a
+  // single-filter PATCH with `null` (backend resets / removes the filter)
+  // so clearing a filter is persisted to the server without waiting for
+  // the user to hit Apply.
+  //
+  // Also clears local state optimistically so the bar chip flips to "All"
+  // immediately rather than flashing the old value during the transition
+  // and briefly after.
+  const handleClearFilter = useCallback(
+    (filterId: string) => {
+      if (!dashboardId) return;
+      const existing =
+        localState[filterId] ?? serverNormalised.current[filterId];
+      if (existing?.is_locked && !isOwner) return;
+      setLocalState((prev) => {
+        if (!(filterId in prev)) return prev;
+        const next = { ...prev };
+        delete next[filterId];
+        return next;
+      });
+      setIsApplying(true);
+      mutation.mutate([{ payload: { [filterId]: null } }]);
+    },
+    [dashboardId, isOwner, localState, mutation],
+  );
 
   const handleAddFilter = useCallback(() => {
     setPendingRows((prev) => [...prev, { tempId: tempId() }]);
@@ -206,124 +433,408 @@ export function useDashboardFilters(
     [],
   );
 
-  // ── Apply: send all changes to API at once ──────────────────
+  // ── Panel-level edits ───────────────────────────────────────
 
-  const handleApply = useCallback(() => {
-    if (!dashboardId) return;
+  const handlePanelFilterChange = useCallback(
+    (
+      panelId: string,
+      filterId: string,
+      operator: string,
+      value?: unknown,
+      includeBlank?: boolean,
+    ) => {
+      setLocalPanelState((prev) => {
+        const panel = prev[panelId] ?? {};
+        const existing = panel[filterId];
+        if (existing?.is_locked && !isOwner) return prev;
+        const filter: ActiveFilter = {
+          operator,
+          ...(value !== undefined && { value }),
+          ...(includeBlank && { include_blank: true }),
+          ...(existing?.is_locked && { is_locked: true }),
+        };
+        return { ...prev, [panelId]: { ...panel, [filterId]: filter } };
+      });
+    },
+    [isOwner],
+  );
 
-    const server = serverNormalised.current;
-    const payload: FilterPatchPayload = {};
+  const handleResetPanelFilter = useCallback(
+    (panelId: string, filterId: string) => {
+      if (!dashboardId) return;
+      const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+      const existing =
+        localPanelState[panelId]?.[filterId] ?? serverPanel[filterId];
+      if (existing?.is_locked && !isOwner) return;
 
-    // Filters that were added or changed
-    for (const [filterId, filter] of Object.entries(localState)) {
-      // Skip incomplete filters (no value and not a no-value operator)
-      if (!NO_VALUE_OPERATORS.has(filter.operator)) {
-        if (
-          filter.value === undefined ||
-          filter.value === null ||
-          filter.value === ""
-        )
-          continue;
-        if (Array.isArray(filter.value) && filter.value.length === 0) continue;
+      // Optimistically drop the local override so the UI instantly falls
+      // back to the dashboard-level value.
+      setLocalPanelState((prev) => {
+        const panel = prev[panelId];
+        if (!panel || !(filterId in panel)) return prev;
+        const rest = { ...panel };
+        delete rest[filterId];
+        if (Object.keys(rest).length === 0) {
+          const pRest = { ...prev };
+          delete pRest[panelId];
+          return pRest;
+        }
+        return { ...prev, [panelId]: rest };
+      });
+
+      // Only fire a PATCH if the server currently holds a panel override
+      // for this slot — otherwise the reset was purely in-memory.
+      if (serverPanel[filterId]) {
+        setIsApplying(true);
+        mutation.mutate([{ payload: { [filterId]: null }, panelId }]);
       }
-      // Check if it actually changed from server state
-      const serverFilter = server[filterId];
-      if (
-        !serverFilter ||
-        JSON.stringify(serverFilter) !== JSON.stringify(filter)
-      ) {
-        const apiValue: Record<string, unknown> = { operator: filter.operator };
-        if (filter.value !== undefined) apiValue.value = filter.value;
-        if (filter.include_blank) {
+    },
+    [dashboardId, isOwner, localPanelState, mutation],
+  );
+
+  // ── Per-panel-filter Apply (widget popover) ─────────────────
+  //
+  // Commit ONLY the affected filter for this panel. Populates `panel_state`
+  // on the backend (via the PATCH endpoint's `panel_id`) and leaves
+  // dashboard-level state untouched — other pending in-memory edits stay
+  // un-committed until the user explicitly applies them.
+
+  const canApplyPanelFilter = useCallback(
+    (panelId: string, filterId: string): boolean => {
+      const local = localPanelState[panelId]?.[filterId];
+      const server = serverPanelNormalised.current[panelId]?.[filterId];
+      const dirty =
+        (local !== undefined && server === undefined) ||
+        (local === undefined && server !== undefined) ||
+        (local !== undefined &&
+          server !== undefined &&
+          JSON.stringify(local) !== JSON.stringify(server));
+      if (!dirty) return false;
+      // Local must be complete if present — incomplete values can't commit.
+      if (local && !isFilterComplete(local)) return false;
+      return true;
+    },
+    [localPanelState],
+  );
+
+  const handleApplyPanelFilter = useCallback(
+    (panelId: string, filterId: string) => {
+      if (!dashboardId) return;
+      const local = localPanelState[panelId]?.[filterId];
+      const server = serverPanelNormalised.current[panelId]?.[filterId];
+
+      const payload: FilterPatchPayload = {};
+      if (local === undefined && server !== undefined) {
+        // Panel override was dropped locally — clear it on the server too.
+        payload[filterId] = null;
+      } else if (local !== undefined) {
+        if (!isFilterComplete(local)) return;
+        const apiValue: Record<string, unknown> = { operator: local.operator };
+        if (local.value !== undefined) apiValue.value = local.value;
+        if (local.include_blank) {
           apiValue.include_blank = true;
-        } else if (serverFilter?.include_blank) {
-          // Server had include_blank=true, user turned it off — explicitly clear
+        } else if (server?.include_blank) {
           apiValue.include_blank = false;
         }
         payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
       }
+
+      if (Object.keys(payload).length === 0) return;
+      setIsApplying(true);
+      mutation.mutate([{ payload, panelId }]);
+    },
+    [dashboardId, localPanelState, mutation],
+  );
+
+  // ── Per-panel-filter Lock (owner-only, immediate) ───────────
+  //
+  // Locks at the panel level: writes to `locked_panel_filter_state[panelId]`
+  // on the backend. The value committed is the effective one for this panel
+  // — panel override if present, otherwise the dashboard-level value — so
+  // the lock pins whatever the user sees right now. Only the owner can lock.
+
+  const getEffectivePanelFilter = useCallback(
+    (panelId: string, filterId: string): ActiveFilter | undefined => {
+      return (
+        localPanelState[panelId]?.[filterId] ??
+        serverPanelNormalised.current[panelId]?.[filterId] ??
+        localState[filterId] ??
+        serverNormalised.current[filterId]
+      );
+    },
+    [localPanelState, localState],
+  );
+
+  const canLockPanelFilter = useCallback(
+    (panelId: string, filterId: string): boolean => {
+      const effective = getEffectivePanelFilter(panelId, filterId);
+      return effective ? isFilterComplete(effective) : false;
+    },
+    [getEffectivePanelFilter],
+  );
+
+  const handleCommitPanelLock = useCallback(
+    (panelId: string, filterId: string, locked: boolean) => {
+      if (!dashboardId || !isOwner) return;
+      const target = getEffectivePanelFilter(panelId, filterId);
+      // Locking requires a complete filter value. Unlocking just clears.
+      if (locked) {
+        if (!target || !isFilterComplete(target)) return;
+      } else if (!target) {
+        return;
+      }
+
+      const lockValue: Record<string, unknown> = { operator: target.operator };
+      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.include_blank) lockValue.include_blank = true;
+
+      setIsApplying(true);
+      mutation.mutate([
+        {
+          payload: {
+            [filterId]: lockValue as unknown as FilterPatchPayload[string],
+          },
+          panelId,
+          isLocked: locked,
+        },
+      ]);
+    },
+    [dashboardId, isOwner, getEffectivePanelFilter, mutation],
+  );
+
+  // ── Lock commit (owner-only, immediate) ─────────────────────
+  //
+  // Per-filter lock is committed immediately — clicking "Lock" in a filter's
+  // popover behaves like Apply for that filter plus any other pending edits:
+  // it PATCHes the current value with `is_locked` set, rather than staging
+  // the flag for a later Apply. Locking requires the filter to have a
+  // complete/valid value (same rule as Apply). Unlocking has no validity
+  // requirement — it just clears the lock.
+
+  const canLockFilter = useCallback(
+    (filterId: string): boolean => {
+      const f = localState[filterId];
+      return f ? isFilterComplete(f) : false;
+    },
+    [localState],
+  );
+
+  const handleCommitLock = useCallback(
+    (filterId: string, locked: boolean) => {
+      if (!dashboardId || !isOwner) return;
+      const target = localState[filterId] ?? serverNormalised.current[filterId];
+      // Locking requires a complete filter value.
+      if (locked) {
+        if (!target || !isFilterComplete(target)) return;
+      } else if (!target) {
+        // Nothing to unlock — no server value to reference.
+        return;
+      }
+
+      const calls: Array<{
+        payload: FilterPatchPayload;
+        panelId?: string;
+        isLocked?: boolean;
+      }> = [];
+
+      // 1. Lock/unlock commit for ONLY the target filter. Backend applies
+      //    `request.is_locked` to every filter in `request.filters`, so
+      //    isolating the target prevents accidentally locking other
+      //    pending edits.
+      const lockValue: Record<string, unknown> = { operator: target.operator };
+      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.include_blank) lockValue.include_blank = true;
+      calls.push({
+        payload: {
+          [filterId]: lockValue as unknown as FilterPatchPayload[string],
+        },
+        isLocked: locked,
+      });
+
+      // 2. Any OTHER pending dashboard-level edits go in a separate PATCH
+      //    without the lock flag, so the user's in-flight edits aren't lost.
+      const otherLocal: FilterLocalState = { ...localState };
+      delete otherLocal[filterId];
+      const otherServer: FilterLocalState = { ...serverNormalised.current };
+      delete otherServer[filterId];
+      const otherPayload = buildPayload(otherLocal, otherServer);
+      if (Object.keys(otherPayload).length > 0) {
+        calls.push({ payload: otherPayload });
+      }
+
+      // 3. Panel-level pending edits likewise go through unchanged.
+      const allPanelIds = new Set([
+        ...Object.keys(localPanelState),
+        ...Object.keys(serverPanelNormalised.current),
+      ]);
+      for (const panelId of allPanelIds) {
+        const localPanel = localPanelState[panelId] ?? {};
+        const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+        const payload = buildPayload(localPanel, serverPanel);
+        if (Object.keys(payload).length > 0) calls.push({ payload, panelId });
+      }
+
+      setIsApplying(true);
+      mutation.mutate(calls);
+    },
+    [dashboardId, isOwner, localState, localPanelState, mutation],
+  );
+
+  // ── Effective state for display (client-side resolution) ────
+
+  const getEffectivePanelState = useCallback(
+    (panelId: string): FilterLocalState => {
+      // Order: dashboard state → panel state → dashboard locked → panel locked
+      const base: FilterLocalState = { ...localState };
+      const panelOverrides = localPanelState[panelId] ?? {};
+      const dashLocked = serverLockedNormalised.current;
+      const panelLocked = serverLockedPanelNormalised.current[panelId] ?? {};
+      return {
+        ...base,
+        ...panelOverrides,
+        ...dashLocked,
+        ...panelLocked,
+      };
+    },
+    [localState, localPanelState],
+  );
+
+  // ── Apply ───────────────────────────────────────────────────
+
+  const handleApply = useCallback(() => {
+    if (!dashboardId) return;
+
+    const calls: Array<{ payload: FilterPatchPayload; panelId?: string }> = [];
+
+    const dashPayload = buildPayload(localState, serverNormalised.current);
+    if (Object.keys(dashPayload).length > 0) {
+      calls.push({ payload: dashPayload });
     }
 
-    // Filters that were removed (in server but not in local)
-    for (const filterId of Object.keys(server)) {
-      if (!(filterId in localState)) {
-        payload[filterId] = null;
+    const allPanelIds = new Set([
+      ...Object.keys(localPanelState),
+      ...Object.keys(serverPanelNormalised.current),
+    ]);
+    for (const panelId of allPanelIds) {
+      const local = localPanelState[panelId] ?? {};
+      const server = serverPanelNormalised.current[panelId] ?? {};
+      const payload = buildPayload(local, server);
+      if (Object.keys(payload).length > 0) {
+        calls.push({ payload, panelId });
       }
     }
 
-    if (Object.keys(payload).length === 0) return; // Nothing changed
-
+    if (calls.length === 0) return;
     setIsApplying(true);
-    mutation.mutate(payload);
-  }, [dashboardId, localState, mutation]);
+    mutation.mutate(calls);
+  }, [dashboardId, localState, localPanelState, mutation]);
 
-  // ── Clear all (local + immediate API) ───────────────────────
+  // ── Clear all ───────────────────────────────────────────────
 
   const handleClearAll = useCallback(() => {
     if (!dashboardId) return;
 
-    const server = serverNormalised.current;
-    const payload: FilterPatchPayload = {};
-    for (const filterId of Object.keys(server)) {
-      payload[filterId] = null;
+    const calls: Array<{ payload: FilterPatchPayload; panelId?: string }> = [];
+
+    const dashPayload: FilterPatchPayload = {};
+    for (const filterId of Object.keys(serverNormalised.current)) {
+      // Preserve locked filters (only owner can clear locks; clear all is not a lock change)
+      if (serverNormalised.current[filterId].is_locked && !isOwner) continue;
+      dashPayload[filterId] = null;
+    }
+    if (Object.keys(dashPayload).length > 0) {
+      calls.push({ payload: dashPayload });
     }
 
-    setLocalState({});
-    setPendingRows([]);
-
-    if (Object.keys(payload).length > 0) {
-      setIsApplying(true);
-      mutation.mutate(payload);
-    }
-  }, [dashboardId, mutation]);
-
-  const BETWEEN_OPS = new Set(["between", "not_between"]);
-
-  function isFilterComplete(filter: ActiveFilter): boolean {
-    if (NO_VALUE_OPERATORS.has(filter.operator)) return true;
-    if (
-      filter.value === undefined ||
-      filter.value === null ||
-      filter.value === ""
-    )
-      return false;
-    if (Array.isArray(filter.value)) {
-      if (filter.value.length === 0) return false;
-      if (BETWEEN_OPS.has(filter.operator)) {
-        return (
-          filter.value.length === 2 &&
-          filter.value[0] !== undefined &&
-          filter.value[0] !== null &&
-          filter.value[0] !== "" &&
-          filter.value[1] !== undefined &&
-          filter.value[1] !== null &&
-          filter.value[1] !== ""
-        );
+    for (const [panelId, panel] of Object.entries(
+      serverPanelNormalised.current,
+    )) {
+      const panelPayload: FilterPatchPayload = {};
+      for (const filterId of Object.keys(panel)) {
+        if (panel[filterId].is_locked && !isOwner) continue;
+        panelPayload[filterId] = null;
+      }
+      if (Object.keys(panelPayload).length > 0) {
+        calls.push({ payload: panelPayload, panelId });
       }
     }
-    return true;
-  }
+
+    setLocalState((prev) => {
+      const next: FilterLocalState = {};
+      for (const [fid, f] of Object.entries(prev)) {
+        if (f.is_locked && !isOwner) next[fid] = f;
+      }
+      return next;
+    });
+    // Preserve locked panel filters for non-owners — the PATCH payload
+    // already skips them (see panelPayload loop above), so zeroing out
+    // local state would cause a visual flash of those locked entries
+    // disappearing and reappearing on the next server sync.
+    setLocalPanelState((prev) => {
+      if (isOwner) return {};
+      const next: Record<string, FilterLocalState> = {};
+      for (const [pid, panel] of Object.entries(prev)) {
+        const lockedOnly: FilterLocalState = {};
+        for (const [fid, f] of Object.entries(panel)) {
+          if (f.is_locked) lockedOnly[fid] = f;
+        }
+        if (Object.keys(lockedOnly).length > 0) next[pid] = lockedOnly;
+      }
+      return next;
+    });
+    setPendingRows([]);
+
+    if (calls.length > 0) {
+      setIsApplying(true);
+      mutation.mutate(calls);
+    }
+  }, [dashboardId, isOwner, mutation]);
+
+  // ── Derived flags ───────────────────────────────────────────
 
   const filters = Object.values(localState);
   const activeCount = filters.filter(isFilterComplete).length;
-  const isDirty = !statesEqual(localState, serverNormalised.current);
   const allFiltersValid = filters.every(isFilterComplete);
+  const allPanelFiltersValid = Object.values(localPanelState).every((p) =>
+    Object.values(p).every(isFilterComplete),
+  );
 
-  const canApply = isDirty && allFiltersValid;
+  const isDirty = useMemo(
+    () =>
+      !statesEqual(localState, serverNormalised.current) ||
+      !panelStatesEqual(localPanelState, serverPanelNormalised.current),
+    [localState, localPanelState],
+  );
+
+  const canApply = isDirty && allFiltersValid && allPanelFiltersValid;
 
   return {
     definitions: safeDefinitions,
     filterState: localState,
+    panelFilterState: localPanelState,
+    lockedFilterState: serverLockedNormalised.current,
+    lockedPanelFilterState: serverLockedPanelNormalised.current,
     pendingRows,
     activeCount,
     canApply,
+    isApplying,
+    isOwner,
     handleFilterChange,
     handleRemoveFilter,
+    handleClearFilter,
     handleAddFilter,
     handleRemovePendingRow,
     handleCommitPendingRow,
+    handlePanelFilterChange,
+    handleResetPanelFilter,
+    handleApplyPanelFilter,
+    canApplyPanelFilter,
+    handleCommitPanelLock,
+    canLockPanelFilter,
+    handleCommitLock,
+    canLockFilter,
+    getEffectivePanelState,
     handleApply,
     handleClearAll,
-    isApplying,
   };
 }

@@ -31,6 +31,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     onTableSortChange,
     tableSortState,
     appliedFilters,
+    filterSlot,
   }) => {
     const handleDrillDown = useCallback(() => {
       onDrillDown?.(widget.id);
@@ -54,6 +55,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
+            filterSlot={filterSlot}
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
@@ -70,9 +72,11 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               className="group relative h-full bg-white border border-gray-200 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
               onClick={drillDownHandler}
             >
-              {(appliedFilters || widget.queryInfo) && (
+              {(filterSlot || appliedFilters || widget.queryInfo) && (
                 <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
-                  {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
+                  {filterSlot
+                    ? filterSlot
+                    : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
                   {widget.queryInfo && <QueryInfoPopover queryInfo={widget.queryInfo} />}
                 </div>
               )}
@@ -93,6 +97,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
+            filterSlot={filterSlot}
           />
         );
 
@@ -111,6 +116,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             onDrillDown={drillDownHandler}
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
+            filterSlot={filterSlot}
           >
             <TableWidget
               config={widget.config as TableWidgetConfig}

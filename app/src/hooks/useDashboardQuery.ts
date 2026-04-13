@@ -4,6 +4,8 @@ import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
   DashboardFilters,
+  DataBoundary,
+  DataSourceGroup,
   RefreshInfo,
   DashboardMetadataResponse,
   WidgetConfig,
@@ -89,6 +91,8 @@ interface RawApiDashboardResponse {
     color_palette?: string | null;
   };
   filters?: DashboardFilters;
+  data_boundary?: DataBoundary;
+  data_sources?: DataSourceGroup[];
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -243,8 +247,17 @@ function adaptApiResponse(
                 : [],
               state: raw.filters.state ?? {},
               defaults: raw.filters.defaults ?? {},
+              // v2 additions — pass through as-is (already snake_case on response)
+              panel_state: raw.filters.panel_state ?? {},
+              locked_filter_state: raw.filters.locked_filter_state ?? {},
+              locked_panel_filter_state:
+                raw.filters.locked_panel_filter_state ?? {},
+              source_applicability: raw.filters.source_applicability ?? {},
+              query_sources: raw.filters.query_sources ?? {},
             }
           : undefined,
+        data_boundary: raw.data_boundary,
+        data_sources: raw.data_sources,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
         createdBy: raw.created_by ?? "",
