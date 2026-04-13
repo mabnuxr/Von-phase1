@@ -1131,7 +1131,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                 ? 'Lock filter'
                                 : 'Select a value before locking'
                         }
-                        className={`inline-flex items-center gap-1 h-[26px] pl-1.5 pr-2 text-xs font-medium rounded-lg border transition-colors ${
+                        className={`inline-flex items-center gap-1.5 h-[26px] px-2.5 text-xs font-medium rounded-lg border transition-colors ${
                           isApplying
                             ? locked
                               ? 'bg-gray-700 border-gray-700 text-white cursor-wait'

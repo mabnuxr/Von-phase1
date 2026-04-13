@@ -556,8 +556,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <DashboardFilterBarV2
                 definitions={filterDefinitions}
                 filterState={filterState}
-                activeCount={filterActiveCount}
-                canApply={filterCanApply}
                 isApplying={filterIsApplying}
                 isOwner={dashboard.isOwner}
                 onFilterChange={onFilterChange}
@@ -565,7 +563,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onToggleLock={onToggleLock}
                 canLockFilter={canLockFilter}
                 onApply={onApplyFilters}
-                onClearAll={onClearAll}
               />
             ) : (
               <AnalyticsFilters
