@@ -15,6 +15,8 @@ export type {
   CustomOperatorDef,
   FilterFieldConfig,
   FilterValue,
+  OptionGroup,
+  CalendarOptionConfig,
   ScrollableFilterBarProps,
 } from './ScrollableFilterBar';
 export { SplitFilterDropdown } from './SplitFilterDropdown';

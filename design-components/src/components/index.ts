@@ -563,6 +563,8 @@ export type {
   CustomOperatorDef,
   FilterFieldConfig,
   FilterValue as FilterBarValue,
+  OptionGroup,
+  CalendarOptionConfig,
   ScrollableFilterBarProps,
   SplitFilterDropdownProps,
 } from './forms/filter';

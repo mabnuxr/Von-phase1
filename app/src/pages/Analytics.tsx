@@ -85,6 +85,7 @@ function DashboardCanvas({
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleToggleLock,
     getEffectivePanelState,
     handleApply,
     handleClearAll,
@@ -167,6 +168,7 @@ function DashboardCanvas({
         onCommitPendingRow={handleCommitPendingRow}
         onApplyFilters={handleApply}
         onClearAll={handleClearAll}
+        onToggleLock={handleToggleLock}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}

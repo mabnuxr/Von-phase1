@@ -5,17 +5,22 @@
  * the useDashboardFilters hook v2 state. Translation helpers live in
  * `./filterTranslation` so the panel-level popover shares the same
  * token labels, type mapping, and round-trip logic.
+ *
+ * Locking model: per-filter. Each filter chip carries its own
+ * `locked` + `onToggleLock` — the owner flips lock state inside each
+ * filter's popover. Non-owners see a locked chip with a lock icon
+ * and can't edit. (This replaces the bar-wide lock toggle Aniket's
+ * storybook prototyped; we lock individually for sharing use-cases.)
  */
 import { useMemo } from "react";
-import { LockSimpleIcon, SpinnerGapIcon } from "@phosphor-icons/react";
-import { ScrollableFilterBar, Tooltip } from "@vonlabs/design-components";
+import { SpinnerGapIcon } from "@phosphor-icons/react";
+import { ScrollableFilterBar } from "@vonlabs/design-components";
 import type { FilterBarValue } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
 import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import {
   fromFilterBarValue,
   mapDefinition,
-  renderFilterValue,
   toFilterBarValue,
 } from "./filterTranslation";
 
@@ -33,6 +38,8 @@ interface DashboardFilterBarV2Props {
     includeBlank?: boolean,
   ) => void;
   onRemoveFilter: (filterId: string) => void;
+  /** Owner-only. Toggles dashboard-level lock for the given filter id. */
+  onToggleLock?: (filterId: string, locked: boolean) => void;
   onApply: () => void;
   onClearAll: () => void;
 }
@@ -46,35 +53,37 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   isOwner,
   onFilterChange,
   onRemoveFilter,
+  onToggleLock,
   onApply,
   onClearAll,
 }) => {
-  const { editableDefs, lockedDefs } = useMemo(() => {
-    const editable: DashboardFilterDefinition[] = [];
-    const locked: DashboardFilterDefinition[] = [];
-    for (const def of definitions) {
-      if (def.is_locked && !isOwner) locked.push(def);
-      else editable.push(def);
-    }
-    return { editableDefs: editable, lockedDefs: locked };
-  }, [definitions, isOwner]);
-
   const fields = useMemo(
     () =>
-      editableDefs.map((def) =>
-        mapDefinition(def, { currentFilter: filterState[def.id] }),
+      definitions.map((def) =>
+        mapDefinition(def, {
+          currentFilter: filterState[def.id],
+          // Show locked visual when:
+          //   - viewer can't edit (non-owner on a locked filter), OR
+          //   - owner is viewing their own locked filter (so they see it's locked)
+          locked: !!def.is_locked,
+          // Only the owner gets the in-popover lock toggle.
+          onToggleLock:
+            isOwner && onToggleLock
+              ? () => onToggleLock(def.id, !def.is_locked)
+              : undefined,
+        }),
       ),
-    [editableDefs, filterState],
+    [definitions, filterState, isOwner, onToggleLock],
   );
 
   const values = useMemo(() => {
     const out: Record<string, FilterBarValue> = {};
-    for (const def of editableDefs) {
+    for (const def of definitions) {
       const f = filterState[def.id];
       if (f) out[def.id] = toFilterBarValue(f, def);
     }
     return out;
-  }, [editableDefs, filterState]);
+  }, [definitions, filterState]);
 
   const defById = useMemo(() => {
     const map = new Map<string, DashboardFilterDefinition>();
@@ -88,6 +97,9 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   ) => {
     const def = defById.get(fieldId);
     if (!def) return;
+    // Guard: non-owner can't mutate a locked filter (the dropdown should
+    // already prevent this, but belt-and-braces in case of timing).
+    if (def.is_locked && !isOwner) return;
     if (barValue === null) {
       onRemoveFilter(fieldId);
       return;
@@ -98,30 +110,6 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
 
   return (
     <div className="flex items-center gap-2 min-w-0 max-w-full">
-      {lockedDefs.map((def) => {
-        const label = renderFilterValue(filterState[def.id], def, "—");
-        return (
-          <Tooltip
-            key={def.id}
-            content={
-              def.boundary_description
-                ? `Locked by dashboard owner · ${def.boundary_description}`
-                : "Locked by dashboard owner"
-            }
-          >
-            <div className="flex flex-col gap-1 shrink-0">
-              <span className="text-[11px] text-gray-700 leading-none pl-0.5">
-                {def.label}
-              </span>
-              <div className="flex items-center gap-1.5 h-[28px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
-                <LockSimpleIcon size={11} className="text-gray-500" />
-                {label}
-              </div>
-            </div>
-          </Tooltip>
-        );
-      })}
-
       <ScrollableFilterBar
         fields={fields}
         values={values}

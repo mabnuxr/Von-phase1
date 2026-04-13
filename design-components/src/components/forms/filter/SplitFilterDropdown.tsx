@@ -12,7 +12,17 @@
 import React, { useState, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MagnifyingGlassIcon, CheckIcon } from '@phosphor-icons/react';
+import {
+  MagnifyingGlassIcon,
+  CheckIcon,
+  LockSimpleIcon,
+  LockSimpleOpenIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
+} from '@phosphor-icons/react';
+import { DayPicker, type DateRange } from 'react-day-picker';
+import 'react-day-picker/style.css';
+import './filter-calendar.css';
 import type { FilterFieldConfig, FilterValue } from './ScrollableFilterBar';
 
 // ============================================================================
@@ -26,77 +36,28 @@ interface OperatorDef {
   noValue?: boolean;
 }
 
-const TEXT_OPERATORS: OperatorDef[] = [
-  { value: 'equals', label: 'Is' },
-  { value: 'not_equals', label: 'Is not' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'not_contains', label: 'Does not contain' },
-  { value: 'starts_with', label: 'Starts with' },
-  { value: 'ends_with', label: 'Ends with' },
-  { value: 'is_blank', label: 'Is blank', noValue: true },
-  { value: 'is_not_blank', label: 'Is not blank', noValue: true },
-];
-
-const PICKLIST_OPERATORS: OperatorDef[] = [
-  { value: 'in', label: 'Is any of' },
-  { value: 'not_in', label: 'Is none of' },
-  { value: 'equals', label: 'Is' },
-  { value: 'not_equals', label: 'Is not' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'not_contains', label: 'Does not contain' },
-  { value: 'is_blank', label: 'Is blank', noValue: true },
-  { value: 'is_not_blank', label: 'Is not blank', noValue: true },
-];
-
-const NUMBER_OPERATORS: OperatorDef[] = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'not_equals', label: 'Not equals' },
-  { value: 'greater_than', label: 'Greater than' },
-  { value: 'greater_than_or_equal', label: 'At least' },
-  { value: 'less_than', label: 'Less than' },
-  { value: 'less_than_or_equal', label: 'At most' },
-  { value: 'between', label: 'Between' },
-  { value: 'is_blank', label: 'Is blank', noValue: true },
-  { value: 'is_not_blank', label: 'Is not blank', noValue: true },
-];
-
-const DATE_OPERATORS: OperatorDef[] = [
-  { value: 'on', label: 'On' },
-  { value: 'before', label: 'Before' },
-  { value: 'after', label: 'After' },
-  { value: 'on_or_before', label: 'On or before' },
-  { value: 'on_or_after', label: 'On or after' },
-  { value: 'between', label: 'Between' },
-  { value: 'is_blank', label: 'Is blank', noValue: true },
-  { value: 'is_not_blank', label: 'Is not blank', noValue: true },
+const DEFAULT_OPERATORS: OperatorDef[] = [
+  { value: 'equals', label: 'Equal To' },
+  { value: 'not_equals', label: 'Not Equal To' },
+  { value: 'greater_than', label: 'Greater Than' },
+  { value: 'greater_than_or_equal', label: 'Greater Than or Equal To' },
+  { value: 'less_than', label: 'Less Than' },
+  { value: 'less_than_or_equal', label: 'Less Than or Equal To' },
+  { value: 'between', label: 'Select Range' },
+  { value: 'is_not_blank', label: 'Is Not Blank', noValue: true },
+  { value: 'is_blank', label: 'Is Blank', noValue: true },
+  { value: 'in_this_quarter', label: 'In This Quarter', noValue: true },
+  { value: 'in_next_quarter', label: 'In Next Quarter', noValue: true },
 ];
 
 function getOperators(field: FilterFieldConfig): OperatorDef[] {
   if (field.customOperators) return field.customOperators;
-  switch (field.type) {
-    case 'picklist':
-      return PICKLIST_OPERATORS;
-    case 'number':
-      return NUMBER_OPERATORS;
-    case 'date':
-      return DATE_OPERATORS;
-    default:
-      return TEXT_OPERATORS;
-  }
+  return DEFAULT_OPERATORS;
 }
 
 function getDefaultOperator(field: FilterFieldConfig): string {
   if (field.defaultOperator) return field.defaultOperator;
-  switch (field.type) {
-    case 'picklist':
-      return 'in';
-    case 'number':
-      return 'equals';
-    case 'date':
-      return 'on';
-    default:
-      return 'contains';
-  }
+  return 'equals';
 }
 
 // ============================================================================
@@ -107,52 +68,59 @@ const MULTI_VALUE_OPERATORS = new Set(['in', 'not_in']);
 const RANGE_OPERATORS = new Set(['between']);
 
 // ============================================================================
-// Dynamic option helpers — values stored as "<ID>:<N>" e.g. "LAST_N_DAYS:7"
-// Case-insensitive to accept both the storybook fixture style (lowercase
-// ids like "last_n_days") and the backend token style ("LAST_N_DAYS").
+// Dynamic option helpers — values stored as "dynamic_id:n" e.g. "last_n_days:7"
 // ============================================================================
 
 function parseDynamicValue(v: string): { id: string; n: number } | null {
-  const match = v.match(/^([A-Za-z_]+):(\d+)$/);
+  const match = v.match(/^([a-z_]+):(\d+)$/);
   if (!match) return null;
   return { id: match[1], n: parseInt(match[2], 10) };
 }
 
+// ============================================================================
+// Calendar value helpers — "custom_date:YYYY-MM-DD" / "custom_range:YYYY-MM-DD_YYYY-MM-DD"
+// ============================================================================
+
+function formatDateISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseCustomDateValue(v: string): Date | null {
+  const match = v.match(/^custom_date:(\d{4}-\d{2}-\d{2})$/);
+  if (!match) return null;
+  return new Date(match[1] + 'T00:00:00');
+}
+
+function parseCustomRangeValue(v: string): DateRange | null {
+  const match = v.match(/^custom_range:(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+  if (!match) return null;
+  return {
+    from: new Date(match[1] + 'T00:00:00'),
+    to: new Date(match[2] + 'T00:00:00'),
+  };
+}
+
+/** Check if a calendar option label is "selected" — either directly or via an encoded value */
+function isCalendarOptionSelected(
+  option: string,
+  currentValues: string[],
+  calCfg?: { singleDateLabel?: string; dateRangeLabel?: string }
+): boolean {
+  if (!calCfg) return currentValues.includes(option);
+  if (option === calCfg.singleDateLabel) {
+    return currentValues.some((v) => v === option || v.startsWith('custom_date:'));
+  }
+  if (option === calCfg.dateRangeLabel) {
+    return currentValues.some((v) => v === option || v.startsWith('custom_range:'));
+  }
+  return currentValues.includes(option);
+}
+
 function makeDynamicValue(id: string, n: number): string {
   return `${id}:${n}`;
-}
-
-/** True when this field should offer a Manual/Relative mode toggle — i.e.
- * a date field with presets to pick from, on a single-date comparison operator. */
-function shouldShowDateRelativeMode(
-  field: FilterFieldConfig,
-  operator: string,
-  isRange: boolean,
-  isNoValue: boolean
-): boolean {
-  if (field.type !== 'date') return false;
-  if (isRange || isNoValue) return false;
-  const hasPresets = !!(field.options?.length || field.dynamicOptions?.length);
-  if (!hasPresets) return false;
-  // Applies to the comparison operators the spec calls out.
-  return (
-    operator === 'equals' ||
-    operator === 'not_equals' ||
-    operator === 'on' ||
-    operator === 'before' ||
-    operator === 'after' ||
-    operator === 'on_or_before' ||
-    operator === 'on_or_after'
-  );
-}
-
-/** Heuristic: does this string value look like a dynamic preset (either
- * a simple token or a parameterized token like "LAST_N_DAYS:30")? */
-function isRelativeValue(raw: string | string[] | undefined, field: FilterFieldConfig): boolean {
-  if (typeof raw !== 'string' || !raw) return false;
-  if (parseDynamicValue(raw)) return true;
-  if (field.options?.includes(raw)) return true;
-  return false;
 }
 
 // ============================================================================
@@ -164,6 +132,15 @@ export interface SplitFilterDropdownProps {
   value: FilterValue | null;
   onChange: (value: FilterValue | null) => void;
   children: React.ReactNode;
+  /** When true, dropdown opens read-only — user can view but not interact */
+  locked?: boolean;
+  /**
+   * Owner-only lock toggle. When provided, the popover footer shows a
+   * "Lock filter" / "Unlock filter" button that calls this handler.
+   * The button remains interactive even when `locked` is true, so the
+   * owner can always unlock from within the popover.
+   */
+  onToggleLock?: () => void;
 }
 
 // ============================================================================
@@ -175,6 +152,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   value,
   onChange,
   children,
+  locked = false,
+  onToggleLock,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -183,8 +162,6 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const [search, setSearch] = useState('');
   // Track numeric inputs for dynamic options keyed by dynamic option id
   const [dynamicInputs, setDynamicInputs] = useState<Record<string, number>>({});
-  // Date filter Manual/Relative toggle — only meaningful when shouldShowDateRelativeMode.
-  const [dateMode, setDateMode] = useState<'manual' | 'relative'>('manual');
 
   const operators = useMemo(() => getOperators(field), [field]);
   const currentOperator = value?.operator ?? getDefaultOperator(field);
@@ -197,7 +174,6 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const isRange = RANGE_OPERATORS.has(currentOperator);
   const operatorDef = operators.find((o) => o.value === currentOperator);
   const isNoValue = operatorDef?.noValue ?? false;
-  const showDateRelative = shouldShowDateRelativeMode(field, currentOperator, isRange, isNoValue);
 
   // Which dynamic options are currently selected (by id)
   const selectedDynamicIds = useMemo(() => {
@@ -209,29 +185,78 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     return ids;
   }, [currentValues]);
 
+  // Calendar state
+  const calCfg = field.calendarOptions;
+  const activeCalendarMode = useMemo<'single' | 'range' | null>(() => {
+    if (!calCfg) return null;
+    for (const v of currentValues) {
+      if (v === calCfg.singleDateLabel || v.startsWith('custom_date:')) return 'single';
+      if (v === calCfg.dateRangeLabel || v.startsWith('custom_range:')) return 'range';
+    }
+    return null;
+  }, [calCfg, currentValues]);
+
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>();
+  const [calendarRange, setCalendarRange] = useState<DateRange | undefined>();
+
+  // Initialize calendar from existing values on open
+  const initCalendar = useCallback(() => {
+    if (!calCfg) return;
+    let foundDate: Date | undefined;
+    let foundRange: DateRange | undefined;
+    for (const v of currentValues) {
+      const d = parseCustomDateValue(v);
+      if (d) foundDate = d;
+      const r = parseCustomRangeValue(v);
+      if (r) foundRange = r;
+    }
+    setCalendarDate(foundDate);
+    setCalendarRange(foundRange);
+  }, [calCfg, currentValues]);
+
+  // Resolve all options and dynamic options (flat or from optionGroups)
+  const allOptions = useMemo(() => {
+    if (field.optionGroups) {
+      return field.optionGroups.flatMap((g) => g.options ?? []);
+    }
+    return field.options ?? [];
+  }, [field.optionGroups, field.options]);
+
+  const allDynamicOptions = useMemo(() => {
+    if (field.optionGroups) {
+      return field.optionGroups.flatMap((g) => g.dynamicOptions ?? []);
+    }
+    return field.dynamicOptions ?? [];
+  }, [field.optionGroups, field.dynamicOptions]);
+
   // Initialize dynamicInputs from current values on open
   const initDynamicInputs = useCallback(() => {
-    if (!field.dynamicOptions) return;
+    if (allDynamicOptions.length === 0) return;
     const inputs: Record<string, number> = {};
     for (const v of currentValues) {
       const parsed = parseDynamicValue(v);
       if (parsed) inputs[parsed.id] = parsed.n;
     }
     // Fill defaults for un-selected ones
-    for (const opt of field.dynamicOptions) {
+    for (const opt of allDynamicOptions) {
       if (!(opt.id in inputs)) {
         inputs[opt.id] = opt.defaultN ?? 7;
       }
     }
     setDynamicInputs(inputs);
-  }, [field.dynamicOptions, currentValues]);
+  }, [allDynamicOptions, currentValues]);
 
   // Compute position from trigger rect
   const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
-    const popoverWidth = field.type === 'picklist' || field.options?.length ? 420 : 340;
-    // h-[240px] body + ~28px header + ~36px footer
+    const hasCalendar = activeCalendarMode !== null;
+    const baseWidth = field.type === 'picklist' || field.options?.length ? 420 : 340;
+    const popoverWidth = hasCalendar
+      ? activeCalendarMode === 'range'
+        ? baseWidth + 540
+        : baseWidth + 280
+      : baseWidth;
     const popoverHeight = 310;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
@@ -244,7 +269,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       left,
       zIndex: 10000,
     });
-  }, [field.type, field.options?.length]);
+  }, [field.type, field.options?.length, activeCalendarMode]);
 
   const handleToggle = useCallback(() => {
     if (isOpen) {
@@ -253,14 +278,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     } else {
       computePosition();
       initDynamicInputs();
-      // Seed Manual/Relative mode from the current value so reopening the
-      // popover remembers what the user last chose.
-      if (showDateRelative) {
-        setDateMode(isRelativeValue(value?.value, field) ? 'relative' : 'manual');
-      }
+      initCalendar();
       setIsOpen(true);
     }
-  }, [isOpen, computePosition, initDynamicInputs, showDateRelative, value?.value, field]);
+  }, [isOpen, computePosition, initDynamicInputs, initCalendar]);
 
   // Close on outside click
   useLayoutEffect(() => {
@@ -295,55 +316,53 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
   };
 
-  // Single-select handlers used in the Date Relative mode (radio behavior).
-  const handleSelectRelativeOption = (option: string) => {
-    // Overwrite with the chosen token. Clicking the already-selected option clears it.
-    const currentSingle = typeof value?.value === 'string' ? value.value : '';
-    if (currentSingle === option) {
-      onChange(null);
-    } else {
-      onChange({ operator: currentOperator, value: option });
-    }
-  };
-
-  const handleSelectRelativeDynamicOption = (optId: string) => {
-    const n =
-      dynamicInputs[optId] ?? field.dynamicOptions?.find((o) => o.id === optId)?.defaultN ?? 7;
-    const dynValue = makeDynamicValue(optId, n);
-    const currentSingle = typeof value?.value === 'string' ? value.value : '';
-    const parsed = parseDynamicValue(currentSingle);
-    if (parsed && parsed.id === optId) {
-      onChange(null);
-    } else {
-      onChange({ operator: currentOperator, value: dynValue });
-    }
-  };
-
-  const handleRelativeDynamicInputChange = (optId: string, n: number) => {
-    setDynamicInputs((prev) => ({ ...prev, [optId]: n }));
-    // If this parameterized option is the active single-select value, update it.
-    const currentSingle = typeof value?.value === 'string' ? value.value : '';
-    const parsed = parseDynamicValue(currentSingle);
-    if (parsed && parsed.id === optId) {
-      onChange({ operator: currentOperator, value: makeDynamicValue(optId, n) });
-    }
-  };
-
-  const handleDateModeSwitch = (mode: 'manual' | 'relative') => {
-    if (mode === dateMode) return;
-    setDateMode(mode);
-    // Clearing on switch avoids leaving an incompatible value in state
-    // (e.g. a token while in Manual mode shows an empty date input).
-    onChange(null);
-  };
-
   const handleToggleOption = (option: string) => {
-    const current = new Set(currentValues);
-    if (current.has(option)) {
-      current.delete(option);
-    } else {
+    const isSingleCal = calCfg?.singleDateLabel === option;
+    const isRangeCal = calCfg?.dateRangeLabel === option;
+
+    // Build current set, removing any encoded calendar values for this type
+    const current = new Set(
+      currentValues.filter((v) => {
+        if (isSingleCal) return !v.startsWith('custom_date:') && v !== calCfg?.singleDateLabel;
+        if (isRangeCal) return !v.startsWith('custom_range:') && v !== calCfg?.dateRangeLabel;
+        return v !== option;
+      })
+    );
+
+    // If unchecking a calendar option, also clear its calendar state
+    const wasActive = currentValues.some((v) =>
+      isSingleCal
+        ? v === option || v.startsWith('custom_date:')
+        : isRangeCal
+          ? v === option || v.startsWith('custom_range:')
+          : v === option
+    );
+
+    if (!wasActive) {
+      // Checking: if this is a calendar option, add the label as placeholder
+      // If checking single cal, remove any range cal values and vice versa
+      if (isSingleCal) {
+        // Remove range calendar values
+        for (const v of [...current]) {
+          if (v === calCfg?.dateRangeLabel || v.startsWith('custom_range:')) current.delete(v);
+        }
+        setCalendarRange(undefined);
+        setCalendarDate(undefined);
+      } else if (isRangeCal) {
+        // Remove single calendar values
+        for (const v of [...current]) {
+          if (v === calCfg?.singleDateLabel || v.startsWith('custom_date:')) current.delete(v);
+        }
+        setCalendarDate(undefined);
+        setCalendarRange(undefined);
+      }
       current.add(option);
+    } else {
+      // Unchecking
+      if (isSingleCal) setCalendarDate(undefined);
+      if (isRangeCal) setCalendarRange(undefined);
     }
+
     const arr = Array.from(current);
     if (arr.length === 0) {
       onChange(null);
@@ -351,6 +370,41 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       onChange({ operator: currentOperator, value: isMulti ? arr : arr[0] });
     }
   };
+
+  // Calendar date selection handlers
+  const handleCalendarDateSelect = (date: Date | undefined) => {
+    setCalendarDate(date);
+    if (!date) return;
+    const encoded = `custom_date:${formatDateISO(date)}`;
+    // Replace the placeholder "Custom Date" label with the encoded value
+    const next = currentValues
+      .filter((v) => v !== calCfg?.singleDateLabel && !v.startsWith('custom_date:'))
+      .concat(encoded);
+    onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+  };
+
+  const handleCalendarRangeSelect = (range: DateRange | undefined) => {
+    setCalendarRange(range);
+    if (!range?.from) return;
+    if (!range.to) {
+      // Only from selected so far — keep the placeholder
+      const next = currentValues.filter((v) => !v.startsWith('custom_range:'));
+      if (!next.includes(calCfg?.dateRangeLabel ?? ''))
+        next.push(calCfg?.dateRangeLabel ?? 'Custom Range');
+      onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+      return;
+    }
+    const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
+    const next = currentValues
+      .filter((v) => v !== calCfg?.dateRangeLabel && !v.startsWith('custom_range:'))
+      .concat(encoded);
+    onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+  };
+
+  // Recompute position when calendar mode changes
+  useLayoutEffect(() => {
+    if (isOpen) computePosition();
+  }, [activeCalendarMode, isOpen, computePosition]);
 
   const handleTextValueChange = (val: string) => {
     if (!val) {
@@ -414,14 +468,32 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const filteredOptions = useMemo(() => {
-    if (!field.options) return [];
-    if (!search) return field.options;
+    if (allOptions.length === 0) return [];
+    if (!search) return allOptions;
     const q = search.toLowerCase();
-    return field.options.filter((o) => o.toLowerCase().includes(q));
-  }, [field.options, search]);
+    return allOptions.filter((o) => o.toLowerCase().includes(q));
+  }, [allOptions, search]);
 
-  const hasOptions = field.options && field.options.length > 0;
-  const hasDynamicOptions = field.dynamicOptions && field.dynamicOptions.length > 0;
+  // Build filtered groups for grouped rendering
+  const filteredGroups = useMemo(() => {
+    if (!field.optionGroups) return null;
+    if (!search) return field.optionGroups;
+    const q = search.toLowerCase();
+    return field.optionGroups
+      .map((g) => ({
+        ...g,
+        options: g.options?.filter((o) => o.toLowerCase().includes(q)),
+        // Always keep dynamic options visible (they don't filter by search)
+        dynamicOptions: g.dynamicOptions,
+      }))
+      .filter(
+        (g) =>
+          (g.options && g.options.length > 0) || (g.dynamicOptions && g.dynamicOptions.length > 0)
+      );
+  }, [field.optionGroups, search]);
+
+  const hasOptions = allOptions.length > 0;
+  const hasDynamicOptions = allDynamicOptions.length > 0;
   const showRightPanel = !isNoValue;
 
   return (
@@ -440,33 +512,56 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
               style={popoverStyle}
-              className="bg-white rounded-xl border border-gray-100 shadow-lg overflow-hidden flex flex-col"
+              className={`rounded-xl border border-gray-100 shadow-lg flex flex-col ${locked ? 'bg-gray-50' : 'bg-white'}`}
             >
-              {/* Body: two-column split, fixed 180px height */}
-              <div className="flex h-[240px] min-h-0">
-                {/* Left panel — Operators: fixed heading, scrollable list */}
+              {/* Locked banner */}
+              {locked && (
+                <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2">
+                  <LockSimpleIcon size={12} className="text-gray-700 shrink-0" />
+                  <span className="text-xs text-gray-700">
+                    Filters are locked by the admin, can't be edited.
+                  </span>
+                </div>
+              )}
+              {/* Body: multi-column split */}
+              <div
+                className={`flex min-h-0 ${locked ? 'pointer-events-none' : ''} ${activeCalendarMode ? 'h-[280px]' : 'h-[240px]'}`}
+              >
+                {/* Left panel — Operators: fixed width with right panel, full width without */}
                 <div
-                  className={`w-[148px] flex flex-col shrink-0 ${showRightPanel ? 'border-r border-gray-100' : ''}`}
+                  className={`flex flex-col ${showRightPanel ? 'w-[148px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
                 >
                   <div className="px-2.5 py-1 shrink-0 border-b border-gray-100">
-                    <span className="text-xs font-medium text-gray-700">Operator</span>
+                    <span
+                      className={`text-xs font-medium ${locked ? 'text-gray-700' : 'text-gray-700'}`}
+                    >
+                      Operator
+                    </span>
                   </div>
                   <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
                     {operators.map((op) => (
                       <button
                         key={op.value}
                         onClick={() => handleOperatorChange(op.value)}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border border-white text-left transition-colors cursor-pointer ${
-                          currentOperator === op.value
-                            ? 'bg-gray-50 !border-gray-100 text-gray-900 font-medium'
-                            : 'text-gray-800 hover:bg-gray-50'
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border text-left transition-colors ${
+                          locked
+                            ? currentOperator === op.value
+                              ? 'bg-gray-100 border-gray-100 text-gray-700 font-medium cursor-default'
+                              : 'border-transparent text-gray-700 cursor-default'
+                            : currentOperator === op.value
+                              ? 'bg-gray-50 border-gray-100 text-gray-900 font-medium cursor-pointer'
+                              : 'border-transparent text-gray-800 hover:bg-gray-50 cursor-pointer'
                         }`}
                       >
                         <div
                           className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
                             currentOperator === op.value
-                              ? 'bg-gray-900'
-                              : 'border-[1.5px] border-gray-300'
+                              ? locked
+                                ? 'bg-gray-400'
+                                : 'bg-gray-900'
+                              : locked
+                                ? 'border-[1.5px] border-gray-300'
+                                : 'border-[1.5px] border-gray-300'
                           }`}
                         >
                           {currentOperator === op.value && (
@@ -482,252 +577,327 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 {/* Right panel — Values: fixed search, scrollable list */}
                 {showRightPanel && (
                   <div className="flex-1 min-w-[180px] flex flex-col min-h-0">
-                    {/* Date filter Manual/Relative mode toggle */}
-                    {showDateRelative && (
-                      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-100 shrink-0">
-                        {(['manual', 'relative'] as const).map((mode) => (
-                          <button
-                            key={mode}
-                            onClick={() => handleDateModeSwitch(mode)}
-                            className={`flex-1 h-[24px] px-2 text-[11px] rounded-md transition-colors cursor-pointer ${
-                              dateMode === mode
-                                ? 'bg-gray-900 text-white'
-                                : 'bg-transparent text-gray-800 hover:bg-gray-100'
-                            }`}
-                          >
-                            {mode === 'manual' ? 'Manual' : 'Relative'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Date + Manual: single date picker */}
-                    {showDateRelative && dateMode === 'manual' && (
-                      <div className="px-3 py-2.5">
-                        <input
-                          type="date"
-                          value={
-                            typeof value?.value === 'string' && !parseDynamicValue(value.value)
-                              ? value.value
-                              : ''
-                          }
-                          onChange={(e) => handleTextValueChange(e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-300 transition-colors"
-                          autoFocus
-                        />
-                      </div>
-                    )}
-
-                    {/* Date + Relative: single-select radio list of preset + parameterized tokens */}
-                    {showDateRelative && dateMode === 'relative' && (
-                      <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                        {field.options?.map((option) => {
-                          const isSelected =
-                            typeof value?.value === 'string' && value.value === option;
-                          return (
-                            <button
-                              key={option}
-                              onClick={() => handleSelectRelativeOption(option)}
-                              className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                              <div
-                                className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                                  isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
-                                }`}
-                              >
-                                {isSelected && (
-                                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                )}
-                              </div>
-                              <span
-                                className={
-                                  isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
-                                }
-                              >
-                                {option}
-                              </span>
-                            </button>
-                          );
-                        })}
-                        {field.dynamicOptions?.map((opt) => {
-                          const currentSingle = typeof value?.value === 'string' ? value.value : '';
-                          const parsed = parseDynamicValue(currentSingle);
-                          const isSelected = parsed?.id === opt.id;
-                          const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
-                          return (
-                            <div key={opt.id}>
-                              <button
-                                onClick={() => handleSelectRelativeDynamicOption(opt.id)}
-                                className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                              >
-                                <div
-                                  className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                                    isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
-                                  }`}
-                                >
-                                  {isSelected && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                  )}
-                                </div>
-                                <span
-                                  className={
-                                    isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
-                                  }
-                                >
-                                  {opt.label}
-                                </span>
-                              </button>
-                              {isSelected && (
-                                <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
-                                  <input
-                                    type="number"
-                                    min={1}
-                                    value={n}
-                                    onChange={(e) =>
-                                      handleRelativeDynamicInputChange(
-                                        opt.id,
-                                        Math.max(1, parseInt(e.target.value) || 1)
-                                      )
-                                    }
-                                    className="w-14 px-2 py-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg text-center focus:outline-none focus:border-gray-300 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    onClick={(e) => e.stopPropagation()}
-                                  />
-                                  {opt.unit && (
-                                    <span className="text-xs text-gray-700">{opt.unit}</span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
                     {/* Inline search — fixed at top */}
-                    {!showDateRelative && hasOptions && (
+                    {hasOptions && (
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 shrink-0">
-                        <MagnifyingGlassIcon size={13} className="text-gray-700 shrink-0" />
+                        <MagnifyingGlassIcon
+                          size={13}
+                          className={`shrink-0 ${locked ? 'text-gray-400' : 'text-gray-700'}`}
+                        />
                         <input
                           type="text"
                           value={search}
-                          onChange={(e) => setSearch(e.target.value)}
+                          onChange={locked ? undefined : (e) => setSearch(e.target.value)}
                           placeholder="Search..."
-                          className="flex-1 bg-transparent text-xs text-gray-900 placeholder:text-gray-700 outline-none"
-                          autoFocus
+                          readOnly={locked}
+                          className={`flex-1 bg-transparent text-xs outline-none ${locked ? 'text-gray-700 placeholder:text-gray-500 cursor-default caret-transparent' : 'text-gray-900 placeholder:text-gray-700'}`}
+                          autoFocus={!locked}
                         />
                       </div>
                     )}
 
                     {/* Option list (picklist) — scrollable */}
-                    {!showDateRelative && (hasOptions || hasDynamicOptions) && (
+                    {(hasOptions || hasDynamicOptions) && (
                       <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                        {filteredOptions.map((option) => {
-                          const isSelected = currentValues.includes(option);
-                          return (
-                            <button
-                              key={option}
-                              onClick={() => handleToggleOption(option)}
-                              className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                            >
-                              <div
-                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                  isSelected
-                                    ? 'bg-gray-900 border-gray-900'
-                                    : 'bg-white border-gray-300'
-                                }`}
-                              >
-                                {isSelected && (
-                                  <CheckIcon size={10} weight="bold" className="text-white" />
-                                )}
-                              </div>
-                              <span
-                                className={
-                                  isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
-                                }
-                              >
-                                {option}
-                              </span>
-                            </button>
-                          );
-                        })}
-                        {filteredOptions.length === 0 && !hasDynamicOptions && (
-                          <div className="px-3 py-3 text-xs text-gray-400 text-center">
-                            No matches
-                          </div>
-                        )}
-
-                        {/* Dynamic options with inline number inputs */}
-                        {hasDynamicOptions && (
+                        {/* Grouped rendering */}
+                        {filteredGroups ? (
                           <>
-                            {field.dynamicOptions!.map((opt) => {
-                              const isSelected = selectedDynamicIds.has(opt.id);
-                              const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
+                            {filteredGroups.map((group, gi) => {
+                              const groupOptions = group.options ?? [];
+                              const groupDynamic = group.dynamicOptions ?? [];
+                              if (groupOptions.length === 0 && groupDynamic.length === 0)
+                                return null;
                               return (
-                                <div key={opt.id}>
-                                  <button
-                                    onClick={() => handleToggleDynamicOption(opt.id)}
-                                    className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                                  >
-                                    <div
-                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                        isSelected
-                                          ? 'bg-gray-900 border-gray-900'
-                                          : 'bg-white border-gray-300'
-                                      }`}
-                                    >
-                                      {isSelected && (
-                                        <CheckIcon size={10} weight="bold" className="text-white" />
-                                      )}
-                                    </div>
-                                    <span
-                                      className={
-                                        isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
-                                      }
-                                    >
-                                      {opt.label}
-                                    </span>
-                                  </button>
-                                  {/* Inline number input — shown when selected */}
-                                  {isSelected && (
-                                    <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
-                                      <input
-                                        type="number"
-                                        min={1}
-                                        value={n}
-                                        onChange={(e) =>
-                                          handleDynamicInputChange(
-                                            opt.id,
-                                            Math.max(1, parseInt(e.target.value) || 1)
-                                          )
-                                        }
-                                        className="w-14 px-2 py-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg text-center focus:outline-none focus:border-gray-300 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                      {opt.unit && (
-                                        <span className="text-xs text-gray-700">{opt.unit}</span>
-                                      )}
+                                <React.Fragment key={gi}>
+                                  {/* Section title with separator */}
+                                  {group.title && (
+                                    <div className="px-3 pt-2 pb-1">
+                                      {gi > 0 && <div className="border-t border-gray-100 mb-2" />}
+                                      <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                                        {group.title}
+                                      </span>
                                     </div>
                                   )}
-                                </div>
+                                  {/* Static options */}
+                                  {groupOptions.map((option) => {
+                                    const isSelected = isCalendarOptionSelected(
+                                      option,
+                                      currentValues,
+                                      calCfg
+                                    );
+                                    return (
+                                      <button
+                                        key={option}
+                                        onClick={() => handleToggleOption(option)}
+                                        className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                      >
+                                        <div
+                                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                            isSelected
+                                              ? locked
+                                                ? 'bg-gray-400 border-gray-400'
+                                                : 'bg-gray-900 border-gray-900'
+                                              : locked
+                                                ? 'bg-gray-100 border-gray-300'
+                                                : 'bg-white border-gray-300'
+                                          }`}
+                                        >
+                                          {isSelected && (
+                                            <CheckIcon
+                                              size={10}
+                                              weight="bold"
+                                              className="text-white"
+                                            />
+                                          )}
+                                        </div>
+                                        <span
+                                          className={
+                                            locked
+                                              ? 'text-gray-700'
+                                              : isSelected
+                                                ? 'text-gray-900 font-medium'
+                                                : 'text-gray-800'
+                                          }
+                                        >
+                                          {option}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                  {/* Dynamic options */}
+                                  {groupDynamic.map((opt) => {
+                                    const isSelected = selectedDynamicIds.has(opt.id);
+                                    const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
+                                    return (
+                                      <div key={opt.id}>
+                                        <button
+                                          onClick={() => handleToggleDynamicOption(opt.id)}
+                                          className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                        >
+                                          <div
+                                            className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                              isSelected
+                                                ? locked
+                                                  ? 'bg-gray-400 border-gray-400'
+                                                  : 'bg-gray-900 border-gray-900'
+                                                : locked
+                                                  ? 'bg-gray-100 border-gray-300'
+                                                  : 'bg-white border-gray-300'
+                                            }`}
+                                          >
+                                            {isSelected && (
+                                              <CheckIcon
+                                                size={10}
+                                                weight="bold"
+                                                className="text-white"
+                                              />
+                                            )}
+                                          </div>
+                                          <span
+                                            className={
+                                              locked
+                                                ? 'text-gray-700'
+                                                : isSelected
+                                                  ? 'text-gray-900 font-medium'
+                                                  : 'text-gray-800'
+                                            }
+                                          >
+                                            {opt.label}
+                                          </span>
+                                        </button>
+                                        {isSelected && (
+                                          <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
+                                            <input
+                                              type="number"
+                                              min={1}
+                                              value={n}
+                                              onChange={
+                                                locked
+                                                  ? undefined
+                                                  : (e) =>
+                                                      handleDynamicInputChange(
+                                                        opt.id,
+                                                        Math.max(1, parseInt(e.target.value) || 1)
+                                                      )
+                                              }
+                                              readOnly={locked}
+                                              className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                                locked
+                                                  ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                                  : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
+                                              }`}
+                                              onClick={(e) => e.stopPropagation()}
+                                            />
+                                            {opt.unit && (
+                                              <span className="text-xs text-gray-700">
+                                                {opt.unit}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </React.Fragment>
                               );
                             })}
+                            {filteredGroups.length === 0 && (
+                              <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                                No matches
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          /* Flat rendering (backward-compatible) */
+                          <>
+                            {filteredOptions.map((option) => {
+                              const isSelected = isCalendarOptionSelected(
+                                option,
+                                currentValues,
+                                calCfg
+                              );
+                              return (
+                                <button
+                                  key={option}
+                                  onClick={() => handleToggleOption(option)}
+                                  className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                >
+                                  <div
+                                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                      isSelected
+                                        ? locked
+                                          ? 'bg-gray-400 border-gray-400'
+                                          : 'bg-gray-900 border-gray-900'
+                                        : locked
+                                          ? 'bg-gray-100 border-gray-300'
+                                          : 'bg-white border-gray-300'
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <CheckIcon size={10} weight="bold" className="text-white" />
+                                    )}
+                                  </div>
+                                  <span
+                                    className={
+                                      locked
+                                        ? 'text-gray-700'
+                                        : isSelected
+                                          ? 'text-gray-900 font-medium'
+                                          : 'text-gray-800'
+                                    }
+                                  >
+                                    {option}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                            {filteredOptions.length === 0 && !hasDynamicOptions && (
+                              <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                                No matches
+                              </div>
+                            )}
+                            {/* Dynamic options with inline number inputs */}
+                            {hasDynamicOptions && !field.optionGroups && (
+                              <>
+                                {field.dynamicOptions!.map((opt) => {
+                                  const isSelected = selectedDynamicIds.has(opt.id);
+                                  const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
+                                  return (
+                                    <div key={opt.id}>
+                                      <button
+                                        onClick={() => handleToggleDynamicOption(opt.id)}
+                                        className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                      >
+                                        <div
+                                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                            isSelected
+                                              ? locked
+                                                ? 'bg-gray-400 border-gray-400'
+                                                : 'bg-gray-900 border-gray-900'
+                                              : locked
+                                                ? 'bg-gray-100 border-gray-300'
+                                                : 'bg-white border-gray-300'
+                                          }`}
+                                        >
+                                          {isSelected && (
+                                            <CheckIcon
+                                              size={10}
+                                              weight="bold"
+                                              className="text-white"
+                                            />
+                                          )}
+                                        </div>
+                                        <span
+                                          className={
+                                            locked
+                                              ? 'text-gray-700'
+                                              : isSelected
+                                                ? 'text-gray-900 font-medium'
+                                                : 'text-gray-800'
+                                          }
+                                        >
+                                          {opt.label}
+                                        </span>
+                                      </button>
+                                      {isSelected && (
+                                        <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
+                                          <input
+                                            type="number"
+                                            min={1}
+                                            value={n}
+                                            onChange={
+                                              locked
+                                                ? undefined
+                                                : (e) =>
+                                                    handleDynamicInputChange(
+                                                      opt.id,
+                                                      Math.max(1, parseInt(e.target.value) || 1)
+                                                    )
+                                            }
+                                            readOnly={locked}
+                                            className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                              locked
+                                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                                : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
+                                            }`}
+                                            onClick={(e) => e.stopPropagation()}
+                                          />
+                                          {opt.unit && (
+                                            <span className="text-xs text-gray-700">
+                                              {opt.unit}
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </>
+                            )}
                           </>
                         )}
                       </div>
                     )}
 
                     {/* Between range input (number or date) */}
-                    {!showDateRelative && !hasOptions && isRange && (
+                    {!hasOptions && isRange && (
                       <div className="px-3 py-2.5 flex flex-col gap-1">
                         <div>
                           <label className="text-[11px] text-gray-700 mb-1 block">Min</label>
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
                             value={Array.isArray(value?.value) ? (value.value[0] ?? '') : ''}
-                            onChange={(e) => handleRangeChange(0, e.target.value)}
+                            onChange={
+                              locked ? undefined : (e) => handleRangeChange(0, e.target.value)
+                            }
+                            readOnly={locked}
                             placeholder="Min"
-                            className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
-                            autoFocus
+                            className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                              locked
+                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                            }`}
+                            autoFocus={!locked}
                           />
                         </div>
                         <div className="text-center text-xs text-gray-700">to</div>
@@ -736,16 +906,23 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
                             value={Array.isArray(value?.value) ? (value.value[1] ?? '') : ''}
-                            onChange={(e) => handleRangeChange(1, e.target.value)}
+                            onChange={
+                              locked ? undefined : (e) => handleRangeChange(1, e.target.value)
+                            }
+                            readOnly={locked}
                             placeholder="Max"
-                            className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
+                            className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                              locked
+                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                            }`}
                           />
                         </div>
                       </div>
                     )}
 
                     {/* Text/number/date single input (non-picklist, non-range) */}
-                    {!showDateRelative && !hasOptions && !isRange && (
+                    {!hasOptions && !isRange && (
                       <div className="px-3 py-2.5">
                         <input
                           type={
@@ -756,10 +933,17 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                 : 'text'
                           }
                           value={typeof value?.value === 'string' ? value.value : ''}
-                          onChange={(e) => handleTextValueChange(e.target.value)}
+                          onChange={
+                            locked ? undefined : (e) => handleTextValueChange(e.target.value)
+                          }
+                          readOnly={locked}
                           placeholder={`Enter ${field.label.toLowerCase()}...`}
-                          className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
-                          autoFocus
+                          className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                            locked
+                              ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                              : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                          }`}
+                          autoFocus={!locked}
                         />
                       </div>
                     )}
@@ -767,23 +951,142 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 )}
 
                 {/* No right panel for no-value operators — left panel stands alone */}
+
+                {/* Calendar panel — appears when Custom Date or Custom Range is checked.
+                    `boundary` on the field definition is honoured by disabling dates
+                    outside the extraction range and clamping the month-picker bounds. */}
+                {activeCalendarMode &&
+                  !locked &&
+                  (() => {
+                    const parseBoundaryDate = (iso?: string): Date | undefined => {
+                      if (!iso) return undefined;
+                      const d = new Date(iso + 'T00:00:00');
+                      return isNaN(d.getTime()) ? undefined : d;
+                    };
+                    const minDate = parseBoundaryDate(field.boundary?.minDate);
+                    const maxDate = parseBoundaryDate(field.boundary?.maxDate);
+                    // Widen the month picker by a year on each side of the bound
+                    // so edge dates are reachable via the dropdown nav.
+                    const boundaryStartMonth = minDate
+                      ? new Date(minDate.getFullYear(), minDate.getMonth(), 1)
+                      : new Date(2020, 0);
+                    const boundaryEndMonth = maxDate
+                      ? new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)
+                      : new Date(2030, 11);
+                    const disabledMatcher =
+                      minDate || maxDate
+                        ? [
+                            ...(minDate ? [{ before: minDate }] : []),
+                            ...(maxDate ? [{ after: maxDate }] : []),
+                          ]
+                        : undefined;
+                    const calendarComponents = {
+                      Chevron: ({
+                        orientation,
+                      }: {
+                        orientation?: 'left' | 'right' | 'up' | 'down';
+                      }) =>
+                        orientation === 'left' ? (
+                          <CaretLeftIcon size={12} weight="bold" />
+                        ) : (
+                          <CaretRightIcon size={12} weight="bold" />
+                        ),
+                    };
+                    return (
+                      <div className="border-l border-gray-100 flex flex-col min-h-0 shrink-0">
+                        <div className="px-3 py-1 shrink-0 border-b border-gray-100 flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-gray-700">
+                            {activeCalendarMode === 'single' ? 'Select date' : 'Select date range'}
+                          </span>
+                          {(minDate || maxDate) && (
+                            <span className="text-[10px] text-gray-500">
+                              Within extraction boundary
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 overflow-auto flex items-start justify-center px-2 pb-1.5">
+                          {activeCalendarMode === 'single' ? (
+                            <DayPicker
+                              className="filter-calendar"
+                              mode="single"
+                              selected={calendarDate}
+                              onSelect={handleCalendarDateSelect}
+                              captionLayout="dropdown"
+                              startMonth={boundaryStartMonth}
+                              endMonth={boundaryEndMonth}
+                              disabled={disabledMatcher}
+                              showOutsideDays
+                              fixedWeeks
+                              components={calendarComponents}
+                            />
+                          ) : (
+                            <DayPicker
+                              className="filter-calendar"
+                              mode="range"
+                              selected={calendarRange}
+                              onSelect={handleCalendarRangeSelect}
+                              numberOfMonths={2}
+                              captionLayout="dropdown"
+                              startMonth={boundaryStartMonth}
+                              endMonth={boundaryEndMonth}
+                              disabled={disabledMatcher}
+                              showOutsideDays
+                              fixedWeeks
+                              components={calendarComponents}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
               </div>
 
-              {/* Footer — spans full width across both columns */}
+              {/* Footer — spans full width across both columns.
+                  The owner's lock toggle (when provided) stays interactive
+                  even while `locked` is true, so it can always be flipped
+                  off from within the popover. */}
               <div className="px-2.5 py-2 border-t border-gray-100 flex items-center gap-2">
+                {onToggleLock && (
+                  <button
+                    onClick={onToggleLock}
+                    title={locked ? 'Unlock filter' : 'Lock filter'}
+                    className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
+                      locked
+                        ? 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800'
+                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    {locked ? (
+                      <LockSimpleIcon size={11} weight="bold" />
+                    ) : (
+                      <LockSimpleOpenIcon size={11} />
+                    )}
+                    {locked ? 'Locked' : 'Lock'}
+                  </button>
+                )}
                 {!isNoValue && (
                   <button
-                    onClick={() => {
-                      if (value) {
-                        onChange({ ...value, includeBlank: !value.includeBlank || undefined });
-                      }
-                    }}
-                    className="flex items-center gap-1.5 cursor-pointer bg-transparent border-none p-0"
+                    onClick={
+                      locked
+                        ? undefined
+                        : () => {
+                            if (value) {
+                              onChange({
+                                ...value,
+                                includeBlank: !value.includeBlank || undefined,
+                              });
+                            }
+                          }
+                    }
+                    disabled={locked}
+                    className={`flex items-center gap-1.5 bg-transparent border-none p-0 ${locked ? 'cursor-default opacity-60' : 'cursor-pointer'}`}
                   >
                     <div
                       className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                         value?.includeBlank
-                          ? 'bg-gray-900 border-gray-900'
+                          ? locked
+                            ? 'bg-gray-400 border-gray-400'
+                            : 'bg-gray-900 border-gray-900'
                           : 'bg-white border-gray-300'
                       }`}
                     >
@@ -791,13 +1094,16 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                         <CheckIcon size={10} weight="bold" className="text-white" />
                       )}
                     </div>
-                    <span className="text-xs text-gray-800">Include blanks</span>
+                    <span className={`text-xs ${locked ? 'text-gray-700' : 'text-gray-800'}`}>
+                      Include blanks
+                    </span>
                   </button>
                 )}
                 <div className="flex-1" />
                 <button
                   onClick={handleClear}
-                  className="text-xs text-gray-800 hover:text-gray-900 transition-colors cursor-pointer"
+                  disabled={locked}
+                  className={`text-xs transition-colors ${locked ? 'text-gray-700 cursor-default opacity-60' : 'text-gray-800 hover:text-gray-900 cursor-pointer'}`}
                 >
                   Clear
                 </button>
@@ -806,7 +1112,12 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     setIsOpen(false);
                     setSearch('');
                   }}
-                  className="h-[26px] px-3 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+                  disabled={locked}
+                  className={`h-[26px] px-3 text-xs font-medium rounded-lg transition-colors ${
+                    locked
+                      ? 'bg-gray-200 text-gray-400 cursor-default'
+                      : 'text-white bg-gray-900 hover:bg-gray-800 cursor-pointer'
+                  }`}
                 >
                   Apply
                 </button>

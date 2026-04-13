@@ -7,7 +7,7 @@
  */
 
 import React, { useRef, useState, useCallback, useLayoutEffect } from 'react';
-import { CaretLeftIcon, CaretRightIcon, InfoIcon } from '@phosphor-icons/react';
+import { CaretLeftIcon, CaretRightIcon, InfoIcon, LockSimpleIcon } from '@phosphor-icons/react';
 import { Tooltip } from '../../Tooltip';
 import { SplitFilterDropdown } from './SplitFilterDropdown';
 
@@ -37,6 +37,22 @@ export interface CustomOperatorDef {
   noValue?: boolean;
 }
 
+export interface OptionGroup {
+  /** Section title rendered above the group */
+  title?: string;
+  /** Static checkbox options */
+  options?: string[];
+  /** Options that require a numeric input */
+  dynamicOptions?: DynamicOptionConfig[];
+}
+
+export interface CalendarOptionConfig {
+  /** Option label that triggers a single-date calendar picker */
+  singleDateLabel?: string;
+  /** Option label that triggers a date-range calendar picker */
+  dateRangeLabel?: string;
+}
+
 export interface FilterFieldConfig {
   id: string;
   label: string;
@@ -45,12 +61,31 @@ export interface FilterFieldConfig {
   options?: string[];
   /** Options that require a numeric input (shown below static options) */
   dynamicOptions?: DynamicOptionConfig[];
+  /** Grouped option sections with titles — when present, overrides flat options/dynamicOptions */
+  optionGroups?: OptionGroup[];
+  /** Options that expand a calendar picker when selected */
+  calendarOptions?: CalendarOptionConfig;
   /** Tooltip text shown when hovering the info icon next to the label */
   tooltip?: string;
   /** Custom operator definitions — overrides the default operators for this field's type */
   customOperators?: CustomOperatorDef[];
   /** Override the default operator for this field */
   defaultOperator?: string;
+  /** Per-filter locked state — dropdown opens read-only, chip gets a locked look. */
+  locked?: boolean;
+  /** Owner-only toggle. When provided, the popover footer shows a lock button; clicking it calls this handler. */
+  onToggleLock?: () => void;
+  /**
+   * Hard extraction boundary applied to single-date / range calendar pickers.
+   * Dates falling outside the range are disabled. Passed through to DayPicker
+   * via the calendar panel.
+   */
+  boundary?: {
+    /** ISO date string inclusive lower bound (dates before this are disabled) */
+    minDate?: string;
+    /** ISO date string inclusive upper bound (dates after this are disabled) */
+    maxDate?: string;
+  };
 }
 
 export interface FilterValue {
@@ -127,8 +162,11 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
     // Multi-value (picklist chips)
     if (Array.isArray(fv.value) && fv.value.length > 0) {
+      const allDynOpts = field.optionGroups
+        ? field.optionGroups.flatMap((g) => g.dynamicOptions ?? [])
+        : field.dynamicOptions;
       const displayValues = fv.value.map((v) => {
-        const dynLabel = formatDynamicValue(v, field.dynamicOptions);
+        const dynLabel = formatDynamicValue(v, allDynOpts);
         return dynLabel ?? v;
       });
       return (
@@ -179,30 +217,45 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       >
         {fields.map((field) => {
           const fv = values[field.id];
+          const fieldLocked = field.locked ?? false;
           return (
             <SplitFilterDropdown
               key={field.id}
               field={field}
               value={fv ?? null}
               onChange={(val) => onFilterChange(field.id, val)}
+              locked={fieldLocked}
+              onToggleLock={field.onToggleLock}
             >
-              <div className="flex flex-col gap-1 shrink-0 cursor-pointer">
-                <span className="flex items-center gap-1 text-[11px] text-gray-700 leading-none pl-0.5">
+              <div
+                className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
+              >
+                <span
+                  className={`flex items-center gap-1 text-[11px] leading-none pl-0.5 ${fieldLocked ? 'text-gray-500' : 'text-gray-700'}`}
+                >
                   {field.label}
                   {field.tooltip && (
                     <Tooltip content={field.tooltip} placement="top">
                       <InfoIcon
                         size={11}
-                        className="text-gray-800 hover:text-gray-600 transition-colors shrink-0"
+                        className={`shrink-0 transition-colors ${fieldLocked ? 'text-gray-400' : 'text-gray-800 hover:text-gray-600'}`}
                       />
                     </Tooltip>
                   )}
                 </span>
                 <button
-                  className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs text-gray-900 bg-white rounded-lg shadow-xs border border-gray-200/50 hover:bg-gray-50 transition-colors whitespace-nowrap cursor-pointer ${!fv ? 'min-w-[80px]' : ''}`}
+                  className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
+                    fieldLocked
+                      ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
+                      : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
+                  } ${!fv ? 'min-w-[80px]' : ''}`}
                 >
+                  {fieldLocked && <LockSimpleIcon size={11} className="text-gray-500 shrink-0" />}
                   <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
-                  <CaretRightIcon size={12} className="text-gray-400 rotate-90 shrink-0" />
+                  <CaretRightIcon
+                    size={12}
+                    className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
+                  />
                 </button>
               </div>
             </SplitFilterDropdown>
@@ -238,33 +291,56 @@ function getOperatorFullLabel(op: string, field: FilterFieldConfig): string {
     if (custom) return custom.label;
   }
   const labels: Record<string, string> = {
-    equals: 'Is',
-    not_equals: 'Is not',
+    equals: 'Equal To',
+    not_equals: 'Not Equal To',
+    greater_than: 'Greater Than',
+    greater_than_or_equal: 'Greater Than or Equal To',
+    less_than: 'Less Than',
+    less_than_or_equal: 'Less Than or Equal To',
+    between: 'Select Range',
+    is_not_blank: 'Is Not Blank',
+    is_blank: 'Is Blank',
+    in_this_quarter: 'In This Quarter',
+    in_next_quarter: 'In Next Quarter',
+    // Legacy labels for custom operators
+    in: 'Is any of',
+    not_in: 'Is none of',
     contains: 'Contains',
     not_contains: 'Does not contain',
     starts_with: 'Starts with',
     ends_with: 'Ends with',
-    is_blank: 'Is blank',
-    is_not_blank: 'Is not blank',
-    in: 'Is any of',
-    not_in: 'Is none of',
     on: 'On',
     before: 'Before',
     after: 'After',
     on_or_before: 'On or before',
     on_or_after: 'On or after',
-    between: 'Between',
     not_between: 'Not between',
-    greater_than: 'Greater than',
-    greater_than_or_equal: 'At least',
-    less_than: 'Less than',
-    less_than_or_equal: 'At most',
   };
   return labels[op] ?? op;
 }
 
 /** Resolve a dynamic value like "last_n_days:30" → "Last 30 days" using the field's dynamicOptions config */
 function formatDynamicValue(v: string, dynamicOptions?: DynamicOptionConfig[]): string | null {
+  // Custom date values: "custom_date:2024-03-15" → "Mar 15, 2024"
+  const dateMatch = v.match(/^custom_date:(\d{4}-\d{2}-\d{2})$/);
+  if (dateMatch) {
+    const d = new Date(dateMatch[1] + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  // Custom range values: "custom_range:2024-03-01_2024-03-31" → "Mar 1 – Mar 31, 2024"
+  const rangeMatch = v.match(/^custom_range:(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/);
+  if (rangeMatch) {
+    const from = new Date(rangeMatch[1] + 'T00:00:00');
+    const to = new Date(rangeMatch[2] + 'T00:00:00');
+    const fromStr = from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const toStr = to.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return `${fromStr} – ${toStr}`;
+  }
+
   if (!dynamicOptions) return null;
   const match = v.match(/^([a-z_]+):(\d+)$/);
   if (!match) return null;
