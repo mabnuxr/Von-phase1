@@ -78,6 +78,38 @@ export const tokenLabel = (value: string): string =>
 export const reverseToken = (label: string): string =>
   LABEL_TO_TOKEN[label] ?? label;
 
+// ── Parameterized token formatting ──────────────────────────────────
+//
+// Dynamic N-tokens are serialised on the wire as "ID:N" (e.g.
+// "NEXT_N_DAYS:7"). The backend sends human templates in
+// `available_dynamic_options[].label` like "Next N days" with a
+// literal `N` placeholder. Format by substituting the number in.
+
+const DYNAMIC_N_RE = /^([A-Za-z_]+):(\d+)$/;
+
+/**
+ * Format a wire-format dynamic N-token ("NEXT_N_DAYS:7") to a display
+ * string using the filter definition's labels. Falls back to a
+ * title-cased version of the id when no definition is passed (e.g.
+ * "Next 7 days" ← best-effort from "NEXT_N_DAYS:7").
+ */
+export function formatDynamicNValue(
+  value: string,
+  def?: { available_dynamic_options?: { id: string; label: string }[] },
+): string | null {
+  const m = value.match(DYNAMIC_N_RE);
+  if (!m) return null;
+  const [, id, nStr] = m;
+  const opt = def?.available_dynamic_options?.find((o) => o.id === id);
+  if (opt) {
+    // Replace the literal word "N" in the backend template with the number.
+    return opt.label.replace(/\bN\b/, nStr);
+  }
+  // Best-effort fallback: "NEXT_N_DAYS" → "Next 7 days"
+  const words = id.toLowerCase().split("_");
+  return words.map((w) => (w === "n" ? nStr : w)).join(" ").replace(/^./, (c) => c.toUpperCase());
+}
+
 // ── Calendar-value round-trip ───────────────────────────────────────
 //
 // The design-system SplitFilterDropdown serialises calendar picks as
@@ -102,10 +134,13 @@ export function mapFieldType(type: DashboardFilterType): FieldType {
     case "select":
     case "multi-select":
       return "picklist";
+    case "date":
     case "date-range":
       return "date";
+    case "number":
     case "range":
       return "number";
+    case "text":
     case "search":
     default:
       return "text";
@@ -115,11 +150,12 @@ export function mapFieldType(type: DashboardFilterType): FieldType {
 // ── Date filter option groups (spec §3.2.2 Tier 1 + Tier 2) ─────────
 //
 // The dashboard filter spec calls for full SFDC parity on time-based
-// dynamic filters. The backend's `available_presets` today only
-// enumerates non-parameterized tokens; `available_dynamic_options`
-// carries the N-parameterized ones. These are organised into spec
-// tiers client-side (until the backend starts grouping them) so the
-// dropdown shows titled sections like "Days", "Weeks", etc.
+// dynamic filters. The backend's `available_presets` enumerates the
+// non-parameterized tokens it can resolve; `available_dynamic_options`
+// carries the N-parameterized ones. Backend is the source of truth —
+// we only render what it advertises, grouped into spec tiers here
+// (until the backend starts grouping them) so the dropdown shows
+// titled sections like "Days", "Weeks", etc.
 
 /** Subset of `available_presets` that belongs in a named group. */
 const DATE_GROUP_PRESETS: Record<string, string[]> = {
@@ -170,6 +206,35 @@ const DATE_GROUP_DYNAMIC_PREFIXES: Record<string, string[]> = {
 const CUSTOM_DATE_LABEL = "Custom Date";
 const CUSTOM_RANGE_LABEL = "Custom Range";
 
+// ── Operator-aware applicability for date tokens ────────────────────
+//
+// Date operators split into two families:
+//   - Single-date operators (equals/on/not_equals/before/after/
+//     on_or_before/on_or_after) take a single date. Point tokens
+//     (TODAY, YESTERDAY, N_DAYS_AGO) and Custom Date all resolve to
+//     one date. Range tokens (THIS_QUARTER, LAST_N_DAYS, …) resolve
+//     to a boundary of the range (backend's dynamic_resolver picks
+//     start vs end per operator).
+//   - Range operators (between/not_between) take two dates. Range
+//     tokens expand to [start, end]; Custom Range supplies two dates
+//     directly. Point tokens and Custom Date don't fit — hide them.
+
+const SINGLE_DATE_OPERATORS = [
+  "equals",
+  "on",
+  "not_equals",
+  "before",
+  "after",
+  "on_or_before",
+  "on_or_after",
+];
+const RANGE_DATE_OPERATORS = ["between", "not_between"];
+
+/** Tokens that resolve to a single point in time (not a range). */
+const POINT_TOKENS = new Set(["TODAY", "YESTERDAY", "TOMORROW"]);
+/** Dynamic-option ids that resolve to a single point. */
+const POINT_DYNAMIC_IDS = new Set(["N_DAYS_AGO"]);
+
 function buildDateOptionGroups(def: DashboardFilterDefinition): OptionGroup[] {
   const presets = new Set(def.available_presets ?? []);
   const dynOpts = def.available_dynamic_options ?? [];
@@ -178,20 +243,43 @@ function buildDateOptionGroups(def: DashboardFilterDefinition): OptionGroup[] {
 
   // Tier 1 — no title, always first
   const tier1Options: string[] = [];
+  const tier1Applicability: Record<string, string[]> = {};
   for (const token of DATE_GROUP_PRESETS.__TIER1__) {
-    if (presets.has(token)) tier1Options.push(tokenLabel(token));
+    if (!presets.has(token)) continue;
+    const label = tokenLabel(token);
+    tier1Options.push(label);
+    if (POINT_TOKENS.has(token)) {
+      tier1Applicability[label] = SINGLE_DATE_OPERATORS;
+    }
+    // Range tokens stay visible on all date operators — no entry means
+    // "always applicable".
   }
-  // Custom Date / Custom Range land in Tier 1 — they trigger the calendar panel.
+  // Custom Date / Custom Range trigger the calendar panel. Each is only
+  // meaningful for one operator family.
   tier1Options.push(CUSTOM_DATE_LABEL, CUSTOM_RANGE_LABEL);
-  if (tier1Options.length > 0) groups.push({ options: tier1Options });
+  tier1Applicability[CUSTOM_DATE_LABEL] = SINGLE_DATE_OPERATORS;
+  tier1Applicability[CUSTOM_RANGE_LABEL] = RANGE_DATE_OPERATORS;
+  if (tier1Options.length > 0) {
+    groups.push({
+      options: tier1Options,
+      optionApplicability: tier1Applicability,
+    });
+  }
 
   // Titled tiers — only include a tier if it has at least one option the
   // backend actually supports.
   for (const [title, groupPresets] of Object.entries(DATE_GROUP_PRESETS)) {
     if (title === "__TIER1__") continue;
-    const titledOptions = groupPresets
-      .filter((t) => presets.has(t))
-      .map(tokenLabel);
+    const titledOptions: string[] = [];
+    const optApplicability: Record<string, string[]> = {};
+    for (const t of groupPresets) {
+      if (!presets.has(t)) continue;
+      const label = tokenLabel(t);
+      titledOptions.push(label);
+      if (POINT_TOKENS.has(t)) {
+        optApplicability[label] = SINGLE_DATE_OPERATORS;
+      }
+    }
     const prefixes = DATE_GROUP_DYNAMIC_PREFIXES[title] ?? [];
     const titledDynamic = dynOpts
       .filter((opt) => prefixes.includes(opt.id))
@@ -201,11 +289,23 @@ function buildDateOptionGroups(def: DashboardFilterDefinition): OptionGroup[] {
         defaultN: opt.default_n,
         unit: opt.unit,
       }));
+    const dynApplicability: Record<string, string[]> = {};
+    for (const d of titledDynamic) {
+      if (POINT_DYNAMIC_IDS.has(d.id)) {
+        dynApplicability[d.id] = SINGLE_DATE_OPERATORS;
+      }
+    }
     if (titledOptions.length === 0 && titledDynamic.length === 0) continue;
     groups.push({
       title,
       ...(titledOptions.length > 0 && { options: titledOptions }),
       ...(titledDynamic.length > 0 && { dynamicOptions: titledDynamic }),
+      ...(Object.keys(optApplicability).length > 0 && {
+        optionApplicability: optApplicability,
+      }),
+      ...(Object.keys(dynApplicability).length > 0 && {
+        dynamicOptionApplicability: dynApplicability,
+      }),
     });
   }
 
@@ -407,19 +507,24 @@ export function renderFilterValue(
   if (!filter) return fallback;
   const v = filter.value;
   if (v === undefined || v === null || v === "") return fallback;
+  const formatOne = (x: unknown): string => {
+    const s = String(x);
+    return (
+      formatCalendarSerialised(s) ??
+      formatDynamicNValue(s, def) ??
+      (def.dynamic ? tokenLabel(s) : s)
+    );
+  };
   if (Array.isArray(v)) {
     if (v.length === 0) return fallback;
-    const labeled = v.map((x) => {
-      const s = String(x);
-      return formatCalendarSerialised(s) ?? (def.dynamic ? tokenLabel(s) : s);
-    });
+    const labeled = v.map(formatOne);
     if (labeled.length > 2) {
       return `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`;
     }
     return labeled.join(", ");
   }
   if (typeof v === "string") {
-    return formatCalendarSerialised(v) ?? (def.dynamic ? tokenLabel(v) : v);
+    return formatOne(v);
   }
   return String(v);
 }

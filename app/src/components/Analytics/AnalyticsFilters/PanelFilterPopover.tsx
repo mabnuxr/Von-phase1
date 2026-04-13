@@ -73,7 +73,11 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
     [definitions, panelId],
   );
 
-  if (applicable.length === 0) return null;
+  // Hide the icon only when the dashboard has no filters at all. If filters
+  // exist but none of them is wired to this panel via `applies_to`, still
+  // render the icon — the popover will surface an empty state so the user
+  // understands why there's nothing to override here.
+  if (definitions.length === 0) return null;
 
   const handleBarChange = (
     def: DashboardFilterDefinition,
@@ -129,6 +133,11 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
               </button>
             </div>
             <div className="p-3 flex flex-col gap-2 max-h-[320px] overflow-auto">
+              {applicable.length === 0 && (
+                <div className="py-4 text-center text-xs text-gray-500">
+                  No dashboard filters apply to this widget.
+                </div>
+              )}
               {applicable.map((def) => {
                 const eff = effectiveState[def.id];
                 const isLocked = def.id in lockedFilterState;

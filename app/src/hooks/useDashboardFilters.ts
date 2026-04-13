@@ -270,13 +270,15 @@ export function useDashboardFilters(
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
-  // Sync from server on refetch
+  // Sync from server on refetch. `isApplying` reset lives in the
+  // mutation's `onSettled` so that lock-only commits (which don't
+  // change the user's filter state reference) still clear the pending
+  // state correctly.
   useEffect(() => {
     const normalised = normaliseServerState(serverState);
     serverNormalised.current = normalised;
     setLocalState(normalised);
     setPendingRows([]);
-    setIsApplying(false);
   }, [serverState]);
 
   useEffect(() => {
@@ -299,7 +301,14 @@ export function useDashboardFilters(
 
   const mutation = useMutation({
     mutationFn: async (
-      calls: Array<{ payload: FilterPatchPayload; panelId?: string }>,
+      calls: Array<{
+        payload: FilterPatchPayload;
+        panelId?: string;
+        /** Top-level lock flag — the backend reads `request.is_locked` to
+         * decide whether to update `locked_filter_state`. Nested `is_locked`
+         * inside each filter value is discarded by `normalize_filter_values`. */
+        isLocked?: boolean;
+      }>,
     ) => {
       // Fan out PATCH requests in parallel. Each call targets a different
       // scope (dashboard or a specific panel), so there's no write-ordering
@@ -310,7 +319,9 @@ export function useDashboardFilters(
             dashboardId!,
             call.payload,
             undefined,
-            call.panelId ? { panelId: call.panelId } : undefined,
+            call.panelId !== undefined || call.isLocked !== undefined
+              ? { panelId: call.panelId, isLocked: call.isLocked }
+              : undefined,
           ),
         ),
       );
@@ -327,6 +338,13 @@ export function useDashboardFilters(
       });
       setLocalState(serverNormalised.current);
       setLocalPanelState(serverPanelNormalised.current);
+    },
+    // Reset `isApplying` regardless of success/failure. Previously this
+    // relied on the `useEffect` on `serverState` changing, but a pure
+    // lock/unlock commit doesn't change the user's filter state — only
+    // the server-side `locked_filter_state` — so the effect never fired
+    // and the Lock/Apply buttons stayed in the spinner state forever.
+    onSettled: () => {
       setIsApplying(false);
     },
   });
@@ -367,6 +385,34 @@ export function useDashboardFilters(
       });
     },
     [isOwner],
+  );
+
+  // Immediate-commit clear — the Clear button in a filter popover fires
+  // this rather than just dropping the filter from local state. Sends a
+  // single-filter PATCH with `null` (backend resets / removes the filter)
+  // so clearing a filter is persisted to the server without waiting for
+  // the user to hit Apply.
+  //
+  // Also clears local state optimistically so the bar chip flips to "All"
+  // immediately rather than flashing the old value during the transition
+  // and briefly after.
+  const handleClearFilter = useCallback(
+    (filterId: string) => {
+      if (!dashboardId) return;
+      const existing = localState[filterId] ?? serverNormalised.current[filterId];
+      if (existing?.is_locked && !isOwner) return;
+      setLocalState((prev) => {
+        if (!(filterId in prev)) return prev;
+        const next = { ...prev };
+        delete next[filterId];
+        return next;
+      });
+      setIsApplying(true);
+      mutation.mutate([
+        { payload: { [filterId]: null } },
+      ]);
+    },
+    [dashboardId, isOwner, localState, mutation],
   );
 
   const handleAddFilter = useCallback(() => {
@@ -454,30 +500,48 @@ export function useDashboardFilters(
   const handleCommitLock = useCallback(
     (filterId: string, locked: boolean) => {
       if (!dashboardId || !isOwner) return;
-      const target = localState[filterId];
-      // Locking requires a complete filter value; unlocking does not.
+      const target =
+        localState[filterId] ?? serverNormalised.current[filterId];
+      // Locking requires a complete filter value.
       if (locked) {
         if (!target || !isFilterComplete(target)) return;
       } else if (!target) {
-        // Nothing to unlock — no-op.
+        // Nothing to unlock — no server value to reference.
         return;
       }
 
-      // Apply the lock override onto a copy of local state, then build the
-      // full payload the same way handleApply does. Any other pending edits
-      // flush alongside the lock so state stays consistent after refetch.
-      const overridden: FilterLocalState = {
-        ...localState,
-        [filterId]: { ...target!, is_locked: locked },
-      };
+      const calls: Array<{
+        payload: FilterPatchPayload;
+        panelId?: string;
+        isLocked?: boolean;
+      }> = [];
 
-      const calls: Array<{ payload: FilterPatchPayload; panelId?: string }> =
-        [];
-      const dashPayload = buildPayload(overridden, serverNormalised.current);
-      if (Object.keys(dashPayload).length > 0) {
-        calls.push({ payload: dashPayload });
+      // 1. Lock/unlock commit for ONLY the target filter. Backend applies
+      //    `request.is_locked` to every filter in `request.filters`, so
+      //    isolating the target prevents accidentally locking other
+      //    pending edits.
+      const lockValue: Record<string, unknown> = { operator: target.operator };
+      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.include_blank) lockValue.include_blank = true;
+      calls.push({
+        payload: {
+          [filterId]: lockValue as FilterPatchPayload[string],
+        },
+        isLocked: locked,
+      });
+
+      // 2. Any OTHER pending dashboard-level edits go in a separate PATCH
+      //    without the lock flag, so the user's in-flight edits aren't lost.
+      const otherLocal: FilterLocalState = { ...localState };
+      delete otherLocal[filterId];
+      const otherServer: FilterLocalState = { ...serverNormalised.current };
+      delete otherServer[filterId];
+      const otherPayload = buildPayload(otherLocal, otherServer);
+      if (Object.keys(otherPayload).length > 0) {
+        calls.push({ payload: otherPayload });
       }
 
+      // 3. Panel-level pending edits likewise go through unchanged.
       const allPanelIds = new Set([
         ...Object.keys(localPanelState),
         ...Object.keys(serverPanelNormalised.current),
@@ -489,7 +553,6 @@ export function useDashboardFilters(
         if (Object.keys(payload).length > 0) calls.push({ payload, panelId });
       }
 
-      if (calls.length === 0) return;
       setIsApplying(true);
       mutation.mutate(calls);
     },
@@ -622,6 +685,7 @@ export function useDashboardFilters(
     isOwner,
     handleFilterChange,
     handleRemoveFilter,
+    handleClearFilter,
     handleAddFilter,
     handleRemovePendingRow,
     handleCommitPendingRow,

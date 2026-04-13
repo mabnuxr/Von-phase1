@@ -44,6 +44,17 @@ export interface OptionGroup {
   options?: string[];
   /** Options that require a numeric input */
   dynamicOptions?: DynamicOptionConfig[];
+  /**
+   * Per-option operator whitelist (keyed by option label). When present,
+   * the option is only shown if the current operator is in the list.
+   * Options not in this map are always visible.
+   */
+  optionApplicability?: Record<string, string[]>;
+  /**
+   * Per-dynamic-option operator whitelist (keyed by dynamic-option `id`,
+   * e.g. "LAST_N_DAYS"). Same semantics as `optionApplicability`.
+   */
+  dynamicOptionApplicability?: Record<string, string[]>;
 }
 
 export interface CalendarOptionConfig {
@@ -118,6 +129,20 @@ export interface ScrollableFilterBarProps {
    * (spinner + disabled) state during the request.
    */
   isApplying?: boolean;
+  /**
+   * True when there are pending filter changes that could be committed.
+   * When false (no changes anywhere), each popover's Apply button is
+   * disabled — mirrors the v1 behavior where Apply only lit up with
+   * actual edits to commit.
+   */
+  canApply?: boolean;
+  /**
+   * Called when Clear is clicked inside a filter popover. Receives the
+   * field id. When provided, the popover delegates to this (which should
+   * fire a server PATCH to clear the filter) instead of just emitting a
+   * local `onFilterChange(id, null)`.
+   */
+  onClearField?: (fieldId: string) => void;
 }
 
 // ============================================================================
@@ -130,6 +155,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   onFilterChange,
   onApply,
   isApplying = false,
+  canApply = true,
+  onClearField,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -250,6 +277,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               canLock={field.canLock}
               onApply={onApply}
               isApplying={isApplying}
+              canApply={canApply}
+              onClear={onClearField ? () => onClearField(field.id) : undefined}
             >
               <div
                 className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}

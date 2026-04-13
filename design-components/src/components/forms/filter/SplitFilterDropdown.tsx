@@ -9,7 +9,14 @@
  * Renders as a portal-based popover anchored to the trigger (children).
  */
 
-import React, { useState, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useLayoutEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -65,7 +72,7 @@ function getDefaultOperator(field: FilterFieldConfig): string {
 // ============================================================================
 
 const MULTI_VALUE_OPERATORS = new Set(['in', 'not_in']);
-const RANGE_OPERATORS = new Set(['between']);
+const RANGE_OPERATORS = new Set(['between', 'not_between']);
 // Operators that accept a free-text value (substring match) — the right
 // panel shows a text input instead of the picklist options even when the
 // field has a static `options` list.
@@ -76,7 +83,9 @@ const TEXT_INPUT_OPERATORS = new Set(['contains', 'not_contains', 'starts_with',
 // ============================================================================
 
 function parseDynamicValue(v: string): { id: string; n: number } | null {
-  const match = v.match(/^([a-z_]+):(\d+)$/);
+  // Dynamic option ids are uppercase (e.g. "NEXT_N_DAYS:7") on the wire;
+  // we also accept lowercase for legacy/storybook fixtures.
+  const match = v.match(/^([A-Za-z_]+):(\d+)$/);
   if (!match) return null;
   return { id: match[1], n: parseInt(match[2], 10) };
 }
@@ -164,6 +173,19 @@ export interface SplitFilterDropdownProps {
    * gets feedback before the server response resets the lock/value state.
    */
   isApplying?: boolean;
+  /**
+   * True when there are pending filter changes that could be committed.
+   * When false, Apply is disabled (nothing to commit).
+   * Defaults to true for back-compat (storybook / unconnected usages).
+   */
+  canApply?: boolean;
+  /**
+   * Called when the Clear button is clicked. When provided, takes
+   * precedence over the default behavior (local `onChange(null)`) and
+   * is expected to commit the clear to the server immediately. The
+   * popover still closes after Clear.
+   */
+  onClear?: () => void;
 }
 
 // ============================================================================
@@ -180,6 +202,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   canLock = true,
   onApply,
   isApplying = false,
+  canApply = true,
+  onClear,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -188,6 +212,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const [search, setSearch] = useState('');
   // Track numeric inputs for dynamic options keyed by dynamic option id
   const [dynamicInputs, setDynamicInputs] = useState<Record<string, number>>({});
+  /**
+   * Transient draft string per dynamic option — lets the user clear the
+   * input entirely while typing (parseInt would snap empty → 1 otherwise).
+   * Holds whatever the user typed; the committed number in `dynamicInputs`
+   * (and the emitted filter value) only updates when the draft parses to
+   * a valid positive integer. Cleared on popover close.
+   */
+  const [dynamicInputDrafts, setDynamicInputDrafts] = useState<Record<string, string>>({});
+  /**
+   * Per-operator value memory — retained while the popover is open so
+   * switching Is → Is blank → Is brings back the value the user had on
+   * Is. Cleared on close (see useEffect below).
+   */
+  const [operatorMemory, setOperatorMemory] = useState<
+    Record<string, FilterValue>
+  >({});
 
   const operators = useMemo(() => getOperators(field), [field]);
   const currentOperator = value?.operator ?? getDefaultOperator(field);
@@ -310,6 +350,16 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
   }, [isOpen, computePosition, initDynamicInputs, initCalendar]);
 
+  // Clear per-operator value memory on every close so each session starts
+  // fresh (the user's expectation: memory persists while the popover is
+  // open, forgets once it closes).
+  useEffect(() => {
+    if (!isOpen) {
+      setOperatorMemory({});
+      setDynamicInputDrafts({});
+    }
+  }, [isOpen]);
+
   // Close on outside click
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -329,6 +379,21 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   }, [isOpen]);
 
   const handleOperatorChange = (op: string) => {
+    // Save whatever value the user had on the operator they're leaving, so
+    // switching back brings it into view again (until the popover closes).
+    if (value && currentOperator !== op) {
+      setOperatorMemory((prev) => ({ ...prev, [currentOperator]: value }));
+    }
+
+    // If we've seen a value on this operator during this session, restore it.
+    const remembered = operatorMemory[op];
+    if (remembered) {
+      onChange({ ...remembered, operator: op });
+      return;
+    }
+
+    // First time switching to this operator in this session — apply the
+    // shape-appropriate empty state.
     const opDef = operators.find((o) => o.value === op);
     if (opDef?.noValue) {
       onChange({ operator: op });
@@ -337,6 +402,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     } else if (MULTI_VALUE_OPERATORS.has(op)) {
       onChange({ operator: op, value: [] });
     } else if (value && !Array.isArray(value.value)) {
+      // Carry a pre-existing scalar value over — covers the common case of
+      // switching between `equals` / `not_equals` without re-picking.
       onChange({ ...value, operator: op });
     } else {
       onChange({ operator: op, value: '' });
@@ -348,6 +415,28 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const isRangeCal = calCfg?.dateRangeLabel === option;
     const isCalendarOption = isSingleCal || isRangeCal;
 
+    // Calendar option in non-multi mode (single-value OR range operator):
+    // replace the current value. A "Custom Date" / "Custom Range" pick is
+    // always a fresh choice — never concatenated with whatever range
+    // placeholder (`['', '']`) or prior token was there.
+    if (!isMulti && isCalendarOption) {
+      const wasActive = currentValues.some((v) =>
+        isSingleCal
+          ? v === option || v.startsWith('custom_date:')
+          : v === option || v.startsWith('custom_range:'),
+      );
+      if (wasActive) {
+        if (isSingleCal) setCalendarDate(undefined);
+        if (isRangeCal) setCalendarRange(undefined);
+        onChange(null);
+      } else {
+        setCalendarDate(undefined);
+        setCalendarRange(undefined);
+        onChange({ operator: currentOperator, value: option });
+      }
+      return;
+    }
+
     // Single-value operators (equals / not_equals / etc. — i.e. !isMulti)
     // use radio semantics on a non-calendar option: clicking a different
     // option replaces the current value; clicking the already-selected
@@ -358,6 +447,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       return;
     }
 
+    // Multi-select (in / not_in): accumulate in an array.
     // Build current set, removing any encoded calendar values for this type
     const current = new Set(
       currentValues.filter((v) => {
@@ -405,7 +495,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     if (arr.length === 0) {
       onChange(null);
     } else {
-      onChange({ operator: currentOperator, value: isMulti ? arr : arr[0] });
+      onChange({ operator: currentOperator, value: arr });
     }
   };
 
@@ -414,29 +504,42 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     setCalendarDate(date);
     if (!date) return;
     const encoded = `custom_date:${formatDateISO(date)}`;
-    // Replace the placeholder "Custom Date" label with the encoded value
+    if (!isMulti) {
+      onChange({ operator: currentOperator, value: encoded });
+      return;
+    }
+    // Multi-select: replace any prior single-date entry in the array.
     const next = currentValues
       .filter((v) => v !== calCfg?.singleDateLabel && !v.startsWith('custom_date:'))
       .concat(encoded);
-    onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+    onChange({ operator: currentOperator, value: next });
   };
 
   const handleCalendarRangeSelect = (range: DateRange | undefined) => {
     setCalendarRange(range);
     if (!range?.from) return;
     if (!range.to) {
-      // Only from selected so far — keep the placeholder
+      // Only `from` picked so far — keep the placeholder so the calendar
+      // stays open for the `to` pick.
+      if (!isMulti) {
+        onChange({ operator: currentOperator, value: calCfg?.dateRangeLabel ?? 'Custom Range' });
+        return;
+      }
       const next = currentValues.filter((v) => !v.startsWith('custom_range:'));
       if (!next.includes(calCfg?.dateRangeLabel ?? ''))
         next.push(calCfg?.dateRangeLabel ?? 'Custom Range');
-      onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+      onChange({ operator: currentOperator, value: next });
       return;
     }
     const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
+    if (!isMulti) {
+      onChange({ operator: currentOperator, value: encoded });
+      return;
+    }
     const next = currentValues
       .filter((v) => v !== calCfg?.dateRangeLabel && !v.startsWith('custom_range:'))
       .concat(encoded);
-    onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+    onChange({ operator: currentOperator, value: next });
   };
 
   // Recompute position when calendar mode changes
@@ -464,11 +567,23 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
 
   const handleToggleDynamicOption = (optId: string) => {
     const n =
-      dynamicInputs[optId] ?? field.dynamicOptions?.find((o) => o.id === optId)?.defaultN ?? 7;
+      dynamicInputs[optId] ?? allDynamicOptions.find((o) => o.id === optId)?.defaultN ?? 7;
     const dynValue = makeDynamicValue(optId, n);
 
+    // Non-multi (single-value / range operator): replace the whole value.
+    // The backend dynamic resolver accepts a single token string on range
+    // operators and expands it to [start, end] at query time.
+    if (!isMulti) {
+      if (selectedDynamicIds.has(optId)) {
+        onChange(null);
+      } else {
+        onChange({ operator: currentOperator, value: dynValue });
+      }
+      return;
+    }
+
+    // Multi-select: toggle this dynamic value within the array.
     if (selectedDynamicIds.has(optId)) {
-      // Deselect: remove this dynamic value
       const next = currentValues.filter((v) => {
         const p = parseDynamicValue(v);
         return !p || p.id !== optId;
@@ -476,37 +591,94 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       if (next.length === 0) {
         onChange(null);
       } else {
-        onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+        onChange({ operator: currentOperator, value: next });
       }
     } else {
-      // Select: add this dynamic value
       const next = [...currentValues, dynValue];
-      onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+      onChange({ operator: currentOperator, value: next });
     }
   };
 
-  const handleDynamicInputChange = (optId: string, n: number) => {
-    setDynamicInputs((prev) => ({ ...prev, [optId]: n }));
-    // If this dynamic option is currently selected, update its value in the filter
+  const handleDynamicInputChange = (optId: string, raw: string) => {
+    // Always record the draft so the user can type freely (including
+    // transient empty state during editing).
+    setDynamicInputDrafts((prev) => ({ ...prev, [optId]: raw }));
+
+    const parsed = parseInt(raw, 10);
+    const isValid = raw !== '' && !isNaN(parsed) && parsed >= 1;
+    if (!isValid) {
+      // Don't touch `dynamicInputs` or the emitted filter value — keep the
+      // last valid N so nothing commits until the user types a real number.
+      return;
+    }
+    setDynamicInputs((prev) => ({ ...prev, [optId]: parsed }));
     if (selectedDynamicIds.has(optId)) {
-      const newDynValue = makeDynamicValue(optId, n);
+      const newDynValue = makeDynamicValue(optId, parsed);
+      if (!isMulti) {
+        onChange({ operator: currentOperator, value: newDynValue });
+        return;
+      }
       const next = currentValues.map((v) => {
         const p = parseDynamicValue(v);
         if (p && p.id === optId) return newDynValue;
         return v;
       });
-      onChange({ operator: currentOperator, value: isMulti ? next : next[0] });
+      onChange({ operator: currentOperator, value: next });
     }
   };
 
+  // True when any *selected* dynamic option has an empty / invalid draft.
+  // Used to disable Apply / Lock — the filter value is stale in this state
+  // and committing it would be confusing.
+  const hasInvalidDynamicInput = useMemo(() => {
+    for (const id of selectedDynamicIds) {
+      const draft = dynamicInputDrafts[id];
+      if (draft === undefined) continue;
+      const parsed = parseInt(draft, 10);
+      if (draft === '' || isNaN(parsed) || parsed < 1) return true;
+    }
+    return false;
+  }, [selectedDynamicIds, dynamicInputDrafts]);
+
   const handleClear = () => {
-    onChange(null);
+    // If the adapter wires `onClear`, delegate — it's responsible for
+    // committing the clear to the server. Otherwise fall back to
+    // local-only clear (storybook / unconnected usage).
+    if (onClear) onClear();
+    else onChange(null);
+    // Wipe per-operator memory synchronously so the popover can't show
+    // a remembered value from another operator during the close animation
+    // or on an immediate reopen.
+    setOperatorMemory({});
     setIsOpen(false);
     setSearch('');
   };
 
+  // Operator-aware applicability — lookup an option/dynamic-option against
+  // the per-group whitelist. Absence of a whitelist entry means "always
+  // applicable"; presence restricts to listed operators.
+  const isOptionApplicable = useCallback(
+    (group: { optionApplicability?: Record<string, string[]> } | undefined, option: string) => {
+      const allow = group?.optionApplicability?.[option];
+      return !allow || allow.includes(currentOperator);
+    },
+    [currentOperator],
+  );
+  const isDynamicOptionApplicable = useCallback(
+    (
+      group: { dynamicOptionApplicability?: Record<string, string[]> } | undefined,
+      id: string,
+    ) => {
+      const allow = group?.dynamicOptionApplicability?.[id];
+      return !allow || allow.includes(currentOperator);
+    },
+    [currentOperator],
+  );
+
   const filteredOptions = useMemo(() => {
     if (allOptions.length === 0) return [];
+    // Flat `options` (no group) have no applicability map — only search
+    // filtering applies in this path.
     if (!search) return allOptions;
     const q = search.toLowerCase();
     return allOptions.filter((o) => o.toLowerCase().includes(q));
@@ -515,23 +687,37 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   // Build filtered groups for grouped rendering
   const filteredGroups = useMemo(() => {
     if (!field.optionGroups) return null;
-    if (!search) return field.optionGroups;
     const q = search.toLowerCase();
     return field.optionGroups
       .map((g) => ({
         ...g,
-        options: g.options?.filter((o) => o.toLowerCase().includes(q)),
-        // Always keep dynamic options visible (they don't filter by search)
-        dynamicOptions: g.dynamicOptions,
+        options: g.options?.filter(
+          (o) => isOptionApplicable(g, o) && (!search || o.toLowerCase().includes(q)),
+        ),
+        // Dynamic options don't search-filter but are subject to applicability.
+        dynamicOptions: g.dynamicOptions?.filter((d) => isDynamicOptionApplicable(g, d.id)),
       }))
       .filter(
         (g) =>
           (g.options && g.options.length > 0) || (g.dynamicOptions && g.dynamicOptions.length > 0)
       );
-  }, [field.optionGroups, search]);
+  }, [field.optionGroups, search, isOptionApplicable, isDynamicOptionApplicable]);
 
-  const hasOptions = allOptions.length > 0;
-  const hasDynamicOptions = allDynamicOptions.length > 0;
+  // `hasOptions` / `hasDynamicOptions` drive which right-panel section
+  // renders. When grouped, derive from the post-applicability view so an
+  // operator whose applicable set is empty falls back to the single input.
+  const hasOptions = useMemo(() => {
+    if (field.optionGroups) {
+      return (filteredGroups ?? []).some((g) => g.options && g.options.length > 0);
+    }
+    return allOptions.length > 0;
+  }, [field.optionGroups, filteredGroups, allOptions]);
+  const hasDynamicOptions = useMemo(() => {
+    if (field.optionGroups) {
+      return (filteredGroups ?? []).some((g) => g.dynamicOptions && g.dynamicOptions.length > 0);
+    }
+    return allDynamicOptions.length > 0;
+  }, [field.optionGroups, filteredGroups, allDynamicOptions]);
   const showRightPanel = !isNoValue;
 
   return (
@@ -550,9 +736,12 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
               style={popoverStyle}
-              className={`rounded-xl border border-gray-100 shadow-lg flex flex-col ${locked ? 'bg-gray-50' : 'bg-white'}`}
+              className={`rounded-xl border border-gray-100 shadow-lg flex flex-col ${locked || isApplying ? 'bg-gray-50' : 'bg-white'}`}
             >
-              {/* Locked banner */}
+              {/* Locked banner — shown whenever the filter is locked OR a
+                  PATCH is in flight. During `isApplying` we dim the whole
+                  body so the user can't interact with operators/options
+                  until the request settles. */}
               {locked && (
                 <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2">
                   <LockSimpleIcon size={12} className="text-gray-700 shrink-0" />
@@ -563,7 +752,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               )}
               {/* Body: multi-column split */}
               <div
-                className={`flex min-h-0 ${locked ? 'pointer-events-none' : ''} ${activeCalendarMode ? 'h-[280px]' : 'h-[240px]'}`}
+                className={`flex min-h-0 ${locked || isApplying ? 'pointer-events-none opacity-70' : ''} ${activeCalendarMode ? 'h-[280px]' : 'h-[240px]'}`}
               >
                 {/* Left panel — Operators: fixed width with right panel, full width without */}
                 <div
@@ -708,7 +897,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                   {/* Dynamic options */}
                                   {groupDynamic.map((opt) => {
                                     const isSelected = selectedDynamicIds.has(opt.id);
-                                    const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
+                                    const draft = dynamicInputDrafts[opt.id];
+                                    const n =
+                                      draft !== undefined
+                                        ? draft
+                                        : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
                                     return (
                                       <div key={opt.id}>
                                         <button
@@ -758,7 +951,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                                   : (e) =>
                                                       handleDynamicInputChange(
                                                         opt.id,
-                                                        Math.max(1, parseInt(e.target.value) || 1)
+                                                        e.target.value,
                                                       )
                                               }
                                               readOnly={locked}
@@ -842,7 +1035,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                               <>
                                 {field.dynamicOptions!.map((opt) => {
                                   const isSelected = selectedDynamicIds.has(opt.id);
-                                  const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
+                                  const draft = dynamicInputDrafts[opt.id];
+                                  const n =
+                                    draft !== undefined
+                                      ? draft
+                                      : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
                                   return (
                                     <div key={opt.id}>
                                       <button
@@ -892,7 +1089,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                                 : (e) =>
                                                     handleDynamicInputChange(
                                                       opt.id,
-                                                      Math.max(1, parseInt(e.target.value) || 1)
+                                                      e.target.value,
                                                     )
                                             }
                                             readOnly={locked}
@@ -925,7 +1122,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     {!hasOptions && isRange && !useTextInput && (
                       <div className="px-3 py-2.5 flex flex-col gap-1">
                         <div>
-                          <label className="text-[11px] text-gray-700 mb-1 block">Min</label>
+                          <label className="text-[11px] text-gray-700 mb-1 block">From</label>
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
                             value={Array.isArray(value?.value) ? (value.value[0] ?? '') : ''}
@@ -933,7 +1130,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                               locked ? undefined : (e) => handleRangeChange(0, e.target.value)
                             }
                             readOnly={locked}
-                            placeholder="Min"
+                            placeholder="From"
                             className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
                               locked
                                 ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
@@ -944,7 +1141,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                         </div>
                         <div className="text-center text-xs text-gray-700">to</div>
                         <div className="-mt-3">
-                          <label className="text-[11px] text-gray-700 mb-1 block">Max</label>
+                          <label className="text-[11px] text-gray-700 mb-1 block">To</label>
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
                             value={Array.isArray(value?.value) ? (value.value[1] ?? '') : ''}
@@ -952,7 +1149,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                               locked ? undefined : (e) => handleRangeChange(1, e.target.value)
                             }
                             readOnly={locked}
-                            placeholder="Max"
+                            placeholder="To"
                             className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
                               locked
                                 ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
@@ -1098,7 +1295,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 {!isNoValue && (
                   <button
                     onClick={
-                      locked
+                      locked || isApplying
                         ? undefined
                         : () => {
                             if (value) {
@@ -1109,13 +1306,13 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                             }
                           }
                     }
-                    disabled={locked}
-                    className={`flex items-center gap-1.5 bg-transparent border-none p-0 ${locked ? 'cursor-default pointer-events-none opacity-60' : 'cursor-pointer'}`}
+                    disabled={locked || isApplying}
+                    className={`flex items-center gap-1.5 bg-transparent border-none p-0 ${locked || isApplying ? 'cursor-default pointer-events-none opacity-60' : 'cursor-pointer'}`}
                   >
                     <div
                       className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                         value?.includeBlank
-                          ? locked
+                          ? locked || isApplying
                             ? 'bg-gray-400 border-gray-400'
                             : 'bg-gray-900 border-gray-900'
                           : 'bg-white border-gray-300'
@@ -1125,7 +1322,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                         <CheckIcon size={10} weight="bold" className="text-white" />
                       )}
                     </div>
-                    <span className={`text-xs ${locked ? 'text-gray-700' : 'text-gray-800'}`}>
+                    <span
+                      className={`text-xs ${locked || isApplying ? 'text-gray-700' : 'text-gray-800'}`}
+                    >
                       Include blanks
                     </span>
                   </button>
@@ -1133,8 +1332,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 <div className="flex-1" />
                 <button
                   onClick={handleClear}
-                  disabled={locked}
-                  className={`text-xs transition-colors ${locked ? 'text-gray-700 cursor-default opacity-60' : 'text-gray-800 hover:text-gray-900 cursor-pointer'}`}
+                  disabled={locked || isApplying}
+                  className={`text-xs transition-colors ${locked || isApplying ? 'text-gray-700 cursor-default opacity-60' : 'text-gray-800 hover:text-gray-900 cursor-pointer'}`}
                 >
                   Clear
                 </button>
@@ -1142,8 +1341,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   (() => {
                     // Lock button disabled when not yet locked and the filter
                     // isn't fully valid, OR while a PATCH is in flight (so
-                    // users get feedback instead of a click-with-no-response).
-                    const lockDisabled = isApplying || (!locked && !canLock);
+                    // users get feedback instead of a click-with-no-response),
+                    // OR when any selected dynamic option has an empty /
+                    // invalid `N` draft (committing would send a stale value).
+                    const lockDisabled =
+                      isApplying || (!locked && !canLock) || hasInvalidDynamicInput;
                     return (
                       <button
                         onClick={lockDisabled ? undefined : onToggleLock}
@@ -1182,7 +1384,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   // Apply button: when `onApply` is provided, it commits
                   // pending changes via the outer Apply and closes the
                   // popover. Without it, just closes (storybook fallback).
-                  const applyDisabled = locked || isApplying;
+                  // Apply mirrors v1 behavior: only enabled when there are
+                  // pending changes to commit (`canApply`) AND the filter
+                  // isn't locked / a PATCH isn't already in flight. Also
+                  // disabled whenever a selected dynamic option has an
+                  // empty / invalid `N` draft — the user is mid-edit and
+                  // committing would send a stale value.
+                  const applyDisabled =
+                    locked || isApplying || !canApply || hasInvalidDynamicInput;
                   return (
                     <button
                       onClick={() => {

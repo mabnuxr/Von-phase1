@@ -31,6 +31,8 @@ interface DashboardFilterBarV2Props {
   definitions: DashboardFilterDefinition[];
   filterState: Record<string, ActiveFilter>;
   isApplying: boolean;
+  /** True when there are pending filter changes. Gates the in-popover Apply. */
+  canApply: boolean;
   isOwner: boolean;
   onFilterChange: (
     filterId: string,
@@ -39,6 +41,12 @@ interface DashboardFilterBarV2Props {
     includeBlank?: boolean,
   ) => void;
   onRemoveFilter: (filterId: string) => void;
+  /**
+   * Immediate-commit clear — fires a server PATCH that resets/removes the
+   * filter. The in-popover Clear button calls this directly rather than
+   * relying on Apply to flush the removal later.
+   */
+  onClearFilter?: (filterId: string) => void;
   /**
    * Owner-only. Immediate-commit lock toggle — PATCHes the filter's current
    * value with `is_locked: locked` without waiting for Apply. Locking
@@ -59,9 +67,11 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   definitions,
   filterState,
   isApplying,
+  canApply,
   isOwner,
   onFilterChange,
   onRemoveFilter,
+  onClearFilter,
   onToggleLock,
   canLockFilter,
   onApply,
@@ -128,6 +138,8 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       onFilterChange={handleBarChange}
       onApply={onApply}
       isApplying={isApplying}
+      canApply={canApply}
+      onClearField={onClearFilter}
     />
   );
 };

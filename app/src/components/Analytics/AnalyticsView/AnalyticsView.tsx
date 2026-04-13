@@ -80,6 +80,8 @@ interface AnalyticsViewProps {
   ) => void;
   onApplyFilters: () => void;
   onClearAll: () => void;
+  /** Immediate-commit clear — PATCH resets/removes the filter. */
+  onClearFilter?: (filterId: string) => void;
   /** Owner-only: commit-lock/unlock — immediate PATCH with current value. */
   onToggleLock?: (filterId: string, locked: boolean) => void;
   /** Owner-only: returns whether a given filter has a valid value to lock. */
@@ -186,6 +188,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onCommitPendingRow,
   onApplyFilters,
   onClearAll,
+  onClearFilter,
   onToggleLock,
   canLockFilter,
   onRefresh,
@@ -557,9 +560,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 definitions={filterDefinitions}
                 filterState={filterState}
                 isApplying={filterIsApplying}
+                canApply={filterCanApply}
                 isOwner={dashboard.isOwner}
                 onFilterChange={onFilterChange}
                 onRemoveFilter={onRemoveFilter}
+                onClearFilter={onClearFilter}
                 onToggleLock={onToggleLock}
                 canLockFilter={canLockFilter}
                 onApply={onApplyFilters}

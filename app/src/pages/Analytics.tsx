@@ -80,6 +80,7 @@ function DashboardCanvas({
     isApplying: filterIsApplying,
     handleFilterChange,
     handleRemoveFilter,
+    handleClearFilter,
     handleAddFilter,
     handleRemovePendingRow,
     handleCommitPendingRow,
@@ -169,6 +170,7 @@ function DashboardCanvas({
         onCommitPendingRow={handleCommitPendingRow}
         onApplyFilters={handleApply}
         onClearAll={handleClearAll}
+        onClearFilter={handleClearFilter}
         onToggleLock={handleCommitLock}
         canLockFilter={canLockFilter}
         onRefresh={handleRefresh}

@@ -324,7 +324,10 @@ export type DashboardFilterType =
   | "picklist"
   | "select"
   | "multi-select"
+  | "date"
   | "date-range"
+  | "number"
+  | "text"
   | "search"
   | "range";
 
