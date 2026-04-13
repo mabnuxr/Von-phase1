@@ -107,7 +107,10 @@ export function formatDynamicNValue(
   }
   // Best-effort fallback: "NEXT_N_DAYS" → "Next 7 days"
   const words = id.toLowerCase().split("_");
-  return words.map((w) => (w === "n" ? nStr : w)).join(" ").replace(/^./, (c) => c.toUpperCase());
+  return words
+    .map((w) => (w === "n" ? nStr : w))
+    .join(" ")
+    .replace(/^./, (c) => c.toUpperCase());
 }
 
 // ── Calendar-value round-trip ───────────────────────────────────────

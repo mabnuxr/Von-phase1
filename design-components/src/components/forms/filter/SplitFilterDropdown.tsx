@@ -9,14 +9,7 @@
  * Renders as a portal-based popover anchored to the trigger (children).
  */
 
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useLayoutEffect,
-  useMemo,
-  useCallback,
-} from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -225,9 +218,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
    * switching Is → Is blank → Is brings back the value the user had on
    * Is. Cleared on close (see useEffect below).
    */
-  const [operatorMemory, setOperatorMemory] = useState<
-    Record<string, FilterValue>
-  >({});
+  const [operatorMemory, setOperatorMemory] = useState<Record<string, FilterValue>>({});
 
   const operators = useMemo(() => getOperators(field), [field]);
   const currentOperator = value?.operator ?? getDefaultOperator(field);
@@ -423,7 +414,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       const wasActive = currentValues.some((v) =>
         isSingleCal
           ? v === option || v.startsWith('custom_date:')
-          : v === option || v.startsWith('custom_range:'),
+          : v === option || v.startsWith('custom_range:')
       );
       if (wasActive) {
         if (isSingleCal) setCalendarDate(undefined);
@@ -566,8 +557,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const handleToggleDynamicOption = (optId: string) => {
-    const n =
-      dynamicInputs[optId] ?? allDynamicOptions.find((o) => o.id === optId)?.defaultN ?? 7;
+    const n = dynamicInputs[optId] ?? allDynamicOptions.find((o) => o.id === optId)?.defaultN ?? 7;
     const dynValue = makeDynamicValue(optId, n);
 
     // Non-multi (single-value / range operator): replace the whole value.
@@ -662,17 +652,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       const allow = group?.optionApplicability?.[option];
       return !allow || allow.includes(currentOperator);
     },
-    [currentOperator],
+    [currentOperator]
   );
   const isDynamicOptionApplicable = useCallback(
-    (
-      group: { dynamicOptionApplicability?: Record<string, string[]> } | undefined,
-      id: string,
-    ) => {
+    (group: { dynamicOptionApplicability?: Record<string, string[]> } | undefined, id: string) => {
       const allow = group?.dynamicOptionApplicability?.[id];
       return !allow || allow.includes(currentOperator);
     },
-    [currentOperator],
+    [currentOperator]
   );
 
   const filteredOptions = useMemo(() => {
@@ -692,7 +679,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       .map((g) => ({
         ...g,
         options: g.options?.filter(
-          (o) => isOptionApplicable(g, o) && (!search || o.toLowerCase().includes(q)),
+          (o) => isOptionApplicable(g, o) && (!search || o.toLowerCase().includes(q))
         ),
         // Dynamic options don't search-filter but are subject to applicability.
         dynamicOptions: g.dynamicOptions?.filter((d) => isDynamicOptionApplicable(g, d.id)),
@@ -951,7 +938,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                                   : (e) =>
                                                       handleDynamicInputChange(
                                                         opt.id,
-                                                        e.target.value,
+                                                        e.target.value
                                                       )
                                               }
                                               readOnly={locked}
@@ -1087,10 +1074,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                               locked
                                                 ? undefined
                                                 : (e) =>
-                                                    handleDynamicInputChange(
-                                                      opt.id,
-                                                      e.target.value,
-                                                    )
+                                                    handleDynamicInputChange(opt.id, e.target.value)
                                             }
                                             readOnly={locked}
                                             className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
@@ -1390,8 +1374,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   // disabled whenever a selected dynamic option has an
                   // empty / invalid `N` draft — the user is mid-edit and
                   // committing would send a stale value.
-                  const applyDisabled =
-                    locked || isApplying || !canApply || hasInvalidDynamicInput;
+                  const applyDisabled = locked || isApplying || !canApply || hasInvalidDynamicInput;
                   return (
                     <button
                       onClick={() => {

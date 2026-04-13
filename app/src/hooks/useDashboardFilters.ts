@@ -399,7 +399,8 @@ export function useDashboardFilters(
   const handleClearFilter = useCallback(
     (filterId: string) => {
       if (!dashboardId) return;
-      const existing = localState[filterId] ?? serverNormalised.current[filterId];
+      const existing =
+        localState[filterId] ?? serverNormalised.current[filterId];
       if (existing?.is_locked && !isOwner) return;
       setLocalState((prev) => {
         if (!(filterId in prev)) return prev;
@@ -408,9 +409,7 @@ export function useDashboardFilters(
         return next;
       });
       setIsApplying(true);
-      mutation.mutate([
-        { payload: { [filterId]: null } },
-      ]);
+      mutation.mutate([{ payload: { [filterId]: null } }]);
     },
     [dashboardId, isOwner, localState, mutation],
   );
@@ -500,8 +499,7 @@ export function useDashboardFilters(
   const handleCommitLock = useCallback(
     (filterId: string, locked: boolean) => {
       if (!dashboardId || !isOwner) return;
-      const target =
-        localState[filterId] ?? serverNormalised.current[filterId];
+      const target = localState[filterId] ?? serverNormalised.current[filterId];
       // Locking requires a complete filter value.
       if (locked) {
         if (!target || !isFilterComplete(target)) return;
