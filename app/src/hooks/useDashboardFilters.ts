@@ -245,19 +245,42 @@ export function useDashboardFilters(
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // Last-known normalised server state
+  // Last-known normalised server state.
+  //
+  // `serverNormalised` and `serverPanelNormalised` are refs because the
+  // `{server,serverPanel}Normalised` snapshots are only read imperatively
+  // inside handlers (e.g. diffing against `localState` in `buildPayload`,
+  // or reading the committed value during Apply). Every setter path that
+  // updates them also calls `setLocalState` / `setLocalPanelState` in the
+  // same effect, so the re-render that downstream consumers need is
+  // piggy-backed on that state update.
+  //
+  // The locked-state pair (`serverLockedNormalised` /
+  // `serverLockedPanelNormalised`) is DIFFERENT: a lock-only PATCH
+  // changes `locked_*_filter_state` on the server but leaves the user's
+  // filter state untouched, so neither `localState` nor `localPanelState`
+  // transitions. If we kept them as refs, the assignment inside a
+  // refetch-triggered effect would update `.current` silently (refs
+  // don't cause re-renders), and the widget popover wouldn't notice the
+  // lock change until an unrelated render happened. Promoting them to
+  // `useState` makes the refetch trigger a re-render, which bubbles
+  // through `getEffectivePanelState` → the `widgetFilterSlot` memo →
+  // `DashboardGrid`, so the widget popover reflects lock/unlock toggles
+  // immediately without a page refresh.
   const serverNormalised = useRef<FilterLocalState>(
     normaliseServerState(serverState),
   );
   const serverPanelNormalised = useRef<Record<string, FilterLocalState>>(
     normalisePanelState(serverPanelStateRaw),
   );
-  const serverLockedNormalised = useRef<FilterLocalState>(
-    normaliseServerState(serverLockedStateRaw),
-  );
-  const serverLockedPanelNormalised = useRef<Record<string, FilterLocalState>>(
-    normalisePanelState(serverLockedPanelStateRaw),
-  );
+  const [serverLockedNormalised, setServerLockedNormalised] =
+    useState<FilterLocalState>(() =>
+      normaliseServerState(serverLockedStateRaw),
+    );
+  const [serverLockedPanelNormalised, setServerLockedPanelNormalised] =
+    useState<Record<string, FilterLocalState>>(() =>
+      normalisePanelState(serverLockedPanelStateRaw),
+    );
 
   // Local working copies
   const [localState, setLocalState] = useState<FilterLocalState>(() =>
@@ -288,12 +311,12 @@ export function useDashboardFilters(
   }, [serverPanelStateRaw]);
 
   useEffect(() => {
-    serverLockedNormalised.current = normaliseServerState(serverLockedStateRaw);
+    setServerLockedNormalised(normaliseServerState(serverLockedStateRaw));
   }, [serverLockedStateRaw]);
 
   useEffect(() => {
-    serverLockedPanelNormalised.current = normalisePanelState(
-      serverLockedPanelStateRaw,
+    setServerLockedPanelNormalised(
+      normalisePanelState(serverLockedPanelStateRaw),
     );
   }, [serverLockedPanelStateRaw]);
 
@@ -687,8 +710,8 @@ export function useDashboardFilters(
       // Order: dashboard state → panel state → dashboard locked → panel locked
       const base: FilterLocalState = { ...localState };
       const panelOverrides = localPanelState[panelId] ?? {};
-      const dashLocked = serverLockedNormalised.current;
-      const panelLocked = serverLockedPanelNormalised.current[panelId] ?? {};
+      const dashLocked = serverLockedNormalised;
+      const panelLocked = serverLockedPanelNormalised[panelId] ?? {};
       return {
         ...base,
         ...panelOverrides,
@@ -696,7 +719,12 @@ export function useDashboardFilters(
         ...panelLocked,
       };
     },
-    [localState, localPanelState],
+    [
+      localState,
+      localPanelState,
+      serverLockedNormalised,
+      serverLockedPanelNormalised,
+    ],
   );
 
   // ── Apply ───────────────────────────────────────────────────
@@ -812,8 +840,8 @@ export function useDashboardFilters(
     definitions: safeDefinitions,
     filterState: localState,
     panelFilterState: localPanelState,
-    lockedFilterState: serverLockedNormalised.current,
-    lockedPanelFilterState: serverLockedPanelNormalised.current,
+    lockedFilterState: serverLockedNormalised,
+    lockedPanelFilterState: serverLockedPanelNormalised,
     pendingRows,
     activeCount,
     canApply,
