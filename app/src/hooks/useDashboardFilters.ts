@@ -766,7 +766,22 @@ export function useDashboardFilters(
       }
       return next;
     });
-    setLocalPanelState({});
+    // Preserve locked panel filters for non-owners — the PATCH payload
+    // already skips them (see panelPayload loop above), so zeroing out
+    // local state would cause a visual flash of those locked entries
+    // disappearing and reappearing on the next server sync.
+    setLocalPanelState((prev) => {
+      if (isOwner) return {};
+      const next: Record<string, FilterLocalState> = {};
+      for (const [pid, panel] of Object.entries(prev)) {
+        const lockedOnly: FilterLocalState = {};
+        for (const [fid, f] of Object.entries(panel)) {
+          if (f.is_locked) lockedOnly[fid] = f;
+        }
+        if (Object.keys(lockedOnly).length > 0) next[pid] = lockedOnly;
+      }
+      return next;
+    });
     setPendingRows([]);
 
     if (calls.length > 0) {

@@ -329,7 +329,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     });
   }, [field.type, field.options?.length, activeCalendarMode]);
 
+  // A locked filter without an `onToggleLock` handler belongs to a
+  // non-owner viewer — they can see the pinned value on the chip but
+  // have no interaction to perform inside the popover, so don't let
+  // them open it.
+  const viewOnly = locked && !onToggleLock;
+
   const handleToggle = useCallback(() => {
+    if (viewOnly) return;
     if (isOpen) {
       setIsOpen(false);
       setSearch('');
@@ -339,7 +346,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       initCalendar();
       setIsOpen(true);
     }
-  }, [isOpen, computePosition, initDynamicInputs, initCalendar]);
+  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
 
   // Clear per-operator value memory on every close so each session starts
   // fresh (the user's expectation: memory persists while the popover is

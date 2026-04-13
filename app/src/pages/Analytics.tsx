@@ -218,7 +218,9 @@ function DashboardCanvas({
         onResetPanelFilter={handleResetPanelFilter}
         onApplyPanelFilter={handleApplyPanelFilter}
         canApplyPanelFilter={canApplyPanelFilter}
-        onTogglePanelLock={handleCommitPanelLock}
+        onTogglePanelLock={
+          dashboard.isOwner ? handleCommitPanelLock : undefined
+        }
         canLockPanelFilter={canLockPanelFilter}
         lockedPanelFilterState={lockedPanelFilterState}
       />

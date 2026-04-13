@@ -244,7 +244,13 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                           onClear={() => onResetPanelFilter(panelId, def.id)}
                           isApplying={isApplying}
                         >
-                          <button className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-900 bg-white rounded-lg shadow-xs border border-gray-200/50 hover:bg-gray-50 transition-colors cursor-pointer">
+                          <button
+                            className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs rounded-lg border transition-colors ${
+                              isPanelLocked
+                                ? "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
+                                : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
+                            }`}
+                          >
                             {barValue ? renderFilterValue(eff, def) : "All"}
                           </button>
                         </SplitFilterDropdown>

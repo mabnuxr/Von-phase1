@@ -429,9 +429,16 @@ export function toFilterBarValue(
   if (v === undefined || v === null) {
     barValue = undefined;
   } else if (Array.isArray(v)) {
+    // Only translate tokens on dynamic filters — mirrors the scalar branch
+    // below and the reverse function `fromFilterBarValue`. Without this
+    // guard, a non-dynamic picklist whose value happens to equal a token
+    // label key (e.g. "TODAY", "MY_RECORDS") would be mangled on the way
+    // into the bar and not reverse-translated on the way back, corrupting
+    // the value sent to the server.
     barValue = v.map((x) => {
       const s = String(x);
-      return isCalendarSerialised(s) ? s : tokenLabel(s);
+      if (isCalendarSerialised(s)) return s;
+      return def.dynamic ? tokenLabel(s) : s;
     });
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) barValue = v;
