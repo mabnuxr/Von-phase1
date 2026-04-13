@@ -10,145 +10,28 @@
  * Locked dashboard filters (set by owner) render read-only.
  * No lock toggle in v1 (see plan §4.4).
  */
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createPortal } from "react-dom";
 import {
   FunnelIcon,
   XIcon,
   ArrowCounterClockwiseIcon,
 } from "@phosphor-icons/react";
-import { SplitFilterDropdown } from "@vonlabs/design-components";
-import type {
-  FilterFieldConfig,
-  FilterBarValue,
+import {
+  SplitFilterDropdown,
+  usePortalPopover,
 } from "@vonlabs/design-components";
+import type { FilterBarValue } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
 import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
-import { usePortalPopover } from "@vonlabs/design-components";
+import {
+  fromFilterBarValue,
+  mapDefinition,
+  renderFilterValue,
+  toFilterBarValue,
+} from "./filterTranslation";
 
 const POPOVER_WIDTH = 360;
-
-// ── Shared translation helpers (kept local to this module) ──────
-
-const TOKEN_LABELS: Record<string, string> = {
-  TODAY: "Today",
-  YESTERDAY: "Yesterday",
-  TOMORROW: "Tomorrow",
-  THIS_WEEK: "This Week",
-  LAST_WEEK: "Last Week",
-  NEXT_WEEK: "Next Week",
-  THIS_MONTH: "This Month",
-  THIS_QUARTER: "This Quarter",
-  THIS_FISCAL_QUARTER: "This Fiscal Quarter",
-  LAST_QUARTER: "Last Quarter",
-  QUARTER_TO_DATE: "Quarter to Date",
-  THIS_YEAR: "This Year",
-  THIS_FISCAL_YEAR: "This Fiscal Year",
-  YEAR_TO_DATE: "Year to Date",
-  LAST_7_DAYS: "Last 7 Days",
-  LAST_30_DAYS: "Last 30 Days",
-  LAST_90_DAYS: "Last 90 Days",
-  MY_RECORDS: "My Records",
-  MY_TEAMS_RECORDS: "My Team's Records",
-  MY_MANAGERS_TEAM: "My Manager's Team",
-  ALL_RECORDS: "All Records",
-};
-const LABEL_TO_TOKEN: Record<string, string> = Object.fromEntries(
-  Object.entries(TOKEN_LABELS).map(([t, l]) => [l, t]),
-);
-const tokenLabel = (v: string) => TOKEN_LABELS[v] ?? v;
-const reverseToken = (l: string) => LABEL_TO_TOKEN[l] ?? l;
-
-function mapFieldType(
-  type: DashboardFilterDefinition["type"],
-): FilterFieldConfig["type"] {
-  switch (type) {
-    case "picklist":
-    case "select":
-    case "multi-select":
-      return "picklist";
-    case "date-range":
-      return "date";
-    case "range":
-      return "number";
-    default:
-      return "text";
-  }
-}
-
-function mapDefinition(def: DashboardFilterDefinition): FilterFieldConfig {
-  const config: FilterFieldConfig = {
-    id: def.id,
-    label: def.label,
-    type: mapFieldType(def.type),
-  };
-  if (config.type === "picklist") {
-    const raw =
-      def.dynamic && def.available_presets?.length
-        ? def.available_presets
-        : def.options;
-    if (raw?.length) config.options = raw.map(tokenLabel);
-  }
-  // Date Relative-mode presets (non-parameterized + N-parameterized).
-  if (config.type === "date" && def.dynamic) {
-    if (def.available_presets?.length) {
-      config.options = def.available_presets.map(tokenLabel);
-    }
-    if (def.available_dynamic_options?.length) {
-      config.dynamicOptions = def.available_dynamic_options.map((opt) => ({
-        id: opt.id,
-        label: opt.label,
-        defaultN: opt.default_n,
-        unit: opt.unit,
-      }));
-    }
-  }
-  // Backend is the source of truth for valid operators; semantic_type-based
-  // restrictions (e.g. ownership) are already applied server-side.
-  if (def.valid_operators?.length) {
-    config.customOperators = def.valid_operators.map((op) => ({
-      value: op.value,
-      label: op.label,
-    }));
-  }
-  return config;
-}
-
-function toFilterBarValue(
-  filter: ActiveFilter,
-  def: DashboardFilterDefinition,
-): FilterBarValue {
-  const v = filter.value;
-  let barValue: string | string[] | undefined;
-  if (v === undefined || v === null) barValue = undefined;
-  else if (Array.isArray(v)) barValue = v.map((x) => tokenLabel(String(x)));
-  else if (typeof v === "string") barValue = def.dynamic ? tokenLabel(v) : v;
-  else barValue = String(v);
-  return {
-    operator: filter.operator,
-    ...(barValue !== undefined && { value: barValue }),
-    ...(filter.include_blank && { includeBlank: true }),
-  };
-}
-
-function fromFilterBarValue(
-  barValue: FilterBarValue,
-  def: DashboardFilterDefinition,
-): { operator: string; value?: unknown; includeBlank?: boolean } {
-  const v = barValue.value;
-  let rawValue: unknown;
-  if (v === undefined) rawValue = undefined;
-  else if (Array.isArray(v)) rawValue = def.dynamic ? v.map(reverseToken) : v;
-  else if (typeof v === "string") rawValue = def.dynamic ? reverseToken(v) : v;
-  else rawValue = v;
-  return {
-    operator: barValue.operator,
-    ...(rawValue !== undefined && { value: rawValue }),
-    ...(barValue.includeBlank && { includeBlank: true }),
-  };
-}
-
-// ── Component ───────────────────────────────────────────────────
 
 interface PanelFilterPopoverProps {
   panelId: string;
@@ -181,9 +64,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
 }) => {
   const { open, hide, toggleVisibility, triggerRef, popoverRef, position } =
     usePortalPopover({ popoverWidth: POPOVER_WIDTH });
-  const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
 
-  // Only filters that apply to this panel's widget
   const applicable = useMemo(
     () =>
       definitions.filter(
@@ -193,11 +74,6 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
   );
 
   if (applicable.length === 0) return null;
-
-  const activeDef =
-    activeFilterId != null
-      ? (applicable.find((d) => d.id === activeFilterId) ?? null)
-      : null;
 
   const handleBarChange = (
     def: DashboardFilterDefinition,
@@ -275,7 +151,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                       </div>
                       {isLocked ? (
                         <div className="inline-flex items-center h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
-                          {renderReadOnly(eff, def)}
+                          {renderFilterValue(eff, def)}
                         </div>
                       ) : (
                         <SplitFilterDropdown
@@ -283,11 +159,8 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                           value={barValue}
                           onChange={(v) => handleBarChange(def, v)}
                         >
-                          <button
-                            onClick={() => setActiveFilterId(def.id)}
-                            className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-900 bg-white rounded-lg shadow-xs border border-gray-200/50 hover:bg-gray-50 transition-colors cursor-pointer"
-                          >
-                            {barValue ? renderReadOnly(eff, def) : "All"}
+                          <button className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-900 bg-white rounded-lg shadow-xs border border-gray-200/50 hover:bg-gray-50 transition-colors cursor-pointer">
+                            {barValue ? renderFilterValue(eff, def) : "All"}
                           </button>
                         </SplitFilterDropdown>
                       )}
@@ -305,31 +178,9 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                 );
               })}
             </div>
-            {/* activeDef is tracked for potential future UX hook */}
-            {activeDef && null}
           </div>,
           document.body,
         )}
     </div>
   );
 };
-
-function renderReadOnly(
-  filter: ActiveFilter | undefined,
-  def: DashboardFilterDefinition,
-): string {
-  if (!filter) return "All";
-  const v = filter.value;
-  if (v === undefined || v === null || v === "") return "All";
-  if (Array.isArray(v)) {
-    if (v.length === 0) return "All";
-    const labeled = v.map((x) =>
-      def.dynamic ? tokenLabel(String(x)) : String(x),
-    );
-    if (labeled.length > 2)
-      return `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`;
-    return labeled.join(", ");
-  }
-  if (typeof v === "string") return def.dynamic ? tokenLabel(v) : v;
-  return String(v);
-}

@@ -34,7 +34,11 @@ export const FEATURE_FLAGS = {
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
-  DASHBOARD_FILTERS_V2: "dashboardFiltersV2",
+  // LaunchDarkly key: `enable-dashboard-filters-v2` (auto-camelCased by the
+  // React SDK for `useFlags()` access). Shared with the backend gate
+  // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
+  // so a single toggle in LaunchDarkly flips both sides in sync.
+  DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
 } as const;
 
 /**

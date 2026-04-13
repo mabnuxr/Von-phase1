@@ -300,14 +300,19 @@ export function useDashboardFilters(
     mutationFn: async (
       calls: Array<{ payload: FilterPatchPayload; panelId?: string }>,
     ) => {
-      for (const call of calls) {
-        await dashboardService.updateFilters(
-          dashboardId!,
-          call.payload,
-          undefined,
-          call.panelId ? { panelId: call.panelId } : undefined,
-        );
-      }
+      // Fan out PATCH requests in parallel. Each call targets a different
+      // scope (dashboard or a specific panel), so there's no write-ordering
+      // concern between them.
+      await Promise.all(
+        calls.map((call) =>
+          dashboardService.updateFilters(
+            dashboardId!,
+            call.payload,
+            undefined,
+            call.panelId ? { panelId: call.panelId } : undefined,
+          ),
+        ),
+      );
       if (dashboardId) {
         await queryClient.invalidateQueries({
           queryKey: dashboardKeys.detail(dashboardId),
