@@ -274,9 +274,19 @@ export function mapDefinition(
   // Operator set — backend is the source of truth. Semantic restrictions
   // (e.g. ownership → equals/not_equals/in/not_in only) are server-side.
   if (def.valid_operators?.length) {
+    // Backend sends `{value, label}` only — infer the `noValue` flag for the
+    // operators that don't take a value so the dropdown can hide the right
+    // panel (is_blank / is_not_blank / in_this_quarter / in_next_quarter).
+    const NO_VALUE_OPERATORS = new Set([
+      "is_blank",
+      "is_not_blank",
+      "in_this_quarter",
+      "in_next_quarter",
+    ]);
     config.customOperators = def.valid_operators.map((op) => ({
       value: op.value,
       label: op.label,
+      ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
     }));
   }
 

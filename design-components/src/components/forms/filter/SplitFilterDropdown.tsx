@@ -66,6 +66,10 @@ function getDefaultOperator(field: FilterFieldConfig): string {
 
 const MULTI_VALUE_OPERATORS = new Set(['in', 'not_in']);
 const RANGE_OPERATORS = new Set(['between']);
+// Operators that accept a free-text value (substring match) — the right
+// panel shows a text input instead of the picklist options even when the
+// field has a static `options` list.
+const TEXT_INPUT_OPERATORS = new Set(['contains', 'not_contains', 'starts_with', 'ends_with']);
 
 // ============================================================================
 // Dynamic option helpers — values stored as "dynamic_id:n" e.g. "last_n_days:7"
@@ -194,6 +198,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     : [];
   const isMulti = MULTI_VALUE_OPERATORS.has(currentOperator);
   const isRange = RANGE_OPERATORS.has(currentOperator);
+  const useTextInput = TEXT_INPUT_OPERATORS.has(currentOperator);
   const operatorDef = operators.find((o) => o.value === currentOperator);
   const isNoValue = operatorDef?.noValue ?? false;
 
@@ -341,6 +346,17 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const handleToggleOption = (option: string) => {
     const isSingleCal = calCfg?.singleDateLabel === option;
     const isRangeCal = calCfg?.dateRangeLabel === option;
+    const isCalendarOption = isSingleCal || isRangeCal;
+
+    // Single-value operators (equals / not_equals / etc. — i.e. !isMulti)
+    // use radio semantics on a non-calendar option: clicking a different
+    // option replaces the current value; clicking the already-selected
+    // option clears it.
+    if (!isMulti && !isCalendarOption) {
+      const isCurrent = currentValues.length === 1 && currentValues[0] === option;
+      onChange(isCurrent ? null : { operator: currentOperator, value: option });
+      return;
+    }
 
     // Build current set, removing any encoded calendar values for this type
     const current = new Set(
@@ -599,8 +615,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 {/* Right panel — Values: fixed search, scrollable list */}
                 {showRightPanel && (
                   <div className="flex-1 min-w-[180px] flex flex-col min-h-0">
-                    {/* Inline search — fixed at top */}
-                    {hasOptions && (
+                    {/* Inline search — fixed at top (hidden for text-input operators) */}
+                    {hasOptions && !useTextInput && (
                       <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 shrink-0">
                         <MagnifyingGlassIcon
                           size={13}
@@ -618,8 +634,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                       </div>
                     )}
 
-                    {/* Option list (picklist) — scrollable */}
-                    {(hasOptions || hasDynamicOptions) && (
+                    {/* Option list (picklist) — scrollable. Hidden for text-
+                        input operators (contains/starts_with/etc.) even when
+                        the field has a picklist `options` list, since those
+                        operators take a free-text substring instead. */}
+                    {(hasOptions || hasDynamicOptions) && !useTextInput && (
                       <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
                         {/* Grouped rendering */}
                         {filteredGroups ? (
@@ -901,8 +920,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                       </div>
                     )}
 
-                    {/* Between range input (number or date) */}
-                    {!hasOptions && isRange && (
+                    {/* Between range input (number or date) — not applicable
+                        when the operator is a text-input one. */}
+                    {!hasOptions && isRange && !useTextInput && (
                       <div className="px-3 py-2.5 flex flex-col gap-1">
                         <div>
                           <label className="text-[11px] text-gray-700 mb-1 block">Min</label>
@@ -943,16 +963,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                       </div>
                     )}
 
-                    {/* Text/number/date single input (non-picklist, non-range) */}
-                    {!hasOptions && !isRange && (
+                    {/* Text / number / date single input.
+                        Also used for text-input operators (contains /
+                        not_contains / starts_with / ends_with) even when
+                        the field has a picklist `options` list — those
+                        operators expect a free-text substring. */}
+                    {(!hasOptions || useTextInput) && !isRange && (
                       <div className="px-3 py-2.5">
                         <input
                           type={
-                            field.type === 'number'
-                              ? 'number'
-                              : field.type === 'date'
-                                ? 'date'
-                                : 'text'
+                            useTextInput
+                              ? 'text'
+                              : field.type === 'number'
+                                ? 'number'
+                                : field.type === 'date'
+                                  ? 'date'
+                                  : 'text'
                           }
                           value={typeof value?.value === 'string' ? value.value : ''}
                           onChange={
