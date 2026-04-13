@@ -12,7 +12,7 @@
  */
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
-import { FunnelIcon, XIcon } from "@phosphor-icons/react";
+import { FunnelIcon, LockSimpleIcon, XIcon } from "@phosphor-icons/react";
 import {
   SplitFilterDropdown,
   usePortalPopover,
@@ -169,18 +169,20 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
               )}
               {applicable.map((def) => {
                 const eff = effectiveState[def.id];
-                // Dashboard-level lock always wins — a filter locked at the
-                // dashboard level is read-only on every widget regardless of
-                // panel-level lock state.
                 const isDashLocked = def.id in lockedFilterState;
                 const isPanelLocked =
                   !!lockedPanelFilterState && def.id in lockedPanelFilterState;
-                const isLocked = isDashLocked || isPanelLocked;
                 const hasPanelOverride = def.id in panelFilterState;
                 // Signals "this filter carries a widget-level value" — either
                 // a pending/saved override or a panel-level lock. Drives the
                 // "[Widget]" suffix on the label.
                 const isWidgetScoped = hasPanelOverride || isPanelLocked;
+                // Render as a static read-only chip only when the filter is
+                // dashboard-locked AND has no panel-level lock to toggle.
+                // When BOTH are locked, we still render SplitFilterDropdown
+                // (in locked mode) so the owner can Unlock the panel-level
+                // lock while the dashboard lock stays in place.
+                const isDashLockedOnly = isDashLocked && !isPanelLocked;
                 const barValue = eff ? toFilterBarValue(eff, def) : null;
                 const field = mapDefinition(def);
                 return (
@@ -196,18 +198,16 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                             [Widget]
                           </span>
                         )}
-                        {isLocked && (
-                          <span className="ml-1.5 text-[10px] text-gray-500">
-                            (locked)
-                          </span>
-                        )}
                       </div>
-                      {isDashLocked ? (
-                        // Dashboard-level lock wins — fully read-only in the
-                        // widget popover, no in-row dropdown so the owner
-                        // can't try to set a widget-scoped override on top
-                        // of a pinned dashboard value.
-                        <div className="inline-flex items-center h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
+                      {isDashLockedOnly ? (
+                        // Dashboard-level lock with no panel lock — fully
+                        // read-only in the widget popover. Owner manages the
+                        // dashboard lock from the main filter bar, not here.
+                        <div className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
+                          <LockSimpleIcon
+                            size={11}
+                            className="text-gray-500 shrink-0"
+                          />
                           {renderFilterValue(eff, def)}
                         </div>
                       ) : (
@@ -247,10 +247,23 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                           <button
                             className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs rounded-lg border transition-colors ${
                               isPanelLocked
-                                ? "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
+                                ? // Panel-locked chip stays gray for both owner
+                                  // and non-owner (visual signal: "pinned"), but
+                                  // the owner gets pointer + hover so it's clear
+                                  // the chip is still clickable (to open the
+                                  // popover and hit Unlock).
+                                  onTogglePanelLock
+                                  ? "bg-gray-50 text-gray-700 border-gray-100 hover:bg-gray-100 cursor-pointer"
+                                  : "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
                                 : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
                             }`}
                           >
+                            {isPanelLocked && (
+                              <LockSimpleIcon
+                                size={11}
+                                className="text-gray-500 shrink-0"
+                              />
+                            )}
                             {barValue ? renderFilterValue(eff, def) : "All"}
                           </button>
                         </SplitFilterDropdown>
