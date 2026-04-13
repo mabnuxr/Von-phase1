@@ -16,7 +16,6 @@ import {
   MagnifyingGlassIcon,
   CheckIcon,
   LockSimpleIcon,
-  LockSimpleOpenIcon,
   CaretLeftIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
@@ -136,11 +135,18 @@ export interface SplitFilterDropdownProps {
   locked?: boolean;
   /**
    * Owner-only lock toggle. When provided, the popover footer shows a
-   * "Lock filter" / "Unlock filter" button that calls this handler.
-   * The button remains interactive even when `locked` is true, so the
-   * owner can always unlock from within the popover.
+   * Lock / Unlock button that calls this handler. Stays interactive even
+   * when `locked` is true so the owner can always unlock from within.
    */
   onToggleLock?: () => void;
+  /**
+   * When `onToggleLock` is provided and the filter is not yet locked, the
+   * Lock button is disabled unless `canLock` is true — mirrors Apply's rule
+   * that a filter must have a complete value before it can be committed.
+   * Ignored when the filter is already locked (Unlock is always enabled).
+   * Defaults to true for back-compat.
+   */
+  canLock?: boolean;
 }
 
 // ============================================================================
@@ -154,6 +160,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   children,
   locked = false,
   onToggleLock,
+  canLock = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -1042,28 +1049,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               </div>
 
               {/* Footer — spans full width across both columns.
-                  The owner's lock toggle (when provided) stays interactive
-                  even while `locked` is true, so it can always be flipped
-                  off from within the popover. */}
+                  Layout: include-blanks (left) · flex · Clear · Lock · Apply.
+                  The Lock button mirrors Apply's validity rule (requires
+                  `canLock`) and stays interactive when `locked` is true so
+                  the owner can always unlock from within. */}
               <div className="px-2.5 py-2 border-t border-gray-100 flex items-center gap-2">
-                {onToggleLock && (
-                  <button
-                    onClick={onToggleLock}
-                    title={locked ? 'Unlock filter' : 'Lock filter'}
-                    className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer ${
-                      locked
-                        ? 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800'
-                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {locked ? (
-                      <LockSimpleIcon size={11} weight="bold" />
-                    ) : (
-                      <LockSimpleOpenIcon size={11} />
-                    )}
-                    {locked ? 'Locked' : 'Lock'}
-                  </button>
-                )}
                 {!isNoValue && (
                   <button
                     onClick={
@@ -1079,7 +1069,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           }
                     }
                     disabled={locked}
-                    className={`flex items-center gap-1.5 bg-transparent border-none p-0 ${locked ? 'cursor-default opacity-60' : 'cursor-pointer'}`}
+                    className={`flex items-center gap-1.5 bg-transparent border-none p-0 ${locked ? 'cursor-default pointer-events-none opacity-60' : 'cursor-pointer'}`}
                   >
                     <div
                       className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
@@ -1107,6 +1097,33 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 >
                   Clear
                 </button>
+                {onToggleLock &&
+                  (() => {
+                    const lockDisabled = !locked && !canLock;
+                    return (
+                      <button
+                        onClick={lockDisabled ? undefined : onToggleLock}
+                        disabled={lockDisabled}
+                        title={
+                          locked
+                            ? 'Unlock filter'
+                            : canLock
+                              ? 'Lock filter'
+                              : 'Select a value before locking'
+                        }
+                        className={`inline-flex items-center gap-1 h-[26px] pl-1.5 pr-2 text-xs font-medium rounded-lg border transition-colors ${
+                          locked
+                            ? 'bg-gray-900 border-gray-900 text-white hover:bg-gray-800 cursor-pointer'
+                            : lockDisabled
+                              ? 'bg-white border-gray-200 text-gray-400 cursor-not-allowed'
+                              : 'bg-white border-gray-200 text-gray-800 hover:bg-gray-50 cursor-pointer'
+                        }`}
+                      >
+                        <LockSimpleIcon size={12} weight={locked ? 'bold' : 'regular'} />
+                        {locked ? 'Unlock' : 'Lock'}
+                      </button>
+                    );
+                  })()}
                 <button
                   onClick={() => {
                     setIsOpen(false);

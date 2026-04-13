@@ -38,8 +38,19 @@ interface DashboardFilterBarV2Props {
     includeBlank?: boolean,
   ) => void;
   onRemoveFilter: (filterId: string) => void;
-  /** Owner-only. Toggles dashboard-level lock for the given filter id. */
+  /**
+   * Owner-only. Immediate-commit lock toggle — PATCHes the filter's current
+   * value with `is_locked: locked` without waiting for Apply. Locking
+   * requires a valid/complete filter value (same rule as Apply); unlocking
+   * has no validity requirement.
+   */
   onToggleLock?: (filterId: string, locked: boolean) => void;
+  /**
+   * Owner-only. Returns whether the filter can be locked right now (i.e.
+   * has a complete/valid local value). When false, the Lock button in the
+   * popover footer is disabled. Ignored for Unlock (always allowed).
+   */
+  canLockFilter?: (filterId: string) => boolean;
   onApply: () => void;
   onClearAll: () => void;
 }
@@ -54,6 +65,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   onFilterChange,
   onRemoveFilter,
   onToggleLock,
+  canLockFilter,
   onApply,
   onClearAll,
 }) => {
@@ -62,18 +74,22 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       definitions.map((def) =>
         mapDefinition(def, {
           currentFilter: filterState[def.id],
-          // Show locked visual when:
-          //   - viewer can't edit (non-owner on a locked filter), OR
-          //   - owner is viewing their own locked filter (so they see it's locked)
+          // Visual lock shown to everyone — owner and viewer alike — whenever
+          // the filter is server-locked. Owners can unlock via the popover
+          // button; viewers see a read-only chip.
           locked: !!def.is_locked,
           // Only the owner gets the in-popover lock toggle.
           onToggleLock:
             isOwner && onToggleLock
               ? () => onToggleLock(def.id, !def.is_locked)
               : undefined,
+          // Disable the Lock button when the filter has no complete value yet
+          // (mirrors Apply's rule). Ignored when already locked — Unlock is
+          // always allowed.
+          canLock: canLockFilter ? canLockFilter(def.id) : undefined,
         }),
       ),
-    [definitions, filterState, isOwner, onToggleLock],
+    [definitions, filterState, isOwner, onToggleLock, canLockFilter],
   );
 
   const values = useMemo(() => {

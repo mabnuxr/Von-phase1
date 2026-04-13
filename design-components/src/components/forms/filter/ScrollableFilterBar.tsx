@@ -76,6 +76,13 @@ export interface FilterFieldConfig {
   /** Owner-only toggle. When provided, the popover footer shows a lock button; clicking it calls this handler. */
   onToggleLock?: () => void;
   /**
+   * When `onToggleLock` is provided and the filter is not yet locked, the
+   * Lock button is disabled unless `canLock` is true — mirrors Apply's rule
+   * that a filter must have a complete value before it can be committed.
+   * Ignored when the filter is already locked (Unlock is always enabled).
+   */
+  canLock?: boolean;
+  /**
    * Hard extraction boundary applied to single-date / range calendar pickers.
    * Dates falling outside the range are disabled. Passed through to DayPicker
    * via the calendar panel.
@@ -226,6 +233,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               onChange={(val) => onFilterChange(field.id, val)}
               locked={fieldLocked}
               onToggleLock={field.onToggleLock}
+              canLock={field.canLock}
             >
               <div
                 className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}

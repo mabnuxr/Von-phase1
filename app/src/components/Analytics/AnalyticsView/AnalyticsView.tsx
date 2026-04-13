@@ -80,8 +80,10 @@ interface AnalyticsViewProps {
   ) => void;
   onApplyFilters: () => void;
   onClearAll: () => void;
-  /** Owner-only: toggle a filter's dashboard-level locked flag. */
+  /** Owner-only: commit-lock/unlock — immediate PATCH with current value. */
   onToggleLock?: (filterId: string, locked: boolean) => void;
+  /** Owner-only: returns whether a given filter has a valid value to lock. */
+  canLockFilter?: (filterId: string) => boolean;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -185,6 +187,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onApplyFilters,
   onClearAll,
   onToggleLock,
+  canLockFilter,
   onRefresh,
   onSave,
   savePhase,
@@ -560,6 +563,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onFilterChange={onFilterChange}
                 onRemoveFilter={onRemoveFilter}
                 onToggleLock={onToggleLock}
+                canLockFilter={canLockFilter}
                 onApply={onApplyFilters}
                 onClearAll={onClearAll}
               />

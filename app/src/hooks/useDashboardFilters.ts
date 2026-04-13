@@ -223,7 +223,8 @@ export interface UseDashboardFiltersOptions {
  * Scope model:
  * - `filterState` (dashboard-level): applied by `handleFilterChange` / `handleApply`.
  * - `panelFilterState` (per panel): applied by `handlePanelFilterChange` / `handleApply`.
- * - Locked state: owner-only; toggled via `handleToggleLock`, applied with the rest.
+ * - Locked state: owner-only; toggled via `handleCommitLock`, which PATCHes
+ *   the filter's current value + is_locked flag immediately (not staged).
  *
  * On Apply, a single PATCH is sent for dashboard-level changes plus one PATCH
  * per dirty panel (backend endpoint accepts one `panel_id` at a time).
@@ -433,33 +434,66 @@ export function useDashboardFilters(
     [isOwner],
   );
 
-  // ── Lock toggle (owner-only) ────────────────────────────────
+  // ── Lock commit (owner-only, immediate) ─────────────────────
+  //
+  // Per-filter lock is committed immediately — clicking "Lock" in a filter's
+  // popover behaves like Apply for that filter plus any other pending edits:
+  // it PATCHes the current value with `is_locked` set, rather than staging
+  // the flag for a later Apply. Locking requires the filter to have a
+  // complete/valid value (same rule as Apply). Unlocking has no validity
+  // requirement — it just clears the lock.
 
-  const handleToggleLock = useCallback(
-    (filterId: string, locked: boolean, panelId?: string) => {
-      if (!isOwner) return;
-      if (panelId) {
-        setLocalPanelState((prev) => {
-          const panel = prev[panelId] ?? {};
-          const existing = panel[filterId];
-          if (!existing) return prev;
-          return {
-            ...prev,
-            [panelId]: {
-              ...panel,
-              [filterId]: { ...existing, is_locked: locked },
-            },
-          };
-        });
-      } else {
-        setLocalState((prev) => {
-          const existing = prev[filterId];
-          if (!existing) return prev;
-          return { ...prev, [filterId]: { ...existing, is_locked: locked } };
-        });
-      }
+  const canLockFilter = useCallback(
+    (filterId: string): boolean => {
+      const f = localState[filterId];
+      return f ? isFilterComplete(f) : false;
     },
-    [isOwner],
+    [localState],
+  );
+
+  const handleCommitLock = useCallback(
+    (filterId: string, locked: boolean) => {
+      if (!dashboardId || !isOwner) return;
+      const target = localState[filterId];
+      // Locking requires a complete filter value; unlocking does not.
+      if (locked) {
+        if (!target || !isFilterComplete(target)) return;
+      } else if (!target) {
+        // Nothing to unlock — no-op.
+        return;
+      }
+
+      // Apply the lock override onto a copy of local state, then build the
+      // full payload the same way handleApply does. Any other pending edits
+      // flush alongside the lock so state stays consistent after refetch.
+      const overridden: FilterLocalState = {
+        ...localState,
+        [filterId]: { ...target!, is_locked: locked },
+      };
+
+      const calls: Array<{ payload: FilterPatchPayload; panelId?: string }> =
+        [];
+      const dashPayload = buildPayload(overridden, serverNormalised.current);
+      if (Object.keys(dashPayload).length > 0) {
+        calls.push({ payload: dashPayload });
+      }
+
+      const allPanelIds = new Set([
+        ...Object.keys(localPanelState),
+        ...Object.keys(serverPanelNormalised.current),
+      ]);
+      for (const panelId of allPanelIds) {
+        const localPanel = localPanelState[panelId] ?? {};
+        const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+        const payload = buildPayload(localPanel, serverPanel);
+        if (Object.keys(payload).length > 0) calls.push({ payload, panelId });
+      }
+
+      if (calls.length === 0) return;
+      setIsApplying(true);
+      mutation.mutate(calls);
+    },
+    [dashboardId, isOwner, localState, localPanelState, mutation],
   );
 
   // ── Effective state for display (client-side resolution) ────
@@ -593,7 +627,8 @@ export function useDashboardFilters(
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
-    handleToggleLock,
+    handleCommitLock,
+    canLockFilter,
     getEffectivePanelState,
     handleApply,
     handleClearAll,

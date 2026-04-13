@@ -221,11 +221,18 @@ export interface MapDefinitionOptions {
   locked?: boolean;
   /** Owner-only: clicking the in-popover lock toggle flips server-side state. */
   onToggleLock?: () => void;
+  /**
+   * Whether the Lock button can be clicked right now. Ignored when the
+   * filter is already locked (Unlock is always allowed). Passed through to
+   * `FilterFieldConfig.canLock` so the design-system button knows to
+   * disable itself when the filter has no value yet.
+   */
+  canLock?: boolean;
 }
 
 export function mapDefinition(
   def: DashboardFilterDefinition,
-  { currentFilter, locked, onToggleLock }: MapDefinitionOptions = {},
+  { currentFilter, locked, onToggleLock, canLock }: MapDefinitionOptions = {},
 ): FilterFieldConfig {
   const type = mapFieldType(def.type);
   const config: FilterFieldConfig = { id: def.id, label: def.label, type };
@@ -293,6 +300,7 @@ export function mapDefinition(
   // Per-filter lock state (our design — not Aniket's bar-wide lock).
   if (locked) config.locked = true;
   if (onToggleLock) config.onToggleLock = onToggleLock;
+  if (canLock !== undefined) config.canLock = canLock;
 
   return config;
 }
