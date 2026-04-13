@@ -513,11 +513,12 @@ export function renderFilterValue(
 ): string {
   if (!filter) return fallback;
   const v = filter.value;
-  // No-value operators (is_blank / is_not_blank / etc.) — show the operator
+  const opDef = def.valid_operators?.find((o) => o.value === filter.operator);
+  const opLabel = opDef?.label ?? filter.operator;
+  // No-value operators (is_blank / is_not_blank) — show the operator
   // label on the chip rather than "All", matching the dashboard filter bar.
   if (NO_VALUE_OPERATORS.has(filter.operator)) {
-    const opDef = def.valid_operators?.find((o) => o.value === filter.operator);
-    return opDef?.label ?? filter.operator;
+    return opLabel;
   }
   if (v === undefined || v === null || v === "") return fallback;
   const formatOne = (x: unknown): string => {
@@ -528,18 +529,22 @@ export function renderFilterValue(
       (def.dynamic ? tokenLabel(s) : s)
     );
   };
+  // Value present — render as "operator: value" so the widget chip shows
+  // the same shape as the dashboard filter bar ("Is: Next 7 days",
+  // "One of: A, B, +3", "Between: 2025-01-01 – 2025-12-31", …).
   if (Array.isArray(v)) {
     if (v.length === 0) return fallback;
     const labeled = v.map(formatOne);
-    if (labeled.length > 2) {
-      return `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`;
-    }
-    return labeled.join(", ");
+    const body =
+      labeled.length > 2
+        ? `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`
+        : labeled.join(", ");
+    return `${opLabel}: ${body}`;
   }
   if (typeof v === "string") {
-    return formatOne(v);
+    return `${opLabel}: ${formatOne(v)}`;
   }
-  return String(v);
+  return `${opLabel}: ${String(v)}`;
 }
 
 // ── Resolved-value formatter (for dynamic-token tooltip) ────────────
