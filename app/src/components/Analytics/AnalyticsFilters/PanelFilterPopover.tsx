@@ -12,11 +12,7 @@
  */
 import { useMemo } from "react";
 import { createPortal } from "react-dom";
-import {
-  FunnelIcon,
-  XIcon,
-  ArrowCounterClockwiseIcon,
-} from "@phosphor-icons/react";
+import { FunnelIcon, XIcon } from "@phosphor-icons/react";
 import {
   SplitFilterDropdown,
   usePortalPopover,
@@ -41,6 +37,12 @@ interface PanelFilterPopoverProps {
   effectiveState: Record<string, ActiveFilter>;
   /** Dashboard-level locked state — render read-only in popover. */
   lockedFilterState: Record<string, ActiveFilter>;
+  /**
+   * Panel-level locked state for *this* panel (filterId → locked value).
+   * Used to decide whether the row renders with the Lock indicator and
+   * whether the SplitFilterDropdown opens read-only for non-owners.
+   */
+  lockedPanelFilterState?: Record<string, ActiveFilter>;
   /** Panel-local overrides (so we can show a "reset" action when present). */
   panelFilterState: Record<string, ActiveFilter>;
   onPanelFilterChange: (
@@ -51,6 +53,27 @@ interface PanelFilterPopoverProps {
     includeBlank?: boolean,
   ) => void;
   onResetPanelFilter: (panelId: string, filterId: string) => void;
+  /**
+   * Commit just one widget-level filter change to the server. PATCH
+   * body contains only the affected filter, scoped to this `panelId`.
+   * When omitted, the per-filter Apply button is a no-op close.
+   */
+  onApplyPanelFilter?: (panelId: string, filterId: string) => void;
+  /** True when the given panel+filter has a pending commit. */
+  canApplyPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /**
+   * Owner-only. Toggle the per-panel lock for this filter. Wired to
+   * each nested SplitFilterDropdown's in-popover Lock button.
+   */
+  onTogglePanelLock?: (
+    panelId: string,
+    filterId: string,
+    locked: boolean,
+  ) => void;
+  /** Validity gate for the per-panel Lock button. */
+  canLockPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /** Pass-through to each nested SplitFilterDropdown's spinner state. */
+  isApplying?: boolean;
 }
 
 export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
@@ -58,9 +81,15 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
   definitions,
   effectiveState,
   lockedFilterState,
+  lockedPanelFilterState,
   panelFilterState,
   onPanelFilterChange,
   onResetPanelFilter,
+  onApplyPanelFilter,
+  canApplyPanelFilter,
+  onTogglePanelLock,
+  canLockPanelFilter,
+  isApplying = false,
 }) => {
   const { open, hide, toggleVisibility, triggerRef, popoverRef, position } =
     usePortalPopover({ popoverWidth: POPOVER_WIDTH });
@@ -100,7 +129,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
           toggleVisibility();
         }}
         className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
-        title="Panel filters"
+        title="Widget filters"
       >
         <FunnelIcon size={14} />
       </button>
@@ -120,7 +149,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
               <span className="text-xs font-medium text-gray-700">
-                Panel Filters
+                Widget Filters
               </span>
               <button
                 onClick={(e) => {
@@ -140,8 +169,18 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
               )}
               {applicable.map((def) => {
                 const eff = effectiveState[def.id];
-                const isLocked = def.id in lockedFilterState;
+                // Dashboard-level lock always wins — a filter locked at the
+                // dashboard level is read-only on every widget regardless of
+                // panel-level lock state.
+                const isDashLocked = def.id in lockedFilterState;
+                const isPanelLocked =
+                  !!lockedPanelFilterState && def.id in lockedPanelFilterState;
+                const isLocked = isDashLocked || isPanelLocked;
                 const hasPanelOverride = def.id in panelFilterState;
+                // Signals "this filter carries a widget-level value" — either
+                // a pending/saved override or a panel-level lock. Drives the
+                // "[Widget]" suffix on the label.
+                const isWidgetScoped = hasPanelOverride || isPanelLocked;
                 const barValue = eff ? toFilterBarValue(eff, def) : null;
                 const field = mapDefinition(def);
                 return (
@@ -152,13 +191,22 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-gray-700 leading-none mb-1">
                         {def.label}
+                        {isWidgetScoped && (
+                          <span className="ml-1.5 text-[10px] text-gray-500">
+                            [Widget]
+                          </span>
+                        )}
                         {isLocked && (
                           <span className="ml-1.5 text-[10px] text-gray-500">
                             (locked)
                           </span>
                         )}
                       </div>
-                      {isLocked ? (
+                      {isDashLocked ? (
+                        // Dashboard-level lock wins — fully read-only in the
+                        // widget popover, no in-row dropdown so the owner
+                        // can't try to set a widget-scoped override on top
+                        // of a pinned dashboard value.
                         <div className="inline-flex items-center h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
                           {renderFilterValue(eff, def)}
                         </div>
@@ -167,6 +215,34 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                           field={field}
                           value={barValue}
                           onChange={(v) => handleBarChange(def, v)}
+                          locked={isPanelLocked}
+                          onToggleLock={
+                            onTogglePanelLock
+                              ? () =>
+                                  onTogglePanelLock(
+                                    panelId,
+                                    def.id,
+                                    !isPanelLocked,
+                                  )
+                              : undefined
+                          }
+                          canLock={
+                            canLockPanelFilter
+                              ? canLockPanelFilter(panelId, def.id)
+                              : false
+                          }
+                          onApply={
+                            onApplyPanelFilter
+                              ? () => onApplyPanelFilter(panelId, def.id)
+                              : undefined
+                          }
+                          canApply={
+                            canApplyPanelFilter
+                              ? canApplyPanelFilter(panelId, def.id)
+                              : true
+                          }
+                          onClear={() => onResetPanelFilter(panelId, def.id)}
+                          isApplying={isApplying}
                         >
                           <button className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-900 bg-white rounded-lg shadow-xs border border-gray-200/50 hover:bg-gray-50 transition-colors cursor-pointer">
                             {barValue ? renderFilterValue(eff, def) : "All"}
@@ -174,15 +250,6 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                         </SplitFilterDropdown>
                       )}
                     </div>
-                    {hasPanelOverride && !isLocked && (
-                      <button
-                        onClick={() => onResetPanelFilter(panelId, def.id)}
-                        title="Reset to dashboard value"
-                        className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-                      >
-                        <ArrowCounterClockwiseIcon size={11} />
-                      </button>
-                    )}
                   </div>
                 );
               })}

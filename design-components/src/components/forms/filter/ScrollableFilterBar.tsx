@@ -237,8 +237,16 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       );
     }
 
-    // Single value
-    if (fv.value && typeof fv.value === 'string') return `${opLabel}: ${fv.value}`;
+    // Single value — run through the dynamic/calendar formatter so wire
+    // tokens like "NEXT_N_DAYS:45" render as "Next 45 days" instead of
+    // the raw serialised token.
+    if (fv.value && typeof fv.value === 'string') {
+      const allDynOpts = field.optionGroups
+        ? field.optionGroups.flatMap((g) => g.dynamicOptions ?? [])
+        : field.dynamicOptions;
+      const display = formatDynamicValue(fv.value, allDynOpts) ?? fv.value;
+      return `${opLabel}: ${display}`;
+    }
     return 'All';
   };
 
@@ -395,10 +403,15 @@ function formatDynamicValue(v: string, dynamicOptions?: DynamicOptionConfig[]): 
   }
 
   if (!dynamicOptions) return null;
-  const match = v.match(/^([a-z_]+):(\d+)$/);
+  // Accept both uppercase (wire format from the backend, e.g. "NEXT_N_DAYS:7")
+  // and lowercase (storybook fixtures).
+  const match = v.match(/^([A-Za-z_]+):(\d+)$/);
   if (!match) return null;
   const [, id, nStr] = match;
   const opt = dynamicOptions.find((o) => o.id === id);
   if (!opt) return null;
-  return opt.label.replace('N', nStr);
+  // Replace the standalone `N` placeholder in the backend template (e.g.
+  // "Next N days" → "Next 45 days"). `\b` prevents accidental matches
+  // inside other words (none today, but cheap to guard against).
+  return opt.label.replace(/\bN\b/, nStr);
 }

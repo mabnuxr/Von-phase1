@@ -170,6 +170,32 @@ interface AnalyticsViewProps {
   ) => void;
   /** Reset a single panel-level filter back to the dashboard value (v2). */
   onResetPanelFilter?: (panelId: string, filterId: string) => void;
+  /**
+   * Commit a single panel-level filter change to the server (v2).
+   * Sends only the affected filter in the PATCH payload, scoped to
+   * the given `panel_id`, so `panel_state` gets populated without
+   * touching dashboard-level state.
+   */
+  onApplyPanelFilter?: (panelId: string, filterId: string) => void;
+  /** True when the given panel+filter has a pending commit. */
+  canApplyPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /**
+   * Owner-only. Toggle the per-panel lock for a filter. Commits the
+   * effective value (panel override or dashboard value) via PATCH with
+   * `panel_id` + `is_locked`.
+   */
+  onTogglePanelLock?: (
+    panelId: string,
+    filterId: string,
+    locked: boolean,
+  ) => void;
+  /** Validity gate for the panel-level Lock button. */
+  canLockPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /**
+   * Server-side per-panel locked state, keyed by panelId → filterId.
+   * Used to show (locked) indicator on widget-level filter rows.
+   */
+  lockedPanelFilterState?: Record<string, Record<string, ActiveFilter>>;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -232,6 +258,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   getEffectivePanelState,
   onPanelFilterChange,
   onResetPanelFilter,
+  onApplyPanelFilter,
+  canApplyPanelFilter,
+  onTogglePanelLock,
+  canLockPanelFilter,
+  lockedPanelFilterState,
 }) => {
   const { isDashboardFiltersV2Enabled } = useFeatureFlag();
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
@@ -322,9 +353,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         definitions={filterDefinitions}
         effectiveState={getEffectivePanelState(panelId)}
         lockedFilterState={lockedFilterState ?? {}}
+        lockedPanelFilterState={lockedPanelFilterState?.[panelId] ?? {}}
         panelFilterState={panelFilterState?.[panelId] ?? {}}
         onPanelFilterChange={onPanelFilterChange}
         onResetPanelFilter={onResetPanelFilter}
+        onApplyPanelFilter={onApplyPanelFilter}
+        canApplyPanelFilter={canApplyPanelFilter}
+        onTogglePanelLock={onTogglePanelLock}
+        canLockPanelFilter={canLockPanelFilter}
+        isApplying={filterIsApplying}
       />
     );
   }, [
@@ -332,7 +369,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     filterDefinitions,
     getEffectivePanelState,
     lockedFilterState,
+    lockedPanelFilterState,
     panelFilterState,
+    onApplyPanelFilter,
+    canApplyPanelFilter,
+    onTogglePanelLock,
+    canLockPanelFilter,
+    filterIsApplying,
     onPanelFilterChange,
     onResetPanelFilter,
   ]);

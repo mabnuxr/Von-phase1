@@ -74,6 +74,7 @@ function DashboardCanvas({
     filterState,
     panelFilterState,
     lockedFilterState,
+    lockedPanelFilterState,
     pendingRows: filterPendingRows,
     activeCount: filterActiveCount,
     canApply: filterCanApply,
@@ -86,6 +87,10 @@ function DashboardCanvas({
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleApplyPanelFilter,
+    canApplyPanelFilter,
+    handleCommitPanelLock,
+    canLockPanelFilter,
     handleCommitLock,
     canLockFilter,
     getEffectivePanelState,
@@ -211,6 +216,11 @@ function DashboardCanvas({
         getEffectivePanelState={getEffectivePanelState}
         onPanelFilterChange={handlePanelFilterChange}
         onResetPanelFilter={handleResetPanelFilter}
+        onApplyPanelFilter={handleApplyPanelFilter}
+        canApplyPanelFilter={canApplyPanelFilter}
+        onTogglePanelLock={handleCommitPanelLock}
+        canLockPanelFilter={canLockPanelFilter}
+        lockedPanelFilterState={lockedPanelFilterState}
       />
       {/* Edit mode banner — floats above drilldown panel when both are active */}
       <EditModeBanner

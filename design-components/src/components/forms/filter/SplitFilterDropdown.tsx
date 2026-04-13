@@ -724,6 +724,12 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               transition={{ duration: 0.15, ease: 'easeOut' }}
               style={popoverStyle}
               className={`rounded-xl border border-gray-100 shadow-lg flex flex-col ${locked || isApplying ? 'bg-gray-50' : 'bg-white'}`}
+              // Stop mousedown from bubbling to document. When this
+              // dropdown is nested inside another popover (e.g. the
+              // per-widget filters popover), the parent's document-level
+              // outside-click handler would otherwise treat clicks here
+              // as "outside" and close the parent.
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {/* Locked banner — shown whenever the filter is locked OR a
                   PATCH is in flight. During `isApplying` we dim the whole

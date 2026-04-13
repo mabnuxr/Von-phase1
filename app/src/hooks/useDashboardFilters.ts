@@ -461,11 +461,17 @@ export function useDashboardFilters(
 
   const handleResetPanelFilter = useCallback(
     (panelId: string, filterId: string) => {
+      if (!dashboardId) return;
+      const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+      const existing =
+        localPanelState[panelId]?.[filterId] ?? serverPanel[filterId];
+      if (existing?.is_locked && !isOwner) return;
+
+      // Optimistically drop the local override so the UI instantly falls
+      // back to the dashboard-level value.
       setLocalPanelState((prev) => {
         const panel = prev[panelId];
         if (!panel || !(filterId in panel)) return prev;
-        const existing = panel[filterId];
-        if (existing?.is_locked && !isOwner) return prev;
         const rest = { ...panel };
         delete rest[filterId];
         if (Object.keys(rest).length === 0) {
@@ -475,8 +481,125 @@ export function useDashboardFilters(
         }
         return { ...prev, [panelId]: rest };
       });
+
+      // Only fire a PATCH if the server currently holds a panel override
+      // for this slot — otherwise the reset was purely in-memory.
+      if (serverPanel[filterId]) {
+        setIsApplying(true);
+        mutation.mutate([{ payload: { [filterId]: null }, panelId }]);
+      }
     },
-    [isOwner],
+    [dashboardId, isOwner, localPanelState, mutation],
+  );
+
+  // ── Per-panel-filter Apply (widget popover) ─────────────────
+  //
+  // Commit ONLY the affected filter for this panel. Populates `panel_state`
+  // on the backend (via the PATCH endpoint's `panel_id`) and leaves
+  // dashboard-level state untouched — other pending in-memory edits stay
+  // un-committed until the user explicitly applies them.
+
+  const canApplyPanelFilter = useCallback(
+    (panelId: string, filterId: string): boolean => {
+      const local = localPanelState[panelId]?.[filterId];
+      const server = serverPanelNormalised.current[panelId]?.[filterId];
+      const dirty =
+        (local !== undefined && server === undefined) ||
+        (local === undefined && server !== undefined) ||
+        (local !== undefined &&
+          server !== undefined &&
+          JSON.stringify(local) !== JSON.stringify(server));
+      if (!dirty) return false;
+      // Local must be complete if present — incomplete values can't commit.
+      if (local && !isFilterComplete(local)) return false;
+      return true;
+    },
+    [localPanelState],
+  );
+
+  const handleApplyPanelFilter = useCallback(
+    (panelId: string, filterId: string) => {
+      if (!dashboardId) return;
+      const local = localPanelState[panelId]?.[filterId];
+      const server = serverPanelNormalised.current[panelId]?.[filterId];
+
+      const payload: FilterPatchPayload = {};
+      if (local === undefined && server !== undefined) {
+        // Panel override was dropped locally — clear it on the server too.
+        payload[filterId] = null;
+      } else if (local !== undefined) {
+        if (!isFilterComplete(local)) return;
+        const apiValue: Record<string, unknown> = { operator: local.operator };
+        if (local.value !== undefined) apiValue.value = local.value;
+        if (local.include_blank) {
+          apiValue.include_blank = true;
+        } else if (server?.include_blank) {
+          apiValue.include_blank = false;
+        }
+        payload[filterId] = apiValue as unknown as FilterPatchPayload[string];
+      }
+
+      if (Object.keys(payload).length === 0) return;
+      setIsApplying(true);
+      mutation.mutate([{ payload, panelId }]);
+    },
+    [dashboardId, localPanelState, mutation],
+  );
+
+  // ── Per-panel-filter Lock (owner-only, immediate) ───────────
+  //
+  // Locks at the panel level: writes to `locked_panel_filter_state[panelId]`
+  // on the backend. The value committed is the effective one for this panel
+  // — panel override if present, otherwise the dashboard-level value — so
+  // the lock pins whatever the user sees right now. Only the owner can lock.
+
+  const getEffectivePanelFilter = useCallback(
+    (panelId: string, filterId: string): ActiveFilter | undefined => {
+      return (
+        localPanelState[panelId]?.[filterId] ??
+        serverPanelNormalised.current[panelId]?.[filterId] ??
+        localState[filterId] ??
+        serverNormalised.current[filterId]
+      );
+    },
+    [localPanelState, localState],
+  );
+
+  const canLockPanelFilter = useCallback(
+    (panelId: string, filterId: string): boolean => {
+      const effective = getEffectivePanelFilter(panelId, filterId);
+      return effective ? isFilterComplete(effective) : false;
+    },
+    [getEffectivePanelFilter],
+  );
+
+  const handleCommitPanelLock = useCallback(
+    (panelId: string, filterId: string, locked: boolean) => {
+      if (!dashboardId || !isOwner) return;
+      const target = getEffectivePanelFilter(panelId, filterId);
+      // Locking requires a complete filter value. Unlocking just clears.
+      if (locked) {
+        if (!target || !isFilterComplete(target)) return;
+      } else if (!target) {
+        return;
+      }
+
+      const lockValue: Record<string, unknown> = { operator: target.operator };
+      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.include_blank) lockValue.include_blank = true;
+
+      setIsApplying(true);
+      mutation.mutate([
+        {
+          payload: {
+            [filterId]: lockValue as unknown as FilterPatchPayload[string],
+          },
+          panelId,
+          isLocked: locked,
+        },
+      ]);
+    },
+    [dashboardId, isOwner, getEffectivePanelFilter, mutation],
   );
 
   // ── Lock commit (owner-only, immediate) ─────────────────────
@@ -523,7 +646,7 @@ export function useDashboardFilters(
       if (target.include_blank) lockValue.include_blank = true;
       calls.push({
         payload: {
-          [filterId]: lockValue as FilterPatchPayload[string],
+          [filterId]: lockValue as unknown as FilterPatchPayload[string],
         },
         isLocked: locked,
       });
@@ -689,6 +812,10 @@ export function useDashboardFilters(
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleApplyPanelFilter,
+    canApplyPanelFilter,
+    handleCommitPanelLock,
+    canLockPanelFilter,
     handleCommitLock,
     canLockFilter,
     getEffectivePanelState,
