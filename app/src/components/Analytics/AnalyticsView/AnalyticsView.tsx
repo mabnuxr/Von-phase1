@@ -19,7 +19,12 @@ import {
   Tooltip,
 } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
+import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
+import { PanelFilterPopover } from "../AnalyticsFilters/PanelFilterPopover";
+import { DataSourcesSlot } from "./DataSourcesSlot";
+import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
+import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
@@ -142,6 +147,23 @@ interface AnalyticsViewProps {
   isRefreshing?: boolean;
   /** Whether the drilldown panel is open (hides inline edit banner to avoid duplication) */
   isDrilldownOpen?: boolean;
+  // ── v2 filter plumbing (panel-level overrides) ───────────────────────
+  /** Panel-level filter overrides (v2). */
+  panelFilterState?: Record<string, Record<string, ActiveFilter>>;
+  /** Dashboard-level locked filter state (v2). */
+  lockedFilterState?: Record<string, ActiveFilter>;
+  /** Client-side resolver for per-panel effective filter state (v2). */
+  getEffectivePanelState?: (panelId: string) => Record<string, ActiveFilter>;
+  /** Panel-level filter change handler (v2). */
+  onPanelFilterChange?: (
+    panelId: string,
+    filterId: string,
+    operator: string,
+    value?: unknown,
+    includeBlank?: boolean,
+  ) => void;
+  /** Reset a single panel-level filter back to the dashboard value (v2). */
+  onResetPanelFilter?: (panelId: string, filterId: string) => void;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -196,7 +218,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isRefetchingData,
   isRefreshing,
   isDrilldownOpen,
+  panelFilterState,
+  lockedFilterState,
+  getEffectivePanelState,
+  onPanelFilterChange,
+  onResetPanelFilter,
 }) => {
+  const { isDashboardFiltersV2Enabled } = useFeatureFlag();
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
     ...rawGridConfig,
@@ -266,6 +294,39 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
     return Object.keys(result).length > 0 ? result : undefined;
   }, [filterDefinitions, filterState, widgetIds]);
+
+  // v2: per-panel filter slot factory. Only mounted when the flag is on and
+  // required handlers are provided; otherwise DashboardGrid falls back to the
+  // read-only WidgetFiltersPopover it already renders.
+  const widgetFilterSlot = useMemo(() => {
+    if (
+      !isDashboardFiltersV2Enabled ||
+      !getEffectivePanelState ||
+      !onPanelFilterChange ||
+      !onResetPanelFilter
+    ) {
+      return undefined;
+    }
+    return (panelId: string) => (
+      <PanelFilterPopover
+        panelId={panelId}
+        definitions={filterDefinitions}
+        effectiveState={getEffectivePanelState(panelId)}
+        lockedFilterState={lockedFilterState ?? {}}
+        panelFilterState={panelFilterState?.[panelId] ?? {}}
+        onPanelFilterChange={onPanelFilterChange}
+        onResetPanelFilter={onResetPanelFilter}
+      />
+    );
+  }, [
+    isDashboardFiltersV2Enabled,
+    filterDefinitions,
+    getEffectivePanelState,
+    lockedFilterState,
+    panelFilterState,
+    onPanelFilterChange,
+    onResetPanelFilter,
+  ]);
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
     isOwner: dashboard.isOwner,
@@ -440,6 +501,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </button>
             )}
 
+            {/* Data sources pill (v2) — header-right, next to Ask Von */}
+            {isDashboardFiltersV2Enabled && dashboard.data_sources && (
+              <DataSourcesSlot dataSources={dashboard.data_sources} />
+            )}
+
             {/* "Ask Von" button — only shown when chat panel is closed */}
             {onChatClick && !isChatOpen && (
               <motion.button
@@ -480,21 +546,36 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
         <DashboardLayout.HeaderRow bordered>
           <DashboardLayout.HeaderRow.Left>
-            <AnalyticsFilters
-              definitions={filterDefinitions}
-              filterState={filterState}
-              pendingRows={filterPendingRows}
-              activeCount={filterActiveCount}
-              canApply={filterCanApply}
-              isApplying={filterIsApplying}
-              onFilterChange={onFilterChange}
-              onRemoveFilter={onRemoveFilter}
-              onAddFilter={onAddFilter}
-              onRemovePendingRow={onRemovePendingRow}
-              onCommitPendingRow={onCommitPendingRow}
-              onApply={onApplyFilters}
-              onClearAll={onClearAll}
-            />
+            {isDashboardFiltersV2Enabled ? (
+              <DashboardFilterBarV2
+                definitions={filterDefinitions}
+                filterState={filterState}
+                activeCount={filterActiveCount}
+                canApply={filterCanApply}
+                isApplying={filterIsApplying}
+                isOwner={dashboard.isOwner}
+                onFilterChange={onFilterChange}
+                onRemoveFilter={onRemoveFilter}
+                onApply={onApplyFilters}
+                onClearAll={onClearAll}
+              />
+            ) : (
+              <AnalyticsFilters
+                definitions={filterDefinitions}
+                filterState={filterState}
+                pendingRows={filterPendingRows}
+                activeCount={filterActiveCount}
+                canApply={filterCanApply}
+                isApplying={filterIsApplying}
+                onFilterChange={onFilterChange}
+                onRemoveFilter={onRemoveFilter}
+                onAddFilter={onAddFilter}
+                onRemovePendingRow={onRemovePendingRow}
+                onCommitPendingRow={onCommitPendingRow}
+                onApply={onApplyFilters}
+                onClearAll={onClearAll}
+              />
+            )}
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
@@ -652,6 +733,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
             widgetAppliedFilters={widgetAppliedFilters}
+            widgetFilterSlot={widgetFilterSlot}
           />
         </ErrorBoundary>
 

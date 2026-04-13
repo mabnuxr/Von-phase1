@@ -100,6 +100,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   onDrillDown,
   queryInfo,
   appliedFilters,
+  filterSlot,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
 
@@ -129,9 +130,11 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
       className="group relative h-full bg-white border border-gray-200 px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
       onClick={onDrillDown}
     >
-      {(appliedFilters || queryInfo || onDrillDown) && (
+      {(filterSlot || appliedFilters || queryInfo || onDrillDown) && (
         <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
-          {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
+          {filterSlot
+            ? filterSlot
+            : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
           {onDrillDown && (
             <button

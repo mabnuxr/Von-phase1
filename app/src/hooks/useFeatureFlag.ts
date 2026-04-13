@@ -34,6 +34,7 @@ export const FEATURE_FLAGS = {
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
+  DASHBOARD_FILTERS_V2: "dashboardFiltersV2",
 } as const;
 
 /**
@@ -179,6 +180,14 @@ export function useFeatureFlag() {
      * Controls whether Jiminny integration is visible
      */
     isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
+
+    /**
+     * Controls whether the v2 dashboard filter bar UI is enabled
+     * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
+     */
+    // isDashboardFiltersV2Enabled:ARD_FILTERS_V2] === true,
+    
+    isDashboardFiltersV2Enabled: true,
 
     /**
      * Raw flags object for advanced usage

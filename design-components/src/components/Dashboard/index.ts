@@ -35,3 +35,11 @@ export type {
 
 // ── DashboardLayout (Compound component) ────────────────────────────
 export { DashboardLayout } from './DashboardLayout';
+
+// ── DataSourcesDrawer ───────────────────────────────────────────────
+export { DataSources } from './DataSourcesDrawer';
+export type {
+  DataSourcesProps,
+  DataSource,
+  DataSourceIcon,
+} from './DataSourcesDrawer';

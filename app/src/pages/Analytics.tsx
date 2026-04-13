@@ -72,6 +72,8 @@ function DashboardCanvas({
   const {
     definitions: filterDefinitions,
     filterState,
+    panelFilterState,
+    lockedFilterState,
     pendingRows: filterPendingRows,
     activeCount: filterActiveCount,
     canApply: filterCanApply,
@@ -81,12 +83,21 @@ function DashboardCanvas({
     handleAddFilter,
     handleRemovePendingRow,
     handleCommitPendingRow,
+    handlePanelFilterChange,
+    handleResetPanelFilter,
+    getEffectivePanelState,
     handleApply,
     handleClearAll,
   } = useDashboardFilters(
     dashboardId,
     dashboard?.filters?.definitions ?? [],
     activeFilters,
+    {
+      panelState: dashboard?.filters?.panel_state,
+      lockedFilterState: dashboard?.filters?.locked_filter_state,
+      lockedPanelFilterState: dashboard?.filters?.locked_panel_filter_state,
+      isOwner: dashboard?.isOwner,
+    },
   );
   const {
     mergedWidgets,
@@ -189,6 +200,11 @@ function DashboardCanvas({
         isRefetchingData={isFetching && !isLoading}
         isRefreshing={isRefreshing}
         isDrilldownOpen={isDrilldownOpen}
+        panelFilterState={panelFilterState}
+        lockedFilterState={lockedFilterState}
+        getEffectivePanelState={getEffectivePanelState}
+        onPanelFilterChange={handlePanelFilterChange}
+        onResetPanelFilter={handleResetPanelFilter}
       />
       {/* Edit mode banner — floats above drilldown panel when both are active */}
       <EditModeBanner

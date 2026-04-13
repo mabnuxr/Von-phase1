@@ -8,3 +8,14 @@ export type {
 } from './Filter';
 export { FilterRow } from './FilterRow';
 export type { FilterRowProps } from './FilterRow';
+export { ScrollableFilterBar } from './ScrollableFilterBar';
+export type {
+  FieldType,
+  DynamicOptionConfig,
+  CustomOperatorDef,
+  FilterFieldConfig,
+  FilterValue,
+  ScrollableFilterBarProps,
+} from './ScrollableFilterBar';
+export { SplitFilterDropdown } from './SplitFilterDropdown';
+export type { SplitFilterDropdownProps } from './SplitFilterDropdown';
