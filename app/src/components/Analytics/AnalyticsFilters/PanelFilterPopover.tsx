@@ -12,7 +12,11 @@
  */
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { FunnelIcon, XIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
+import {
+  FunnelIcon,
+  XIcon,
+  ArrowCounterClockwiseIcon,
+} from "@phosphor-icons/react";
 import { SplitFilterDropdown } from "@vonlabs/design-components";
 import type {
   FilterFieldConfig,
@@ -192,7 +196,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
 
   const activeDef =
     activeFilterId != null
-      ? applicable.find((d) => d.id === activeFilterId) ?? null
+      ? (applicable.find((d) => d.id === activeFilterId) ?? null)
       : null;
 
   const handleBarChange = (

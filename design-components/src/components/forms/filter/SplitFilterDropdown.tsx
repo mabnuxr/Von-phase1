@@ -74,20 +74,28 @@ const DATE_OPERATORS: OperatorDef[] = [
 function getOperators(field: FilterFieldConfig): OperatorDef[] {
   if (field.customOperators) return field.customOperators;
   switch (field.type) {
-    case 'picklist': return PICKLIST_OPERATORS;
-    case 'number': return NUMBER_OPERATORS;
-    case 'date': return DATE_OPERATORS;
-    default: return TEXT_OPERATORS;
+    case 'picklist':
+      return PICKLIST_OPERATORS;
+    case 'number':
+      return NUMBER_OPERATORS;
+    case 'date':
+      return DATE_OPERATORS;
+    default:
+      return TEXT_OPERATORS;
   }
 }
 
 function getDefaultOperator(field: FilterFieldConfig): string {
   if (field.defaultOperator) return field.defaultOperator;
   switch (field.type) {
-    case 'picklist': return 'in';
-    case 'number': return 'equals';
-    case 'date': return 'on';
-    default: return 'contains';
+    case 'picklist':
+      return 'in';
+    case 'number':
+      return 'equals';
+    case 'date':
+      return 'on';
+    default:
+      return 'contains';
   }
 }
 
@@ -120,7 +128,7 @@ function shouldShowDateRelativeMode(
   field: FilterFieldConfig,
   operator: string,
   isRange: boolean,
-  isNoValue: boolean,
+  isNoValue: boolean
 ): boolean {
   if (field.type !== 'date') return false;
   if (isRange || isNoValue) return false;
@@ -140,16 +148,12 @@ function shouldShowDateRelativeMode(
 
 /** Heuristic: does this string value look like a dynamic preset (either
  * a simple token or a parameterized token like "LAST_N_DAYS:30")? */
-function isRelativeValue(
-  raw: string | string[] | undefined,
-  field: FilterFieldConfig,
-): boolean {
+function isRelativeValue(raw: string | string[] | undefined, field: FilterFieldConfig): boolean {
   if (typeof raw !== 'string' || !raw) return false;
   if (parseDynamicValue(raw)) return true;
   if (field.options?.includes(raw)) return true;
   return false;
 }
-
 
 // ============================================================================
 // Props
@@ -185,11 +189,13 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const operators = useMemo(() => getOperators(field), [field]);
   const currentOperator = value?.operator ?? getDefaultOperator(field);
   const currentValues = value?.value
-    ? Array.isArray(value.value) ? value.value : [value.value]
+    ? Array.isArray(value.value)
+      ? value.value
+      : [value.value]
     : [];
   const isMulti = MULTI_VALUE_OPERATORS.has(currentOperator);
   const isRange = RANGE_OPERATORS.has(currentOperator);
-  const operatorDef = operators.find(o => o.value === currentOperator);
+  const operatorDef = operators.find((o) => o.value === currentOperator);
   const isNoValue = operatorDef?.noValue ?? false;
   const showDateRelative = shouldShowDateRelativeMode(field, currentOperator, isRange, isNoValue);
 
@@ -231,9 +237,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const viewportHeight = window.innerHeight;
     const left = Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
     const spaceBelow = viewportHeight - rect.bottom;
-    const top = spaceBelow >= popoverHeight + 8
-      ? rect.bottom + 6
-      : rect.top - popoverHeight - 6;
+    const top = spaceBelow >= popoverHeight + 8 ? rect.bottom + 6 : rect.top - popoverHeight - 6;
     setPopoverStyle({
       position: 'fixed',
       top,
@@ -263,8 +267,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     if (!isOpen) return;
     const handleClick = (e: MouseEvent) => {
       if (
-        popoverRef.current && !popoverRef.current.contains(e.target as Node) &&
-        triggerRef.current && !triggerRef.current.contains(e.target as Node)
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
         setSearch('');
@@ -275,7 +281,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   }, [isOpen]);
 
   const handleOperatorChange = (op: string) => {
-    const opDef = operators.find(o => o.value === op);
+    const opDef = operators.find((o) => o.value === op);
     if (opDef?.noValue) {
       onChange({ operator: op });
     } else if (RANGE_OPERATORS.has(op)) {
@@ -301,7 +307,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const handleSelectRelativeDynamicOption = (optId: string) => {
-    const n = dynamicInputs[optId] ?? field.dynamicOptions?.find(o => o.id === optId)?.defaultN ?? 7;
+    const n =
+      dynamicInputs[optId] ?? field.dynamicOptions?.find((o) => o.id === optId)?.defaultN ?? 7;
     const dynValue = makeDynamicValue(optId, n);
     const currentSingle = typeof value?.value === 'string' ? value.value : '';
     const parsed = parseDynamicValue(currentSingle);
@@ -313,7 +320,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const handleRelativeDynamicInputChange = (optId: string, n: number) => {
-    setDynamicInputs(prev => ({ ...prev, [optId]: n }));
+    setDynamicInputs((prev) => ({ ...prev, [optId]: n }));
     // If this parameterized option is the active single-select value, update it.
     const currentSingle = typeof value?.value === 'string' ? value.value : '';
     const parsed = parseDynamicValue(currentSingle);
@@ -364,12 +371,13 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const handleToggleDynamicOption = (optId: string) => {
-    const n = dynamicInputs[optId] ?? field.dynamicOptions?.find(o => o.id === optId)?.defaultN ?? 7;
+    const n =
+      dynamicInputs[optId] ?? field.dynamicOptions?.find((o) => o.id === optId)?.defaultN ?? 7;
     const dynValue = makeDynamicValue(optId, n);
 
     if (selectedDynamicIds.has(optId)) {
       // Deselect: remove this dynamic value
-      const next = currentValues.filter(v => {
+      const next = currentValues.filter((v) => {
         const p = parseDynamicValue(v);
         return !p || p.id !== optId;
       });
@@ -386,11 +394,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   };
 
   const handleDynamicInputChange = (optId: string, n: number) => {
-    setDynamicInputs(prev => ({ ...prev, [optId]: n }));
+    setDynamicInputs((prev) => ({ ...prev, [optId]: n }));
     // If this dynamic option is currently selected, update its value in the filter
     if (selectedDynamicIds.has(optId)) {
       const newDynValue = makeDynamicValue(optId, n);
-      const next = currentValues.map(v => {
+      const next = currentValues.map((v) => {
         const p = parseDynamicValue(v);
         if (p && p.id === optId) return newDynValue;
         return v;
@@ -409,7 +417,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     if (!field.options) return [];
     if (!search) return field.options;
     const q = search.toLowerCase();
-    return field.options.filter(o => o.toLowerCase().includes(q));
+    return field.options.filter((o) => o.toLowerCase().includes(q));
   }, [field.options, search]);
 
   const hasOptions = field.options && field.options.length > 0;
@@ -437,12 +445,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               {/* Body: two-column split, fixed 180px height */}
               <div className="flex h-[240px] min-h-0">
                 {/* Left panel — Operators: fixed heading, scrollable list */}
-                <div className={`w-[148px] flex flex-col shrink-0 ${showRightPanel ? 'border-r border-gray-100' : ''}`}>
+                <div
+                  className={`w-[148px] flex flex-col shrink-0 ${showRightPanel ? 'border-r border-gray-100' : ''}`}
+                >
                   <div className="px-2.5 py-1 shrink-0 border-b border-gray-100">
                     <span className="text-xs font-medium text-gray-700">Operator</span>
                   </div>
                   <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                    {operators.map(op => (
+                    {operators.map((op) => (
                       <button
                         key={op.value}
                         onClick={() => handleOperatorChange(op.value)}
@@ -452,9 +462,13 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                             : 'text-gray-800 hover:bg-gray-50'
                         }`}
                       >
-                        <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
-                          currentOperator === op.value ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
-                        }`}>
+                        <div
+                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
+                            currentOperator === op.value
+                              ? 'bg-gray-900'
+                              : 'border-[1.5px] border-gray-300'
+                          }`}
+                        >
                           {currentOperator === op.value && (
                             <div className="w-1.5 h-1.5 rounded-full bg-white" />
                           )}
@@ -471,7 +485,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     {/* Date filter Manual/Relative mode toggle */}
                     {showDateRelative && (
                       <div className="flex items-center gap-1 px-2 py-1.5 border-b border-gray-100 shrink-0">
-                        {(['manual', 'relative'] as const).map(mode => (
+                        {(['manual', 'relative'] as const).map((mode) => (
                           <button
                             key={mode}
                             onClick={() => handleDateModeSwitch(mode)}
@@ -492,8 +506,12 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                       <div className="px-3 py-2.5">
                         <input
                           type="date"
-                          value={typeof value?.value === 'string' && !parseDynamicValue(value.value) ? value.value : ''}
-                          onChange={e => handleTextValueChange(e.target.value)}
+                          value={
+                            typeof value?.value === 'string' && !parseDynamicValue(value.value)
+                              ? value.value
+                              : ''
+                          }
+                          onChange={(e) => handleTextValueChange(e.target.value)}
                           className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-gray-300 transition-colors"
                           autoFocus
                         />
@@ -503,26 +521,35 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     {/* Date + Relative: single-select radio list of preset + parameterized tokens */}
                     {showDateRelative && dateMode === 'relative' && (
                       <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                        {field.options?.map(option => {
-                          const isSelected = typeof value?.value === 'string' && value.value === option;
+                        {field.options?.map((option) => {
+                          const isSelected =
+                            typeof value?.value === 'string' && value.value === option;
                           return (
                             <button
                               key={option}
                               onClick={() => handleSelectRelativeOption(option)}
                               className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
                             >
-                              <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                                isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
-                              }`}>
-                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                              <div
+                                className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                                  isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
+                                }`}
+                              >
+                                {isSelected && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                )}
                               </div>
-                              <span className={isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'}>
+                              <span
+                                className={
+                                  isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
+                                }
+                              >
                                 {option}
                               </span>
                             </button>
                           );
                         })}
-                        {field.dynamicOptions?.map(opt => {
+                        {field.dynamicOptions?.map((opt) => {
                           const currentSingle = typeof value?.value === 'string' ? value.value : '';
                           const parsed = parseDynamicValue(currentSingle);
                           const isSelected = parsed?.id === opt.id;
@@ -533,12 +560,20 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                 onClick={() => handleSelectRelativeDynamicOption(opt.id)}
                                 className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
                               >
-                                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-                                  isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
-                                }`}>
-                                  {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                                <div
+                                  className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+                                    isSelected ? 'bg-gray-900' : 'border-[1.5px] border-gray-300'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                  )}
                                 </div>
-                                <span className={isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'}>
+                                <span
+                                  className={
+                                    isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
+                                  }
+                                >
                                   {opt.label}
                                 </span>
                               </button>
@@ -548,11 +583,18 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                     type="number"
                                     min={1}
                                     value={n}
-                                    onChange={e => handleRelativeDynamicInputChange(opt.id, Math.max(1, parseInt(e.target.value) || 1))}
+                                    onChange={(e) =>
+                                      handleRelativeDynamicInputChange(
+                                        opt.id,
+                                        Math.max(1, parseInt(e.target.value) || 1)
+                                      )
+                                    }
                                     className="w-14 px-2 py-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg text-center focus:outline-none focus:border-gray-300 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    onClick={e => e.stopPropagation()}
+                                    onClick={(e) => e.stopPropagation()}
                                   />
-                                  {opt.unit && <span className="text-xs text-gray-700">{opt.unit}</span>}
+                                  {opt.unit && (
+                                    <span className="text-xs text-gray-700">{opt.unit}</span>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -568,7 +610,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                         <input
                           type="text"
                           value={search}
-                          onChange={e => setSearch(e.target.value)}
+                          onChange={(e) => setSearch(e.target.value)}
                           placeholder="Search..."
                           className="flex-1 bg-transparent text-xs text-gray-900 placeholder:text-gray-700 outline-none"
                           autoFocus
@@ -579,7 +621,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     {/* Option list (picklist) — scrollable */}
                     {!showDateRelative && (hasOptions || hasDynamicOptions) && (
                       <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                        {filteredOptions.map(option => {
+                        {filteredOptions.map((option) => {
                           const isSelected = currentValues.includes(option);
                           return (
                             <button
@@ -587,27 +629,37 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                               onClick={() => handleToggleOption(option)}
                               className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
                             >
-                              <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                isSelected
-                                  ? 'bg-gray-900 border-gray-900'
-                                  : 'bg-white border-gray-300'
-                              }`}>
-                                {isSelected && <CheckIcon size={10} weight="bold" className="text-white" />}
+                              <div
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                  isSelected
+                                    ? 'bg-gray-900 border-gray-900'
+                                    : 'bg-white border-gray-300'
+                                }`}
+                              >
+                                {isSelected && (
+                                  <CheckIcon size={10} weight="bold" className="text-white" />
+                                )}
                               </div>
-                              <span className={isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'}>
+                              <span
+                                className={
+                                  isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
+                                }
+                              >
                                 {option}
                               </span>
                             </button>
                           );
                         })}
                         {filteredOptions.length === 0 && !hasDynamicOptions && (
-                          <div className="px-3 py-3 text-xs text-gray-400 text-center">No matches</div>
+                          <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                            No matches
+                          </div>
                         )}
 
                         {/* Dynamic options with inline number inputs */}
                         {hasDynamicOptions && (
                           <>
-                            {field.dynamicOptions!.map(opt => {
+                            {field.dynamicOptions!.map((opt) => {
                               const isSelected = selectedDynamicIds.has(opt.id);
                               const n = dynamicInputs[opt.id] ?? opt.defaultN ?? 7;
                               return (
@@ -616,14 +668,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                     onClick={() => handleToggleDynamicOption(opt.id)}
                                     className="w-full flex items-center gap-2 border border-white rounded-xl px-3 py-1.5 text-xs text-left hover:bg-gray-50 transition-colors cursor-pointer"
                                   >
-                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                      isSelected
-                                        ? 'bg-gray-900 border-gray-900'
-                                        : 'bg-white border-gray-300'
-                                    }`}>
-                                      {isSelected && <CheckIcon size={10} weight="bold" className="text-white" />}
+                                    <div
+                                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                        isSelected
+                                          ? 'bg-gray-900 border-gray-900'
+                                          : 'bg-white border-gray-300'
+                                      }`}
+                                    >
+                                      {isSelected && (
+                                        <CheckIcon size={10} weight="bold" className="text-white" />
+                                      )}
                                     </div>
-                                    <span className={isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'}>
+                                    <span
+                                      className={
+                                        isSelected ? 'text-gray-900 font-medium' : 'text-gray-800'
+                                      }
+                                    >
                                       {opt.label}
                                     </span>
                                   </button>
@@ -634,9 +694,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                         type="number"
                                         min={1}
                                         value={n}
-                                        onChange={e => handleDynamicInputChange(opt.id, Math.max(1, parseInt(e.target.value) || 1))}
+                                        onChange={(e) =>
+                                          handleDynamicInputChange(
+                                            opt.id,
+                                            Math.max(1, parseInt(e.target.value) || 1)
+                                          )
+                                        }
                                         className="w-14 px-2 py-1 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg text-center focus:outline-none focus:border-gray-300 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                        onClick={e => e.stopPropagation()}
+                                        onClick={(e) => e.stopPropagation()}
                                       />
                                       {opt.unit && (
                                         <span className="text-xs text-gray-700">{opt.unit}</span>
@@ -658,8 +723,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           <label className="text-[11px] text-gray-700 mb-1 block">Min</label>
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
-                            value={Array.isArray(value?.value) ? value.value[0] ?? '' : ''}
-                            onChange={e => handleRangeChange(0, e.target.value)}
+                            value={Array.isArray(value?.value) ? (value.value[0] ?? '') : ''}
+                            onChange={(e) => handleRangeChange(0, e.target.value)}
                             placeholder="Min"
                             className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
                             autoFocus
@@ -670,8 +735,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           <label className="text-[11px] text-gray-700 mb-1 block">Max</label>
                           <input
                             type={field.type === 'number' ? 'number' : 'date'}
-                            value={Array.isArray(value?.value) ? value.value[1] ?? '' : ''}
-                            onChange={e => handleRangeChange(1, e.target.value)}
+                            value={Array.isArray(value?.value) ? (value.value[1] ?? '') : ''}
+                            onChange={(e) => handleRangeChange(1, e.target.value)}
                             placeholder="Max"
                             className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
                           />
@@ -683,9 +748,15 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     {!showDateRelative && !hasOptions && !isRange && (
                       <div className="px-3 py-2.5">
                         <input
-                          type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
+                          type={
+                            field.type === 'number'
+                              ? 'number'
+                              : field.type === 'date'
+                                ? 'date'
+                                : 'text'
+                          }
                           value={typeof value?.value === 'string' ? value.value : ''}
-                          onChange={e => handleTextValueChange(e.target.value)}
+                          onChange={(e) => handleTextValueChange(e.target.value)}
                           placeholder={`Enter ${field.label.toLowerCase()}...`}
                           className="w-full px-2.5 py-1.5 text-xs text-gray-900 bg-white border border-gray-200 rounded-lg placeholder:text-gray-400 focus:outline-none focus:border-gray-300 transition-colors"
                           autoFocus
@@ -709,12 +780,16 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     }}
                     className="flex items-center gap-1.5 cursor-pointer bg-transparent border-none p-0"
                   >
-                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      value?.includeBlank
-                        ? 'bg-gray-900 border-gray-900'
-                        : 'bg-white border-gray-300'
-                    }`}>
-                      {value?.includeBlank && <CheckIcon size={10} weight="bold" className="text-white" />}
+                    <div
+                      className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        value?.includeBlank
+                          ? 'bg-gray-900 border-gray-900'
+                          : 'bg-white border-gray-300'
+                      }`}
+                    >
+                      {value?.includeBlank && (
+                        <CheckIcon size={10} weight="bold" className="text-white" />
+                      )}
                     </div>
                     <span className="text-xs text-gray-800">Include blanks</span>
                   </button>
@@ -727,7 +802,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   Clear
                 </button>
                 <button
-                  onClick={() => { setIsOpen(false); setSearch(''); }}
+                  onClick={() => {
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
                   className="h-[26px] px-3 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
                 >
                   Apply

@@ -185,9 +185,8 @@ export function useFeatureFlag() {
      * Controls whether the v2 dashboard filter bar UI is enabled
      * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
      */
-    // isDashboardFiltersV2Enabled:ARD_FILTERS_V2] === true,
-    
-    isDashboardFiltersV2Enabled: true,
+    isDashboardFiltersV2Enabled:
+      flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
 
     /**
      * Raw flags object for advanced usage

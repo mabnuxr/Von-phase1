@@ -13,10 +13,7 @@
  */
 import { useMemo } from "react";
 import { LockSimpleIcon, SpinnerGapIcon } from "@phosphor-icons/react";
-import {
-  ScrollableFilterBar,
-  Tooltip,
-} from "@vonlabs/design-components";
+import { ScrollableFilterBar, Tooltip } from "@vonlabs/design-components";
 import type {
   FilterFieldConfig,
   FilterBarValue,
@@ -26,9 +23,7 @@ import type {
   DashboardFilterDefinition,
   DashboardFilterType,
 } from "../../../types/dashboard";
-import type {
-  ActiveFilter,
-} from "../../../hooks/useDashboardFilters";
+import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 
 // ── Token labels ────────────────────────────────────────────────
 
@@ -86,9 +81,13 @@ function formatResolved(resolved: unknown): string | null {
   if (resolved === undefined || resolved === null) return null;
   if (Array.isArray(resolved)) {
     const [a, b] = resolved as unknown[];
-    if (a && b) return `${String(a)} → ${String(b)}`;
-    if (a) return `From ${String(a)}`;
-    if (b) return `Through ${String(b)}`;
+    // Use nullish + empty-string checks instead of truthiness so valid
+    // falsy values (0, "") aren't silently dropped.
+    const aPresent = a !== undefined && a !== null && a !== "";
+    const bPresent = b !== undefined && b !== null && b !== "";
+    if (aPresent && bPresent) return `${String(a)} → ${String(b)}`;
+    if (aPresent) return `From ${String(a)}`;
+    if (bPresent) return `Through ${String(b)}`;
     return null;
   }
   if (typeof resolved === "string") return resolved;
@@ -301,9 +300,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       {/* Locked chips — read-only, rendered before the scrollable bar */}
       {lockedDefs.map((def) => {
         const f = filterState[def.id];
-        const label = f
-          ? renderLockedValue(f, def)
-          : "—";
+        const label = f ? renderLockedValue(f, def) : "—";
         return (
           <Tooltip
             key={def.id}
@@ -342,7 +339,9 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
               disabled={isApplying}
               className="inline-flex items-center gap-1.5 h-[28px] px-2.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 disabled:opacity-60 rounded-lg transition-colors cursor-pointer"
             >
-              {isApplying && <SpinnerGapIcon size={11} className="animate-spin" />}
+              {isApplying && (
+                <SpinnerGapIcon size={11} className="animate-spin" />
+              )}
               Apply
             </button>
           )}
@@ -371,7 +370,8 @@ function renderLockedValue(
     const labeled = v.map((x) =>
       def.dynamic ? tokenLabel(String(x)) : String(x),
     );
-    if (labeled.length > 2) return `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`;
+    if (labeled.length > 2)
+      return `${labeled.slice(0, 2).join(", ")} +${labeled.length - 2}`;
     return labeled.join(", ");
   }
   if (typeof v === "string") return def.dynamic ? tokenLabel(v) : v;

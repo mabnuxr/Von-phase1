@@ -5,10 +5,7 @@
  */
 import { useMemo } from "react";
 import { DataSources } from "@vonlabs/design-components";
-import type {
-  DataSource,
-  DataSourceIcon,
-} from "@vonlabs/design-components";
+import type { DataSource, DataSourceIcon } from "@vonlabs/design-components";
 import type { DataSourceGroup } from "../../../types/dashboard";
 
 const KNOWN_ICONS: Record<string, DataSourceIcon> = {

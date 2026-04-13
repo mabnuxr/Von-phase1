@@ -106,7 +106,10 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }, []);
 
-  const renderFilterValue = (field: FilterFieldConfig, fv: FilterValue | undefined): React.ReactNode => {
+  const renderFilterValue = (
+    field: FilterFieldConfig,
+    fv: FilterValue | undefined
+  ): React.ReactNode => {
     if (!fv) return 'All';
     const opLabel = getOperatorFullLabel(fv.operator, field);
 
@@ -124,7 +127,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
     // Multi-value (picklist chips)
     if (Array.isArray(fv.value) && fv.value.length > 0) {
-      const displayValues = fv.value.map(v => {
+      const displayValues = fv.value.map((v) => {
         const dynLabel = formatDynamicValue(v, field.dynamicOptions);
         return dynLabel ?? v;
       });
@@ -132,10 +135,17 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         <span className="flex items-center gap-1">
           <span>{opLabel}:</span>
           {displayValues.slice(0, 2).map((v, i) => (
-            <span key={fv.value![i] as string} className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">{v}</span>
+            <span
+              key={fv.value![i] as string}
+              className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full"
+            >
+              {v}
+            </span>
           ))}
           {displayValues.length > 2 && (
-            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">+{displayValues.length - 2}</span>
+            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">
+              +{displayValues.length - 2}
+            </span>
           )}
         </span>
       );
@@ -167,7 +177,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {fields.map(field => {
+        {fields.map((field) => {
           const fv = values[field.id];
           return (
             <SplitFilterDropdown
@@ -181,7 +191,10 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                   {field.label}
                   {field.tooltip && (
                     <Tooltip content={field.tooltip} placement="top">
-                      <InfoIcon size={11} className="text-gray-800 hover:text-gray-600 transition-colors shrink-0" />
+                      <InfoIcon
+                        size={11}
+                        className="text-gray-800 hover:text-gray-600 transition-colors shrink-0"
+                      />
                     </Tooltip>
                   )}
                 </span>
@@ -221,7 +234,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 function getOperatorFullLabel(op: string, field: FilterFieldConfig): string {
   // Check custom operators first
   if (field.customOperators) {
-    const custom = field.customOperators.find(o => o.value === op);
+    const custom = field.customOperators.find((o) => o.value === op);
     if (custom) return custom.label;
   }
   const labels: Record<string, string> = {
@@ -256,7 +269,7 @@ function formatDynamicValue(v: string, dynamicOptions?: DynamicOptionConfig[]): 
   const match = v.match(/^([a-z_]+):(\d+)$/);
   if (!match) return null;
   const [, id, nStr] = match;
-  const opt = dynamicOptions.find(o => o.id === id);
+  const opt = dynamicOptions.find((o) => o.id === id);
   if (!opt) return null;
   return opt.label.replace('N', nStr);
 }
