@@ -377,15 +377,9 @@ export function mapDefinition(
   // Operator set — backend is the source of truth. Semantic restrictions
   // (e.g. ownership → equals/not_equals/in/not_in only) are server-side.
   if (def.valid_operators?.length) {
-    // Backend sends `{value, label}` only — infer the `noValue` flag for the
-    // operators that don't take a value so the dropdown can hide the right
-    // panel (is_blank / is_not_blank / in_this_quarter / in_next_quarter).
-    const NO_VALUE_OPERATORS = new Set([
-      "is_blank",
-      "is_not_blank",
-      "in_this_quarter",
-      "in_next_quarter",
-    ]);
+    // Backend sends `{value, label}` only — infer the `noValue` flag for
+    // the operators that don't take a value (is_blank / is_not_blank) so
+    // the dropdown can hide the right panel.
     config.customOperators = def.valid_operators.map((op) => ({
       value: op.value,
       label: op.label,
@@ -509,6 +503,9 @@ function formatCalendarSerialised(v: string): string | null {
   return null;
 }
 
+/** Operators that don't take a value — the chip shows the operator label. */
+const NO_VALUE_OPERATORS = new Set(["is_blank", "is_not_blank"]);
+
 export function renderFilterValue(
   filter: ActiveFilter | undefined,
   def: DashboardFilterDefinition,
@@ -516,6 +513,12 @@ export function renderFilterValue(
 ): string {
   if (!filter) return fallback;
   const v = filter.value;
+  // No-value operators (is_blank / is_not_blank / etc.) — show the operator
+  // label on the chip rather than "All", matching the dashboard filter bar.
+  if (NO_VALUE_OPERATORS.has(filter.operator)) {
+    const opDef = def.valid_operators?.find((o) => o.value === filter.operator);
+    return opDef?.label ?? filter.operator;
+  }
   if (v === undefined || v === null || v === "") return fallback;
   const formatOne = (x: unknown): string => {
     const s = String(x);
