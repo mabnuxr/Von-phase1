@@ -543,16 +543,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     setCalendarRange(range);
     if (!range?.from) return;
     if (!range.to) {
-      // Only `from` picked so far — keep the placeholder so the calendar
-      // stays open for the `to` pick.
-      if (!isMulti) {
-        onChange({ operator: currentOperator, value: calCfg?.dateRangeLabel ?? 'Custom Range' });
-        return;
-      }
-      const next = currentValues.filter((v) => !v.startsWith('custom_range:'));
-      if (!next.includes(calCfg?.dateRangeLabel ?? ''))
-        next.push(calCfg?.dateRangeLabel ?? 'Custom Range');
-      onChange({ operator: currentOperator, value: next });
+      // Only `from` picked — update local calendar state only, no onChange.
+      // The placeholder label is already in the value; calling onChange here
+      // triggers a parent re-render cycle that can reset the calendar.
       return;
     }
     const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
