@@ -311,8 +311,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
-  useLayoutEffect(() => {
-    if (!overflowOpen || !plusRef.current) return;
+  const repositionDropdown = useCallback(() => {
+    if (!plusRef.current) return;
     const rect = plusRef.current.getBoundingClientRect();
     setDropdownStyle({
       position: 'fixed',
@@ -320,7 +320,23 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       left: rect.left,
       zIndex: 9100,
     });
-  }, [overflowOpen]);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!overflowOpen) return;
+    repositionDropdown();
+  }, [overflowOpen, repositionDropdown]);
+
+  // Reposition dropdown on scroll/resize while open
+  useEffect(() => {
+    if (!overflowOpen) return;
+    window.addEventListener('resize', repositionDropdown);
+    window.addEventListener('scroll', repositionDropdown, true);
+    return () => {
+      window.removeEventListener('resize', repositionDropdown);
+      window.removeEventListener('scroll', repositionDropdown, true);
+    };
+  }, [overflowOpen, repositionDropdown]);
 
   // Close dropdown on outside click
   useEffect(() => {

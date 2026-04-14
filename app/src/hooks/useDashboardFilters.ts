@@ -165,6 +165,24 @@ function isFilterComplete(filter: ActiveFilter): boolean {
   return true;
 }
 
+/**
+ * Convert frontend-internal calendar tokens to the format the backend expects.
+ * custom_date:YYYY-MM-DD → bare "YYYY-MM-DD" string
+ * custom_range:YYYY-MM-DD_YYYY-MM-DD → ["YYYY-MM-DD", "YYYY-MM-DD"] array
+ * Other values pass through unchanged.
+ */
+function resolveCalendarValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    const rangeMatch = value.match(
+      /^custom_range:(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/,
+    );
+    if (rangeMatch) return [rangeMatch[1], rangeMatch[2]];
+    const dateMatch = value.match(/^custom_date:(\d{4}-\d{2}-\d{2})$/);
+    if (dateMatch) return dateMatch[1];
+  }
+  return value;
+}
+
 /** Build a PATCH payload from localState vs serverState. */
 function buildPayload(
   local: FilterLocalState,
@@ -181,7 +199,8 @@ function buildPayload(
       JSON.stringify(serverFilter) !== JSON.stringify(filter)
     ) {
       const apiValue: Record<string, unknown> = { operator: filter.operator };
-      if (filter.value !== undefined) apiValue.value = filter.value;
+      if (filter.value !== undefined)
+        apiValue.value = resolveCalendarValue(filter.value);
       if (filter.include_blank) {
         apiValue.include_blank = true;
       } else if (serverFilter?.include_blank) {

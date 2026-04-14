@@ -432,11 +432,11 @@ export function toFilterBarValue(
     barValue = v.map((x) => {
       const s = String(x);
       if (isCalendarSerialised(s)) return s;
-      return def.dynamic ? (tokenLabel(s) ?? s) : s;
+      return def.dynamic ? tokenLabel(s) : s;
     });
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) barValue = v;
-    else barValue = def.dynamic ? (tokenLabel(v) ?? v) : v;
+    else barValue = def.dynamic ? tokenLabel(v) : v;
   } else {
     barValue = String(v);
   }
@@ -457,19 +457,10 @@ export function fromFilterBarValue(
     rawValue = undefined;
   } else if (Array.isArray(v)) {
     rawValue = def.dynamic
-      ? v.map((x) => {
-          if (CUSTOM_DATE_RE.test(x)) return x.replace("custom_date:", "");
-          if (isCalendarSerialised(x)) return x; // shouldn't happen in arrays, but safe
-          return reverseToken(x);
-        })
+      ? v.map((x) => (isCalendarSerialised(x) ? x : reverseToken(x)))
       : v;
   } else if (typeof v === "string") {
-    // Convert calendar-serialised tokens to the format the backend expects:
-    // custom_date:YYYY-MM-DD → bare date string
-    // custom_range:YYYY-MM-DD_YYYY-MM-DD → [start, end] array
-    const rangeMatch = v.match(CUSTOM_RANGE_RE);
-    if (rangeMatch) rawValue = [rangeMatch[1], rangeMatch[2]];
-    else if (CUSTOM_DATE_RE.test(v)) rawValue = v.replace("custom_date:", "");
+    if (isCalendarSerialised(v)) rawValue = v;
     else rawValue = def.dynamic ? reverseToken(v) : v;
   } else {
     rawValue = v;
