@@ -750,7 +750,11 @@ function formatDynamicValue(v: string, dynamicOptions?: DynamicOptionConfig[]): 
   if (rangeMatch) {
     const from = new Date(rangeMatch[1] + 'T00:00:00');
     const to = new Date(rangeMatch[2] + 'T00:00:00');
-    const fromStr = from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const fromStr = from.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
     const toStr = to.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

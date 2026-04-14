@@ -505,6 +505,7 @@ function formatCalendarSerialised(v: string): string | null {
     const fromStr = from.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
+      year: "numeric",
     });
     const toStr = to.toLocaleDateString("en-US", {
       month: "short",
