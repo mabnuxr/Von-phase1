@@ -276,7 +276,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       if (prev.size === visible.size && [...visible].every((id) => prev.has(id))) return prev;
       return visible;
     });
-  }, [useOverflowMode, fields, pinnedCount, values]);
+  }, [useOverflowMode, fields, pinnedCount, values, getRowEl]);
 
   useLayoutEffect(() => {
     measureOverflow();
@@ -295,11 +295,11 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
   const visibleFields = useMemo(
     () => (useOverflowMode ? fields.filter((f) => visibleSet.has(f.id)) : fields),
-    [useOverflowMode, fields, visibleSet],
+    [useOverflowMode, fields, visibleSet]
   );
   const overflowFields = useMemo(
     () => (useOverflowMode ? fields.filter((f) => !visibleSet.has(f.id)) : []),
-    [useOverflowMode, fields, visibleSet],
+    [useOverflowMode, fields, visibleSet]
   );
 
   // ── Overflow dropdown state ─────────────────────────────────────
@@ -368,7 +368,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   // Deferred auto-open: polls until the promoted pill is in the DOM,
   // scrolls to end, waits for scroll to finish, then opens the popover.
   const [deferredOpenId, setDeferredOpenId] = useState<string | undefined>();
-  const lastAutoOpenRef = useRef<string | undefined>();
+  const lastAutoOpenRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!autoOpenFieldId || autoOpenFieldId === lastAutoOpenRef.current) return;
