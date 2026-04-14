@@ -177,7 +177,8 @@ export function useReconciliation({
 
       // Step 6: Update state (dashboards from DASHBOARD_READY, executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
-        dashboards: reconciledDashboards.length > 0 ? reconciledDashboards : undefined,
+        dashboards:
+          reconciledDashboards.length > 0 ? reconciledDashboards : undefined,
         executionId: reconciledExecutionId,
         isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
         triggerAutoOpen: true,

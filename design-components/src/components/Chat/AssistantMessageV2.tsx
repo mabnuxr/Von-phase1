@@ -194,21 +194,24 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
       )}
 
       {/* Dashboard Artifact Cards - shown when dashboards were created */}
-      {dashboards.length > 0 && !isStreaming && !showDashboardBuilderApproval && !showResearchResults && (
-        <div className="space-y-2">
-          {dashboards.map((db) => (
-            <DashboardArtifactCard
-              key={db.dashboard_id}
-              title={db.dashboard_name}
-              onPreview={
-                onDashboardPreview
-                  ? () => onDashboardPreview(db.dashboard_id, db.dashboard_version)
-                  : undefined
-              }
-            />
-          ))}
-        </div>
-      )}
+      {dashboards.length > 0 &&
+        !isStreaming &&
+        !showDashboardBuilderApproval &&
+        !showResearchResults && (
+          <div className="space-y-2">
+            {dashboards.map((db) => (
+              <DashboardArtifactCard
+                key={db.dashboard_id}
+                title={db.dashboard_name}
+                onPreview={
+                  onDashboardPreview
+                    ? () => onDashboardPreview(db.dashboard_id, db.dashboard_version)
+                    : undefined
+                }
+              />
+            ))}
+          </div>
+        )}
 
       {/* Deep Research Results - shown when research results are streaming/completed */}
       {showResearchResults && (

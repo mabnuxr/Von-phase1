@@ -537,7 +537,12 @@ export function useV2EventProcessor(
               flushSync(() => {
                 setDashboards((prev) => {
                   const key = `${payload.dashboard_id}:${payload.dashboard_version}`;
-                  if (prev.some((d) => `${d.dashboard_id}:${d.dashboard_version}` === key)) return prev;
+                  if (
+                    prev.some(
+                      (d) => `${d.dashboard_id}:${d.dashboard_version}` === key,
+                    )
+                  )
+                    return prev;
                   isFirstDashboard = prev.length === 0;
                   return [...prev, payload];
                 });
@@ -655,7 +660,12 @@ export function useV2EventProcessor(
             let isFirstDashboard = false;
             setDashboards((prev) => {
               const key = `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`;
-              if (prev.some((d) => `${d.dashboard_id}:${d.dashboard_version}` === key)) return prev;
+              if (
+                prev.some(
+                  (d) => `${d.dashboard_id}:${d.dashboard_version}` === key,
+                )
+              )
+                return prev;
               isFirstDashboard = prev.length === 0;
               return [...prev, dashboardReadyPayload];
             });
