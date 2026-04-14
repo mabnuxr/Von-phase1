@@ -80,6 +80,7 @@ function DashboardCanvas({
     canApply: filterCanApply,
     isApplying: filterIsApplying,
     handleFilterChange,
+    handleRevertFilter,
     handleRemoveFilter,
     handleClearFilter,
     handleAddFilter,
@@ -178,6 +179,7 @@ function DashboardCanvas({
         onClearFilter={handleClearFilter}
         onToggleLock={handleCommitLock}
         canLockFilter={canLockFilter}
+        onRevertFilter={handleRevertFilter}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}

@@ -67,6 +67,12 @@ interface DashboardFilterBarV2Props {
   canLockFilter?: (filterId: string) => boolean;
   /** Commit pending filter changes (triggered by the in-popover Apply). */
   onApply: () => void;
+  /**
+   * Revert a single filter's local state back to the server state. Called
+   * when a filter popover closes without Apply so stale changes don't leak
+   * into the next Apply of a different filter.
+   */
+  onRevertFilter?: (filterId: string) => void;
 }
 
 /**
@@ -141,6 +147,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   onToggleLock,
   canLockFilter,
   onApply,
+  onRevertFilter,
 }) => {
   // Tracks filters the user has manually promoted from the overflow "+" dropdown
   const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
@@ -231,6 +238,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       pinnedCount={pinnedCount}
       onOverflowSelect={handleOverflowSelect}
       autoOpenFieldId={autoOpenFieldId}
+      onDismiss={onRevertFilter}
     />
   );
 };

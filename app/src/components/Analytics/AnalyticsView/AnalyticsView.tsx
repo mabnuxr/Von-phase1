@@ -86,6 +86,8 @@ interface AnalyticsViewProps {
   onToggleLock?: (filterId: string, locked: boolean) => void;
   /** Owner-only: returns whether a given filter has a valid value to lock. */
   canLockFilter?: (filterId: string) => boolean;
+  /** Revert unapplied local state for a single filter on popover dismiss. */
+  onRevertFilter?: (filterId: string) => void;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -217,6 +219,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onClearFilter,
   onToggleLock,
   canLockFilter,
+  onRevertFilter,
   onRefresh,
   onSave,
   savePhase,
@@ -611,6 +614,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onToggleLock={onToggleLock}
                 canLockFilter={canLockFilter}
                 onApply={onApplyFilters}
+                onRevertFilter={onRevertFilter}
               />
             ) : (
               <AnalyticsFilters

@@ -34,6 +34,12 @@ interface OperatorDef {
   label: string;
   /** Operators that don't need a value input */
   noValue?: boolean;
+  /** Operator directly opens a calendar panel (no option picklist) */
+  calendarMode?: 'single' | 'range';
+  /** Operator takes an inline number value (for parameterized tokens like Last N Days) */
+  numberInput?: { defaultN: number; unit: string };
+  /** Render a titled separator line before this operator in the left panel */
+  separatorBefore?: string;
 }
 
 const DEFAULT_OPERATORS: OperatorDef[] = [
@@ -57,6 +63,7 @@ function getOperators(field: FilterFieldConfig): OperatorDef[] {
 
 function getDefaultOperator(field: FilterFieldConfig): string {
   if (field.defaultOperator) return field.defaultOperator;
+  if (field.customOperators?.length) return field.customOperators[0].value;
   return 'equals';
 }
 
@@ -179,6 +186,12 @@ export interface SplitFilterDropdownProps {
    * popover still closes after Clear.
    */
   onClear?: () => void;
+  /**
+   * Called when the popover closes WITHOUT Apply (outside click, chip
+   * toggle, Escape). Lets the parent revert unapplied local state so
+   * stale changes don't leak into the next Apply of a different filter.
+   */
+  onDismiss?: () => void;
   /** When true, the popover opens on mount (one-shot). Used by the
    *  overflow "+" button to auto-open a newly promoted filter. */
   defaultOpen?: boolean;
@@ -200,6 +213,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   isApplying = false,
   canApply = true,
   onClear,
+  onDismiss,
   defaultOpen = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -225,7 +239,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const [operatorMemory, setOperatorMemory] = useState<Record<string, FilterValue>>({});
 
   const operators = useMemo(() => getOperators(field), [field]);
-  const currentOperator = value?.operator ?? getDefaultOperator(field);
+  /**
+   * Draft operator — tracks a calendarMode operator the user clicked
+   * before picking dates. We can't fire onChange yet (the round-trip
+   * would mangle the UI-only operator), so we hold it locally until the
+   * calendar handler fires with a value. Cleared on popover close.
+   */
+  const [draftOperator, setDraftOperator] = useState<string | null>(null);
+  const currentOperator = draftOperator ?? value?.operator ?? getDefaultOperator(field);
   const currentValues = value?.value
     ? Array.isArray(value.value)
       ? value.value
@@ -250,20 +271,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   // Calendar state
   const calCfg = field.calendarOptions;
   const activeCalendarMode = useMemo<'single' | 'range' | null>(() => {
+    // Operator-driven calendar: the operator itself opens a calendar panel
+    if (operatorDef?.calendarMode) return operatorDef.calendarMode;
+    // Option-driven calendar: a calendar option is selected in the value list
     if (!calCfg) return null;
     for (const v of currentValues) {
       if (v === calCfg.singleDateLabel || v.startsWith('custom_date:')) return 'single';
       if (v === calCfg.dateRangeLabel || v.startsWith('custom_range:')) return 'range';
     }
     return null;
-  }, [calCfg, currentValues]);
+  }, [calCfg, currentValues, operatorDef?.calendarMode]);
 
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
   const [calendarRange, setCalendarRange] = useState<DateRange | undefined>();
 
   // Initialize calendar from existing values on open
   const initCalendar = useCallback(() => {
-    if (!calCfg) return;
     let foundDate: Date | undefined;
     let foundRange: DateRange | undefined;
     for (const v of currentValues) {
@@ -274,7 +297,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
     setCalendarDate(foundDate);
     setCalendarRange(foundRange);
-  }, [calCfg, currentValues]);
+  }, [currentValues]);
 
   // Resolve all options and dynamic options (flat or from optionGroups)
   const allOptions = useMemo(() => {
@@ -309,11 +332,20 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   }, [allDynamicOptions, currentValues]);
 
   // Compute position from trigger rect
+  const isOperatorDrivenCalendar = operatorDef?.calendarMode != null;
+  const hasNumberInputOp = operatorDef?.numberInput != null;
   const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const hasCalendar = activeCalendarMode !== null;
-    const baseWidth = field.type === 'picklist' || field.options?.length ? 420 : 340;
+    // When the calendar is operator-driven (no option picklist), the base is
+    // just the narrow operator column. Otherwise use the full two-panel width.
+    const baseWidth =
+      isOperatorDrivenCalendar || hasNumberInputOp
+        ? 180
+        : field.type === 'picklist' || field.options?.length
+          ? 420
+          : 340;
     const popoverWidth = hasCalendar
       ? activeCalendarMode === 'range'
         ? baseWidth + 540
@@ -331,7 +363,13 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       left,
       zIndex: 10000,
     });
-  }, [field.type, field.options?.length, activeCalendarMode]);
+  }, [
+    field.type,
+    field.options?.length,
+    activeCalendarMode,
+    isOperatorDrivenCalendar,
+    hasNumberInputOp,
+  ]);
 
   // A locked filter without an `onToggleLock` handler belongs to a
   // non-owner viewer — they can see the pinned value on the chip but
@@ -344,13 +382,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     if (isOpen) {
       setIsOpen(false);
       setSearch('');
+      if (onDismiss) onDismiss();
     } else {
       computePosition();
       initDynamicInputs();
       initCalendar();
       setIsOpen(true);
     }
-  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
+  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar, onDismiss]);
 
   // Auto-open when defaultOpen transitions to true. Only watches
   // `defaultOpen` — NOT the callbacks, because computePosition depends
@@ -381,6 +420,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     if (!isOpen) {
       setOperatorMemory({});
       setDynamicInputDrafts({});
+      setDraftOperator(null);
     }
   }, [isOpen]);
 
@@ -396,6 +436,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       ) {
         setIsOpen(false);
         setSearch('');
+        if (onDismiss) onDismiss();
       }
     };
     document.addEventListener('mousedown', handleClick);
@@ -403,6 +444,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   }, [isOpen]);
 
   const handleOperatorChange = (op: string) => {
+    // Clear draft operator when switching away from a calendarMode operator
+    if (draftOperator) setDraftOperator(null);
+
     // Save whatever value the user had on the operator they're leaving, so
     // switching back brings it into view again (until the popover closes).
     if (value && currentOperator !== op) {
@@ -421,6 +465,17 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const opDef = operators.find((o) => o.value === op);
     if (opDef?.noValue) {
       onChange({ operator: op });
+    } else if (opDef?.calendarMode) {
+      // Calendar-driven operator: hold locally until the user picks a date.
+      // Firing onChange here would round-trip through fromFilterBarValue →
+      // toFilterBarValue which mangles UI-only operators like "custom_date".
+      setDraftOperator(op);
+      setCalendarDate(undefined);
+      setCalendarRange(undefined);
+      return;
+    } else if (opDef?.numberInput) {
+      // N-parameterized operator: start with the default N.
+      onChange({ operator: op, value: String(opDef.numberInput.defaultN) });
     } else if (RANGE_OPERATORS.has(op)) {
       onChange({ operator: op, value: ['', ''] });
     } else if (MULTI_VALUE_OPERATORS.has(op)) {
@@ -530,6 +585,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const encoded = `custom_date:${formatDateISO(date)}`;
     if (!isMulti) {
       onChange({ operator: currentOperator, value: encoded });
+      setDraftOperator(null);
       return;
     }
     // Multi-select: replace any prior single-date entry in the array.
@@ -537,6 +593,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       .filter((v) => v !== calCfg?.singleDateLabel && !v.startsWith('custom_date:'))
       .concat(encoded);
     onChange({ operator: currentOperator, value: next });
+    setDraftOperator(null);
   };
 
   const handleCalendarRangeSelect = (range: DateRange | undefined) => {
@@ -551,12 +608,14 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
     if (!isMulti) {
       onChange({ operator: currentOperator, value: encoded });
+      setDraftOperator(null);
       return;
     }
     const next = currentValues
       .filter((v) => v !== calCfg?.dateRangeLabel && !v.startsWith('custom_range:'))
       .concat(encoded);
     onChange({ operator: currentOperator, value: next });
+    setDraftOperator(null);
   };
 
   // Recompute position when calendar mode changes
@@ -731,7 +790,18 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
     return allDynamicOptions.length > 0;
   }, [field.optionGroups, filteredGroups, allDynamicOptions]);
-  const showRightPanel = !isNoValue;
+  // N-parameterized operator with invalid/empty number input — disables Apply/Lock.
+  const hasInvalidNumberInput = operatorDef?.numberInput
+    ? (() => {
+        const nv = value?.value;
+        if (!nv || typeof nv !== 'string') return true;
+        const n = parseInt(nv, 10);
+        return nv === '' || isNaN(n) || n < 1;
+      })()
+    : false;
+
+  // Calendar-mode operators show the calendar directly (no option list needed)
+  const showRightPanel = !isNoValue && !operatorDef?.calendarMode;
 
   return (
     <>
@@ -773,9 +843,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
               <div
                 className={`flex min-h-0 ${locked || isApplying ? 'pointer-events-none opacity-70' : ''} ${activeCalendarMode ? 'h-[280px]' : 'h-[240px]'}`}
               >
-                {/* Left panel — Operators: fixed width with right panel, full width without */}
+                {/* Left panel — Operators: fixed width when right panel or calendar is
+                    visible, full width when it's the sole column (all noValue operators). */}
                 <div
-                  className={`flex flex-col ${showRightPanel ? 'w-[148px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
+                  className={`flex flex-col ${showRightPanel || activeCalendarMode ? 'w-[148px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
                 >
                   <div className="px-2.5 py-1 shrink-0 border-b border-gray-100">
                     <span
@@ -785,37 +856,46 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     </span>
                   </div>
                   <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                    {operators.map((op) => (
-                      <button
-                        key={op.value}
-                        onClick={() => handleOperatorChange(op.value)}
-                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border text-left transition-colors ${
-                          locked
-                            ? currentOperator === op.value
-                              ? 'bg-gray-100 border-gray-100 text-gray-700 font-medium cursor-default'
-                              : 'border-transparent text-gray-700 cursor-default'
-                            : currentOperator === op.value
-                              ? 'bg-gray-50 border-gray-100 text-gray-900 font-medium cursor-pointer'
-                              : 'border-transparent text-gray-800 hover:bg-gray-50 cursor-pointer'
-                        }`}
-                      >
-                        <div
-                          className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
-                            currentOperator === op.value
-                              ? locked
-                                ? 'bg-gray-400'
-                                : 'bg-gray-900'
-                              : locked
-                                ? 'border-[1.5px] border-gray-300'
-                                : 'border-[1.5px] border-gray-300'
+                    {operators.map((op, i) => (
+                      <React.Fragment key={op.value}>
+                        {op.separatorBefore && (
+                          <div className="px-2.5 pt-1.5 pb-0.5">
+                            {i > 0 && <div className="border-t border-gray-100 mb-1.5" />}
+                            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+                              {op.separatorBefore}
+                            </span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleOperatorChange(op.value)}
+                          className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border text-left transition-colors ${
+                            locked
+                              ? currentOperator === op.value
+                                ? 'bg-gray-100 border-gray-100 text-gray-700 font-medium cursor-default'
+                                : 'border-transparent text-gray-700 cursor-default'
+                              : currentOperator === op.value
+                                ? 'bg-gray-50 border-gray-100 text-gray-900 font-medium cursor-pointer'
+                                : 'border-transparent text-gray-800 hover:bg-gray-50 cursor-pointer'
                           }`}
                         >
-                          {currentOperator === op.value && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                          )}
-                        </div>
-                        {op.label}
-                      </button>
+                          <div
+                            className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
+                              currentOperator === op.value
+                                ? locked
+                                  ? 'bg-gray-400'
+                                  : 'bg-gray-900'
+                                : locked
+                                  ? 'border-[1.5px] border-gray-300'
+                                  : 'border-[1.5px] border-gray-300'
+                            }`}
+                          >
+                            {currentOperator === op.value && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </div>
+                          {op.label}
+                        </button>
+                      </React.Fragment>
                     ))}
                   </div>
                 </div>
@@ -823,390 +903,439 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 {/* Right panel — Values: fixed search, scrollable list */}
                 {showRightPanel && (
                   <div className="flex-1 min-w-[180px] flex flex-col min-h-0">
-                    {/* Inline search — fixed at top (hidden for text-input operators) */}
-                    {hasOptions && !useTextInput && (
-                      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 shrink-0">
-                        <MagnifyingGlassIcon
-                          size={13}
-                          className={`shrink-0 ${locked ? 'text-gray-400' : 'text-gray-700'}`}
-                        />
-                        <input
-                          type="text"
-                          value={search}
-                          onChange={locked ? undefined : (e) => setSearch(e.target.value)}
-                          placeholder="Search..."
-                          readOnly={locked}
-                          className={`flex-1 bg-transparent text-xs outline-none ${locked ? 'text-gray-700 placeholder:text-gray-500 cursor-default caret-transparent' : 'text-gray-900 placeholder:text-gray-700'}`}
-                          autoFocus={!locked}
-                        />
+                    {/* Number input for N-parameterized operators (e.g. Last N Days) */}
+                    {operatorDef?.numberInput ? (
+                      <div className="px-3 py-4 flex flex-col gap-2">
+                        <label className="text-[11px] text-gray-700">
+                          Enter number of {operatorDef.numberInput.unit}
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={1}
+                            value={
+                              typeof value?.value === 'string'
+                                ? value.value
+                                : String(operatorDef.numberInput.defaultN)
+                            }
+                            onChange={
+                              locked
+                                ? undefined
+                                : (e) => {
+                                    onChange({ operator: currentOperator, value: e.target.value });
+                                  }
+                            }
+                            readOnly={locked}
+                            className={`w-20 px-2.5 py-1.5 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                              locked
+                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
+                            }`}
+                            autoFocus={!locked}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-xs text-gray-700">
+                            {operatorDef.numberInput.unit}
+                          </span>
+                        </div>
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        {/* Inline search — fixed at top (hidden for text-input operators) */}
+                        {hasOptions && !useTextInput && (
+                          <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 shrink-0">
+                            <MagnifyingGlassIcon
+                              size={13}
+                              className={`shrink-0 ${locked ? 'text-gray-400' : 'text-gray-700'}`}
+                            />
+                            <input
+                              type="text"
+                              value={search}
+                              onChange={locked ? undefined : (e) => setSearch(e.target.value)}
+                              placeholder="Search..."
+                              readOnly={locked}
+                              className={`flex-1 bg-transparent text-xs outline-none ${locked ? 'text-gray-700 placeholder:text-gray-500 cursor-default caret-transparent' : 'text-gray-900 placeholder:text-gray-700'}`}
+                              autoFocus={!locked}
+                            />
+                          </div>
+                        )}
 
-                    {/* Option list (picklist) — scrollable. Hidden for text-
+                        {/* Option list (picklist) — scrollable. Hidden for text-
                         input operators (contains/starts_with/etc.) even when
                         the field has a picklist `options` list, since those
                         operators take a free-text substring instead. */}
-                    {(hasOptions || hasDynamicOptions) && !useTextInput && (
-                      <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
-                        {/* Grouped rendering */}
-                        {filteredGroups ? (
-                          <>
-                            {filteredGroups.map((group, gi) => {
-                              const groupOptions = group.options ?? [];
-                              const groupDynamic = group.dynamicOptions ?? [];
-                              if (groupOptions.length === 0 && groupDynamic.length === 0)
-                                return null;
-                              return (
-                                <React.Fragment key={gi}>
-                                  {/* Section title with separator */}
-                                  {group.title && (
-                                    <div className="px-3 pt-2 pb-1">
-                                      {gi > 0 && <div className="border-t border-gray-100 mb-2" />}
-                                      <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
-                                        {group.title}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {/* Static options */}
-                                  {groupOptions.map((option) => {
-                                    const isSelected = isCalendarOptionSelected(
-                                      option,
-                                      currentValues,
-                                      calCfg
-                                    );
-                                    return (
-                                      <button
-                                        key={option}
-                                        onClick={() => handleToggleOption(option)}
-                                        className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
-                                      >
-                                        <div
-                                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                            isSelected
-                                              ? locked
-                                                ? 'bg-gray-400 border-gray-400'
-                                                : 'bg-gray-900 border-gray-900'
-                                              : locked
-                                                ? 'bg-gray-100 border-gray-300'
-                                                : 'bg-white border-gray-300'
-                                          }`}
-                                        >
-                                          {isSelected && (
-                                            <CheckIcon
-                                              size={10}
-                                              weight="bold"
-                                              className="text-white"
-                                            />
-                                          )}
-                                        </div>
-                                        <span
-                                          className={
-                                            locked
-                                              ? 'text-gray-700'
-                                              : isSelected
-                                                ? 'text-gray-900 font-medium'
-                                                : 'text-gray-800'
-                                          }
-                                        >
-                                          {option}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                  {/* Dynamic options */}
-                                  {groupDynamic.map((opt) => {
-                                    const isSelected = selectedDynamicIds.has(opt.id);
-                                    const draft = dynamicInputDrafts[opt.id];
-                                    const n =
-                                      draft !== undefined
-                                        ? draft
-                                        : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
-                                    return (
-                                      <div key={opt.id}>
-                                        <button
-                                          onClick={() => handleToggleDynamicOption(opt.id)}
-                                          className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
-                                        >
-                                          <div
-                                            className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                              isSelected
-                                                ? locked
-                                                  ? 'bg-gray-400 border-gray-400'
-                                                  : 'bg-gray-900 border-gray-900'
-                                                : locked
-                                                  ? 'bg-gray-100 border-gray-300'
-                                                  : 'bg-white border-gray-300'
-                                            }`}
-                                          >
-                                            {isSelected && (
-                                              <CheckIcon
-                                                size={10}
-                                                weight="bold"
-                                                className="text-white"
-                                              />
-                                            )}
-                                          </div>
-                                          <span
-                                            className={
-                                              locked
-                                                ? 'text-gray-700'
-                                                : isSelected
-                                                  ? 'text-gray-900 font-medium'
-                                                  : 'text-gray-800'
-                                            }
-                                          >
-                                            {opt.label}
-                                          </span>
-                                        </button>
-                                        {isSelected && (
-                                          <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
-                                            <input
-                                              type="number"
-                                              min={1}
-                                              value={n}
-                                              onChange={
-                                                locked
-                                                  ? undefined
-                                                  : (e) =>
-                                                      handleDynamicInputChange(
-                                                        opt.id,
-                                                        e.target.value
-                                                      )
-                                              }
-                                              readOnly={locked}
-                                              className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                                locked
-                                                  ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
-                                                  : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
-                                              }`}
-                                              onClick={(e) => e.stopPropagation()}
-                                            />
-                                            {opt.unit && (
-                                              <span className="text-xs text-gray-700">
-                                                {opt.unit}
-                                              </span>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </React.Fragment>
-                              );
-                            })}
-                            {filteredGroups.length === 0 && (
-                              <div className="px-3 py-3 text-xs text-gray-400 text-center">
-                                No matches
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          /* Flat rendering (backward-compatible) */
-                          <>
-                            {filteredOptions.map((option) => {
-                              const isSelected = isCalendarOptionSelected(
-                                option,
-                                currentValues,
-                                calCfg
-                              );
-                              return (
-                                <button
-                                  key={option}
-                                  onClick={() => handleToggleOption(option)}
-                                  className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
-                                >
-                                  <div
-                                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                      isSelected
-                                        ? locked
-                                          ? 'bg-gray-400 border-gray-400'
-                                          : 'bg-gray-900 border-gray-900'
-                                        : locked
-                                          ? 'bg-gray-100 border-gray-300'
-                                          : 'bg-white border-gray-300'
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <CheckIcon size={10} weight="bold" className="text-white" />
-                                    )}
-                                  </div>
-                                  <span
-                                    className={
-                                      locked
-                                        ? 'text-gray-700'
-                                        : isSelected
-                                          ? 'text-gray-900 font-medium'
-                                          : 'text-gray-800'
-                                    }
-                                  >
-                                    {option}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                            {filteredOptions.length === 0 && !hasDynamicOptions && (
-                              <div className="px-3 py-3 text-xs text-gray-400 text-center">
-                                No matches
-                              </div>
-                            )}
-                            {/* Dynamic options with inline number inputs */}
-                            {hasDynamicOptions && !field.optionGroups && (
+                        {(hasOptions || hasDynamicOptions) && !useTextInput && (
+                          <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
+                            {/* Grouped rendering */}
+                            {filteredGroups ? (
                               <>
-                                {field.dynamicOptions!.map((opt) => {
-                                  const isSelected = selectedDynamicIds.has(opt.id);
-                                  const draft = dynamicInputDrafts[opt.id];
-                                  const n =
-                                    draft !== undefined
-                                      ? draft
-                                      : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
+                                {filteredGroups.map((group, gi) => {
+                                  const groupOptions = group.options ?? [];
+                                  const groupDynamic = group.dynamicOptions ?? [];
+                                  if (groupOptions.length === 0 && groupDynamic.length === 0)
+                                    return null;
                                   return (
-                                    <div key={opt.id}>
-                                      <button
-                                        onClick={() => handleToggleDynamicOption(opt.id)}
-                                        className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
-                                      >
-                                        <div
-                                          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                            isSelected
-                                              ? locked
-                                                ? 'bg-gray-400 border-gray-400'
-                                                : 'bg-gray-900 border-gray-900'
-                                              : locked
-                                                ? 'bg-gray-100 border-gray-300'
-                                                : 'bg-white border-gray-300'
-                                          }`}
-                                        >
-                                          {isSelected && (
-                                            <CheckIcon
-                                              size={10}
-                                              weight="bold"
-                                              className="text-white"
-                                            />
+                                    <React.Fragment key={gi}>
+                                      {/* Section title with separator */}
+                                      {group.title && (
+                                        <div className="px-3 pt-2 pb-1">
+                                          {gi > 0 && (
+                                            <div className="border-t border-gray-100 mb-2" />
                                           )}
-                                        </div>
-                                        <span
-                                          className={
-                                            locked
-                                              ? 'text-gray-700'
-                                              : isSelected
-                                                ? 'text-gray-900 font-medium'
-                                                : 'text-gray-800'
-                                          }
-                                        >
-                                          {opt.label}
-                                        </span>
-                                      </button>
-                                      {isSelected && (
-                                        <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
-                                          <input
-                                            type="number"
-                                            min={1}
-                                            value={n}
-                                            onChange={
-                                              locked
-                                                ? undefined
-                                                : (e) =>
-                                                    handleDynamicInputChange(opt.id, e.target.value)
-                                            }
-                                            readOnly={locked}
-                                            className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                                              locked
-                                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
-                                                : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
-                                            }`}
-                                            onClick={(e) => e.stopPropagation()}
-                                          />
-                                          {opt.unit && (
-                                            <span className="text-xs text-gray-700">
-                                              {opt.unit}
-                                            </span>
-                                          )}
+                                          <span className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                                            {group.title}
+                                          </span>
                                         </div>
                                       )}
-                                    </div>
+                                      {/* Static options */}
+                                      {groupOptions.map((option) => {
+                                        const isSelected = isCalendarOptionSelected(
+                                          option,
+                                          currentValues,
+                                          calCfg
+                                        );
+                                        return (
+                                          <button
+                                            key={option}
+                                            onClick={() => handleToggleOption(option)}
+                                            className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                          >
+                                            <div
+                                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                                isSelected
+                                                  ? locked
+                                                    ? 'bg-gray-400 border-gray-400'
+                                                    : 'bg-gray-900 border-gray-900'
+                                                  : locked
+                                                    ? 'bg-gray-100 border-gray-300'
+                                                    : 'bg-white border-gray-300'
+                                              }`}
+                                            >
+                                              {isSelected && (
+                                                <CheckIcon
+                                                  size={10}
+                                                  weight="bold"
+                                                  className="text-white"
+                                                />
+                                              )}
+                                            </div>
+                                            <span
+                                              className={
+                                                locked
+                                                  ? 'text-gray-700'
+                                                  : isSelected
+                                                    ? 'text-gray-900 font-medium'
+                                                    : 'text-gray-800'
+                                              }
+                                            >
+                                              {option}
+                                            </span>
+                                          </button>
+                                        );
+                                      })}
+                                      {/* Dynamic options */}
+                                      {groupDynamic.map((opt) => {
+                                        const isSelected = selectedDynamicIds.has(opt.id);
+                                        const draft = dynamicInputDrafts[opt.id];
+                                        const n =
+                                          draft !== undefined
+                                            ? draft
+                                            : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
+                                        return (
+                                          <div key={opt.id}>
+                                            <button
+                                              onClick={() => handleToggleDynamicOption(opt.id)}
+                                              className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                            >
+                                              <div
+                                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                                  isSelected
+                                                    ? locked
+                                                      ? 'bg-gray-400 border-gray-400'
+                                                      : 'bg-gray-900 border-gray-900'
+                                                    : locked
+                                                      ? 'bg-gray-100 border-gray-300'
+                                                      : 'bg-white border-gray-300'
+                                                }`}
+                                              >
+                                                {isSelected && (
+                                                  <CheckIcon
+                                                    size={10}
+                                                    weight="bold"
+                                                    className="text-white"
+                                                  />
+                                                )}
+                                              </div>
+                                              <span
+                                                className={
+                                                  locked
+                                                    ? 'text-gray-700'
+                                                    : isSelected
+                                                      ? 'text-gray-900 font-medium'
+                                                      : 'text-gray-800'
+                                                }
+                                              >
+                                                {opt.label}
+                                              </span>
+                                            </button>
+                                            {isSelected && (
+                                              <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
+                                                <input
+                                                  type="number"
+                                                  min={1}
+                                                  value={n}
+                                                  onChange={
+                                                    locked
+                                                      ? undefined
+                                                      : (e) =>
+                                                          handleDynamicInputChange(
+                                                            opt.id,
+                                                            e.target.value
+                                                          )
+                                                  }
+                                                  readOnly={locked}
+                                                  className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                                    locked
+                                                      ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                                      : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
+                                                  }`}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                />
+                                                {opt.unit && (
+                                                  <span className="text-xs text-gray-700">
+                                                    {opt.unit}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </React.Fragment>
                                   );
                                 })}
+                                {filteredGroups.length === 0 && (
+                                  <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                                    No matches
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              /* Flat rendering (backward-compatible) */
+                              <>
+                                {filteredOptions.map((option) => {
+                                  const isSelected = isCalendarOptionSelected(
+                                    option,
+                                    currentValues,
+                                    calCfg
+                                  );
+                                  return (
+                                    <button
+                                      key={option}
+                                      onClick={() => handleToggleOption(option)}
+                                      className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                    >
+                                      <div
+                                        className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                          isSelected
+                                            ? locked
+                                              ? 'bg-gray-400 border-gray-400'
+                                              : 'bg-gray-900 border-gray-900'
+                                            : locked
+                                              ? 'bg-gray-100 border-gray-300'
+                                              : 'bg-white border-gray-300'
+                                        }`}
+                                      >
+                                        {isSelected && (
+                                          <CheckIcon
+                                            size={10}
+                                            weight="bold"
+                                            className="text-white"
+                                          />
+                                        )}
+                                      </div>
+                                      <span
+                                        className={
+                                          locked
+                                            ? 'text-gray-700'
+                                            : isSelected
+                                              ? 'text-gray-900 font-medium'
+                                              : 'text-gray-800'
+                                        }
+                                      >
+                                        {option}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                                {filteredOptions.length === 0 && !hasDynamicOptions && (
+                                  <div className="px-3 py-3 text-xs text-gray-400 text-center">
+                                    No matches
+                                  </div>
+                                )}
+                                {/* Dynamic options with inline number inputs */}
+                                {hasDynamicOptions && !field.optionGroups && (
+                                  <>
+                                    {field.dynamicOptions!.map((opt) => {
+                                      const isSelected = selectedDynamicIds.has(opt.id);
+                                      const draft = dynamicInputDrafts[opt.id];
+                                      const n =
+                                        draft !== undefined
+                                          ? draft
+                                          : String(dynamicInputs[opt.id] ?? opt.defaultN ?? 7);
+                                      return (
+                                        <div key={opt.id}>
+                                          <button
+                                            onClick={() => handleToggleDynamicOption(opt.id)}
+                                            className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
+                                          >
+                                            <div
+                                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                                                isSelected
+                                                  ? locked
+                                                    ? 'bg-gray-400 border-gray-400'
+                                                    : 'bg-gray-900 border-gray-900'
+                                                  : locked
+                                                    ? 'bg-gray-100 border-gray-300'
+                                                    : 'bg-white border-gray-300'
+                                              }`}
+                                            >
+                                              {isSelected && (
+                                                <CheckIcon
+                                                  size={10}
+                                                  weight="bold"
+                                                  className="text-white"
+                                                />
+                                              )}
+                                            </div>
+                                            <span
+                                              className={
+                                                locked
+                                                  ? 'text-gray-700'
+                                                  : isSelected
+                                                    ? 'text-gray-900 font-medium'
+                                                    : 'text-gray-800'
+                                              }
+                                            >
+                                              {opt.label}
+                                            </span>
+                                          </button>
+                                          {isSelected && (
+                                            <div className="flex items-center gap-1.5 pl-[30px] pr-3 pb-1.5">
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                value={n}
+                                                onChange={
+                                                  locked
+                                                    ? undefined
+                                                    : (e) =>
+                                                        handleDynamicInputChange(
+                                                          opt.id,
+                                                          e.target.value
+                                                        )
+                                                }
+                                                readOnly={locked}
+                                                className={`w-14 px-2 py-1 text-xs border rounded-lg text-center focus:outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                                  locked
+                                                    ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                                    : 'text-gray-900 bg-white border-gray-200 focus:border-gray-300'
+                                                }`}
+                                                onClick={(e) => e.stopPropagation()}
+                                              />
+                                              {opt.unit && (
+                                                <span className="text-xs text-gray-700">
+                                                  {opt.unit}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </>
+                                )}
                               </>
                             )}
-                          </>
+                          </div>
                         )}
-                      </div>
-                    )}
 
-                    {/* Between range input (number or date) — not applicable
+                        {/* Between range input (number or date) — not applicable
                         when the operator is a text-input one. */}
-                    {!hasOptions && isRange && !useTextInput && (
-                      <div className="px-3 py-2.5 flex flex-col gap-1">
-                        <div>
-                          <label className="text-[11px] text-gray-700 mb-1 block">From</label>
-                          <input
-                            type={field.type === 'number' ? 'number' : 'date'}
-                            value={Array.isArray(value?.value) ? (value.value[0] ?? '') : ''}
-                            onChange={
-                              locked ? undefined : (e) => handleRangeChange(0, e.target.value)
-                            }
-                            readOnly={locked}
-                            placeholder="From"
-                            className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
-                              locked
-                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
-                                : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
-                            }`}
-                            autoFocus={!locked}
-                          />
-                        </div>
-                        <div className="text-center text-xs text-gray-700">to</div>
-                        <div className="-mt-3">
-                          <label className="text-[11px] text-gray-700 mb-1 block">To</label>
-                          <input
-                            type={field.type === 'number' ? 'number' : 'date'}
-                            value={Array.isArray(value?.value) ? (value.value[1] ?? '') : ''}
-                            onChange={
-                              locked ? undefined : (e) => handleRangeChange(1, e.target.value)
-                            }
-                            readOnly={locked}
-                            placeholder="To"
-                            className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
-                              locked
-                                ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
-                                : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
-                            }`}
-                          />
-                        </div>
-                      </div>
-                    )}
+                        {!hasOptions && isRange && !useTextInput && (
+                          <div className="px-3 py-2.5 flex flex-col gap-1">
+                            <div>
+                              <label className="text-[11px] text-gray-700 mb-1 block">From</label>
+                              <input
+                                type={field.type === 'number' ? 'number' : 'date'}
+                                value={Array.isArray(value?.value) ? (value.value[0] ?? '') : ''}
+                                onChange={
+                                  locked ? undefined : (e) => handleRangeChange(0, e.target.value)
+                                }
+                                readOnly={locked}
+                                placeholder="From"
+                                className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                                  locked
+                                    ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                    : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                                }`}
+                                autoFocus={!locked}
+                              />
+                            </div>
+                            <div className="text-center text-xs text-gray-700">to</div>
+                            <div className="-mt-3">
+                              <label className="text-[11px] text-gray-700 mb-1 block">To</label>
+                              <input
+                                type={field.type === 'number' ? 'number' : 'date'}
+                                value={Array.isArray(value?.value) ? (value.value[1] ?? '') : ''}
+                                onChange={
+                                  locked ? undefined : (e) => handleRangeChange(1, e.target.value)
+                                }
+                                readOnly={locked}
+                                placeholder="To"
+                                className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                                  locked
+                                    ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                    : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        )}
 
-                    {/* Text / number / date single input.
+                        {/* Text / number / date single input.
                         Also used for text-input operators (contains /
                         not_contains / starts_with / ends_with) even when
                         the field has a picklist `options` list — those
                         operators expect a free-text substring. */}
-                    {(!hasOptions || useTextInput) && !isRange && (
-                      <div className="px-3 py-2.5">
-                        <input
-                          type={
-                            useTextInput
-                              ? 'text'
-                              : field.type === 'number'
-                                ? 'number'
-                                : field.type === 'date'
-                                  ? 'date'
-                                  : 'text'
-                          }
-                          value={typeof value?.value === 'string' ? value.value : ''}
-                          onChange={
-                            locked ? undefined : (e) => handleTextValueChange(e.target.value)
-                          }
-                          readOnly={locked}
-                          placeholder={`Enter ${field.label.toLowerCase()}...`}
-                          className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
-                            locked
-                              ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
-                              : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
-                          }`}
-                          autoFocus={!locked}
-                        />
-                      </div>
+                        {(!hasOptions || useTextInput) && !isRange && (
+                          <div className="px-3 py-2.5">
+                            <input
+                              type={
+                                useTextInput
+                                  ? 'text'
+                                  : field.type === 'number'
+                                    ? 'number'
+                                    : field.type === 'date'
+                                      ? 'date'
+                                      : 'text'
+                              }
+                              value={typeof value?.value === 'string' ? value.value : ''}
+                              onChange={
+                                locked ? undefined : (e) => handleTextValueChange(e.target.value)
+                              }
+                              readOnly={locked}
+                              placeholder={`Enter ${field.label.toLowerCase()}...`}
+                              className={`w-full px-2.5 py-1.5 text-xs border rounded-lg focus:outline-none transition-colors ${
+                                locked
+                                  ? 'text-gray-700 bg-gray-100 border-gray-200 caret-transparent cursor-default'
+                                  : 'text-gray-900 bg-white border-gray-200 placeholder:text-gray-400 focus:border-gray-300'
+                              }`}
+                              autoFocus={!locked}
+                            />
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -1361,7 +1490,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     // OR when any selected dynamic option has an empty /
                     // invalid `N` draft (committing would send a stale value).
                     const lockDisabled =
-                      isApplying || (!locked && !canLock) || hasInvalidDynamicInput;
+                      isApplying ||
+                      (!locked && !canLock) ||
+                      hasInvalidDynamicInput ||
+                      hasInvalidNumberInput;
                     return (
                       <button
                         onClick={lockDisabled ? undefined : onToggleLock}
@@ -1406,21 +1538,24 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   // disabled whenever a selected dynamic option has an
                   // empty / invalid `N` draft — the user is mid-edit and
                   // committing would send a stale value.
-                  // Also disable when a calendar label placeholder is selected
-                  // but the user hasn't picked actual dates yet (the value is
-                  // the raw label string, not a custom_date:/custom_range: token).
-                  const hasUnresolvedCalendar = calCfg
-                    ? currentValues.some(
-                        (v) =>
-                          (v === calCfg.singleDateLabel && !v.startsWith('custom_date:')) ||
-                          (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:'))
-                      )
-                    : false;
+                  // Also disable when a calendar is shown but no date is picked yet.
+                  // Operator-driven: operator requires a calendar value but none selected.
+                  // Option-driven: calendar label placeholder without actual date.
+                  const hasUnresolvedCalendar = operatorDef?.calendarMode
+                    ? !value?.value || value.value === ''
+                    : calCfg
+                      ? currentValues.some(
+                          (v) =>
+                            (v === calCfg.singleDateLabel && !v.startsWith('custom_date:')) ||
+                            (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:'))
+                        )
+                      : false;
                   const applyDisabled =
                     locked ||
                     isApplying ||
                     !canApply ||
                     hasInvalidDynamicInput ||
+                    hasInvalidNumberInput ||
                     hasUnresolvedCalendar;
                   return (
                     <button

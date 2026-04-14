@@ -82,6 +82,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     canApply: filterCanApply,
     isApplying: filterIsApplying,
     handleFilterChange,
+    handleRevertFilter,
     handleRemoveFilter,
     handleAddFilter,
     handleRemovePendingRow,
@@ -155,6 +156,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onCommitPendingRow={handleCommitPendingRow}
             onApplyFilters={handleApply}
             onClearAll={handleClearAll}
+            onRevertFilter={handleRevertFilter}
             onRefresh={handleRefresh}
             onSave={handleSave}
             savePhase={savePhase}

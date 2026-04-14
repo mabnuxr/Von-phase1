@@ -421,6 +421,25 @@ export function useDashboardFilters(
     [isOwner],
   );
 
+  /** Revert a single filter's local state back to the last-known server
+   *  state. Called when a filter popover closes without Apply so stale
+   *  in-memory changes don't leak into the next Apply. */
+  const handleRevertFilter = useCallback((filterId: string) => {
+    setLocalState((prev) => {
+      const serverValue = serverNormalised.current[filterId];
+      if (serverValue === undefined) {
+        // No server state — remove from local state entirely
+        if (!(filterId in prev)) return prev;
+        const next = { ...prev };
+        delete next[filterId];
+        return next;
+      }
+      // Already matches server → no-op
+      if (prev[filterId] === serverValue) return prev;
+      return { ...prev, [filterId]: serverValue };
+    });
+  }, []);
+
   const handleRemoveFilter = useCallback(
     (filterId: string) => {
       setLocalState((prev) => {
@@ -875,6 +894,7 @@ export function useDashboardFilters(
     isApplying,
     isOwner,
     handleFilterChange,
+    handleRevertFilter,
     handleRemoveFilter,
     handleClearFilter,
     handleAddFilter,
