@@ -164,7 +164,9 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
           // on ownership-semantic filters (UI restriction — backend
           // still supports locking any filter).
           onToggleLock:
-            isOwner && onToggleLock && def.semantic_type === "ownership"
+            isOwner &&
+            onToggleLock &&
+            (def.is_locked || def.semantic_type === "ownership")
               ? () => onToggleLock(def.id, !def.is_locked)
               : undefined,
           // Disable the Lock button when the filter has no complete value yet

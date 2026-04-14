@@ -495,6 +495,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               <div key={field.id} className="flex flex-col gap-1 shrink-0">
                 <span className="flex items-center gap-1 text-[11px] leading-none pl-0.5">
                   {field.label}
+                  {field.tooltip && <InfoIcon size={11} className="shrink-0" />}
                 </span>
                 <button
                   className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap ${
