@@ -104,7 +104,7 @@ function sortDefinitions(
     const hasBoundary = !!def.boundary;
     const isMandatory =
       (def.type === "date" && hasBoundary) ||
-      (def.semantic_type === "ownership" && hasBoundary);
+      def.semantic_type === "ownership";
     const isApplied = def.id in filterState || promotedIds.has(def.id);
 
     if (isMandatory) {
@@ -167,22 +167,14 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
           // the filter is server-locked. Owners can unlock via the popover
           // button; viewers see a read-only chip.
           locked: !!def.is_locked,
-          // Only the owner gets the in-popover lock toggle, and only
-          // on ownership-semantic filters (UI restriction — backend
-          // still supports locking any filter).
-          onToggleLock:
-            isOwner &&
-            onToggleLock &&
-            (def.is_locked || def.semantic_type === "ownership")
-              ? () => onToggleLock(def.id, !def.is_locked)
-              : undefined,
-          // Disable the Lock button when the filter has no complete value yet
-          // (mirrors Apply's rule). Ignored when already locked — Unlock is
-          // always allowed.
+          // Lock toggle hidden for now — data scoping moved to the share
+          // dialog. Keep the infrastructure (onToggleLock prop, canLockFilter)
+          // so we can re-enable per-filter locking in the future.
+          onToggleLock: undefined,
           canLock: canLockFilter ? canLockFilter(def.id) : undefined,
         }),
       ),
-    [sorted, filterState, isOwner, onToggleLock, canLockFilter],
+    [sorted, filterState, canLockFilter],
   );
 
   const values = useMemo(() => {

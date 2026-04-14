@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  ExportIcon,
+  ShareNetworkIcon,
   UserIcon,
   BuildingsIcon,
   XIcon,
@@ -64,16 +64,10 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   );
   const [copied, setCopied] = useState(false);
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Sync local state from server when dialog is closed
-  useEffect(() => {
-    if (!open) {
-      setSelectedShared(isSharedWithTenant);
-      setScopeEnabled(!!sharedDataScope);
-      setSelectedScope((sharedDataScope as DataScope) || "MY_RECORDS");
-      setCopied(false);
-    }
-  }, [isSharedWithTenant, sharedDataScope, open]);
+  // Clean up copy timer on unmount
+  useEffect(() => () => clearTimeout(copyTimerRef.current), []);
 
   const handleOpen = useCallback(() => {
     if (!canShare) return;
@@ -117,7 +111,8 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   const handleCopyLink = async () => {
     await onCopyLink?.();
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
   };
 
   // Close dialog after successful share
@@ -150,7 +145,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                 : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
           }`}
         >
-          <ExportIcon size={14} />
+          <ShareNetworkIcon size={14} />
         </button>
       </Tooltip>
 
@@ -291,8 +286,8 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                           Scope data by ownership
                         </span>
                         <p className="text-xs text-indigo-600 mt-0.5">
-                          Viewers can only see their own records and their
-                          team&apos;s records.
+                          Viewers can only see data based on the selected
+                          scope.
                         </p>
                       </div>
                       {/* Toggle switch */}
@@ -363,7 +358,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                 )}
 
                 {/* Share link row */}
-                {selectedShared && isSharedWithTenant && onCopyLink && (
+                {selectedShared && onCopyLink && (
                   <button
                     onClick={handleCopyLink}
                     className="w-full flex items-center gap-2 mt-3 px-3.5 py-2.5 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer text-left"

@@ -225,17 +225,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                           value={barValue}
                           onChange={(v) => handleBarChange(def, v)}
                           locked={isPanelLocked}
-                          onToggleLock={
-                            onTogglePanelLock &&
-                            (isPanelLocked || def.semantic_type === "ownership")
-                              ? () =>
-                                  onTogglePanelLock(
-                                    panelId,
-                                    def.id,
-                                    !isPanelLocked,
-                                  )
-                              : undefined
-                          }
+                          onToggleLock={undefined}
                           canLock={
                             canLockPanelFilter
                               ? canLockPanelFilter(panelId, def.id)
