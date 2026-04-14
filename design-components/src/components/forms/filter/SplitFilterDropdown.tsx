@@ -542,10 +542,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const handleCalendarRangeSelect = (range: DateRange | undefined) => {
     setCalendarRange(range);
     if (!range?.from) return;
-    if (!range.to) {
-      // Only `from` picked — update local calendar state only, no onChange.
-      // The placeholder label is already in the value; calling onChange here
-      // triggers a parent re-render cycle that can reset the calendar.
+    // react-day-picker v9 sets from === to on the first click.
+    // Treat same-date from/to as a partial selection (first click only)
+    // so the calendar stays open for the user to pick the end date.
+    if (!range.to || formatDateISO(range.from) === formatDateISO(range.to)) {
       return;
     }
     const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
