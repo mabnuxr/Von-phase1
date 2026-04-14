@@ -87,7 +87,7 @@ const SourcesChip: React.FC<SourcesChipProps> = ({ sources, onClick }) => (
       ))}
     </div>
     <span>
-      {(sources.length === 1 || sources.length > 3) && `${sources.length} `}
+      {sources.length > 3 && `${sources.length} `}
       {sources.length === 1 ? 'Source' : 'Sources'}
     </span>
   </button>
