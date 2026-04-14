@@ -374,26 +374,34 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     if (!autoOpenFieldId || autoOpenFieldId === lastAutoOpenRef.current) return;
     lastAutoOpenRef.current = autoOpenFieldId;
 
-    let scrollTriggered = false;
+    let lastScrollWidth = 0;
+    let scrollSettleCount = 0;
     let rafId: number;
 
     const poll = setInterval(() => {
       const el = scrollRef.current;
       if (!el || el.children.length === 0) return;
 
-      // Phase 1: trigger scroll to end (once)
-      if (!scrollTriggered) {
+      // If scrollWidth changed (new pill appeared or layout shifted),
+      // re-trigger scroll to the new end and reset settle counter.
+      if (el.scrollWidth !== lastScrollWidth) {
+        lastScrollWidth = el.scrollWidth;
+        scrollSettleCount = 0;
         el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
-        scrollTriggered = true;
         return;
       }
 
-      // Phase 2: wait until scroll has settled (reached the end)
+      // Wait until scroll has settled at the end for 2 consecutive ticks
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
       if (atEnd) {
-        clearInterval(poll);
-        setDeferredOpenId(autoOpenFieldId);
-        rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
+        scrollSettleCount++;
+        if (scrollSettleCount >= 2) {
+          clearInterval(poll);
+          setDeferredOpenId(autoOpenFieldId);
+          rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
+        }
+      } else {
+        scrollSettleCount = 0;
       }
     }, 60);
 
