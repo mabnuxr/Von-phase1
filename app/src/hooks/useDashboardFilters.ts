@@ -165,6 +165,29 @@ function isFilterComplete(filter: ActiveFilter): boolean {
   return true;
 }
 
+/**
+ * Convert frontend-internal calendar tokens to the format the backend expects.
+ * custom_date:YYYY-MM-DD → bare "YYYY-MM-DD" string
+ * custom_range:YYYY-MM-DD_YYYY-MM-DD → ["YYYY-MM-DD", "YYYY-MM-DD"] array
+ * Other values pass through unchanged.
+ */
+function resolveCalendarValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    const rangeMatch = value.match(
+      /^custom_range:(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/,
+    );
+    if (rangeMatch) return [rangeMatch[1], rangeMatch[2]];
+    const dateMatch = value.match(/^custom_date:(\d{4}-\d{2}-\d{2})$/);
+    if (dateMatch) return dateMatch[1];
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) =>
+      typeof v === "string" ? resolveCalendarValue(v) : v,
+    );
+  }
+  return value;
+}
+
 /** Build a PATCH payload from localState vs serverState. */
 function buildPayload(
   local: FilterLocalState,
@@ -181,7 +204,8 @@ function buildPayload(
       JSON.stringify(serverFilter) !== JSON.stringify(filter)
     ) {
       const apiValue: Record<string, unknown> = { operator: filter.operator };
-      if (filter.value !== undefined) apiValue.value = filter.value;
+      if (filter.value !== undefined)
+        apiValue.value = resolveCalendarValue(filter.value);
       if (filter.include_blank) {
         apiValue.include_blank = true;
       } else if (serverFilter?.include_blank) {
@@ -553,7 +577,8 @@ export function useDashboardFilters(
       } else if (local !== undefined) {
         if (!isFilterComplete(local)) return;
         const apiValue: Record<string, unknown> = { operator: local.operator };
-        if (local.value !== undefined) apiValue.value = local.value;
+        if (local.value !== undefined)
+          apiValue.value = resolveCalendarValue(local.value);
         if (local.include_blank) {
           apiValue.include_blank = true;
         } else if (server?.include_blank) {
@@ -608,7 +633,8 @@ export function useDashboardFilters(
       }
 
       const lockValue: Record<string, unknown> = { operator: target.operator };
-      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.value !== undefined)
+        lockValue.value = resolveCalendarValue(target.value);
       if (target.include_blank) lockValue.include_blank = true;
 
       setIsApplying(true);
@@ -665,7 +691,8 @@ export function useDashboardFilters(
       //    isolating the target prevents accidentally locking other
       //    pending edits.
       const lockValue: Record<string, unknown> = { operator: target.operator };
-      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.value !== undefined)
+        lockValue.value = resolveCalendarValue(target.value);
       if (target.include_blank) lockValue.include_blank = true;
       calls.push({
         payload: {

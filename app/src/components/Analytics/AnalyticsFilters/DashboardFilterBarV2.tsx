@@ -6,6 +6,12 @@
  * `./filterTranslation` so the panel-level popover shares the same
  * token labels, type mapping, and round-trip logic.
  *
+ * Filter priority ordering:
+ *   1. Date type filters (always visible)
+ *   2. Ownership semantic type filters (always visible)
+ *   3. Applied filters (have a value in filterState)
+ *   4. Non-applied filters (overflow behind "+" button)
+ *
  * Commit model: each filter popover has its own Apply button that
  * commits all pending changes when clicked. There's no outer
  * bar-level Apply / Clear-all — the inner popover footer is the
@@ -16,7 +22,7 @@
  * filter's popover. Non-owners see a locked chip with a lock icon
  * and can't edit.
  */
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { ScrollableFilterBar } from "@vonlabs/design-components";
 import type { FilterBarValue } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
@@ -63,6 +69,66 @@ interface DashboardFilterBarV2Props {
   onApply: () => void;
 }
 
+/**
+ * Sort definitions into priority tiers and compute pinned count.
+ *
+ * Tier order (left → right):
+ *   1. Date filters with boundary    (mandatory — always visible)
+ *   2. Ownership filters with boundary (mandatory — always visible)
+ *   3. Applied filters with boundary
+ *   4. Applied filters without boundary
+ *   5. Non-applied filters with boundary
+ *   6. Non-applied filters without boundary
+ *
+ * "boundary" = definition has a non-empty `boundary` object.
+ * "applied"  = filter has a value in `filterState` OR was promoted via "+".
+ */
+function sortDefinitions(
+  definitions: DashboardFilterDefinition[],
+  filterState: Record<string, ActiveFilter>,
+  promotedIds: Set<string>,
+) {
+  const mandatory: DashboardFilterDefinition[] = []; // date+boundary, ownership+boundary
+  const appliedBoundary: DashboardFilterDefinition[] = [];
+  const appliedNormal: DashboardFilterDefinition[] = [];
+  const restBoundary: DashboardFilterDefinition[] = [];
+  const restNormal: DashboardFilterDefinition[] = [];
+
+  for (const def of definitions) {
+    const hasBoundary = !!def.boundary;
+    const isMandatory =
+      (def.type === "date" && hasBoundary) ||
+      (def.semantic_type === "ownership" && hasBoundary);
+    const isApplied = def.id in filterState || promotedIds.has(def.id);
+
+    if (isMandatory) {
+      mandatory.push(def);
+    } else if (isApplied && hasBoundary) {
+      appliedBoundary.push(def);
+    } else if (isApplied) {
+      appliedNormal.push(def);
+    } else if (hasBoundary) {
+      restBoundary.push(def);
+    } else {
+      restNormal.push(def);
+    }
+  }
+
+  // pinnedCount covers mandatory + applied + promoted — all of these are
+  // always visible in the bar. Only restBoundary / restNormal are subject
+  // to the 60% budget and overflow behind the "+" button.
+  const pinnedCount =
+    mandatory.length + appliedBoundary.length + appliedNormal.length;
+  const sorted = [
+    ...mandatory,
+    ...appliedBoundary,
+    ...appliedNormal,
+    ...restBoundary,
+    ...restNormal,
+  ];
+  return { sorted, pinnedCount };
+}
+
 export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   definitions,
   filterState,
@@ -76,18 +142,31 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   canLockFilter,
   onApply,
 }) => {
+  // Tracks filters the user has manually promoted from the overflow "+" dropdown
+  const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
+  const [autoOpenFieldId, setAutoOpenFieldId] = useState<string | undefined>();
+
+  const { sorted, pinnedCount } = useMemo(
+    () => sortDefinitions(definitions, filterState, promotedIds),
+    [definitions, filterState, promotedIds],
+  );
+
   const fields = useMemo(
     () =>
-      definitions.map((def) =>
+      sorted.map((def) =>
         mapDefinition(def, {
           currentFilter: filterState[def.id],
           // Visual lock shown to everyone — owner and viewer alike — whenever
           // the filter is server-locked. Owners can unlock via the popover
           // button; viewers see a read-only chip.
           locked: !!def.is_locked,
-          // Only the owner gets the in-popover lock toggle.
+          // Only the owner gets the in-popover lock toggle, and only
+          // on ownership-semantic filters (UI restriction — backend
+          // still supports locking any filter).
           onToggleLock:
-            isOwner && onToggleLock
+            isOwner &&
+            onToggleLock &&
+            (def.is_locked || def.semantic_type === "ownership")
               ? () => onToggleLock(def.id, !def.is_locked)
               : undefined,
           // Disable the Lock button when the filter has no complete value yet
@@ -96,17 +175,17 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
           canLock: canLockFilter ? canLockFilter(def.id) : undefined,
         }),
       ),
-    [definitions, filterState, isOwner, onToggleLock, canLockFilter],
+    [sorted, filterState, isOwner, onToggleLock, canLockFilter],
   );
 
   const values = useMemo(() => {
     const out: Record<string, FilterBarValue> = {};
-    for (const def of definitions) {
+    for (const def of sorted) {
       const f = filterState[def.id];
       if (f) out[def.id] = toFilterBarValue(f, def);
     }
     return out;
-  }, [definitions, filterState]);
+  }, [sorted, filterState]);
 
   const defById = useMemo(() => {
     const map = new Map<string, DashboardFilterDefinition>();
@@ -131,6 +210,15 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
     onFilterChange(fieldId, operator, value, includeBlank);
   };
 
+  const handleOverflowSelect = useCallback((fieldId: string) => {
+    setPromotedIds((prev) => {
+      const next = new Set(prev);
+      next.add(fieldId);
+      return next;
+    });
+    setAutoOpenFieldId(fieldId);
+  }, []);
+
   return (
     <ScrollableFilterBar
       fields={fields}
@@ -140,6 +228,9 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       isApplying={isApplying}
       canApply={canApply}
       onClearField={onClearFilter}
+      pinnedCount={pinnedCount}
+      onOverflowSelect={handleOverflowSelect}
+      autoOpenFieldId={autoOpenFieldId}
     />
   );
 };

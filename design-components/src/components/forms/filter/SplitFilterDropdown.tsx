@@ -179,6 +179,9 @@ export interface SplitFilterDropdownProps {
    * popover still closes after Clear.
    */
   onClear?: () => void;
+  /** When true, the popover opens on mount (one-shot). Used by the
+   *  overflow "+" button to auto-open a newly promoted filter. */
+  defaultOpen?: boolean;
 }
 
 // ============================================================================
@@ -197,6 +200,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   isApplying = false,
   canApply = true,
   onClear,
+  defaultOpen = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -347,6 +351,28 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setIsOpen(true);
     }
   }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
+
+  // Auto-open when defaultOpen transitions to true. Only watches
+  // `defaultOpen` — NOT the callbacks, because computePosition depends
+  // on activeCalendarMode, and re-running this effect when the calendar
+  // mode changes collapses the calendar picker mid-interaction.
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!defaultOpen) {
+      autoOpened.current = false;
+      return;
+    }
+    if (autoOpened.current || isOpen) return;
+    autoOpened.current = true;
+    const id = requestAnimationFrame(() => {
+      computePosition();
+      initDynamicInputs();
+      initCalendar();
+      setIsOpen(true);
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultOpen]);
 
   // Clear per-operator value memory on every close so each session starts
   // fresh (the user's expectation: memory persists while the popover is
@@ -516,17 +542,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const handleCalendarRangeSelect = (range: DateRange | undefined) => {
     setCalendarRange(range);
     if (!range?.from) return;
-    if (!range.to) {
-      // Only `from` picked so far — keep the placeholder so the calendar
-      // stays open for the `to` pick.
-      if (!isMulti) {
-        onChange({ operator: currentOperator, value: calCfg?.dateRangeLabel ?? 'Custom Range' });
-        return;
-      }
-      const next = currentValues.filter((v) => !v.startsWith('custom_range:'));
-      if (!next.includes(calCfg?.dateRangeLabel ?? ''))
-        next.push(calCfg?.dateRangeLabel ?? 'Custom Range');
-      onChange({ operator: currentOperator, value: next });
+    // react-day-picker v9 sets from === to on the first click.
+    // Treat same-date from/to as a partial selection (first click only)
+    // so the calendar stays open for the user to pick the end date.
+    if (!range.to || formatDateISO(range.from) === formatDateISO(range.to)) {
       return;
     }
     const encoded = `custom_range:${formatDateISO(range.from)}_${formatDateISO(range.to)}`;
@@ -1387,7 +1406,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   // disabled whenever a selected dynamic option has an
                   // empty / invalid `N` draft — the user is mid-edit and
                   // committing would send a stale value.
-                  const applyDisabled = locked || isApplying || !canApply || hasInvalidDynamicInput;
+                  // Also disable when a calendar label placeholder is selected
+                  // but the user hasn't picked actual dates yet (the value is
+                  // the raw label string, not a custom_date:/custom_range: token).
+                  const hasUnresolvedCalendar = calCfg
+                    ? currentValues.some(
+                        (v) =>
+                          (v === calCfg.singleDateLabel && !v.startsWith('custom_date:')) ||
+                          (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:'))
+                      )
+                    : false;
+                  const applyDisabled =
+                    locked ||
+                    isApplying ||
+                    !canApply ||
+                    hasInvalidDynamicInput ||
+                    hasUnresolvedCalendar;
                   return (
                     <button
                       onClick={() => {
