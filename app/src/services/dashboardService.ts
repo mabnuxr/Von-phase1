@@ -104,7 +104,9 @@ class DashboardService {
       `/api/v1/dashboards/${dashboardId}/share`,
       {
         is_shared_with_tenant: isSharedWithTenant,
-        shared_data_scope: sharedDataScope ?? null,
+        shared_data_scope: isSharedWithTenant
+          ? (sharedDataScope ?? null)
+          : null,
       },
     );
   }

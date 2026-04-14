@@ -36,6 +36,14 @@ const SCOPE_RANK: Record<DataScope, number> = {
   ALL_RECORDS: 3,
 };
 
+function isValidScope(value: unknown): value is DataScope {
+  return typeof value === "string" && value in SCOPE_RANK;
+}
+
+function toSafeScope(value: string | null | undefined): DataScope {
+  return isValidScope(value) ? value : "MY_RECORDS";
+}
+
 interface ShareDashboardDialogProps {
   isSharedWithTenant: boolean;
   sharedDataScope: string | null | undefined;
@@ -60,7 +68,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   const [selectedShared, setSelectedShared] = useState(isSharedWithTenant);
   const [scopeEnabled, setScopeEnabled] = useState(!!sharedDataScope);
   const [selectedScope, setSelectedScope] = useState<DataScope>(
-    (sharedDataScope as DataScope) || "MY_RECORDS",
+    toSafeScope(sharedDataScope),
   );
   const [copied, setCopied] = useState(false);
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
@@ -73,7 +81,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
     if (!canShare) return;
     setSelectedShared(isSharedWithTenant);
     setScopeEnabled(!!sharedDataScope);
-    setSelectedScope((sharedDataScope as DataScope) || "MY_RECORDS");
+    setSelectedScope(toSafeScope(sharedDataScope));
     setCopied(false);
     setOpen(true);
   }, [canShare, isSharedWithTenant, sharedDataScope]);
@@ -109,10 +117,14 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   };
 
   const handleCopyLink = async () => {
-    await onCopyLink?.();
-    setCopied(true);
-    clearTimeout(copyTimerRef.current);
-    copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
+    try {
+      await onCopyLink?.();
+      setCopied(true);
+      clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard write can fail (insecure context, permissions denied)
+    }
   };
 
   // Close dialog after successful share
