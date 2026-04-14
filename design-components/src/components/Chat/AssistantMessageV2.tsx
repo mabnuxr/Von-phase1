@@ -201,7 +201,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
           <div className="space-y-2">
             {dashboards.map((db) => (
               <DashboardArtifactCard
-                key={db.dashboard_id}
+                key={`${db.dashboard_id}:${db.dashboard_version}`}
                 title={db.dashboard_name}
                 onPreview={
                   onDashboardPreview
@@ -244,7 +244,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
             <div className="space-y-2">
               {dashboards.map((db) => (
                 <DashboardArtifactCard
-                  key={db.dashboard_id}
+                  key={`${db.dashboard_id}:${db.dashboard_version}`}
                   title={db.dashboard_name}
                   onPreview={
                     onDashboardPreview
