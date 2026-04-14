@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { dashboardKeys } from "./useDashboardQuery";
+import { findLast } from "../utils/findLast";
 import type { DashboardMetadata } from "../types/conversation";
 
 /**
@@ -24,7 +25,8 @@ export function useDashboardVersionInvalidation({
   // when a NEW version of the active dashboard appears, not on every array mutation.
   const matchKey = useMemo(() => {
     if (!activeDashboardId) return null;
-    const match = dashboards.findLast(
+    const match = findLast(
+      dashboards,
       (d) => d.dashboard_id === activeDashboardId,
     );
     return match ? `${match.dashboard_id}:${match.dashboard_version}` : null;
