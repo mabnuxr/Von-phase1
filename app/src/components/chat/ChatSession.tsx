@@ -363,7 +363,7 @@ function ExistingChatInner(
     ? dashboardPaneState.dashboardId
     : props.dashboardId;
   useDashboardVersionInvalidation({
-    dashboard: chatV2.dashboard,
+    dashboards: chatV2.dashboards,
     activeDashboardId,
   });
 

@@ -34,7 +34,7 @@ export interface AssistantMessageV2Props {
     runId: string
   ) => void;
   // Dashboard builder / plan approval
-  dashboard?: DashboardMetadata | null;
+  dashboards?: DashboardMetadata[];
   executionId?: string | null;
   isDashboardBuilderMode?: boolean;
   onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
@@ -65,7 +65,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
   onReject,
   onExpire,
   onArtifactClick,
-  dashboard,
+  dashboards = [],
   executionId,
   isDashboardBuilderMode = false,
   onApprovePlan,
@@ -193,17 +193,20 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
         </>
       )}
 
-      {/* Dashboard Artifact Card - shown when dashboard was created */}
-      {dashboard && !isStreaming && !showDashboardBuilderApproval && !showResearchResults && (
+      {/* Dashboard Artifact Cards - shown when dashboards were created */}
+      {dashboards.length > 0 && !isStreaming && !showDashboardBuilderApproval && !showResearchResults && (
         <div className="space-y-2">
-          <DashboardArtifactCard
-            title={dashboard.dashboard_name}
-            onPreview={
-              onDashboardPreview
-                ? () => onDashboardPreview(dashboard.dashboard_id, dashboard.dashboard_version)
-                : undefined
-            }
-          />
+          {dashboards.map((db) => (
+            <DashboardArtifactCard
+              key={db.dashboard_id}
+              title={db.dashboard_name}
+              onPreview={
+                onDashboardPreview
+                  ? () => onDashboardPreview(db.dashboard_id, db.dashboard_version)
+                  : undefined
+              }
+            />
+          ))}
         </div>
       )}
 
@@ -233,17 +236,20 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
               completedAt: null,
             }}
           />
-          {/* Dashboard Card after research completes */}
-          {researchResults.isCompleted && dashboard && (
+          {/* Dashboard Cards after research completes */}
+          {researchResults.isCompleted && dashboards.length > 0 && (
             <div className="space-y-2">
-              <DashboardArtifactCard
-                title={dashboard.dashboard_name}
-                onPreview={
-                  onDashboardPreview
-                    ? () => onDashboardPreview(dashboard.dashboard_id, dashboard.dashboard_version)
-                    : undefined
-                }
-              />
+              {dashboards.map((db) => (
+                <DashboardArtifactCard
+                  key={db.dashboard_id}
+                  title={db.dashboard_name}
+                  onPreview={
+                    onDashboardPreview
+                      ? () => onDashboardPreview(db.dashboard_id, db.dashboard_version)
+                      : undefined
+                  }
+                />
+              ))}
             </div>
           )}
         </>

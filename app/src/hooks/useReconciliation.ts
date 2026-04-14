@@ -26,7 +26,6 @@ import type {
 import type { DashboardMetadata } from "../types/conversation";
 
 import { conversationsService } from "../services/conversationsService";
-import { findLast } from "../utils/findLast";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
@@ -53,7 +52,7 @@ export interface UseReconciliationConfig {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
     options?: {
-      dashboard?: DashboardMetadata | null;
+      dashboards?: DashboardMetadata[];
       executionId?: string | null;
       isDashboardBuilderMode?: boolean;
       triggerAutoOpen?: boolean;
@@ -152,15 +151,11 @@ export function useReconciliation({
       // Step 5: Re-transform
       const result = transformAguiToTimelineSteps(mergedEvents);
 
-      // Step 5b: Extract dashboard from DASHBOARD_READY event, execution metadata from RUN_FINISHED
-      const dashboardReadyEvent = findLast(
-        mergedEvents,
-        (e) => e.event?.type === "DASHBOARD_READY",
-      );
-      const reconciledDashboard = dashboardReadyEvent
-        ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ??
-          undefined)
-        : undefined;
+      // Step 5b: Extract all dashboards from DASHBOARD_READY events, execution metadata from RUN_FINISHED
+      const reconciledDashboards = mergedEvents
+        .filter((e) => e.event?.type === "DASHBOARD_READY")
+        .map((e) => (e.event as DashboardReadyEvent).dashboard)
+        .filter((d): d is DashboardMetadata => d != null);
 
       type RunFinishedWithExtras = Omit<RunFinishedEvent, "result"> & {
         result: RunFinishedEvent["result"] & {
@@ -180,9 +175,9 @@ export function useReconciliation({
             ?.is_dashboard_builder_mode ?? false)
         : undefined;
 
-      // Step 6: Update state (dashboard from DASHBOARD_READY, executionId/isDashboardBuilderMode from RUN_FINISHED)
+      // Step 6: Update state (dashboards from DASHBOARD_READY, executionId/isDashboardBuilderMode from RUN_FINISHED)
       onStateUpdate(result, runId, {
-        dashboard: reconciledDashboard,
+        dashboards: reconciledDashboards.length > 0 ? reconciledDashboards : undefined,
         executionId: reconciledExecutionId,
         isDashboardBuilderMode: reconciledIsDashboardBuilderMode,
         triggerAutoOpen: true,

@@ -214,10 +214,10 @@ export interface Message {
    */
   v2FinalResponseStreaming?: boolean;
   /**
-   * Dashboard metadata from RUN_FINISHED event (assistant messages only)
-   * Only present when a dashboard was created/updated during this specific run.
+   * Dashboard metadata from DASHBOARD_READY events (assistant messages only)
+   * Present when dashboards were created/updated during this specific run.
    */
-  dashboard?: DashboardMetadata | null;
+  dashboards?: DashboardMetadata[];
   /**
    * execution_id from RUN_FINISHED for workflow execution approval (dry_run completed).
    * When present with isDashboardBuilderMode, shows "Create Dashboard" / "Skip" buttons.

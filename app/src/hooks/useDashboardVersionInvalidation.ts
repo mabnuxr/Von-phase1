@@ -12,19 +12,24 @@ import type { DashboardMetadata } from "../types/conversation";
  * - Dashboard page with chat sidebar (activeDashboardId = page's dashboardId)
  */
 export function useDashboardVersionInvalidation({
-  dashboard,
+  dashboards,
   activeDashboardId,
 }: {
-  dashboard: DashboardMetadata | null;
+  dashboards: DashboardMetadata[];
   activeDashboardId: string | null | undefined;
 }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (dashboard && activeDashboardId === dashboard.dashboard_id) {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboard.dashboard_id),
-      });
+    if (activeDashboardId) {
+      const match = dashboards.find(
+        (d) => d.dashboard_id === activeDashboardId,
+      );
+      if (match) {
+        queryClient.invalidateQueries({
+          queryKey: dashboardKeys.detail(match.dashboard_id),
+        });
+      }
     }
-  }, [dashboard, activeDashboardId, queryClient]);
+  }, [dashboards, activeDashboardId, queryClient]);
 }
