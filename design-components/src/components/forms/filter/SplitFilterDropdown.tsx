@@ -352,11 +352,18 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
   }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
 
-  // Auto-open when defaultOpen transitions to true. Deferred to a
-  // requestAnimationFrame so the trigger element has its final layout
-  // position — opening immediately would compute the wrong rect.
+  // Auto-open when defaultOpen transitions to true. Only watches
+  // `defaultOpen` — NOT the callbacks, because computePosition depends
+  // on activeCalendarMode, and re-running this effect when the calendar
+  // mode changes collapses the calendar picker mid-interaction.
+  const autoOpened = useRef(false);
   useEffect(() => {
-    if (!defaultOpen || isOpen) return;
+    if (!defaultOpen) {
+      autoOpened.current = false;
+      return;
+    }
+    if (autoOpened.current || isOpen) return;
+    autoOpened.current = true;
     const id = requestAnimationFrame(() => {
       computePosition();
       initDynamicInputs();
@@ -364,7 +371,8 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setIsOpen(true);
     });
     return () => cancelAnimationFrame(id);
-  }, [defaultOpen, computePosition, initDynamicInputs, initCalendar, isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultOpen]);
 
   // Clear per-operator value memory on every close so each session starts
   // fresh (the user's expectation: memory persists while the popover is
