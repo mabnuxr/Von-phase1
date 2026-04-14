@@ -10,7 +10,7 @@
  * original horizontal-scroll behaviour with gradient fades and caret buttons.
  */
 
-import React, { useRef, useState, useCallback, useLayoutEffect, useEffect } from 'react';
+import React, { useRef, useState, useCallback, useLayoutEffect, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   CaretLeftIcon,
@@ -190,6 +190,18 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 }) => {
   const useOverflowMode = pinnedCount != null && onOverflowSelect != null;
 
+  // Find the parent row element for budget calculation (cached in ref)
+  const rowElRef = useRef<HTMLElement | null>(null);
+  const getRowEl = useCallback(() => {
+    if (rowElRef.current) return rowElRef.current;
+    const container = containerRef.current;
+    if (!container) return null;
+    rowElRef.current = (container.closest('[class*="justify-between"]') ??
+      container.parentElement ??
+      container) as HTMLElement;
+    return rowElRef.current;
+  }, []);
+
   // ── Refs shared between overflow and scroll modes ───────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -197,7 +209,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
   // ── Overflow measurement ────────────────────────────────────────
   // Determines which non-applied filters to show vs. put behind "+"
-  const [visibleSet, setVisibleSet] = useState<Set<string>>(() => new Set(fields.map((f) => f.id)));
+  const [visibleSet, setVisibleSet] = useState<Set<string>>(() => new Set());
 
   const measureOverflow = useCallback(() => {
     if (!useOverflowMode) return;
@@ -205,12 +217,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     const measure = measureRef.current;
     if (!container || !measure) return;
 
-    // Measure the grandparent row width (the header row that holds both
-    // the filter bar on the left and action buttons on the right).
-    // Fall back to container width if ancestry isn't available.
-    const rowEl =
-      container.closest('[class*="justify-between"]') ?? container.parentElement ?? container;
-    const rowWidth = (rowEl as HTMLElement).clientWidth;
+    const rowEl = getRowEl() ?? container;
+    const rowWidth = rowEl.clientWidth;
     const budget = rowWidth * 0.6;
     const plusButtonWidth = 42;
     const gap = 6; // gap-1.5 = 6px
@@ -263,7 +271,11 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       for (const f of fields) visible.add(f.id);
     }
 
-    setVisibleSet(visible);
+    // Skip state update if the visible set hasn't changed (avoids no-op re-renders on resize)
+    setVisibleSet((prev) => {
+      if (prev.size === visible.size && [...visible].every((id) => prev.has(id))) return prev;
+      return visible;
+    });
   }, [useOverflowMode, fields, pinnedCount, values]);
 
   useLayoutEffect(() => {
@@ -274,17 +286,21 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     if (!useOverflowMode) return;
     const container = containerRef.current;
     if (!container) return;
-    // Observe both the container and the row ancestor for resize
-    const rowEl =
-      container.closest('[class*="justify-between"]') ?? container.parentElement ?? container;
+    const rowEl = getRowEl() ?? container;
     const observer = new ResizeObserver(measureOverflow);
-    observer.observe(rowEl as HTMLElement);
+    observer.observe(rowEl);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [useOverflowMode, measureOverflow]);
+  }, [useOverflowMode, measureOverflow, getRowEl]);
 
-  const visibleFields = useOverflowMode ? fields.filter((f) => visibleSet.has(f.id)) : fields;
-  const overflowFields = useOverflowMode ? fields.filter((f) => !visibleSet.has(f.id)) : [];
+  const visibleFields = useMemo(
+    () => (useOverflowMode ? fields.filter((f) => visibleSet.has(f.id)) : fields),
+    [useOverflowMode, fields, visibleSet],
+  );
+  const overflowFields = useMemo(
+    () => (useOverflowMode ? fields.filter((f) => !visibleSet.has(f.id)) : []),
+    [useOverflowMode, fields, visibleSet],
+  );
 
   // ── Overflow dropdown state ─────────────────────────────────────
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -349,8 +365,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }, []);
 
-  // Deferred auto-open: waits for the promoted pill to render,
-  // scrolls to end, then opens the popover after scroll settles.
+  // Deferred auto-open: polls until the promoted pill is in the DOM,
+  // scrolls to end, waits for scroll to finish, then opens the popover.
   const [deferredOpenId, setDeferredOpenId] = useState<string | undefined>();
   const lastAutoOpenRef = useRef<string | undefined>();
 
@@ -358,24 +374,36 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     if (!autoOpenFieldId || autoOpenFieldId === lastAutoOpenRef.current) return;
     lastAutoOpenRef.current = autoOpenFieldId;
 
-    // Step 1: wait for measurement + re-render cycle to complete
-    // (measureOverflow → setVisibleSet → re-render with new pill)
-    const scrollTimer = setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        left: scrollRef.current?.scrollWidth ?? 0,
-        behavior: 'smooth',
-      });
-    }, 150);
+    let scrollTriggered = false;
+    let rafId: number;
 
-    // Step 2: after scroll animation settles, open the popover
-    const openTimer = setTimeout(() => {
-      setDeferredOpenId(autoOpenFieldId);
-      requestAnimationFrame(() => setDeferredOpenId(undefined));
-    }, 550);
+    const poll = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el || el.children.length === 0) return;
+
+      // Phase 1: trigger scroll to end (once)
+      if (!scrollTriggered) {
+        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+        scrollTriggered = true;
+        return;
+      }
+
+      // Phase 2: wait until scroll has settled (reached the end)
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+      if (atEnd) {
+        clearInterval(poll);
+        setDeferredOpenId(autoOpenFieldId);
+        rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
+      }
+    }, 60);
+
+    // Safety: give up after 2s
+    const safety = setTimeout(() => clearInterval(poll), 2000);
 
     return () => {
-      clearTimeout(scrollTimer);
-      clearTimeout(openTimer);
+      clearInterval(poll);
+      clearTimeout(safety);
+      cancelAnimationFrame(rafId);
     };
   }, [autoOpenFieldId]);
 
