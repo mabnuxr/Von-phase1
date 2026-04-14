@@ -210,6 +210,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   // ── Overflow measurement ────────────────────────────────────────
   // Determines which non-applied filters to show vs. put behind "+"
   const [visibleSet, setVisibleSet] = useState<Set<string>>(() => new Set());
+  // Dynamic max-width for the scroll area — 60% of the actual row width
+  const [scrollAreaMaxWidth, setScrollAreaMaxWidth] = useState<number>(0);
 
   const measureOverflow = useCallback(() => {
     if (!useOverflowMode) return;
@@ -220,6 +222,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     const rowEl = getRowEl() ?? container;
     const rowWidth = rowEl.clientWidth;
     const budget = rowWidth * 0.6;
+    setScrollAreaMaxWidth(budget);
     const plusButtonWidth = 42;
     const gap = 6; // gap-1.5 = 6px
 
@@ -560,7 +563,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         </div>
 
         {/* Scrollable filter area — capped at 60% of the parent row */}
-        <div className="flex items-end gap-1 min-w-0" style={{ maxWidth: '60vw' }}>
+        <div className="flex items-end gap-1 min-w-0" style={{ maxWidth: scrollAreaMaxWidth || undefined }}>
           {/* Left caret — h-[28px] matches chip height for perfect alignment */}
           {canScrollLeft && (
             <button
