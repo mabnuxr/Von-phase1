@@ -375,7 +375,6 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     lastAutoOpenRef.current = autoOpenFieldId;
 
     let lastScrollWidth = 0;
-    let scrollSettleCount = 0;
     let rafId: number;
 
     const poll = setInterval(() => {
@@ -383,27 +382,21 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       if (!el || el.children.length === 0) return;
 
       // If scrollWidth changed (new pill appeared or layout shifted),
-      // re-trigger scroll to the new end and reset settle counter.
+      // re-trigger instant scroll to the new end.
       if (el.scrollWidth !== lastScrollWidth) {
         lastScrollWidth = el.scrollWidth;
-        scrollSettleCount = 0;
-        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+        el.scrollTo({ left: el.scrollWidth, behavior: 'instant' });
         return;
       }
 
-      // Wait until scroll has settled at the end for 2 consecutive ticks
+      // scrollWidth stable + scroll is at end → open the popover
       const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
       if (atEnd) {
-        scrollSettleCount++;
-        if (scrollSettleCount >= 2) {
-          clearInterval(poll);
-          setDeferredOpenId(autoOpenFieldId);
-          rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
-        }
-      } else {
-        scrollSettleCount = 0;
+        clearInterval(poll);
+        setDeferredOpenId(autoOpenFieldId);
+        rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
       }
-    }, 60);
+    }, 50);
 
     // Safety: give up after 2s
     const safety = setTimeout(() => clearInterval(poll), 2000);

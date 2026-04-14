@@ -352,11 +352,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     }
   }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
 
-  // Auto-open after mount when defaultOpen is true. Deferred to a
+  // Auto-open when defaultOpen transitions to true. Deferred to a
   // requestAnimationFrame so the trigger element has its final layout
   // position — opening immediately would compute the wrong rect.
   useEffect(() => {
-    if (!defaultOpen) return;
+    if (!defaultOpen || isOpen) return;
     const id = requestAnimationFrame(() => {
       computePosition();
       initDynamicInputs();
@@ -364,9 +364,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setIsOpen(true);
     });
     return () => cancelAnimationFrame(id);
-    // Only run on mount — defaultOpen is a one-shot prop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [defaultOpen, computePosition, initDynamicInputs, initCalendar, isOpen]);
 
   // Clear per-operator value memory on every close so each session starts
   // fresh (the user's expectation: memory persists while the popover is
