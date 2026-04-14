@@ -423,19 +423,32 @@ export function toFilterBarValue(
   if (v === undefined || v === null) {
     barValue = undefined;
   } else if (Array.isArray(v)) {
-    // Only translate tokens on dynamic filters — mirrors the scalar branch
-    // below and the reverse function `fromFilterBarValue`. Without this
-    // guard, a non-dynamic picklist whose value happens to equal a token
-    // label key (e.g. "TODAY", "MY_RECORDS") would be mangled on the way
-    // into the bar and not reverse-translated on the way back, corrupting
-    // the value sent to the server.
-    barValue = v.map((x) => {
-      const s = String(x);
-      if (isCalendarSerialised(s)) return s;
-      return def.dynamic ? tokenLabel(s) : s;
-    });
+    // Date filter with a 2-element date array from the server (between
+    // operator) → reconstruct the custom_range: token so the chip renders
+    // a formatted date range and the calendar initializer can pre-fill.
+    const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+    if (
+      def.type === "date" &&
+      v.length === 2 &&
+      typeof v[0] === "string" &&
+      typeof v[1] === "string" &&
+      ISO_DATE.test(v[0]) &&
+      ISO_DATE.test(v[1])
+    ) {
+      barValue = `custom_range:${v[0]}_${v[1]}`;
+    } else {
+      barValue = v.map((x) => {
+        const s = String(x);
+        if (isCalendarSerialised(s)) return s;
+        return def.dynamic ? tokenLabel(s) : s;
+      });
+    }
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) barValue = v;
+    // Bare ISO date from the server → wrap as custom_date: so the chip
+    // renders a formatted date and the calendar can pre-fill.
+    else if (def.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(v))
+      barValue = `custom_date:${v}`;
     else barValue = def.dynamic ? tokenLabel(v) : v;
   } else {
     barValue = String(v);
