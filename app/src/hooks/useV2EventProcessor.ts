@@ -186,6 +186,10 @@ export function useV2EventProcessor(
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
 
+  // Tracks whether we've already auto-opened a dashboard in the current run.
+  // Reset on new run so only the first DASHBOARD_READY triggers auto-open.
+  const hasAutoOpenedDashboardRef = useRef(false);
+
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
   const lastEventTimeRef = useRef<number>(0);
@@ -533,7 +537,6 @@ export function useV2EventProcessor(
             const payload =
               (wrapper.event as DashboardReadyEvent).dashboard ?? undefined;
             if (payload) {
-              let isFirstDashboard = false;
               flushSync(() => {
                 setDashboards((prev) => {
                   const key = `${payload.dashboard_id}:${payload.dashboard_version}`;
@@ -543,10 +546,10 @@ export function useV2EventProcessor(
                     )
                   )
                     return prev;
-                  isFirstDashboard = prev.length === 0;
                   return [...prev, payload];
                 });
-                if (isFirstDashboard) {
+                if (!hasAutoOpenedDashboardRef.current) {
+                  hasAutoOpenedDashboardRef.current = true;
                   setLiveDashboardKey(
                     `${payload.dashboard_id}:${payload.dashboard_version}`,
                   );
@@ -581,6 +584,7 @@ export function useV2EventProcessor(
             !previousRunId || finishedRunsRef.current.has(previousRunId);
           if (isNewRun) {
             currentRunIdForHandlerRef.current = run_id;
+            hasAutoOpenedDashboardRef.current = false;
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
@@ -657,7 +661,6 @@ export function useV2EventProcessor(
                 dashboardReadyPayload,
               );
             }
-            let isFirstDashboard = false;
             setDashboards((prev) => {
               const key = `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`;
               if (
@@ -666,10 +669,10 @@ export function useV2EventProcessor(
                 )
               )
                 return prev;
-              isFirstDashboard = prev.length === 0;
               return [...prev, dashboardReadyPayload];
             });
-            if (isFirstDashboard) {
+            if (!hasAutoOpenedDashboardRef.current) {
+              hasAutoOpenedDashboardRef.current = true;
               setLiveDashboardKey(
                 `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`,
               );
