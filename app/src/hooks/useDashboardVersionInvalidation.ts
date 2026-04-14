@@ -24,12 +24,8 @@ export function useDashboardVersionInvalidation({
   // when a NEW version of the active dashboard appears, not on every array mutation.
   const matchKey = useMemo(() => {
     if (!activeDashboardId) return null;
-    const match = dashboards.find(
-      (d) => d.dashboard_id === activeDashboardId,
-    );
-    return match
-      ? `${match.dashboard_id}:${match.dashboard_version}`
-      : null;
+    const match = dashboards.find((d) => d.dashboard_id === activeDashboardId);
+    return match ? `${match.dashboard_id}:${match.dashboard_version}` : null;
   }, [dashboards, activeDashboardId]);
 
   useEffect(() => {
