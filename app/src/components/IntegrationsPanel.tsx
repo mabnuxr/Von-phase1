@@ -1,6 +1,7 @@
 import { ConfirmationModal, Banner, Text } from "@vonlabs/design-components";
 import { BookOpen } from "@phosphor-icons/react";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   useIntegrations,
   useCheckAllAuthStatuses,
@@ -51,6 +52,17 @@ export function IntegrationsPanel() {
     loadingIntegrationId,
     setLoadingIntegrationId,
   } = usePreferencesStore();
+
+  // Auto-open integration config pane when linked from chat via ?configure=<id>
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const configureId = searchParams.get("configure");
+    if (configureId) {
+      setConfiguringPersonalIntegration(configureId);
+      searchParams.delete("configure");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, setConfiguringPersonalIntegration]);
 
   // Fetch integrations with React Query
   const {

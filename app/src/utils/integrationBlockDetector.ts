@@ -1,5 +1,5 @@
 /**
- * Detects integration write-blocked messages from assistant message content.
+ * Detects integration block messages from assistant message content.
  *
  * The agent is instructed to include the block reason verbatim in its response.
  * This utility scans the message content for known block reason patterns and
@@ -7,22 +7,40 @@
  *
  * This approach avoids storing extra metadata on the Message document — the
  * block reason text in the message IS the source of truth.
+ *
+ * Two pattern categories:
+ *   1. Salesforce-specific write restrictions — these have dedicated block
+ *      codes (org_read_only / admin_disabled / personal_oauth_expired) that
+ *      determine whether the user can self-remediate. Salesforce reads still
+ *      work in these cases, so the user may still get data back.
+ *   2. Generic "not connected" — derived from the agent's phrasing
+ *      "{Display} is not connected. Please connect…". Matches any integration
+ *      that has an entry in INTEGRATION_METADATA. Adding a new integration
+ *      requires no change here as long as INTEGRATION_METADATA and the
+ *      backend's IntegrationType enum stay in sync.
  */
 
+import {
+  INTEGRATION_METADATA,
+  getBackendIntegrationType,
+} from "../constants/integrationMetadata";
+
 export interface DetectedIntegrationBlock {
-  /** e.g. "salesforce", "google_calendar" */
+  /** Backend integration type key, e.g. "salesforce", "google_calendar" */
   integrationType: string;
   /** The matched block reason text */
   message: string;
-  /** Block code if determinable (Salesforce-specific) */
+  /** Block code if determinable */
   blockCode?: string;
 }
 
 /**
- * Salesforce block reasons (from crm_permissions.py).
- * These have specific block codes that determine whether the user can self-remediate.
+ * Salesforce write-restriction patterns. These fire when Salesforce IS connected
+ * but the user can't write (org read-only, admin-disabled, expired personal OAuth,
+ * or user_level_write scope without personal OAuth). Reads still work in all
+ * these cases.
  */
-const SALESFORCE_BLOCK_PATTERNS: Array<{
+const SALESFORCE_WRITE_PATTERNS: Array<{
   pattern: string;
   blockCode: string;
   message: string;
@@ -54,16 +72,6 @@ const SALESFORCE_BLOCK_PATTERNS: Array<{
 ];
 
 /**
- * Generic block pattern for non-Salesforce integrations.
- * Format: "{Display} writes require a personal connection. Please connect your {Display} account."
- *
- * Map of display name → backend integration_type key.
- */
-const GENERIC_INTEGRATION_PATTERNS: Record<string, string> = {
-  "Google Calendar": "google_calendar",
-};
-
-/**
  * Scan assistant message content for known integration block reason patterns.
  * Returns the first match, or null if no block reason is detected.
  */
@@ -74,8 +82,9 @@ export function detectIntegrationBlock(
 
   const contentLower = messageContent.toLowerCase();
 
-  // Check Salesforce-specific patterns first (they have block codes)
-  for (const { pattern, blockCode, message } of SALESFORCE_BLOCK_PATTERNS) {
+  // (1) Salesforce write-restriction patterns (checked first — specific
+  // block codes take precedence over the generic "not connected" form).
+  for (const { pattern, blockCode, message } of SALESFORCE_WRITE_PATTERNS) {
     if (contentLower.includes(pattern)) {
       return {
         integrationType: "salesforce",
@@ -85,16 +94,18 @@ export function detectIntegrationBlock(
     }
   }
 
-  // Check generic integration patterns
-  for (const [displayName, integrationType] of Object.entries(
-    GENERIC_INTEGRATION_PATTERNS,
-  )) {
-    const pattern =
-      `${displayName} writes require a personal connection`.toLowerCase();
-    if (contentLower.includes(pattern)) {
+  // (2) Generic "{Display} is not connected" — iterate every known
+  // integration and look for its canonical sentence as a substring.
+  // This naturally handles agents that prefix extra words before the
+  // sentence, and self-updates as new integrations are added to
+  // INTEGRATION_METADATA without any change here.
+  for (const entry of Object.values(INTEGRATION_METADATA)) {
+    const expected = `${entry.name} is not connected. Please connect your ${entry.name} account to continue.`;
+    if (messageContent.includes(expected)) {
       return {
-        integrationType,
-        message: `${displayName} writes require a personal connection. Please connect your ${displayName} account.`,
+        integrationType: getBackendIntegrationType(entry.id).toLowerCase(),
+        blockCode: "personal_oauth_not_connected",
+        message: expected,
       };
     }
   }
