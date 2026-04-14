@@ -579,7 +579,10 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         </div>
 
         {/* Scrollable filter area — capped at 60% of the parent row */}
-        <div className="flex items-end gap-1 min-w-0" style={{ maxWidth: scrollAreaMaxWidth || undefined }}>
+        <div
+          className="flex items-end gap-1 min-w-0"
+          style={{ maxWidth: scrollAreaMaxWidth || undefined }}
+        >
           {/* Left caret — h-[28px] matches chip height for perfect alignment */}
           {canScrollLeft && (
             <button

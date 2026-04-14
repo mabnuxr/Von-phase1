@@ -1413,11 +1413,15 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     ? currentValues.some(
                         (v) =>
                           (v === calCfg.singleDateLabel && !v.startsWith('custom_date:')) ||
-                          (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:')),
+                          (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:'))
                       )
                     : false;
                   const applyDisabled =
-                    locked || isApplying || !canApply || hasInvalidDynamicInput || hasUnresolvedCalendar;
+                    locked ||
+                    isApplying ||
+                    !canApply ||
+                    hasInvalidDynamicInput ||
+                    hasUnresolvedCalendar;
                   return (
                     <button
                       onClick={() => {
