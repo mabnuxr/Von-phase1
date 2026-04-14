@@ -510,6 +510,15 @@ export function mapDefinition(
     }
   }
 
+  // Tooltip: combine boundary description + resolved-value hint for dynamic tokens.
+  const tooltipParts: string[] = [];
+  if (def.boundary_description) tooltipParts.push(def.boundary_description);
+  if (def.dynamic && currentFilter?.resolved_value !== undefined) {
+    const resolved = formatResolved(currentFilter.resolved_value);
+    if (resolved) tooltipParts.push(`Resolves to: ${resolved}`);
+  }
+  if (tooltipParts.length > 0) config.tooltip = tooltipParts.join(" · ");
+
   // Boundary on the calendar: derive min/max ISO dates from the extraction
   // boundary. Covers `on_or_after` (min) and `on_or_before` (max) — the
   // typical shapes the agent emits. Other shapes fall through unclamped.
@@ -559,10 +568,10 @@ function isTokenAsOperatorFilter(def: DashboardFilterDefinition): boolean {
   const type = mapFieldType(def.type);
   const isOwnership =
     def.semantic_type === "ownership" &&
-    def.dynamic &&
+    !!def.dynamic &&
     !!def.options?.some((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o));
   const isDate =
-    type === "date" && def.dynamic && !!def.available_presets?.length;
+    type === "date" && !!def.dynamic && !!def.available_presets?.length;
   return isOwnership || isDate;
 }
 

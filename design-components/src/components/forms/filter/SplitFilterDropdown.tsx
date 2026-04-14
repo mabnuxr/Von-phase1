@@ -441,7 +441,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [isOpen]);
+  }, [isOpen, onDismiss]);
 
   const handleOperatorChange = (op: string) => {
     // Clear draft operator when switching away from a calendarMode operator
