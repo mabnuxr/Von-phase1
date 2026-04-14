@@ -98,10 +98,14 @@ class DashboardService {
   async shareDashboard(
     dashboardId: string,
     isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
   ): Promise<DashboardMetadataResponse> {
     return apiClient.post<DashboardMetadataResponse>(
       `/api/v1/dashboards/${dashboardId}/share`,
-      { is_shared_with_tenant: isSharedWithTenant },
+      {
+        is_shared_with_tenant: isSharedWithTenant,
+        shared_data_scope: sharedDataScope ?? null,
+      },
     );
   }
 

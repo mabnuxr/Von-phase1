@@ -216,6 +216,7 @@ function adaptApiResponse(
         dashboardVersion: raw.dashboard_version ?? 1,
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
+        sharedDataScope: raw.shared_data_scope ?? null,
         gridConfig: raw.gridConfig,
         // Prefer panel_layouts when it has entries; fall back to each widget's
         // own layout field when panel_layouts is absent or an empty object (the
