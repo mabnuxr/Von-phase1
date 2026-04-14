@@ -452,11 +452,17 @@ export function mapDefinition(
     // Keep non-"equals" operators for manual selection with the full
     // options picklist in the right panel.
     const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
-    const dynamicTokens = (def.options ?? []).filter((o) =>
-      OWNERSHIP_DYNAMIC_TOKENS.has(o),
+    const enabledTokens = new Set(
+      (def.options ?? []).filter((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o)),
     );
-    for (const token of dynamicTokens) {
-      ops.push({ value: token, label: tokenLabel(token), noValue: true });
+    // Always show all ownership tokens; disable those not in the scoped options
+    for (const token of OWNERSHIP_DYNAMIC_TOKENS) {
+      ops.push({
+        value: token,
+        label: tokenLabel(token),
+        noValue: true,
+        ...(!enabledTokens.has(token) && { disabled: true }),
+      });
     }
     // Manual operators (everything except "equals")
     let firstManual = true;
@@ -471,6 +477,12 @@ export function mapDefinition(
       firstManual = false;
     }
     config.customOperators = ops;
+    // Default to the first manual operator (e.g. "One of") when no filter
+    // is applied, rather than the first token operator.
+    const firstManualOp = (def.valid_operators ?? []).find(
+      (op) => !REMOVED_OPS.has(op.value),
+    );
+    if (firstManualOp) config.defaultOperator = firstManualOp.value;
 
     // Keep options for manual operators' right panels (label-ized)
     if (def.options?.length) {

@@ -29,6 +29,7 @@ import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
 import { SharePopover } from "./SharePopover";
+import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
 import type {
@@ -97,7 +98,10 @@ interface AnalyticsViewProps {
   isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
-  onShare: (isSharedWithTenant: boolean) => void;
+  onShare: (
+    isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
+  ) => void;
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
   onExpand?: () => void;
@@ -684,13 +688,24 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-                <SharePopover
-                  isSharedWithTenant={dashboard.isSharedWithTenant}
-                  canShare={isSaved}
-                  sharePhase={sharePhase}
-                  onShare={onShare}
-                  onCopyLink={handleCopyLink}
-                />
+                {isDashboardFiltersV2Enabled ? (
+                  <ShareDashboardDialog
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    sharedDataScope={dashboard.sharedDataScope}
+                    canShare={isSaved}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                ) : (
+                  <SharePopover
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    canShare={isSaved}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                )}
 
                 {/* Edit / Save toggle */}
                 {isEditMode ||

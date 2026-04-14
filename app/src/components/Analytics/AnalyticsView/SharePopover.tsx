@@ -17,7 +17,10 @@ interface SharePopoverProps {
   isSharedWithTenant: boolean;
   canShare: boolean;
   sharePhase: MutationPhase;
-  onShare: (isSharedWithTenant: boolean) => void;
+  onShare: (
+    isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
+  ) => void;
   onCopyLink?: () => Promise<void>;
 }
 
