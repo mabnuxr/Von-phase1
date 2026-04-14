@@ -180,6 +180,11 @@ function resolveCalendarValue(value: unknown): unknown {
     const dateMatch = value.match(/^custom_date:(\d{4}-\d{2}-\d{2})$/);
     if (dateMatch) return dateMatch[1];
   }
+  if (Array.isArray(value)) {
+    return value.map((v) =>
+      typeof v === "string" ? resolveCalendarValue(v) : v,
+    );
+  }
   return value;
 }
 
@@ -572,7 +577,8 @@ export function useDashboardFilters(
       } else if (local !== undefined) {
         if (!isFilterComplete(local)) return;
         const apiValue: Record<string, unknown> = { operator: local.operator };
-        if (local.value !== undefined) apiValue.value = local.value;
+        if (local.value !== undefined)
+          apiValue.value = resolveCalendarValue(local.value);
         if (local.include_blank) {
           apiValue.include_blank = true;
         } else if (server?.include_blank) {
@@ -627,7 +633,8 @@ export function useDashboardFilters(
       }
 
       const lockValue: Record<string, unknown> = { operator: target.operator };
-      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.value !== undefined)
+        lockValue.value = resolveCalendarValue(target.value);
       if (target.include_blank) lockValue.include_blank = true;
 
       setIsApplying(true);
@@ -684,7 +691,8 @@ export function useDashboardFilters(
       //    isolating the target prevents accidentally locking other
       //    pending edits.
       const lockValue: Record<string, unknown> = { operator: target.operator };
-      if (target.value !== undefined) lockValue.value = target.value;
+      if (target.value !== undefined)
+        lockValue.value = resolveCalendarValue(target.value);
       if (target.include_blank) lockValue.include_blank = true;
       calls.push({
         payload: {
