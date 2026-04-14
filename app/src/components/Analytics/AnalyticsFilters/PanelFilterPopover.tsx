@@ -170,7 +170,7 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                 <XIcon size={12} />
               </button>
             </div>
-            <div className="p-3 flex flex-col gap-2 max-h-[320px] overflow-auto">
+            <div className="p-2 flex flex-col gap-1 max-h-[320px] overflow-auto">
               {applicable.length === 0 && (
                 <div className="py-4 text-center text-xs text-gray-500">
                   No dashboard filters apply to this widget.
@@ -197,78 +197,76 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                 return (
                   <div
                     key={def.id}
-                    className="flex items-center justify-between gap-2"
+                    className="flex items-center justify-between gap-3 px-2.5 py-1.5 rounded-lg bg-gray-50/40"
                   >
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-gray-700 leading-none mb-1">
-                        {def.label}
-                        {isWidgetScoped && (
-                          <span className="ml-1.5 text-[10px] text-gray-500">
-                            [Widget]
-                          </span>
-                        )}
-                      </div>
-                      {isDashLockedOnly ? (
-                        // Dashboard-level lock with no panel lock — fully
-                        // read-only in the widget popover. Owner manages the
-                        // dashboard lock from the main filter bar, not here.
-                        <div className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
-                          <LockSimpleIcon
-                            size={11}
-                            className="text-gray-500 shrink-0"
-                          />
-                          {renderFilterValue(eff, def)}
-                        </div>
-                      ) : (
-                        <SplitFilterDropdown
-                          field={field}
-                          value={barValue}
-                          onChange={(v) => handleBarChange(def, v)}
-                          locked={isPanelLocked}
-                          onToggleLock={undefined}
-                          canLock={
-                            canLockPanelFilter
-                              ? canLockPanelFilter(panelId, def.id)
-                              : false
-                          }
-                          onApply={
-                            onApplyPanelFilter
-                              ? () => onApplyPanelFilter(panelId, def.id)
-                              : undefined
-                          }
-                          canApply={
-                            canApplyPanelFilter
-                              ? canApplyPanelFilter(panelId, def.id)
-                              : true
-                          }
-                          onClear={() => onResetPanelFilter(panelId, def.id)}
-                          isApplying={isApplying}
-                        >
-                          <button
-                            className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs rounded-lg border transition-colors ${
-                              isPanelLocked
-                                ? // Panel-locked chip stays gray for both owner
-                                  // and non-owner (visual signal: "pinned"), but
-                                  // the owner gets pointer + hover so it's clear
-                                  // the chip is still clickable (to open the
-                                  // popover and hit Unlock).
-                                  onTogglePanelLock
-                                  ? "bg-gray-50 text-gray-700 border-gray-100 hover:bg-gray-100 cursor-pointer"
-                                  : "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
-                                : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
-                            }`}
-                          >
-                            {isPanelLocked && (
-                              <LockSimpleIcon
-                                size={11}
-                                className="text-gray-500 shrink-0"
-                              />
-                            )}
-                            {barValue ? renderFilterValue(eff, def) : "All"}
-                          </button>
-                        </SplitFilterDropdown>
+                    <span className="text-[11px] font-medium text-gray-700 whitespace-nowrap shrink-0">
+                      {def.label}
+                      {isWidgetScoped && (
+                        <span className="ml-1 text-[10px] text-gray-400">
+                          [Widget]
+                        </span>
                       )}
-                    </div>
+                    </span>
+                    {isDashLockedOnly ? (
+                      // Dashboard-level lock with no panel lock — fully
+                      // read-only in the widget popover. Owner manages the
+                      // dashboard lock from the main filter bar, not here.
+                      <div className="inline-flex items-center gap-1 h-[26px] px-2 text-xs text-gray-700 bg-gray-50 rounded-lg border border-gray-200/50 whitespace-nowrap cursor-not-allowed">
+                        <LockSimpleIcon
+                          size={11}
+                          className="text-gray-500 shrink-0"
+                        />
+                        {renderFilterValue(eff, def)}
+                      </div>
+                    ) : (
+                      <SplitFilterDropdown
+                        field={field}
+                        value={barValue}
+                        onChange={(v) => handleBarChange(def, v)}
+                        locked={isPanelLocked}
+                        onToggleLock={undefined}
+                        canLock={
+                          canLockPanelFilter
+                            ? canLockPanelFilter(panelId, def.id)
+                            : false
+                        }
+                        onApply={
+                          onApplyPanelFilter
+                            ? () => onApplyPanelFilter(panelId, def.id)
+                            : undefined
+                        }
+                        canApply={
+                          canApplyPanelFilter
+                            ? canApplyPanelFilter(panelId, def.id)
+                            : true
+                        }
+                        onClear={() => onResetPanelFilter(panelId, def.id)}
+                        isApplying={isApplying}
+                      >
+                        <button
+                          className={`inline-flex items-center gap-1 h-[26px] px-2 text-xs rounded-lg border transition-colors ${
+                            isPanelLocked
+                              ? // Panel-locked chip stays gray for both owner
+                                // and non-owner (visual signal: "pinned"), but
+                                // the owner gets pointer + hover so it's clear
+                                // the chip is still clickable (to open the
+                                // popover and hit Unlock).
+                                onTogglePanelLock
+                                ? "bg-gray-50 text-gray-700 border-gray-100 hover:bg-gray-100 cursor-pointer"
+                                : "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
+                              : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
+                          }`}
+                        >
+                          {isPanelLocked && (
+                            <LockSimpleIcon
+                              size={11}
+                              className="text-gray-500 shrink-0"
+                            />
+                          )}
+                          {barValue ? renderFilterValue(eff, def) : "All"}
+                        </button>
+                      </SplitFilterDropdown>
+                    )}
                   </div>
                 );
               })}

@@ -64,7 +64,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   );
   const [copied, setCopied] = useState(false);
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Clean up copy timer on unmount
   useEffect(() => () => clearTimeout(copyTimerRef.current), []);
@@ -222,9 +222,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                     </div>
                     <div
                       className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        !selectedShared
-                          ? "border-gray-700"
-                          : "border-gray-300"
+                        !selectedShared ? "border-gray-700" : "border-gray-300"
                       }`}
                     >
                       {!selectedShared && (
@@ -265,9 +263,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                     </div>
                     <div
                       className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                        selectedShared
-                          ? "border-gray-700"
-                          : "border-gray-300"
+                        selectedShared ? "border-gray-700" : "border-gray-300"
                       }`}
                     >
                       {selectedShared && (
@@ -286,8 +282,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                           Scope data by ownership
                         </span>
                         <p className="text-xs text-indigo-600 mt-0.5">
-                          Viewers can only see data based on the selected
-                          scope.
+                          Viewers can only see data based on the selected scope.
                         </p>
                       </div>
                       {/* Toggle switch */}
@@ -372,10 +367,7 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                         Copied!
                       </span>
                     ) : (
-                      <CopyIcon
-                        size={13}
-                        className="text-gray-400 shrink-0"
-                      />
+                      <CopyIcon size={13} className="text-gray-400 shrink-0" />
                     )}
                   </button>
                 )}

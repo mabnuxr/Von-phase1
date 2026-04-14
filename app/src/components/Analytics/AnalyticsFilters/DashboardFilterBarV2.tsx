@@ -103,8 +103,7 @@ function sortDefinitions(
   for (const def of definitions) {
     const hasBoundary = !!def.boundary;
     const isMandatory =
-      (def.type === "date" && hasBoundary) ||
-      def.semantic_type === "ownership";
+      (def.type === "date" && hasBoundary) || def.semantic_type === "ownership";
     const isApplied = def.id in filterState || promotedIds.has(def.id);
 
     if (isMandatory) {
@@ -144,7 +143,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   onFilterChange,
   onRemoveFilter,
   onClearFilter,
-  onToggleLock,
+  // onToggleLock — kept on the interface for future re-enablement
   canLockFilter,
   onApply,
   onRevertFilter,

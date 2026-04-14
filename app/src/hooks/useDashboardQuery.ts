@@ -79,6 +79,7 @@ interface RawApiDashboardResponse {
   dashboard_version: number;
   is_owner: boolean;
   is_shared_with_tenant: boolean;
+  shared_data_scope?: string | null;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
   queries?: Record<string, RawApiQuery>;
@@ -216,7 +217,7 @@ function adaptApiResponse(
         dashboardVersion: raw.dashboard_version ?? 1,
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
-        sharedDataScope: raw.shared_data_scope ?? null,
+        sharedDataScope: (raw.shared_data_scope ?? null) as Dashboard["sharedDataScope"],
         gridConfig: raw.gridConfig,
         // Prefer panel_layouts when it has entries; fall back to each widget's
         // own layout field when panel_layouts is absent or an empty object (the
