@@ -432,11 +432,11 @@ export function toFilterBarValue(
     barValue = v.map((x) => {
       const s = String(x);
       if (isCalendarSerialised(s)) return s;
-      return def.dynamic ? tokenLabel(s) : s;
+      return def.dynamic ? (tokenLabel(s) ?? s) : s;
     });
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) barValue = v;
-    else barValue = def.dynamic ? tokenLabel(v) : v;
+    else barValue = def.dynamic ? (tokenLabel(v) ?? v) : v;
   } else {
     barValue = String(v);
   }
