@@ -349,47 +349,35 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }, []);
 
-  // Deferred auto-open: waits for the promoted pill to appear in the
-  // DOM (visibleFields), then scrolls to end, then opens the popover.
+  // Deferred auto-open: waits for the promoted pill to render,
+  // scrolls to end, then opens the popover after scroll settles.
   const [deferredOpenId, setDeferredOpenId] = useState<string | undefined>();
-  const pendingAutoOpen = useRef<string | undefined>();
+  const lastAutoOpenRef = useRef<string | undefined>();
 
-  // Store the pending field id when autoOpenFieldId is set
   useEffect(() => {
-    if (autoOpenFieldId) {
-      pendingAutoOpen.current = autoOpenFieldId;
-    }
-  }, [autoOpenFieldId]);
+    if (!autoOpenFieldId || autoOpenFieldId === lastAutoOpenRef.current) return;
+    lastAutoOpenRef.current = autoOpenFieldId;
 
-  // When visibleFields changes and we have a pending auto-open,
-  // check if the field is now rendered — then scroll + open.
-  useEffect(() => {
-    const fieldId = pendingAutoOpen.current;
-    if (!fieldId) return;
-    if (!visibleFields.some((f) => f.id === fieldId)) return;
-
-    // Field is now in the DOM — clear the pending flag
-    pendingAutoOpen.current = undefined;
-
-    // Step 1: scroll to end so the new chip is fully visible
+    // Step 1: wait for measurement + re-render cycle to complete
+    // (measureOverflow → setVisibleSet → re-render with new pill)
     const scrollTimer = setTimeout(() => {
       scrollRef.current?.scrollTo({
         left: scrollRef.current?.scrollWidth ?? 0,
         behavior: 'smooth',
       });
-    }, 16); // one frame for layout
+    }, 150);
 
-    // Step 2: after scroll settles, trigger the popover open
+    // Step 2: after scroll animation settles, open the popover
     const openTimer = setTimeout(() => {
-      setDeferredOpenId(fieldId);
+      setDeferredOpenId(autoOpenFieldId);
       requestAnimationFrame(() => setDeferredOpenId(undefined));
-    }, 400);
+    }, 550);
 
     return () => {
       clearTimeout(scrollTimer);
       clearTimeout(openTimer);
     };
-  }, [visibleFields]);
+  }, [autoOpenFieldId]);
 
   // ── Shared render helpers ───────────────────────────────────────
 

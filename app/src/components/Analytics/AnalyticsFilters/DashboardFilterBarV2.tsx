@@ -22,7 +22,7 @@
  * filter's popover. Non-owners see a locked chip with a lock icon
  * and can't edit.
  */
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { ScrollableFilterBar } from "@vonlabs/design-components";
 import type { FilterBarValue } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
@@ -218,13 +218,6 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
     });
     setAutoOpenFieldId(fieldId);
   }, []);
-
-  // Clear auto-open after React has rendered with the promoted field visible
-  useEffect(() => {
-    if (!autoOpenFieldId) return;
-    const id = requestAnimationFrame(() => setAutoOpenFieldId(undefined));
-    return () => cancelAnimationFrame(id);
-  }, [autoOpenFieldId]);
 
   return (
     <ScrollableFilterBar
