@@ -349,17 +349,47 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }, []);
 
-  // Auto-scroll to the end when a filter is promoted from overflow so
-  // the newly added chip is visible alongside its opening popover.
+  // Deferred auto-open: waits for the promoted pill to appear in the
+  // DOM (visibleFields), then scrolls to end, then opens the popover.
+  const [deferredOpenId, setDeferredOpenId] = useState<string | undefined>();
+  const pendingAutoOpen = useRef<string | undefined>();
+
+  // Store the pending field id when autoOpenFieldId is set
   useEffect(() => {
-    if (!autoOpenFieldId || !scrollRef.current) return;
-    requestAnimationFrame(() => {
+    if (autoOpenFieldId) {
+      pendingAutoOpen.current = autoOpenFieldId;
+    }
+  }, [autoOpenFieldId]);
+
+  // When visibleFields changes and we have a pending auto-open,
+  // check if the field is now rendered — then scroll + open.
+  useEffect(() => {
+    const fieldId = pendingAutoOpen.current;
+    if (!fieldId) return;
+    if (!visibleFields.some((f) => f.id === fieldId)) return;
+
+    // Field is now in the DOM — clear the pending flag
+    pendingAutoOpen.current = undefined;
+
+    // Step 1: scroll to end so the new chip is fully visible
+    const scrollTimer = setTimeout(() => {
       scrollRef.current?.scrollTo({
-        left: scrollRef.current.scrollWidth,
+        left: scrollRef.current?.scrollWidth ?? 0,
         behavior: 'smooth',
       });
-    });
-  }, [autoOpenFieldId]);
+    }, 16); // one frame for layout
+
+    // Step 2: after scroll settles, trigger the popover open
+    const openTimer = setTimeout(() => {
+      setDeferredOpenId(fieldId);
+      requestAnimationFrame(() => setDeferredOpenId(undefined));
+    }, 400);
+
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(openTimer);
+    };
+  }, [visibleFields]);
 
   // ── Shared render helpers ───────────────────────────────────────
 
@@ -529,7 +559,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {visibleFields.map((field) => renderPill(field, field.id === autoOpenFieldId))}
+            {visibleFields.map((field) => renderPill(field, field.id === deferredOpenId))}
           </div>
 
           {/* Right caret — h-[28px] matches chip height for perfect alignment */}
