@@ -179,6 +179,9 @@ export interface SplitFilterDropdownProps {
    * popover still closes after Clear.
    */
   onClear?: () => void;
+  /** When true, the popover opens on mount (one-shot). Used by the
+   *  overflow "+" button to auto-open a newly promoted filter. */
+  defaultOpen?: boolean;
 }
 
 // ============================================================================
@@ -197,6 +200,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   isApplying = false,
   canApply = true,
   onClear,
+  defaultOpen = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -347,6 +351,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setIsOpen(true);
     }
   }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar]);
+
+  // Auto-open after mount when defaultOpen is true. Deferred to a
+  // requestAnimationFrame so the trigger element has its final layout
+  // position — opening immediately would compute the wrong rect.
+  useEffect(() => {
+    if (!defaultOpen) return;
+    const id = requestAnimationFrame(() => {
+      computePosition();
+      initDynamicInputs();
+      initCalendar();
+      setIsOpen(true);
+    });
+    return () => cancelAnimationFrame(id);
+    // Only run on mount — defaultOpen is a one-shot prop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Clear per-operator value memory on every close so each session starts
   // fresh (the user's expectation: memory persists while the popover is
