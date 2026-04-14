@@ -259,17 +259,14 @@ function ExistingChatInner(
     return connected;
   }, [integrationsData]);
 
-  const handleIntegrate = useCallback(
-    (integrationType: string) => {
-      const frontendId = getFrontendIntegrationId(integrationType);
-      const params = new URLSearchParams({
-        tab: "integrations",
-        configure: frontendId,
-      });
-      window.open(`/settings?${params.toString()}`, "_blank");
-    },
-    [],
-  );
+  const handleIntegrate = useCallback((integrationType: string) => {
+    const frontendId = getFrontendIntegrationId(integrationType);
+    const params = new URLSearchParams({
+      tab: "integrations",
+      configure: frontendId,
+    });
+    window.open(`/settings?${params.toString()}`, "_blank");
+  }, []);
   const handleGetIntegrationMetadata = useCallback(
     (integrationType: string) => {
       const frontendId = getFrontendIntegrationId(integrationType);
