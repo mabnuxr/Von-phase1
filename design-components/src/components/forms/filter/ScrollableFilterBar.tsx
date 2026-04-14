@@ -46,6 +46,12 @@ export interface CustomOperatorDef {
   label: string;
   /** Operators that don't need a value input (hides the right panel) */
   noValue?: boolean;
+  /** Operator directly opens a calendar panel (no option picklist) */
+  calendarMode?: 'single' | 'range';
+  /** Operator takes an inline number value (for parameterized tokens like Last N Days) */
+  numberInput?: { defaultN: number; unit: string };
+  /** Render a titled separator line before this operator in the left panel */
+  separatorBefore?: string;
 }
 
 export interface OptionGroup {
@@ -170,6 +176,11 @@ export interface ScrollableFilterBarProps {
    * Used to auto-open the popover for a filter just promoted from overflow.
    */
   autoOpenFieldId?: string;
+  /**
+   * Called when a filter popover closes without Apply (dismiss). Receives
+   * the field id so the parent can revert unapplied local state.
+   */
+  onDismiss?: (fieldId: string) => void;
 }
 
 // ============================================================================
@@ -187,6 +198,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   pinnedCount,
   onOverflowSelect,
   autoOpenFieldId,
+  onDismiss,
 }) => {
   const useOverflowMode = pinnedCount != null && onOverflowSelect != null;
 
@@ -439,6 +451,18 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     // NoValue operators (is_blank, is_not_blank, custom noValue like My Records)
     if (!fv.value && fv.value !== '') return opLabel;
 
+    // N-parameterized operator: substitute N in label ("Last N Days" + "7" → "Last 7 Days")
+    const opDef = field.customOperators?.find((o) => o.value === fv.operator);
+    if (opDef?.numberInput && fv.value && typeof fv.value === 'string') {
+      return opLabel.replace(/\bN\b/, fv.value);
+    }
+
+    // Calendar-mode operator: show formatted date without operator prefix
+    if (opDef?.calendarMode && fv.value && typeof fv.value === 'string') {
+      const display = formatDynamicValue(fv.value, undefined);
+      if (display) return display;
+    }
+
     // Between range display
     if (fv.operator === 'between' && Array.isArray(fv.value) && fv.value.length === 2) {
       const [min, max] = fv.value;
@@ -506,6 +530,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         isApplying={isApplying}
         canApply={canApply}
         onClear={onClearField ? () => onClearField(field.id) : undefined}
+        onDismiss={onDismiss ? () => onDismiss(field.id) : undefined}
         defaultOpen={isAutoOpen}
       >
         <div

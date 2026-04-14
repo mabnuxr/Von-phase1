@@ -72,6 +72,15 @@ const LABEL_TO_TOKEN: Record<string, string> = Object.fromEntries(
   Object.entries(TOKEN_LABELS).map(([token, label]) => [label, token]),
 );
 
+/** Known dynamic ownership tokens — matched against def.options to detect
+ *  ownership filters that should use the token-as-operator model. */
+const OWNERSHIP_DYNAMIC_TOKENS = new Set([
+  "MY_RECORDS",
+  "MY_TEAMS_RECORDS",
+  "MY_MANAGERS_TEAM",
+  "ALL_RECORDS",
+]);
+
 export const tokenLabel = (value: string): string =>
   TOKEN_LABELS[value] ?? value;
 
@@ -247,6 +256,10 @@ function buildDateOptionGroups(def: DashboardFilterDefinition): OptionGroup[] {
   // Tier 1 — no title, always first
   const tier1Options: string[] = [];
   const tier1Applicability: Record<string, string[]> = {};
+  // Custom Date / Custom Range — always first in the option list.
+  tier1Options.push(CUSTOM_DATE_LABEL, CUSTOM_RANGE_LABEL);
+  tier1Applicability[CUSTOM_DATE_LABEL] = SINGLE_DATE_OPERATORS;
+  tier1Applicability[CUSTOM_RANGE_LABEL] = RANGE_DATE_OPERATORS;
   for (const token of DATE_GROUP_PRESETS.__TIER1__) {
     if (!presets.has(token)) continue;
     const label = tokenLabel(token);
@@ -257,11 +270,6 @@ function buildDateOptionGroups(def: DashboardFilterDefinition): OptionGroup[] {
     // Range tokens stay visible on all date operators — no entry means
     // "always applicable".
   }
-  // Custom Date / Custom Range trigger the calendar panel. Each is only
-  // meaningful for one operator family.
-  tier1Options.push(CUSTOM_DATE_LABEL, CUSTOM_RANGE_LABEL);
-  tier1Applicability[CUSTOM_DATE_LABEL] = SINGLE_DATE_OPERATORS;
-  tier1Applicability[CUSTOM_RANGE_LABEL] = RANGE_DATE_OPERATORS;
   if (tier1Options.length > 0) {
     groups.push({
       options: tier1Options,
@@ -340,21 +348,97 @@ export function mapDefinition(
   const type = mapFieldType(def.type);
   const config: FilterFieldConfig = { id: def.id, label: def.label, type };
 
-  // Picklist options: dynamic filters prefer available_presets over static options.
-  if (type === "picklist") {
-    const rawOptions =
-      def.dynamic && def.available_presets?.length
-        ? def.available_presets
-        : def.options;
-    if (rawOptions?.length) {
-      config.options = rawOptions.map((opt) => tokenLabel(opt));
-    }
-  }
+  // ── Token-as-operator model ──────────────────────────────────────
+  //
+  // Date and ownership dynamic filters promote their dynamic tokens
+  // from *values* into top-level *operators*. The left panel shows two
+  // sections:
+  //   Relative — dynamic tokens as noValue operators (+ Custom Date,
+  //              N-parameterized) with category dividers
+  //   Manual   — structural backend operators (before, after, between,
+  //              etc.) that still take values via the right panel
 
-  // Date filter: use grouped presets (Tier 1 + Tier 2) + calendar panels
-  // for Custom Date / Custom Range. The dropdown auto-renders the calendar
-  // when the matching option is checked.
-  if (type === "date" && def.dynamic) {
+  const isDateDynamic =
+    type === "date" && def.dynamic && !!def.available_presets?.length;
+  const isOwnershipDynamic =
+    def.semantic_type === "ownership" &&
+    def.dynamic &&
+    !!def.options?.some((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o));
+
+  if (isDateDynamic) {
+    const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
+    const presets = def.available_presets ?? [];
+    const dynOpts = def.available_dynamic_options ?? [];
+
+    // ── Relative section ────────────────────────────────────────────
+
+    // Custom Date — always first
+    ops.push({
+      value: "custom_date",
+      label: CUSTOM_DATE_LABEL,
+      calendarMode: "single" as const,
+      separatorBefore: "Relative",
+    });
+
+    // Tier 1 presets (flat, no sub-title)
+    for (const token of DATE_GROUP_PRESETS.__TIER1__) {
+      if (presets.includes(token)) {
+        ops.push({ value: token, label: tokenLabel(token), noValue: true });
+      }
+    }
+
+    // Named-group presets + N-parameterized with category dividers
+    for (const [title, groupPresets] of Object.entries(DATE_GROUP_PRESETS)) {
+      if (title === "__TIER1__") continue;
+      const prefixes = DATE_GROUP_DYNAMIC_PREFIXES[title] ?? [];
+      const groupDynamic = dynOpts.filter((o) => prefixes.includes(o.id));
+      const hasPresets = groupPresets.some((t) => presets.includes(t));
+      if (!hasPresets && groupDynamic.length === 0) continue;
+
+      let first = true;
+      for (const token of groupPresets) {
+        if (!presets.includes(token)) continue;
+        ops.push({
+          value: token,
+          label: tokenLabel(token),
+          noValue: true,
+          ...(first && { separatorBefore: title }),
+        });
+        first = false;
+      }
+      for (const opt of groupDynamic) {
+        ops.push({
+          value: opt.id,
+          label: opt.label,
+          numberInput: { defaultN: opt.default_n, unit: opt.unit },
+          ...(first && { separatorBefore: title }),
+        });
+        first = false;
+      }
+    }
+
+    // ── Manual section ──────────────────────────────────────────────
+    // All valid_operators EXCEPT "equals" (the "Is" operator being
+    // promoted). Between/Not Between get calendarMode: 'range'.
+    let firstManual = true;
+    for (const op of def.valid_operators ?? []) {
+      if (REMOVED_OPS.has(op.value)) continue;
+      const isBetweenFamily =
+        op.value === "between" || op.value === "not_between";
+      ops.push({
+        value: op.value,
+        label: op.label,
+        ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
+        ...(isBetweenFamily && { calendarMode: "range" as const }),
+        ...(firstManual && { separatorBefore: "Manual" }),
+      });
+      firstManual = false;
+    }
+
+    config.customOperators = ops;
+
+    // Keep optionGroups + calendarOptions for manual operators (before,
+    // after, etc.) that still show the token picklist in the right panel.
     const groups = buildDateOptionGroups(def);
     if (groups.length > 0) {
       config.optionGroups = groups;
@@ -362,6 +446,67 @@ export function mapDefinition(
         singleDateLabel: CUSTOM_DATE_LABEL,
         dateRangeLabel: CUSTOM_RANGE_LABEL,
       };
+    }
+  } else if (isOwnershipDynamic) {
+    // Promote dynamic ownership tokens from options to noValue operators.
+    // Keep non-"equals" operators for manual selection with the full
+    // options picklist in the right panel.
+    const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
+    const dynamicTokens = (def.options ?? []).filter((o) =>
+      OWNERSHIP_DYNAMIC_TOKENS.has(o),
+    );
+    for (const token of dynamicTokens) {
+      ops.push({ value: token, label: tokenLabel(token), noValue: true });
+    }
+    // Manual operators (everything except "equals")
+    let firstManual = true;
+    for (const op of def.valid_operators ?? []) {
+      if (REMOVED_OPS.has(op.value)) continue;
+      ops.push({
+        value: op.value,
+        label: op.label,
+        ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
+        ...(firstManual && { separatorBefore: "Manual" }),
+      });
+      firstManual = false;
+    }
+    config.customOperators = ops;
+
+    // Keep options for manual operators' right panels (label-ized)
+    if (def.options?.length) {
+      config.options = def.options.map((opt) => tokenLabel(opt));
+    }
+  } else {
+    // Standard (non-token-as-operator) picklist options
+    if (type === "picklist") {
+      const rawOptions =
+        def.dynamic && def.available_presets?.length
+          ? def.available_presets
+          : def.options;
+      if (rawOptions?.length) {
+        config.options = rawOptions.map((opt) => tokenLabel(opt));
+      }
+    }
+
+    // Standard date filter with option groups (non-dynamic or legacy)
+    if (type === "date" && def.dynamic) {
+      const groups = buildDateOptionGroups(def);
+      if (groups.length > 0) {
+        config.optionGroups = groups;
+        config.calendarOptions = {
+          singleDateLabel: CUSTOM_DATE_LABEL,
+          dateRangeLabel: CUSTOM_RANGE_LABEL,
+        };
+      }
+    }
+
+    // Standard operator set from backend
+    if (def.valid_operators?.length) {
+      config.customOperators = def.valid_operators.map((op) => ({
+        value: op.value,
+        label: op.label,
+        ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
+      }));
     }
   }
 
@@ -373,19 +518,6 @@ export function mapDefinition(
     if (resolved) tooltipParts.push(`Resolves to: ${resolved}`);
   }
   if (tooltipParts.length > 0) config.tooltip = tooltipParts.join(" · ");
-
-  // Operator set — backend is the source of truth. Semantic restrictions
-  // (e.g. ownership → equals/not_equals/in/not_in only) are server-side.
-  if (def.valid_operators?.length) {
-    // Backend sends `{value, label}` only — infer the `noValue` flag for
-    // the operators that don't take a value (is_blank / is_not_blank) so
-    // the dropdown can hide the right panel.
-    config.customOperators = def.valid_operators.map((op) => ({
-      value: op.value,
-      label: op.label,
-      ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
-    }));
-  }
 
   // Boundary on the calendar: derive min/max ISO dates from the extraction
   // boundary. Covers `on_or_after` (min) and `on_or_before` (max) — the
@@ -412,6 +544,37 @@ export function mapDefinition(
   return config;
 }
 
+// ── Token-as-operator helpers ──────────────────────────────────────
+//
+// In the token-as-operator model, backend state like
+// `{ operator: "equals", value: "THIS_QUARTER" }` becomes
+// `{ operator: "THIS_QUARTER" }` in the UI. The translation functions
+// below handle both the new model (date/ownership dynamic filters) and
+// the legacy model (everything else) transparently.
+
+/** Backend operators whose token values get promoted to UI operators.
+ *  "equals" is the removed "Is" operator. "between"/"not_between" with
+ *  token values also get promoted since those operators now only accept
+ *  calendar dates in the UI. */
+const PROMOTE_TOKEN_OPS = new Set(["equals", "between", "not_between"]);
+
+/** Default backend operator for demoted tokens (backend resolves range/point appropriately). */
+const DEFAULT_BACKEND_OP = "equals";
+
+/** Backend operators removed from the UI (their tokens are promoted to operators). */
+const REMOVED_OPS = new Set([DEFAULT_BACKEND_OP]);
+
+function isTokenAsOperatorFilter(def: DashboardFilterDefinition): boolean {
+  const type = mapFieldType(def.type);
+  const isOwnership =
+    def.semantic_type === "ownership" &&
+    !!def.dynamic &&
+    !!def.options?.some((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o));
+  const isDate =
+    type === "date" && !!def.dynamic && !!def.available_presets?.length;
+  return isOwnership || isDate;
+}
+
 // ── State <-> bar value translation ─────────────────────────────────
 
 export function toFilterBarValue(
@@ -419,13 +582,106 @@ export function toFilterBarValue(
   def: DashboardFilterDefinition,
 ): FilterBarValue {
   const v = filter.value;
+  const op = filter.operator;
+
+  // ── Token-as-operator promotion ──────────────────────────────────
+  // Only promote when:
+  //  1. This is a token-as-operator filter (date dynamic / ownership)
+  //  2. The backend operator is one whose tokens we promote (equals,
+  //     between, not_between). Other operators (before, after, etc.)
+  //     keep their values via the legacy path.
+  if (isTokenAsOperatorFilter(def) && PROMOTE_TOKEN_OPS.has(op)) {
+    // Between/not_between with a 2-element date array → custom_range:
+    if (
+      (op === "between" || op === "not_between") &&
+      Array.isArray(v) &&
+      v.length === 2
+    ) {
+      const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+      const [a, b] = v;
+      if (
+        typeof a === "string" &&
+        typeof b === "string" &&
+        ISO_DATE.test(a) &&
+        ISO_DATE.test(b)
+      ) {
+        return {
+          operator: op,
+          value: `custom_range:${a}_${b}`,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+    }
+
+    if (typeof v === "string") {
+      // Between/not_between with a calendar value → keep operator + value
+      if (
+        (op === "between" || op === "not_between") &&
+        isCalendarSerialised(v)
+      ) {
+        return {
+          operator: op,
+          value: v,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+      // N-parameterized: "LAST_N_DAYS:7" → operator: LAST_N_DAYS, value: "7"
+      const nMatch = v.match(DYNAMIC_N_RE);
+      if (nMatch) {
+        return {
+          operator: nMatch[1],
+          value: nMatch[2],
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+      // Calendar-serialised custom_date → operator: "custom_date"
+      if (v.startsWith("custom_date:")) {
+        return {
+          operator: "custom_date",
+          value: v,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+      // Bare ISO date → wrap as custom_date
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        return {
+          operator: "custom_date",
+          value: `custom_date:${v}`,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+      // Known preset token → promote to operator (no value)
+      if (TOKEN_LABELS[v] || def.available_presets?.includes(v)) {
+        return {
+          operator: v,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+      // Ownership token in options → promote
+      if (OWNERSHIP_DYNAMIC_TOKENS.has(v)) {
+        return {
+          operator: v,
+          ...(filter.include_blank && { includeBlank: true }),
+        };
+      }
+    }
+
+    // No value → keep operator as-is (between with empty value, etc.)
+    if (v === undefined || v === null) {
+      return {
+        operator: op,
+        ...(filter.include_blank && { includeBlank: true }),
+      };
+    }
+  }
+
+  // ── Legacy path: standard operator + value ───────────────────────
+  // Used for non-token-as-operator filters AND for manual operators
+  // (before, after, on_or_before, etc.) on token-as-operator filters.
   let barValue: string | string[] | undefined;
   if (v === undefined || v === null) {
     barValue = undefined;
   } else if (Array.isArray(v)) {
-    // Date filter with a 2-element date array from the server (between
-    // operator) → reconstruct the custom_range: token so the chip renders
-    // a formatted date range and the calendar initializer can pre-fill.
     const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
     if (
       def.type === "date" &&
@@ -445,8 +701,6 @@ export function toFilterBarValue(
     }
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) barValue = v;
-    // Bare ISO date from the server → wrap as custom_date: so the chip
-    // renders a formatted date and the calendar can pre-fill.
     else if (def.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(v))
       barValue = `custom_date:${v}`;
     else barValue = def.dynamic ? tokenLabel(v) : v;
@@ -454,7 +708,7 @@ export function toFilterBarValue(
     barValue = String(v);
   }
   return {
-    operator: filter.operator,
+    operator: op,
     ...(barValue !== undefined && { value: barValue }),
     ...(filter.include_blank && { includeBlank: true }),
   };
@@ -464,7 +718,47 @@ export function fromFilterBarValue(
   barValue: FilterBarValue,
   def: DashboardFilterDefinition,
 ): { operator: string; value?: unknown; includeBlank?: boolean } {
+  const op = barValue.operator;
   const v = barValue.value;
+
+  // ── Token-as-operator demotion ───────────────────────────────────
+  // Only demote when the UI operator is NOT a real backend operator.
+  // Real backend operators (before, after, between, in, etc.) pass
+  // through with value de-label-ization via the legacy path.
+  if (isTokenAsOperatorFilter(def)) {
+    const backendOps = new Set((def.valid_operators ?? []).map((o) => o.value));
+
+    // Real backend operators → legacy value handling
+    if (backendOps.has(op)) {
+      // fall through to legacy path below
+    }
+    // "custom_date" UI-only operator → backend "equals" + calendar value
+    else if (op === "custom_date") {
+      return {
+        operator: DEFAULT_BACKEND_OP,
+        ...(v !== undefined && { value: v }),
+        ...(barValue.includeBlank && { includeBlank: true }),
+      };
+    }
+    // N-parameterized operator (value is a number string) → "equals" + "TOKEN:N"
+    else if (typeof v === "string" && /^\d+$/.test(v)) {
+      return {
+        operator: DEFAULT_BACKEND_OP,
+        value: `${op}:${v}`,
+        ...(barValue.includeBlank && { includeBlank: true }),
+      };
+    }
+    // Preset token / ownership token as operator (noValue) → "equals" + TOKEN
+    else {
+      return {
+        operator: DEFAULT_BACKEND_OP,
+        value: op,
+        ...(barValue.includeBlank && { includeBlank: true }),
+      };
+    }
+  }
+
+  // ── Legacy path ──────────────────────────────────────────────────
   let rawValue: unknown;
   if (v === undefined) {
     rawValue = undefined;
@@ -479,7 +773,7 @@ export function fromFilterBarValue(
     rawValue = v;
   }
   return {
-    operator: barValue.operator,
+    operator: op,
     ...(rawValue !== undefined && { value: rawValue }),
     ...(barValue.includeBlank && { includeBlank: true }),
   };
@@ -535,6 +829,34 @@ export function renderFilterValue(
     return opLabel;
   }
   if (v === undefined || v === null || v === "") return fallback;
+
+  // Token-as-operator filters: show the token label directly (no operator prefix)
+  // when the backend operator is a promoted one (equals, between, not_between).
+  // Manual operators (before, after, etc.) use standard "operator: value" rendering.
+  if (
+    isTokenAsOperatorFilter(def) &&
+    PROMOTE_TOKEN_OPS.has(filter.operator) &&
+    typeof v === "string"
+  ) {
+    // N-parameterized: "LAST_N_DAYS:7" → "Last 7 Days"
+    const dynLabel = formatDynamicNValue(v, def);
+    if (dynLabel) return dynLabel;
+    // Calendar value: "custom_date:..." → "Jan 1, 2024"
+    const calLabel = formatCalendarSerialised(v);
+    if (calLabel) return calLabel;
+    // Known preset: "THIS_QUARTER" → "This Quarter"
+    if (TOKEN_LABELS[v]) return tokenLabel(v);
+    // Bare ISO date
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      const d = new Date(v + "T00:00:00");
+      return d.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  }
+
   const formatOne = (x: unknown): string => {
     const s = String(x);
     return (
@@ -543,9 +865,11 @@ export function renderFilterValue(
       (def.dynamic ? tokenLabel(s) : s)
     );
   };
-  // Value present — render as "operator: value" so the widget chip shows
-  // the same shape as the dashboard filter bar ("Is: Next 7 days",
-  // "One of: A, B, +3", "Between: 2025-01-01 – 2025-12-31", …).
+  // For token-as-operator between/not_between with date array, show formatted range
+  if (isTokenAsOperatorFilter(def) && Array.isArray(v) && v.length === 2) {
+    const labeled = v.map(formatOne);
+    return `${opLabel}: ${labeled.join(" – ")}`;
+  }
   if (Array.isArray(v)) {
     if (v.length === 0) return fallback;
     const labeled = v.map(formatOne);
