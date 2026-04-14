@@ -85,9 +85,11 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
           // the filter is server-locked. Owners can unlock via the popover
           // button; viewers see a read-only chip.
           locked: !!def.is_locked,
-          // Only the owner gets the in-popover lock toggle.
+          // Only the owner gets the in-popover lock toggle, and only
+          // on ownership-semantic filters (UI restriction — backend
+          // still supports locking any filter).
           onToggleLock:
-            isOwner && onToggleLock
+            isOwner && onToggleLock && def.semantic_type === 'ownership'
               ? () => onToggleLock(def.id, !def.is_locked)
               : undefined,
           // Disable the Lock button when the filter has no complete value yet

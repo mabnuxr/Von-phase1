@@ -728,10 +728,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </DashboardLayout.Header>
 
       <DashboardLayout.Canvas
-        className={`relative ${
-          isEditMode
-            ? "bg-gray-50 transition-colors duration-200"
-            : "transition-colors duration-200"
+        className={`relative transition-colors duration-200 ${
+          isEditMode ? "bg-gray-100" : "bg-gray-50"
         }`}
       >
         {/* Save toast — absolute top-center, no layout impact */}
