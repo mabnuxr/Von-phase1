@@ -1413,7 +1413,18 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   // disabled whenever a selected dynamic option has an
                   // empty / invalid `N` draft — the user is mid-edit and
                   // committing would send a stale value.
-                  const applyDisabled = locked || isApplying || !canApply || hasInvalidDynamicInput;
+                  // Also disable when a calendar label placeholder is selected
+                  // but the user hasn't picked actual dates yet (the value is
+                  // the raw label string, not a custom_date:/custom_range: token).
+                  const hasUnresolvedCalendar = calCfg
+                    ? currentValues.some(
+                        (v) =>
+                          (v === calCfg.singleDateLabel && !v.startsWith('custom_date:')) ||
+                          (v === calCfg.dateRangeLabel && !v.startsWith('custom_range:')),
+                      )
+                    : false;
+                  const applyDisabled =
+                    locked || isApplying || !canApply || hasInvalidDynamicInput || hasUnresolvedCalendar;
                   return (
                     <button
                       onClick={() => {
