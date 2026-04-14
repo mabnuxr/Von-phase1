@@ -232,9 +232,9 @@ export function useV2EventProcessor(
         if (options?.dashboards !== undefined) {
           setDashboards(options.dashboards);
           if (options.triggerAutoOpen && options.dashboards.length > 0) {
-            const last = options.dashboards[options.dashboards.length - 1];
+            const first = options.dashboards[0];
             setLiveDashboardKey(
-              `${last.dashboard_id}:${last.dashboard_version}`,
+              `${first.dashboard_id}:${first.dashboard_version}`,
             );
           }
         }
@@ -533,15 +533,19 @@ export function useV2EventProcessor(
             const payload =
               (wrapper.event as DashboardReadyEvent).dashboard ?? undefined;
             if (payload) {
+              let isFirstDashboard = false;
               flushSync(() => {
                 setDashboards((prev) => {
                   const key = `${payload.dashboard_id}:${payload.dashboard_version}`;
                   if (prev.some((d) => `${d.dashboard_id}:${d.dashboard_version}` === key)) return prev;
+                  isFirstDashboard = prev.length === 0;
                   return [...prev, payload];
                 });
-                setLiveDashboardKey(
-                  `${payload.dashboard_id}:${payload.dashboard_version}`,
-                );
+                if (isFirstDashboard) {
+                  setLiveDashboardKey(
+                    `${payload.dashboard_id}:${payload.dashboard_version}`,
+                  );
+                }
               });
             }
           }
@@ -648,14 +652,18 @@ export function useV2EventProcessor(
                 dashboardReadyPayload,
               );
             }
+            let isFirstDashboard = false;
             setDashboards((prev) => {
               const key = `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`;
               if (prev.some((d) => `${d.dashboard_id}:${d.dashboard_version}` === key)) return prev;
+              isFirstDashboard = prev.length === 0;
               return [...prev, dashboardReadyPayload];
             });
-            setLiveDashboardKey(
-              `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`,
-            );
+            if (isFirstDashboard) {
+              setLiveDashboardKey(
+                `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`,
+              );
+            }
           }
           // Update executionId when RUN_FINISHED arrives with workflow execution approval
           if (runFinishedExecutionId !== undefined) {
