@@ -102,6 +102,10 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
     [definitions, panelId],
   );
 
+  const appliedCount = applicable.filter(
+    (def) => def.id in effectiveState,
+  ).length;
+
   // Hide the icon only when the dashboard has no filters at all. If filters
   // exist but none of them is wired to this panel via `applies_to`, still
   // render the icon — the popover will surface an empty state so the user
@@ -128,10 +132,15 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
           e.stopPropagation();
           toggleVisibility();
         }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity relative flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
         title="Widget filters"
       >
         <FunnelIcon size={14} />
+        {appliedCount > 0 && (
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gray-100 text-[9px] font-semibold leading-none text-gray-500">
+            {appliedCount}
+          </span>
+        )}
       </button>
       {open &&
         createPortal(
