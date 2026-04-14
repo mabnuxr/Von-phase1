@@ -98,7 +98,10 @@ interface AnalyticsViewProps {
   isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
-  onShare: (isSharedWithTenant: boolean, sharedDataScope?: string | null) => void;
+  onShare: (
+    isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
+  ) => void;
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
   onExpand?: () => void;

@@ -48,7 +48,12 @@ export interface Dashboard {
   dashboardVersion: number;
   isOwner: boolean;
   isSharedWithTenant: boolean;
-  sharedDataScope?: "MY_RECORDS" | "MY_TEAMS_RECORDS" | "MY_MANAGERS_TEAM" | "ALL_RECORDS" | null;
+  sharedDataScope?:
+    | "MY_RECORDS"
+    | "MY_TEAMS_RECORDS"
+    | "MY_MANAGERS_TEAM"
+    | "ALL_RECORDS"
+    | null;
   gridConfig: GridConfig;
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;
