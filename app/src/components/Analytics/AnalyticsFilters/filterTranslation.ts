@@ -477,6 +477,12 @@ export function mapDefinition(
       firstManual = false;
     }
     config.customOperators = ops;
+    // Default to the first manual operator (e.g. "One of") when no filter
+    // is applied, rather than the first token operator.
+    const firstManualOp = (def.valid_operators ?? []).find(
+      (op) => !REMOVED_OPS.has(op.value),
+    );
+    if (firstManualOp) config.defaultOperator = firstManualOp.value;
 
     // Keep options for manual operators' right panels (label-ized)
     if (def.options?.length) {
