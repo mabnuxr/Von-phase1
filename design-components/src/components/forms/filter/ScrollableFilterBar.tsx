@@ -52,6 +52,8 @@ export interface CustomOperatorDef {
   numberInput?: { defaultN: number; unit: string };
   /** Render a titled separator line before this operator in the left panel */
   separatorBefore?: string;
+  /** Show operator greyed out and non-selectable */
+  disabled?: boolean;
 }
 
 export interface OptionGroup {

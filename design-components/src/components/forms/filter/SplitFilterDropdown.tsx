@@ -40,6 +40,8 @@ interface OperatorDef {
   numberInput?: { defaultN: number; unit: string };
   /** Render a titled separator line before this operator in the left panel */
   separatorBefore?: string;
+  /** Show operator greyed out and non-selectable (e.g. out-of-scope ownership tokens) */
+  disabled?: boolean;
 }
 
 const DEFAULT_OPERATORS: OperatorDef[] = [
@@ -867,29 +869,34 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           </div>
                         )}
                         <button
-                          onClick={() => handleOperatorChange(op.value)}
+                          onClick={op.disabled ? undefined : () => handleOperatorChange(op.value)}
+                          disabled={op.disabled}
                           className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border text-left transition-colors ${
-                            locked
-                              ? currentOperator === op.value
-                                ? 'bg-gray-100 border-gray-100 text-gray-700 font-medium cursor-default'
-                                : 'border-transparent text-gray-700 cursor-default'
-                              : currentOperator === op.value
-                                ? 'bg-gray-50 border-gray-100 text-gray-900 font-medium cursor-pointer'
-                                : 'border-transparent text-gray-800 hover:bg-gray-50 cursor-pointer'
+                            op.disabled
+                              ? 'border-transparent text-gray-300 cursor-not-allowed'
+                              : locked
+                                ? currentOperator === op.value
+                                  ? 'bg-gray-100 border-gray-100 text-gray-700 font-medium cursor-default'
+                                  : 'border-transparent text-gray-700 cursor-default'
+                                : currentOperator === op.value
+                                  ? 'bg-gray-50 border-gray-100 text-gray-900 font-medium cursor-pointer'
+                                  : 'border-transparent text-gray-800 hover:bg-gray-50 cursor-pointer'
                           }`}
                         >
                           <div
                             className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 ${
-                              currentOperator === op.value
-                                ? locked
-                                  ? 'bg-gray-400'
-                                  : 'bg-gray-900'
-                                : locked
-                                  ? 'border-[1.5px] border-gray-300'
-                                  : 'border-[1.5px] border-gray-300'
+                              op.disabled
+                                ? 'border-[1.5px] border-gray-200'
+                                : currentOperator === op.value
+                                  ? locked
+                                    ? 'bg-gray-400'
+                                    : 'bg-gray-900'
+                                  : locked
+                                    ? 'border-[1.5px] border-gray-300'
+                                    : 'border-[1.5px] border-gray-300'
                             }`}
                           >
-                            {currentOperator === op.value && (
+                            {currentOperator === op.value && !op.disabled && (
                               <div className="w-1.5 h-1.5 rounded-full bg-white" />
                             )}
                           </div>
