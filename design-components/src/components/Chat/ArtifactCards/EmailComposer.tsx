@@ -75,7 +75,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   isCreatingDraft = false,
 }) => {
   const totalCount = emails.length;
-  const dedupedEmails = useMemo(() => deduplicateLabels(emails.slice(0, MAX_TABS)), [emails]);
+  const labelsKey = useMemo(() => emails.map((e) => e.tabLabel ?? '').join('\0'), [emails]);
+  const dedupedEmails = useMemo(
+    () => deduplicateLabels(emails.slice(0, MAX_TABS)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelsKey, totalCount]
+  );
 
   const [activeTab, setActiveTab] = useState(0);
   const [showCc, setShowCc] = useState(false);
