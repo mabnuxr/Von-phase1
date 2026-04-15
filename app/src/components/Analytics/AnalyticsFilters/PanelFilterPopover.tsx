@@ -10,7 +10,7 @@
  * Locked dashboard filters (set by owner) render read-only.
  * No lock toggle in v1 (see plan §4.4).
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { FunnelIcon, LockSimpleIcon, XIcon } from "@phosphor-icons/react";
 import {
@@ -60,6 +60,20 @@ interface PanelFilterPopoverProps {
   ) => void;
   onResetPanelFilter: (panelId: string, filterId: string) => void;
   /**
+   * Revert a pending (unapplied) per-panel edit to the last server-
+   * committed state. Wired to the nested SplitFilterDropdown's
+   * `onDismiss` so closing a single filter dropdown without Apply
+   * discards that row's draft.
+   */
+  onRevertPanelFilter?: (panelId: string, filterId: string) => void;
+  /**
+   * Revert ALL pending edits for this panel. Fired when the outer
+   * Widget Filters popover closes via any path (X button, outside
+   * click, Escape) — covers the case where the nested dropdown's own
+   * `onDismiss` never fires because the parent unmounts it first.
+   */
+  onRevertPanel?: (panelId: string) => void;
+  /**
    * Commit just one widget-level filter change to the server. PATCH
    * body contains only the affected filter, scoped to this `panelId`.
    * When omitted, the per-filter Apply button is a no-op close.
@@ -92,6 +106,8 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
   panelFilterState,
   onPanelFilterChange,
   onResetPanelFilter,
+  onRevertPanelFilter,
+  onRevertPanel,
   onApplyPanelFilter,
   canApplyPanelFilter,
   onTogglePanelLock,
@@ -100,6 +116,19 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
 }) => {
   const { open, hide, toggleVisibility, triggerRef, popoverRef, position } =
     usePortalPopover({ popoverWidth: POPOVER_WIDTH });
+
+  // Revert all pending panel edits when the outer popover closes via any
+  // path (X button, outside click, Escape, unmount). The nested
+  // SplitFilterDropdown's own `onDismiss` is unreliable here because the
+  // parent often unmounts it before its mousedown-outside handler fires.
+  // Watching `open` transitioning true → false covers every close path.
+  const prevOpenRef = useRef(open);
+  useEffect(() => {
+    if (prevOpenRef.current && !open) {
+      onRevertPanel?.(panelId);
+    }
+    prevOpenRef.current = open;
+  }, [open, onRevertPanel, panelId]);
 
   const applicable = useMemo(
     () =>
@@ -248,6 +277,11 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                             : true
                         }
                         onClear={() => onResetPanelFilter(panelId, def.id)}
+                        onDismiss={
+                          onRevertPanelFilter
+                            ? () => onRevertPanelFilter(panelId, def.id)
+                            : undefined
+                        }
                         isApplying={isApplying}
                       >
                         <button

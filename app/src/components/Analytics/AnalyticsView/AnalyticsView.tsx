@@ -186,6 +186,17 @@ interface AnalyticsViewProps {
   /** Reset a single panel-level filter back to the dashboard value (v2). */
   onResetPanelFilter?: (panelId: string, filterId: string) => void;
   /**
+   * Revert an unapplied panel-level edit back to the last server-
+   * committed state. Wired to the widget popover's dismiss so closing
+   * without Apply discards the draft (v2).
+   */
+  onRevertPanelFilter?: (panelId: string, filterId: string) => void;
+  /**
+   * Revert ALL pending edits for this panel. Fired when the outer
+   * widget filter popover closes via any path (v2).
+   */
+  onRevertPanel?: (panelId: string) => void;
+  /**
    * Commit a single panel-level filter change to the server (v2).
    * Sends only the affected filter in the PATCH payload, scoped to
    * the given `panel_id`, so `panel_state` gets populated without
@@ -275,6 +286,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   getEffectivePanelState,
   onPanelFilterChange,
   onResetPanelFilter,
+  onRevertPanelFilter,
+  onRevertPanel,
   onApplyPanelFilter,
   canApplyPanelFilter,
   onTogglePanelLock,
@@ -400,6 +413,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         panelFilterState={panelFilterState?.[panelId] ?? {}}
         onPanelFilterChange={onPanelFilterChange}
         onResetPanelFilter={onResetPanelFilter}
+        onRevertPanelFilter={onRevertPanelFilter}
+        onRevertPanel={onRevertPanel}
         onApplyPanelFilter={onApplyPanelFilter}
         canApplyPanelFilter={canApplyPanelFilter}
         onTogglePanelLock={onTogglePanelLock}
@@ -421,6 +436,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     filterIsApplying,
     onPanelFilterChange,
     onResetPanelFilter,
+    onRevertPanelFilter,
+    onRevertPanel,
     widgetQueryRefMap,
   ]);
 

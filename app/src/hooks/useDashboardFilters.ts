@@ -569,6 +569,67 @@ export function useDashboardFilters(
     [dashboardId, isOwner, localPanelState, mutation],
   );
 
+  /** Revert a pending per-panel filter back to the last server-committed
+   *  state. Called when a widget filter popover closes without Apply so
+   *  stale in-memory changes don't leak into the next interaction. Does
+   *  not PATCH the backend (unlike Reset). */
+  const handleRevertPanelFilter = useCallback(
+    (panelId: string, filterId: string) => {
+      setLocalPanelState((prev) => {
+        const localPanel = prev[panelId];
+        const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+        const serverValue = serverPanel[filterId];
+
+        if (serverValue === undefined) {
+          // No server override for this slot — drop any pending local entry.
+          if (!localPanel || !(filterId in localPanel)) return prev;
+          const rest = { ...localPanel };
+          delete rest[filterId];
+          if (Object.keys(rest).length === 0) {
+            const pRest = { ...prev };
+            delete pRest[panelId];
+            return pRest;
+          }
+          return { ...prev, [panelId]: rest };
+        }
+
+        // Server has an override — restore it if the local entry has drifted.
+        if (localPanel?.[filterId] === serverValue) return prev;
+        return {
+          ...prev,
+          [panelId]: { ...(localPanel ?? {}), [filterId]: serverValue },
+        };
+      });
+    },
+    [],
+  );
+
+  /** Revert ALL pending edits for a given panel back to the last server-
+   *  committed snapshot. Called when the widget filter popover closes
+   *  without Apply (via X button, outside click, or Escape), so drafts
+   *  don't leak into the next interaction — a bulk variant of
+   *  `handleRevertPanelFilter` that covers every open filter row. */
+  const handleRevertPanel = useCallback((panelId: string) => {
+    setLocalPanelState((prev) => {
+      const localPanel = prev[panelId];
+      const serverPanel = serverPanelNormalised.current[panelId];
+
+      // No local drafts for this panel — nothing to revert.
+      if (!localPanel) return prev;
+
+      // Server has no overrides for this panel — drop the panel entry.
+      if (!serverPanel || Object.keys(serverPanel).length === 0) {
+        const { [panelId]: _, ...pRest } = prev;
+        return pRest;
+      }
+
+      // Already matches server — no-op.
+      if (JSON.stringify(localPanel) === JSON.stringify(serverPanel)) return prev;
+
+      return { ...prev, [panelId]: { ...serverPanel } };
+    });
+  }, []);
+
   // ── Per-panel-filter Apply (widget popover) ─────────────────
   //
   // Commit ONLY the affected filter for this panel. Populates `panel_state`
@@ -920,6 +981,8 @@ export function useDashboardFilters(
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleRevertPanelFilter,
+    handleRevertPanel,
     handleApplyPanelFilter,
     canApplyPanelFilter,
     handleCommitPanelLock,
