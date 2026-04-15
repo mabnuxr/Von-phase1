@@ -619,12 +619,15 @@ export function useDashboardFilters(
 
       // Server has no overrides for this panel — drop the panel entry.
       if (!serverPanel || Object.keys(serverPanel).length === 0) {
-        const { [panelId]: _, ...pRest } = prev;
+        if (!(panelId in prev)) return prev;
+        const pRest = { ...prev };
+        delete pRest[panelId];
         return pRest;
       }
 
       // Already matches server — no-op.
-      if (JSON.stringify(localPanel) === JSON.stringify(serverPanel)) return prev;
+      if (JSON.stringify(localPanel) === JSON.stringify(serverPanel))
+        return prev;
 
       return { ...prev, [panelId]: { ...serverPanel } };
     });
