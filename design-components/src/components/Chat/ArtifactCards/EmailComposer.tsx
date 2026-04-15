@@ -151,16 +151,17 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       {/* Tabs — only shown when multiple emails */}
       {dedupedEmails.length > 1 && (
         <>
-          <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0">
+          <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0 overflow-x-auto">
             {dedupedEmails.map((email, i) => (
               <button
                 key={i}
                 onClick={() => handleTabChange(i)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer truncate max-w-[160px] flex-shrink-0 ${
                   i === activeTab
                     ? 'bg-gray-900 text-white'
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                 }`}
+                title={email.tabLabel || `Email ${i + 1}`}
               >
                 {truncateLabel(email.tabLabel) || `Email ${i + 1}`}
               </button>
