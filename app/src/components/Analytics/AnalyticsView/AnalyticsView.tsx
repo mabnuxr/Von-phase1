@@ -295,6 +295,28 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const widgetIds = useMemo(() => Object.keys(widgets), [widgets]);
 
+  /**
+   * Stable widget-id → query-id map derived from the canonical (non-paginated)
+   * widget definitions. Filter `applies_to` references query IDs (e.g.
+   * `pipeline_by_owner`), but React Query pagination/sort produces a new
+   * `paginatedWidgets` reference on each refetch. Keying the map off
+   * `dashboard.widgets` keeps it stable across those refetches so the
+   * per-panel filter factory and `widgetAppliedFilters` memo don't thrash.
+   * Falls back to the widget id so KPIs (whose id == query_ref) and legacy
+   * widgets without a queryRef continue to match the same way.
+   */
+  const widgetQueryRefMap = useMemo(() => {
+    const dashboardWidgets = dashboard.widgets as unknown as Record<
+      string,
+      WidgetConfig
+    >;
+    const map: Record<string, string> = {};
+    for (const [id, w] of Object.entries(dashboardWidgets)) {
+      map[id] = w?.queryRef ?? id;
+    }
+    return map;
+  }, [dashboard.widgets]);
+
   const widgetAppliedFilters = useMemo(() => {
     if (!filterDefinitions.length || !filterState) return undefined;
 
@@ -335,9 +357,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     for (const wId of widgetIds) {
       // Filter `applies_to` references the backend query ID (e.g.
       // `pipeline_by_owner`), not the widget ID (e.g. `chart_pipeline_by_owner`).
-      // Fall back to the widget ID so widgets without a queryRef still match
-      // filters that happen to target them by ID (KPIs, legacy dashboards).
-      const queryRef = widgets[wId]?.queryRef ?? wId;
+      const queryRef = widgetQueryRefMap[wId] ?? wId;
       const filtersForWidget: AppliedWidgetFilter[] = [];
       for (const def of enrichedDefs) {
         // No applies_to means the filter applies to all widgets
@@ -355,7 +375,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
 
     return Object.keys(result).length > 0 ? result : undefined;
-  }, [filterDefinitions, filterState, widgetIds, widgets]);
+  }, [filterDefinitions, filterState, widgetIds, widgetQueryRefMap]);
 
   // v2: per-panel filter slot factory. Only mounted when the flag is on and
   // required handlers are provided; otherwise DashboardGrid falls back to the
@@ -372,7 +392,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     return (panelId: string) => (
       <PanelFilterPopover
         panelId={panelId}
-        queryRef={widgets[panelId]?.queryRef ?? panelId}
+        queryRef={widgetQueryRefMap[panelId] ?? panelId}
         definitions={filterDefinitions}
         effectiveState={getEffectivePanelState(panelId)}
         lockedFilterState={lockedFilterState ?? {}}
@@ -401,7 +421,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     filterIsApplying,
     onPanelFilterChange,
     onResetPanelFilter,
-    widgets,
+    widgetQueryRefMap,
   ]);
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({

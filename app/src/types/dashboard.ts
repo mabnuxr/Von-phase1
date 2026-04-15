@@ -363,7 +363,10 @@ export interface DashboardFilterDefinition {
   options?: string[];
   /** Default value applied on first load */
   default?: unknown;
-  /** Widget IDs this filter applies to */
+  /**
+   * Query IDs this filter applies to (e.g. `"pipeline_by_owner"`).
+   * Matched against `widget.queryRef`, not `widget.id`.
+   */
   applies_to?: string[];
   /** Valid operators with display labels for this filter type */
   valid_operators?: { value: string; label: string }[];
