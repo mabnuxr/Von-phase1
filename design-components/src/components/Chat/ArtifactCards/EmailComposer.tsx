@@ -86,7 +86,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
 
   // Clamp activeTab when emails array shrinks
   useEffect(() => {
-    setActiveTab((prev) => (prev >= dedupedEmails.length ? Math.max(0, dedupedEmails.length - 1) : prev));
+    setActiveTab((prev) =>
+      prev >= dedupedEmails.length ? Math.max(0, dedupedEmails.length - 1) : prev
+    );
   }, [dedupedEmails.length]);
 
   const currentEmail = dedupedEmails.length > 0 ? dedupedEmails[activeTab] : null;
