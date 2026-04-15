@@ -254,7 +254,11 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                                 onTogglePanelLock
                                 ? "bg-gray-50 text-gray-700 border-gray-100 hover:bg-gray-100 cursor-pointer"
                                 : "bg-gray-50 text-gray-700 border-gray-100 cursor-default"
-                              : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
+                              : !barValue
+                                ? // Empty state — faint grey bg reinforces
+                                  // "no filter selected"
+                                  "bg-gray-50/50 text-gray-500 border-gray-100 hover:bg-gray-100/60 cursor-pointer"
+                                : "bg-white text-gray-900 shadow-xs border-gray-200/50 hover:bg-gray-50 cursor-pointer"
                           }`}
                         >
                           {isPanelLocked && (
@@ -263,7 +267,9 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
                               className="text-gray-500 shrink-0"
                             />
                           )}
-                          {barValue ? renderFilterValue(eff, def) : "All"}
+                          {barValue
+                            ? renderFilterValue(eff, def)
+                            : "Select a filter"}
                         </button>
                       </SplitFilterDropdown>
                     )}

@@ -57,6 +57,15 @@ interface AnalyticsViewProps {
     string,
     { operator: string; value?: unknown; include_blank?: boolean }
   >;
+  /**
+   * Server-committed snapshot of filter state. Same shape as `filterState`
+   * but stable across pending local edits — used for the filter bar's
+   * stable sort so chips don't re-order mid-interaction.
+   */
+  syncedFilterState: Record<
+    string,
+    { operator: string; value?: unknown; include_blank?: boolean }
+  >;
   /** Pending rows where user hasn't picked a field yet */
   filterPendingRows: { tempId: string }[];
   /** Number of active filters */
@@ -209,6 +218,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   refreshInfo,
   filterDefinitions,
   filterState,
+  syncedFilterState,
   filterPendingRows,
   filterActiveCount,
   filterCanApply,
@@ -609,6 +619,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <DashboardFilterBarV2
                 definitions={filterDefinitions}
                 filterState={filterState}
+                syncedFilterState={syncedFilterState}
                 isApplying={filterIsApplying}
                 canApply={filterCanApply}
                 isOwner={dashboard.isOwner}
@@ -692,6 +703,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <ShareDashboardDialog
                     isSharedWithTenant={dashboard.isSharedWithTenant}
                     sharedDataScope={dashboard.sharedDataScope}
+                    dataScopingAvailable={
+                      dashboard.data_sources?.some(
+                        (s) => s.type === "salesforce",
+                      ) ?? false
+                    }
                     canShare={isSaved}
                     sharePhase={sharePhase}
                     onShare={onShare}

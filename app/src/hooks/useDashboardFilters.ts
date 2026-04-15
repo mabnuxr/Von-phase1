@@ -314,22 +314,37 @@ export function useDashboardFilters(
     Record<string, FilterLocalState>
   >(() => normalisePanelState(serverPanelStateRaw));
 
+  // Mirror of `serverNormalised.current` as state so downstream consumers
+  // (e.g. the filter bar's stable sort) can react to server syncs without
+  // also reacting to the pending local edits that flow through `localState`.
+  const [syncedState, setSyncedState] = useState<FilterLocalState>(() =>
+    normaliseServerState(serverState),
+  );
+
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
-  // Sync from server on refetch. `isApplying` reset lives in the
-  // mutation's `onSettled` so that lock-only commits (which don't
-  // change the user's filter state reference) still clear the pending
-  // state correctly.
+  // Sync from server on refetch. Guarded by a content-equality check:
+  // React Query can emit a new `serverState` reference with identical
+  // content during the Apply round-trip, and stomping `localState`
+  // unconditionally would briefly flash the pre-Apply value on the chip
+  // before the real refetch payload arrives.
+  //
+  // `isApplying` reset lives in the mutation's `onSettled` so that
+  // lock-only commits (which don't change the user's filter state
+  // reference) still clear the pending state correctly.
   useEffect(() => {
     const normalised = normaliseServerState(serverState);
+    if (statesEqual(normalised, serverNormalised.current)) return;
     serverNormalised.current = normalised;
     setLocalState(normalised);
+    setSyncedState(normalised);
     setPendingRows([]);
   }, [serverState]);
 
   useEffect(() => {
     const normalised = normalisePanelState(serverPanelStateRaw);
+    if (panelStatesEqual(normalised, serverPanelNormalised.current)) return;
     serverPanelNormalised.current = normalised;
     setLocalPanelState(normalised);
   }, [serverPanelStateRaw]);
@@ -453,15 +468,11 @@ export function useDashboardFilters(
     [isOwner],
   );
 
-  // Immediate-commit clear — the Clear button in a filter popover fires
-  // this rather than just dropping the filter from local state. Sends a
-  // single-filter PATCH with `null` (backend resets / removes the filter)
-  // so clearing a filter is persisted to the server without waiting for
-  // the user to hit Apply.
-  //
-  // Also clears local state optimistically so the bar chip flips to "All"
-  // immediately rather than flashing the old value during the transition
-  // and briefly after.
+  // Immediate-commit reset — PATCHes `null` so the backend clears the
+  // filter. Optimistically drops the entry from local state so the chip
+  // flips to the empty state immediately; we don't re-apply the
+  // definition's default here because Reset is meant to truly nullify
+  // the filter, not revert to a pre-configured value.
   const handleClearFilter = useCallback(
     (filterId: string) => {
       if (!dashboardId) return;
@@ -885,6 +896,13 @@ export function useDashboardFilters(
   return {
     definitions: safeDefinitions,
     filterState: localState,
+    /**
+     * Server-committed snapshot. Same shape as `filterState` but only
+     * updates on refetch (not on pending local edits). Used for UI
+     * decisions that should stay stable while the user is tinkering
+     * with filters, e.g. the filter bar's sort tiering.
+     */
+    syncedFilterState: syncedState,
     panelFilterState: localPanelState,
     lockedFilterState: serverLockedNormalised,
     lockedPanelFilterState: serverLockedPanelNormalised,

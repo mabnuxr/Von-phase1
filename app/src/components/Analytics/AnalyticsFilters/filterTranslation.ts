@@ -9,6 +9,7 @@ import type {
   FieldType,
   OptionGroup,
 } from "@vonlabs/design-components";
+import { isEmptyFilterValue } from "@vonlabs/design-components";
 import type {
   DashboardFilterDefinition,
   DashboardFilterType,
@@ -71,15 +72,6 @@ export const TOKEN_LABELS: Record<string, string> = {
 const LABEL_TO_TOKEN: Record<string, string> = Object.fromEntries(
   Object.entries(TOKEN_LABELS).map(([token, label]) => [label, token]),
 );
-
-/** Known dynamic ownership tokens — matched against def.options to detect
- *  ownership filters that should use the token-as-operator model. */
-const OWNERSHIP_DYNAMIC_TOKENS = new Set([
-  "MY_RECORDS",
-  "MY_TEAMS_RECORDS",
-  "MY_MANAGERS_TEAM",
-  "ALL_RECORDS",
-]);
 
 export const tokenLabel = (value: string): string =>
   TOKEN_LABELS[value] ?? value;
@@ -350,20 +342,18 @@ export function mapDefinition(
 
   // ── Token-as-operator model ──────────────────────────────────────
   //
-  // Date and ownership dynamic filters promote their dynamic tokens
-  // from *values* into top-level *operators*. The left panel shows two
-  // sections:
+  // Date dynamic filters promote their dynamic tokens from *values*
+  // into top-level *operators*. The left panel shows two sections:
   //   Relative — dynamic tokens as noValue operators (+ Custom Date,
   //              N-parameterized) with category dividers
   //   Manual   — structural backend operators (before, after, between,
   //              etc.) that still take values via the right panel
+  //
+  // Ownership filters fall through to the standard path: operators come
+  // from `valid_operators`, ownership tokens are picklist values.
 
   const isDateDynamic =
     type === "date" && def.dynamic && !!def.available_presets?.length;
-  const isOwnershipDynamic =
-    def.semantic_type === "ownership" &&
-    def.dynamic &&
-    !!def.options?.some((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o));
 
   if (isDateDynamic) {
     const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
@@ -446,47 +436,6 @@ export function mapDefinition(
         singleDateLabel: CUSTOM_DATE_LABEL,
         dateRangeLabel: CUSTOM_RANGE_LABEL,
       };
-    }
-  } else if (isOwnershipDynamic) {
-    // Promote dynamic ownership tokens from options to noValue operators.
-    // Keep non-"equals" operators for manual selection with the full
-    // options picklist in the right panel.
-    const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
-    const enabledTokens = new Set(
-      (def.options ?? []).filter((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o)),
-    );
-    // Always show all ownership tokens; disable those not in the scoped options
-    for (const token of OWNERSHIP_DYNAMIC_TOKENS) {
-      ops.push({
-        value: token,
-        label: tokenLabel(token),
-        noValue: true,
-        ...(!enabledTokens.has(token) && { disabled: true }),
-      });
-    }
-    // Manual operators (everything except "equals")
-    let firstManual = true;
-    for (const op of def.valid_operators ?? []) {
-      if (REMOVED_OPS.has(op.value)) continue;
-      ops.push({
-        value: op.value,
-        label: op.label,
-        ...(NO_VALUE_OPERATORS.has(op.value) && { noValue: true }),
-        ...(firstManual && { separatorBefore: "Manual" }),
-      });
-      firstManual = false;
-    }
-    config.customOperators = ops;
-    // Default to the first manual operator (e.g. "One of") when no filter
-    // is applied, rather than the first token operator.
-    const firstManualOp = (def.valid_operators ?? []).find(
-      (op) => !REMOVED_OPS.has(op.value),
-    );
-    if (firstManualOp) config.defaultOperator = firstManualOp.value;
-
-    // Keep options for manual operators' right panels (label-ized)
-    if (def.options?.length) {
-      config.options = def.options.map((opt) => tokenLabel(opt));
     }
   } else {
     // Standard (non-token-as-operator) picklist options
@@ -578,13 +527,10 @@ const REMOVED_OPS = new Set([DEFAULT_BACKEND_OP]);
 
 function isTokenAsOperatorFilter(def: DashboardFilterDefinition): boolean {
   const type = mapFieldType(def.type);
-  const isOwnership =
-    def.semantic_type === "ownership" &&
-    !!def.dynamic &&
-    !!def.options?.some((o) => OWNERSHIP_DYNAMIC_TOKENS.has(o));
-  const isDate =
-    type === "date" && !!def.dynamic && !!def.available_presets?.length;
-  return isOwnership || isDate;
+  // Only date dynamic filters use the token-as-operator model. Ownership
+  // filters render as a normal picklist (operators from valid_operators,
+  // tokens as values).
+  return type === "date" && !!def.dynamic && !!def.available_presets?.length;
 }
 
 // ── State <-> bar value translation ─────────────────────────────────
@@ -664,13 +610,6 @@ export function toFilterBarValue(
       }
       // Known preset token → promote to operator (no value)
       if (TOKEN_LABELS[v] || def.available_presets?.includes(v)) {
-        return {
-          operator: v,
-          ...(filter.include_blank && { includeBlank: true }),
-        };
-      }
-      // Ownership token in options → promote
-      if (OWNERSHIP_DYNAMIC_TOKENS.has(v)) {
         return {
           operator: v,
           ...(filter.include_blank && { includeBlank: true }),
@@ -760,7 +699,7 @@ export function fromFilterBarValue(
         ...(barValue.includeBlank && { includeBlank: true }),
       };
     }
-    // Preset token / ownership token as operator (noValue) → "equals" + TOKEN
+    // Preset date token as operator (noValue) → "equals" + TOKEN
     else {
       return {
         operator: DEFAULT_BACKEND_OP,
@@ -829,7 +768,7 @@ const NO_VALUE_OPERATORS = new Set(["is_blank", "is_not_blank"]);
 export function renderFilterValue(
   filter: ActiveFilter | undefined,
   def: DashboardFilterDefinition,
-  fallback = "All",
+  fallback = "Select a filter",
 ): string {
   if (!filter) return fallback;
   const v = filter.value;
@@ -840,7 +779,10 @@ export function renderFilterValue(
   if (NO_VALUE_OPERATORS.has(filter.operator)) {
     return opLabel;
   }
-  if (v === undefined || v === null || v === "") return fallback;
+  // Operator picked but value is empty/unset — show the operator label
+  // alone so the chip reflects the in-progress choice (otherwise we'd
+  // fall back to the placeholder and the chip would look uninitialised).
+  if (isEmptyFilterValue(v)) return opLabel;
 
   // Token-as-operator filters: show the token label directly (no operator prefix)
   // when the backend operator is a promoted one (equals, between, not_between).

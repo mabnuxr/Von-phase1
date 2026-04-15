@@ -21,3 +21,4 @@ export type {
 } from './ScrollableFilterBar';
 export { SplitFilterDropdown } from './SplitFilterDropdown';
 export type { SplitFilterDropdownProps } from './SplitFilterDropdown';
+export { isEmptyFilterValue } from './filterValueUtils';
