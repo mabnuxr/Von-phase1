@@ -98,21 +98,6 @@ function normaliseServerState(
   return out;
 }
 
-/**
- * Extract def.default as an ActiveFilter, but only when its operator is
- * allowed by the definition. Used by Reset to flip the chip to the
- * default value immediately instead of flashing empty during the PATCH.
- */
-function getValidDefault(def: DashboardFilterDefinition): ActiveFilter | null {
-  const parsed = normaliseFilter(def.default);
-  if (!parsed) return null;
-  const validOps = def.valid_operators?.map((o) => o.value);
-  if (validOps && validOps.length > 0 && !validOps.includes(parsed.operator)) {
-    return null;
-  }
-  return parsed;
-}
-
 function normalisePanelState(
   panelState: Record<string, Record<string, FilterValue>> | undefined,
 ): Record<string, FilterLocalState> {
@@ -332,12 +317,18 @@ export function useDashboardFilters(
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
-  // Sync from server on refetch. `isApplying` reset lives in the
-  // mutation's `onSettled` so that lock-only commits (which don't
-  // change the user's filter state reference) still clear the pending
-  // state correctly.
+  // Sync from server on refetch. Guarded by a content-equality check:
+  // React Query can emit a new `serverState` reference with identical
+  // content during the Apply round-trip, and stomping `localState`
+  // unconditionally would briefly flash the pre-Apply value on the chip
+  // before the real refetch payload arrives.
+  //
+  // `isApplying` reset lives in the mutation's `onSettled` so that
+  // lock-only commits (which don't change the user's filter state
+  // reference) still clear the pending state correctly.
   useEffect(() => {
     const normalised = normaliseServerState(serverState);
+    if (statesEqual(normalised, serverNormalised.current)) return;
     serverNormalised.current = normalised;
     setLocalState(normalised);
     setPendingRows([]);
@@ -345,6 +336,7 @@ export function useDashboardFilters(
 
   useEffect(() => {
     const normalised = normalisePanelState(serverPanelStateRaw);
+    if (panelStatesEqual(normalised, serverPanelNormalised.current)) return;
     serverPanelNormalised.current = normalised;
     setLocalPanelState(normalised);
   }, [serverPanelStateRaw]);
@@ -468,21 +460,18 @@ export function useDashboardFilters(
     [isOwner],
   );
 
-  // Immediate-commit reset — PATCHes `null` so the backend resolves to
-  // the filter's default (or removes it entirely). See `getValidDefault`
-  // for the optimistic-state rule.
+  // Immediate-commit reset — PATCHes `null` so the backend clears the
+  // filter. Optimistically drops the entry from local state so the chip
+  // flips to the empty state immediately; we don't re-apply the
+  // definition's default here because Reset is meant to truly nullify
+  // the filter, not revert to a pre-configured value.
   const handleClearFilter = useCallback(
     (filterId: string) => {
       if (!dashboardId) return;
       const existing =
         localState[filterId] ?? serverNormalised.current[filterId];
       if (existing?.is_locked && !isOwner) return;
-      const def = definitions.find((d) => d.id === filterId);
-      const validDefault = def ? getValidDefault(def) : null;
       setLocalState((prev) => {
-        if (validDefault) {
-          return { ...prev, [filterId]: validDefault };
-        }
         if (!(filterId in prev)) return prev;
         const next = { ...prev };
         delete next[filterId];
@@ -491,7 +480,7 @@ export function useDashboardFilters(
       setIsApplying(true);
       mutation.mutate([{ payload: { [filterId]: null } }]);
     },
-    [dashboardId, isOwner, localState, mutation, definitions],
+    [dashboardId, isOwner, localState, mutation],
   );
 
   const handleAddFilter = useCallback(() => {
