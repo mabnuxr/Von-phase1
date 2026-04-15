@@ -381,7 +381,7 @@ export function useChatV2(props: UseChatV2Props) {
         runErrorMessage: v2Processor.runErrorMessage,
         currentRunId: v2Processor.currentRunId,
         agentArtifactsByRunId,
-        dashboard: v2Processor.dashboard,
+        dashboards: v2Processor.dashboards,
         executionId: v2Processor.executionId,
         isDashboardBuilderMode: v2Processor.isDashboardBuilderMode,
       }),
@@ -398,7 +398,7 @@ export function useChatV2(props: UseChatV2Props) {
       v2Processor.runErrorMessage,
       v2Processor.currentRunId,
       agentArtifactsByRunId,
-      v2Processor.dashboard,
+      v2Processor.dashboards,
       v2Processor.executionId,
       v2Processor.isDashboardBuilderMode,
     ],
@@ -635,7 +635,7 @@ export function useChatV2(props: UseChatV2Props) {
   return {
     // V2 live data
     isDeepResearchRunning: v2Processor.isDeepResearchRunning,
-    dashboard: v2Processor.dashboard,
+    dashboards: v2Processor.dashboards,
     liveDashboardKey: v2Processor.liveDashboardKey,
 
     // Messages

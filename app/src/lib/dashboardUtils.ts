@@ -272,8 +272,8 @@ export interface V2LiveData {
     string,
     import("../services/fileUploadService").FileMetadataResponse[]
   >;
-  /** Dashboard metadata from the current run's dashboard_ready event (null if none) */
-  dashboard?: DashboardMetadata | null;
+  /** Dashboard metadata from the current run's dashboard_ready events */
+  dashboards?: DashboardMetadata[];
   /** execution_id for workflow execution approval (dry_run completed, pending approval) */
   executionId?: string | null;
   /** Whether the current run is a dashboard builder response */
@@ -393,7 +393,7 @@ function transformMessagesForV2(
         v2FinalResponse: v2LiveData.finalResponse,
         v2FinalResponseStreaming: v2LiveData.isFinalResponseStreaming,
         stoppedByUser: v2LiveData.stoppedByUser,
-        dashboard: v2LiveData.dashboard ?? null,
+        dashboards: v2LiveData.dashboards ?? [],
         executionId: v2LiveData.executionId ?? null,
         isDashboardBuilderMode: v2LiveData.isDashboardBuilderMode ?? false,
         researchResults: v2LiveData.researchResults ?? null,
@@ -446,14 +446,11 @@ function transformMessagesForV2(
         persistedStoppedByUser ||
         ("stoppedByUser" in msg && msg.stoppedByUser === true);
 
-      // Extract dashboard metadata from persisted DASHBOARD_READY event
-      const dashboardReadyEvent = findLast(
-        msg.events,
-        (e) => e.event?.type === "DASHBOARD_READY",
-      );
-      const persistedDashboard = dashboardReadyEvent
-        ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null)
-        : null;
+      // Extract all dashboard metadata from persisted DASHBOARD_READY events
+      const persistedDashboards = msg.events
+        .filter((e) => e.event?.type === "DASHBOARD_READY")
+        .map((e) => (e.event as DashboardReadyEvent).dashboard)
+        .filter((d): d is DashboardMetadata => d != null);
 
       // Extract execution metadata from RUN_FINISHED (these stay on RUN_FINISHED)
       const runFinishedEvent = findLast(
@@ -492,7 +489,7 @@ function transformMessagesForV2(
         v2FinalResponse: finalResponse,
         v2FinalResponseStreaming: false,
         stoppedByUser: effectiveStoppedByUser,
-        dashboard: persistedDashboard,
+        dashboards: persistedDashboards,
         executionId: persistedExecutionId,
         isDashboardBuilderMode: persistedIsDashboardBuilderMode,
         researchResults: researchResults ?? null,

@@ -43,7 +43,6 @@ import {
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 import { conversationsService } from "../services/conversationsService";
-import { findLast } from "../utils/findLast";
 import useChatStore from "../store/chatStore";
 
 /** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
@@ -105,7 +104,7 @@ export interface UseV2EventProcessorReturn {
   isDeepResearchRunning: boolean;
   stoppedByUser: boolean;
   runErrorMessage: string;
-  dashboard: DashboardMetadata | null;
+  dashboards: DashboardMetadata[];
   /** Key used to trigger auto-open. Set by live Pusher events, reconciliation, and gap-fill (not seeding). */
   liveDashboardKey: string | null;
   /** execution_id from RUN_FINISHED for workflow execution approval (dry_run completed) */
@@ -129,7 +128,7 @@ export interface UseV2EventProcessorReturn {
     result: ReturnType<typeof transformAguiToTimelineSteps>,
     runId: string,
     options?: {
-      dashboard?: DashboardMetadata | null;
+      dashboards?: DashboardMetadata[];
       executionId?: string | null;
       isDashboardBuilderMode?: boolean;
       triggerAutoOpen?: boolean;
@@ -181,11 +180,15 @@ export function useV2EventProcessor(
   const [isDeepResearchRunning, setIsDeepResearchRunning] = useState(false);
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
-  const [dashboard, setDashboard] = useState<DashboardMetadata | null>(null);
+  const [dashboards, setDashboards] = useState<DashboardMetadata[]>([]);
   /** Key used to trigger auto-open. Set by live Pusher events, reconciliation, and gap-fill (not seeding). */
   const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
+
+  // Tracks whether we've already auto-opened a dashboard in the current run.
+  // Reset on new run so only the first DASHBOARD_READY triggers auto-open.
+  const hasAutoOpenedDashboardRef = useRef(false);
 
   const eventsRef = useRef<Map<string, AguiEventWrapper[]>>(new Map());
   const finishedRunsRef = useRef<Set<string>>(new Set());
@@ -212,7 +215,7 @@ export function useV2EventProcessor(
       result: ReturnType<typeof transformAguiToTimelineSteps>,
       runId: string,
       options?: {
-        dashboard?: DashboardMetadata | null;
+        dashboards?: DashboardMetadata[];
         executionId?: string | null;
         isDashboardBuilderMode?: boolean;
         /** When true, also set liveDashboardKey to trigger auto-open (e.g. from reconciliation). */
@@ -230,11 +233,12 @@ export function useV2EventProcessor(
         setIsDeepResearchRunning(result.isDeepResearchRunning);
         setStoppedByUser(result.stoppedByUser);
         setRunErrorMessage(result.runErrorMessage);
-        if (options?.dashboard !== undefined) {
-          setDashboard(options.dashboard);
-          if (options.triggerAutoOpen && options.dashboard) {
+        if (options?.dashboards !== undefined) {
+          setDashboards(options.dashboards);
+          if (options.triggerAutoOpen && options.dashboards.length > 0) {
+            const first = options.dashboards[0];
             setLiveDashboardKey(
-              `${options.dashboard.dashboard_id}:${options.dashboard.dashboard_version}`,
+              `${first.dashboard_id}:${first.dashboard_version}`,
             );
           }
         }
@@ -462,19 +466,15 @@ export function useV2EventProcessor(
           eventsRef.current.set(runId, filledEvents);
           const gapResult = transformAguiToTimelineSteps(filledEvents);
 
-          // Extract dashboard metadata from gap-filled events so the
+          // Extract all dashboard metadata from gap-filled events so the
           // preview pane opens even when the live event was missed.
-          const gapDashboardEvt = findLast(
-            filledEvents,
-            (e) => e.event?.type === "DASHBOARD_READY",
-          );
-          const gapDashboard = gapDashboardEvt
-            ? ((gapDashboardEvt.event as DashboardReadyEvent).dashboard ??
-              undefined)
-            : undefined;
+          const gapDashboards = filledEvents
+            .filter((e) => e.event?.type === "DASHBOARD_READY")
+            .map((e) => (e.event as DashboardReadyEvent).dashboard)
+            .filter((d): d is DashboardMetadata => d != null);
 
           applyTransformResult(gapResult, runId, {
-            dashboard: gapDashboard,
+            dashboards: gapDashboards.length > 0 ? gapDashboards : undefined,
             // Only auto-open during active streaming (mid-stream gap-fill),
             // not when backfilling gaps for a completed run on page load.
             triggerAutoOpen: !finishedRunsRef.current.has(runId),
@@ -535,13 +535,25 @@ export function useV2EventProcessor(
           // preview pane opens when the event arrives after run_finished.
           if (eventType === "DASHBOARD_READY") {
             const payload =
-              (wrapper.event as DashboardReadyEvent).dashboard ?? null;
+              (wrapper.event as DashboardReadyEvent).dashboard ?? undefined;
             if (payload) {
               flushSync(() => {
-                setDashboard(payload);
-                setLiveDashboardKey(
-                  `${payload.dashboard_id}:${payload.dashboard_version}`,
-                );
+                setDashboards((prev) => {
+                  const key = `${payload.dashboard_id}:${payload.dashboard_version}`;
+                  if (
+                    prev.some(
+                      (d) => `${d.dashboard_id}:${d.dashboard_version}` === key,
+                    )
+                  )
+                    return prev;
+                  return [...prev, payload];
+                });
+                if (!hasAutoOpenedDashboardRef.current) {
+                  hasAutoOpenedDashboardRef.current = true;
+                  setLiveDashboardKey(
+                    `${payload.dashboard_id}:${payload.dashboard_version}`,
+                  );
+                }
               });
             }
           }
@@ -572,6 +584,7 @@ export function useV2EventProcessor(
             !previousRunId || finishedRunsRef.current.has(previousRunId);
           if (isNewRun) {
             currentRunIdForHandlerRef.current = run_id;
+            hasAutoOpenedDashboardRef.current = false;
             flushSync(() => {
               setTimelineSteps([]);
               setFinalResponse("");
@@ -580,7 +593,7 @@ export function useV2EventProcessor(
               setStoppedByUser(false);
               setCurrentRunId(run_id);
               setRunErrorMessage("");
-              setDashboard(null);
+              setDashboards([]);
               setExecutionId(null);
               setIsDashboardBuilderMode(false);
             });
@@ -613,7 +626,7 @@ export function useV2EventProcessor(
         // Extract dashboard metadata from DASHBOARD_READY event
         const dashboardReadyPayload =
           eventType === "DASHBOARD_READY"
-            ? ((wrapper.event as DashboardReadyEvent).dashboard ?? null)
+            ? ((wrapper.event as DashboardReadyEvent).dashboard ?? undefined)
             : undefined;
 
         // Extract executionId and isDashboardBuilderMode from RUN_FINISHED event
@@ -640,7 +653,7 @@ export function useV2EventProcessor(
           setStoppedByUser(result.stoppedByUser);
           setRunErrorMessage(result.runErrorMessage);
 
-          // Update dashboard when DASHBOARD_READY arrives
+          // Append dashboard when DASHBOARD_READY arrives
           if (dashboardReadyPayload !== undefined) {
             if (import.meta.env.DEV) {
               console.log(
@@ -648,8 +661,18 @@ export function useV2EventProcessor(
                 dashboardReadyPayload,
               );
             }
-            setDashboard(dashboardReadyPayload);
-            if (dashboardReadyPayload) {
+            setDashboards((prev) => {
+              const key = `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`;
+              if (
+                prev.some(
+                  (d) => `${d.dashboard_id}:${d.dashboard_version}` === key,
+                )
+              )
+                return prev;
+              return [...prev, dashboardReadyPayload];
+            });
+            if (!hasAutoOpenedDashboardRef.current) {
+              hasAutoOpenedDashboardRef.current = true;
               setLiveDashboardKey(
                 `${dashboardReadyPayload.dashboard_id}:${dashboardReadyPayload.dashboard_version}`,
               );
@@ -765,14 +788,11 @@ export function useV2EventProcessor(
 
     const result = transformAguiToTimelineSteps(mergedEvents);
 
-    // Extract dashboard from DASHBOARD_READY event, execution metadata from RUN_FINISHED
-    const dashboardReadyEvent = findLast(
-      mergedEvents,
-      (e) => e.event?.type === "DASHBOARD_READY",
-    );
-    const seededDashboard = dashboardReadyEvent
-      ? ((dashboardReadyEvent.event as DashboardReadyEvent).dashboard ?? null)
-      : null;
+    // Extract all dashboards from DASHBOARD_READY events, execution metadata from RUN_FINISHED
+    const seededDashboards = mergedEvents
+      .filter((e) => e.event?.type === "DASHBOARD_READY")
+      .map((e) => (e.event as DashboardReadyEvent).dashboard)
+      .filter((d): d is DashboardMetadata => d != null);
     const runFinishedEvent = mergedEvents.find(
       (e) => e.event?.type === "RUN_FINISHED",
     );
@@ -803,7 +823,7 @@ export function useV2EventProcessor(
 
       currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
-        dashboard: seededDashboard,
+        dashboards: seededDashboards,
         executionId: seededExecutionId,
         isDashboardBuilderMode: seededIsDashboardBuilderMode,
       });
@@ -824,7 +844,7 @@ export function useV2EventProcessor(
       // with late Pusher events before state updates complete.
       finishedRunsRef.current.add(runId);
       flushSync(() => {
-        setDashboard(seededDashboard);
+        setDashboards(seededDashboards);
         setExecutionId(seededExecutionId);
         setIsDashboardBuilderMode(seededIsDashboardBuilderMode);
       });
@@ -839,7 +859,7 @@ export function useV2EventProcessor(
       });
       currentRunIdForHandlerRef.current = runId;
       applyTransformResult(result, runId, {
-        dashboard: seededDashboard,
+        dashboards: seededDashboards,
         executionId: seededExecutionId,
         isDashboardBuilderMode: seededIsDashboardBuilderMode,
       });
@@ -921,7 +941,7 @@ export function useV2EventProcessor(
     isDeepResearchRunning,
     stoppedByUser,
     runErrorMessage,
-    dashboard,
+    dashboards,
     liveDashboardKey,
     executionId,
     isDashboardBuilderMode,
