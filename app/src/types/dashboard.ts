@@ -135,6 +135,11 @@ export interface WidgetConfig {
     | TableWidgetConfig
     | TextWidgetConfig;
   query_failed?: boolean;
+  /**
+   * Backend query ID that powers this widget. Used to match filter
+   * `applies_to` entries (which reference query IDs, not widget IDs).
+   */
+  queryRef?: string;
   drilldown?: {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;

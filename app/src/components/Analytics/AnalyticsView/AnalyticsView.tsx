@@ -333,10 +333,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
     const result: Record<string, AppliedWidgetFilter[]> = {};
     for (const wId of widgetIds) {
+      // Filter `applies_to` references the backend query ID (e.g.
+      // `pipeline_by_owner`), not the widget ID (e.g. `chart_pipeline_by_owner`).
+      // Fall back to the widget ID so widgets without a queryRef still match
+      // filters that happen to target them by ID (KPIs, legacy dashboards).
+      const queryRef = widgets[wId]?.queryRef ?? wId;
       const filtersForWidget: AppliedWidgetFilter[] = [];
       for (const def of enrichedDefs) {
         // No applies_to means the filter applies to all widgets
-        if (def.appliesTo && !def.appliesTo.includes(wId)) continue;
+        if (def.appliesTo && !def.appliesTo.includes(queryRef)) continue;
         filtersForWidget.push({
           label: def.label,
           operatorLabel: def.operatorLabel,
@@ -350,7 +355,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
 
     return Object.keys(result).length > 0 ? result : undefined;
-  }, [filterDefinitions, filterState, widgetIds]);
+  }, [filterDefinitions, filterState, widgetIds, widgets]);
 
   // v2: per-panel filter slot factory. Only mounted when the flag is on and
   // required handlers are provided; otherwise DashboardGrid falls back to the
@@ -367,6 +372,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     return (panelId: string) => (
       <PanelFilterPopover
         panelId={panelId}
+        queryRef={widgets[panelId]?.queryRef ?? panelId}
         definitions={filterDefinitions}
         effectiveState={getEffectivePanelState(panelId)}
         lockedFilterState={lockedFilterState ?? {}}
@@ -395,6 +401,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     filterIsApplying,
     onPanelFilterChange,
     onResetPanelFilter,
+    widgets,
   ]);
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({

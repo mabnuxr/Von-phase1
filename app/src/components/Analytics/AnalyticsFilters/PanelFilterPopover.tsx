@@ -31,6 +31,12 @@ const POPOVER_WIDTH = 360;
 
 interface PanelFilterPopoverProps {
   panelId: string;
+  /**
+   * Backend query ID powering this panel. Used to match against filter
+   * `applies_to` entries, which reference query IDs (not widget IDs).
+   * Falls back to `panelId` when the widget has no queryRef.
+   */
+  queryRef: string;
   /** Filter definitions from the dashboard (filtered by applies_to externally). */
   definitions: DashboardFilterDefinition[];
   /** Effective state for this panel (post resolution). */
@@ -78,6 +84,7 @@ interface PanelFilterPopoverProps {
 
 export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
   panelId,
+  queryRef,
   definitions,
   effectiveState,
   lockedFilterState,
@@ -97,9 +104,9 @@ export const PanelFilterPopover: React.FC<PanelFilterPopoverProps> = ({
   const applicable = useMemo(
     () =>
       definitions.filter(
-        (def) => !def.applies_to || def.applies_to.includes(panelId),
+        (def) => !def.applies_to || def.applies_to.includes(queryRef),
       ),
-    [definitions, panelId],
+    [definitions, queryRef],
   );
 
   const appliedCount = applicable.filter(
