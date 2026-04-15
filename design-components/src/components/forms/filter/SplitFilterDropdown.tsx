@@ -75,6 +75,25 @@ function getDefaultOperator(field: FilterFieldConfig): string {
 
 const MULTI_VALUE_OPERATORS = new Set(['in', 'not_in']);
 const RANGE_OPERATORS = new Set(['between', 'not_between']);
+
+/**
+ * Build the operator-shape-appropriate empty `FilterValue` for an
+ * operator. Returns `null` for calendar-mode operators — those are
+ * UI-only and the caller handles them via `setDraftOperator` instead of
+ * firing `onChange`. Used both by `handleOperatorChange` (when seeding
+ * a fresh operator) and by the seed-on-open effect.
+ */
+function emptyValueForOperator(opDef: OperatorDef | undefined): FilterValue | null {
+  if (!opDef) return { operator: 'equals', value: '' };
+  if (opDef.calendarMode) return null;
+  if (opDef.noValue) return { operator: opDef.value };
+  if (opDef.numberInput) {
+    return { operator: opDef.value, value: String(opDef.numberInput.defaultN) };
+  }
+  if (RANGE_OPERATORS.has(opDef.value)) return { operator: opDef.value, value: ['', ''] };
+  if (MULTI_VALUE_OPERATORS.has(opDef.value)) return { operator: opDef.value, value: [] };
+  return { operator: opDef.value, value: '' };
+}
 // Operators that accept a free-text value (substring match) — the right
 // panel shows a text input instead of the picklist options even when the
 // field has a static `options` list.
@@ -438,6 +457,27 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     return () => cancelAnimationFrame(id);
   }, [isOpen]);
 
+  // On open, seed the popover's default operator into the filter value
+  // when the filter is empty — so the chip label matches the operator
+  // the popover has visually highlighted in its left panel. The seeded
+  // value is incomplete (empty string / empty array), so `canApply` stays
+  // false until the user provides a real value. Closing without Apply
+  // reverts via `onDismiss` → the hook's revert path.
+  useEffect(() => {
+    if (!isOpen || value != null) return;
+    const opDef = operators.find((o) => o.value === getDefaultOperator(field));
+    if (opDef?.calendarMode) {
+      setDraftOperator(opDef.value);
+      return;
+    }
+    const empty = emptyValueForOperator(opDef);
+    if (empty) onChange(empty);
+    // Intentionally only watch `isOpen` — we seed once per opening and
+    // don't want to resurrect the default after the user picks another
+    // operator (which would flip `value` from null to non-null anyway).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   // Close on outside click
   useLayoutEffect(() => {
     if (!isOpen) return;
@@ -477,9 +517,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     // First time switching to this operator in this session — apply the
     // shape-appropriate empty state.
     const opDef = operators.find((o) => o.value === op);
-    if (opDef?.noValue) {
-      onChange({ operator: op });
-    } else if (opDef?.calendarMode) {
+    if (opDef?.calendarMode) {
       // Calendar-driven operator: hold locally until the user picks a date.
       // Firing onChange here would round-trip through fromFilterBarValue →
       // toFilterBarValue which mangles UI-only operators like "custom_date".
@@ -487,20 +525,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setCalendarDate(undefined);
       setCalendarRange(undefined);
       return;
-    } else if (opDef?.numberInput) {
-      // N-parameterized operator: start with the default N.
-      onChange({ operator: op, value: String(opDef.numberInput.defaultN) });
-    } else if (RANGE_OPERATORS.has(op)) {
-      onChange({ operator: op, value: ['', ''] });
-    } else if (MULTI_VALUE_OPERATORS.has(op)) {
-      onChange({ operator: op, value: [] });
-    } else if (value && !Array.isArray(value.value)) {
-      // Carry a pre-existing scalar value over — covers the common case of
-      // switching between `equals` / `not_equals` without re-picking.
-      onChange({ ...value, operator: op });
-    } else {
-      onChange({ operator: op, value: '' });
     }
+    // Carry a pre-existing scalar value over — covers the common case of
+    // switching between `equals` / `not_equals` without re-picking. Skip
+    // for operator shapes (noValue / numberInput / range / multi) where
+    // the existing scalar wouldn't fit.
+    const isPlainScalar =
+      !opDef?.noValue &&
+      !opDef?.numberInput &&
+      !RANGE_OPERATORS.has(op) &&
+      !MULTI_VALUE_OPERATORS.has(op);
+    if (isPlainScalar && value && !Array.isArray(value.value)) {
+      onChange({ ...value, operator: op });
+      return;
+    }
+    const empty = emptyValueForOperator(opDef);
+    if (empty) onChange(empty);
   };
 
   const handleToggleOption = (option: string) => {

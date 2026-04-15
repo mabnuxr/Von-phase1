@@ -55,6 +55,13 @@ function toSafeScope(value: string | null | undefined): DataScope {
 interface ShareDashboardDialogProps {
   isSharedWithTenant: boolean;
   sharedDataScope: string | null | undefined;
+  /**
+   * Whether ownership-based data scoping applies to this dashboard.
+   * Only true when at least one data source supports row-level
+   * ownership (Salesforce today). When false, the scope toggle is
+   * hidden and the subtitle drops the data-scope mention.
+   */
+  dataScopingAvailable: boolean;
   canShare: boolean;
   sharePhase: MutationPhase;
   onShare: (
@@ -67,6 +74,7 @@ interface ShareDashboardDialogProps {
 export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   isSharedWithTenant,
   sharedDataScope,
+  dataScopingAvailable,
   canShare,
   sharePhase,
   onShare,
@@ -101,10 +109,20 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
   const isDisabled = sharePhase === "pending" || sharePhase === "success";
   const isMakingPrivate = isSharedWithTenant && !selectedShared;
 
-  const computedScope = selectedShared && scopeEnabled ? selectedScope : null;
-  const hasChanged =
-    selectedShared !== isSharedWithTenant ||
-    computedScope !== (sharedDataScope ?? null);
+  // Scope only applies when the dashboard has a data source that supports
+  // row-level ownership (Salesforce). On other dashboards the toggle is
+  // hidden and computedScope stays null — clears any stale value on save.
+  const computedScope =
+    selectedShared && scopeEnabled && dataScopingAvailable
+      ? selectedScope
+      : null;
+  // Only count the scope delta as a "change" when scoping is available;
+  // otherwise a stale `sharedDataScope` on a non-Salesforce dashboard
+  // would phantom-enable the Done button on open. (Any actual sharing
+  // change still goes through and clears the stale scope to null.)
+  const scopeChanged =
+    dataScopingAvailable && computedScope !== (sharedDataScope ?? null);
+  const hasChanged = selectedShared !== isSharedWithTenant || scopeChanged;
 
   const handleDone = () => {
     if (isMakingPrivate) {
@@ -188,8 +206,9 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                       Share this dashboard
                     </h3>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Choose who can view this dashboard and what data they
-                      see.
+                      {dataScopingAvailable
+                        ? "Choose who can view this dashboard and what data they see."
+                        : "Choose who can view this dashboard."}
                     </p>
                   </div>
                   <button
@@ -285,8 +304,10 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                   </button>
                 </div>
 
-                {/* Scope data by ownership — only when org-wide */}
-                {selectedShared && (
+                {/* Scope data by ownership — only when org-wide AND
+                    the dashboard has a data source that supports
+                    row-level ownership (Salesforce). */}
+                {selectedShared && dataScopingAvailable && (
                   <div className="mt-3 px-3.5 py-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">

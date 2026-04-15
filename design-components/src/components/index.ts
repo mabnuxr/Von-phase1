@@ -552,7 +552,12 @@ export { usePortalPopover } from '../hooks';
 // ============================================================================
 // FILTER
 // ============================================================================
-export { FilterButton, ScrollableFilterBar, SplitFilterDropdown } from './forms/filter';
+export {
+  FilterButton,
+  ScrollableFilterBar,
+  SplitFilterDropdown,
+  isEmptyFilterValue,
+} from './forms/filter';
 export type {
   FilterButtonProps,
   FilterField,

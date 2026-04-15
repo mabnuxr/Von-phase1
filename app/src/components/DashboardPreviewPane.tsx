@@ -77,6 +77,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const {
     definitions: filterDefinitions,
     filterState,
+    syncedFilterState,
     pendingRows: filterPendingRows,
     activeCount: filterActiveCount,
     canApply: filterCanApply,
@@ -145,6 +146,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             refreshInfo={refreshInfo}
             filterDefinitions={filterDefinitions}
             filterState={filterState}
+            syncedFilterState={syncedFilterState}
             filterPendingRows={filterPendingRows}
             filterActiveCount={filterActiveCount}
             filterCanApply={filterCanApply}

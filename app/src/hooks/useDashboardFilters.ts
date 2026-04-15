@@ -314,6 +314,13 @@ export function useDashboardFilters(
     Record<string, FilterLocalState>
   >(() => normalisePanelState(serverPanelStateRaw));
 
+  // Mirror of `serverNormalised.current` as state so downstream consumers
+  // (e.g. the filter bar's stable sort) can react to server syncs without
+  // also reacting to the pending local edits that flow through `localState`.
+  const [syncedState, setSyncedState] = useState<FilterLocalState>(() =>
+    normaliseServerState(serverState),
+  );
+
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
   const [isApplying, setIsApplying] = useState(false);
 
@@ -331,6 +338,7 @@ export function useDashboardFilters(
     if (statesEqual(normalised, serverNormalised.current)) return;
     serverNormalised.current = normalised;
     setLocalState(normalised);
+    setSyncedState(normalised);
     setPendingRows([]);
   }, [serverState]);
 
@@ -888,6 +896,13 @@ export function useDashboardFilters(
   return {
     definitions: safeDefinitions,
     filterState: localState,
+    /**
+     * Server-committed snapshot. Same shape as `filterState` but only
+     * updates on refetch (not on pending local edits). Used for UI
+     * decisions that should stay stable while the user is tinkering
+     * with filters, e.g. the filter bar's sort tiering.
+     */
+    syncedFilterState: syncedState,
     panelFilterState: localPanelState,
     lockedFilterState: serverLockedNormalised,
     lockedPanelFilterState: serverLockedPanelNormalised,

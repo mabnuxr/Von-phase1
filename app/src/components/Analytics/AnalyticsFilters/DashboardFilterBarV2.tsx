@@ -36,6 +36,12 @@ import {
 interface DashboardFilterBarV2Props {
   definitions: DashboardFilterDefinition[];
   filterState: Record<string, ActiveFilter>;
+  /**
+   * Server-committed filter state. Drives the sort tiering so chips don't
+   * re-order while the user is tinkering with a pending edit. Updates only
+   * on refetch, not on local edits.
+   */
+  syncedFilterState: Record<string, ActiveFilter>;
   isApplying: boolean;
   /** True when there are pending filter changes. Gates the in-popover Apply. */
   canApply: boolean;
@@ -79,12 +85,11 @@ interface DashboardFilterBarV2Props {
  * Sort definitions into priority tiers and compute pinned count.
  *
  * Tier order (left → right):
- *   1. Date filters with boundary    (mandatory — always visible)
- *   2. Ownership filters with boundary (mandatory — always visible)
- *   3. Applied filters with boundary
- *   4. Applied filters without boundary
- *   5. Non-applied filters with boundary
- *   6. Non-applied filters without boundary
+ *   1. Date filters with boundary  (mandatory — always visible)
+ *   2. Ownership filters           (mandatory — always visible)
+ *   3. Applied filters             (regardless of boundary)
+ *   4. Non-applied filters with boundary
+ *   5. Non-applied filters without boundary
  *
  * "boundary" = definition has a non-empty `boundary` object.
  * "applied"  = filter has a value in `filterState` OR was promoted via "+".
@@ -94,9 +99,8 @@ function sortDefinitions(
   filterState: Record<string, ActiveFilter>,
   promotedIds: Set<string>,
 ) {
-  const mandatory: DashboardFilterDefinition[] = []; // date+boundary, ownership+boundary
-  const appliedBoundary: DashboardFilterDefinition[] = [];
-  const appliedNormal: DashboardFilterDefinition[] = [];
+  const mandatory: DashboardFilterDefinition[] = [];
+  const applied: DashboardFilterDefinition[] = [];
   const restBoundary: DashboardFilterDefinition[] = [];
   const restNormal: DashboardFilterDefinition[] = [];
 
@@ -108,10 +112,8 @@ function sortDefinitions(
 
     if (isMandatory) {
       mandatory.push(def);
-    } else if (isApplied && hasBoundary) {
-      appliedBoundary.push(def);
     } else if (isApplied) {
-      appliedNormal.push(def);
+      applied.push(def);
     } else if (hasBoundary) {
       restBoundary.push(def);
     } else {
@@ -122,21 +124,16 @@ function sortDefinitions(
   // pinnedCount covers mandatory + applied + promoted — all of these are
   // always visible in the bar. Only restBoundary / restNormal are subject
   // to the 60% budget and overflow behind the "+" button.
-  const pinnedCount =
-    mandatory.length + appliedBoundary.length + appliedNormal.length;
-  const sorted = [
-    ...mandatory,
-    ...appliedBoundary,
-    ...appliedNormal,
-    ...restBoundary,
-    ...restNormal,
-  ];
-  return { sorted, pinnedCount };
+  const pinnedCount = mandatory.length + applied.length;
+  const mandatoryCount = mandatory.length;
+  const sorted = [...mandatory, ...applied, ...restBoundary, ...restNormal];
+  return { sorted, pinnedCount, mandatoryCount };
 }
 
 export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   definitions,
   filterState,
+  syncedFilterState,
   isApplying,
   canApply,
   isOwner,
@@ -152,9 +149,12 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
   const [autoOpenFieldId, setAutoOpenFieldId] = useState<string | undefined>();
 
-  const { sorted, pinnedCount } = useMemo(
-    () => sortDefinitions(definitions, filterState, promotedIds),
-    [definitions, filterState, promotedIds],
+  // Sort uses the server-committed snapshot (`syncedFilterState`) so chips
+  // stay put while the user is mid-edit. The bar only re-orders once a
+  // change lands on the server.
+  const { sorted, pinnedCount, mandatoryCount } = useMemo(
+    () => sortDefinitions(definitions, syncedFilterState, promotedIds),
+    [definitions, syncedFilterState, promotedIds],
   );
 
   const fields = useMemo(
@@ -191,22 +191,27 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
     return map;
   }, [definitions]);
 
-  const handleBarChange = (
-    fieldId: string,
-    barValue: FilterBarValue | null,
-  ) => {
-    const def = defById.get(fieldId);
-    if (!def) return;
-    // Guard: non-owner can't mutate a locked filter (the dropdown should
-    // already prevent this, but belt-and-braces in case of timing).
-    if (def.is_locked && !isOwner) return;
-    if (barValue === null) {
-      onRemoveFilter(fieldId);
-      return;
-    }
-    const { operator, value, includeBlank } = fromFilterBarValue(barValue, def);
-    onFilterChange(fieldId, operator, value, includeBlank);
-  };
+  // Memoised so SplitFilterDropdown's effects that close over this
+  // callback don't capture a stale reference between parent renders.
+  const handleBarChange = useCallback(
+    (fieldId: string, barValue: FilterBarValue | null) => {
+      const def = defById.get(fieldId);
+      if (!def) return;
+      // Guard: non-owner can't mutate a locked filter (the dropdown should
+      // already prevent this, but belt-and-braces in case of timing).
+      if (def.is_locked && !isOwner) return;
+      if (barValue === null) {
+        onRemoveFilter(fieldId);
+        return;
+      }
+      const { operator, value, includeBlank } = fromFilterBarValue(
+        barValue,
+        def,
+      );
+      onFilterChange(fieldId, operator, value, includeBlank);
+    },
+    [defById, isOwner, onRemoveFilter, onFilterChange],
+  );
 
   const handleOverflowSelect = useCallback((fieldId: string) => {
     setPromotedIds((prev) => {
@@ -227,6 +232,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       canApply={canApply}
       onClearField={onClearFilter}
       pinnedCount={pinnedCount}
+      dividerAfterIndex={mandatoryCount}
       onOverflowSelect={handleOverflowSelect}
       autoOpenFieldId={autoOpenFieldId}
       onDismiss={onRevertFilter}

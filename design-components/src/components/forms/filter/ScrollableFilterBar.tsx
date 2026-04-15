@@ -21,6 +21,7 @@ import {
 } from '@phosphor-icons/react';
 import { Tooltip } from '../../Tooltip';
 import { SplitFilterDropdown } from './SplitFilterDropdown';
+import { isEmptyFilterValue } from './filterValueUtils';
 
 // ============================================================================
 // Types
@@ -169,6 +170,13 @@ export interface ScrollableFilterBarProps {
    */
   pinnedCount?: number;
   /**
+   * Render a vertical divider after the Nth field (0-indexed count from
+   * the start). When the count is 0 or >= fields.length, no divider is
+   * drawn. Used by the dashboard filter bar to separate mandatory filters
+   * from the rest.
+   */
+  dividerAfterIndex?: number;
+  /**
    * Called when the user selects a filter from the overflow "+" dropdown.
    * The parent is responsible for promoting that filter into the visible set.
    */
@@ -198,6 +206,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   canApply = true,
   onClearField,
   pinnedCount,
+  dividerAfterIndex,
   onOverflowSelect,
   autoOpenFieldId,
   onDismiss,
@@ -450,8 +459,11 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     if (!fv) return 'Select a filter';
     const opLabel = getOperatorFullLabel(fv.operator, field);
 
-    // NoValue operators (is_blank, is_not_blank, custom noValue like My Records)
-    if (!fv.value && fv.value !== '') return opLabel;
+    // Show the operator label by itself when the value is unset or empty
+    // — covers true noValue ops (is_blank / My Records), plus the
+    // in-between state where the user has picked an operator but hasn't
+    // supplied a value yet (e.g. picked "Is" on a previously-empty chip).
+    if (isEmptyFilterValue(fv.value)) return opLabel;
 
     // N-parameterized operator: substitute N in label ("Last N Days" + "7" → "Last 7 Days")
     const opDef = field.customOperators?.find((o) => o.value === fv.operator);
@@ -628,7 +640,20 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {visibleFields.map((field) => renderPill(field, field.id === deferredOpenId))}
+            {visibleFields.map((field, i) => {
+              const showDivider = dividerAfterIndex != null && i === dividerAfterIndex && i > 0;
+              return (
+                <React.Fragment key={field.id}>
+                  {showDivider && (
+                    <div
+                      aria-hidden
+                      className="h-[28px] w-px bg-gray-200 mx-0.5 self-end shrink-0"
+                    />
+                  )}
+                  {renderPill(field, field.id === deferredOpenId)}
+                </React.Fragment>
+              );
+            })}
           </div>
 
           {/* Right caret — h-[28px] matches chip height for perfect alignment */}
@@ -708,7 +733,17 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {fields.map((field) => renderPill(field))}
+        {fields.map((field, i) => {
+          const showDivider = dividerAfterIndex != null && i === dividerAfterIndex && i > 0;
+          return (
+            <React.Fragment key={field.id}>
+              {showDivider && (
+                <div aria-hidden className="h-[28px] w-px bg-gray-200 mx-0.5 self-end shrink-0" />
+              )}
+              {renderPill(field)}
+            </React.Fragment>
+          );
+        })}
       </div>
 
       {/* Right caret + fade */}
