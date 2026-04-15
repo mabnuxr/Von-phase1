@@ -398,6 +398,18 @@ export function useDashboardFilters(
         message: "Failed to apply filters. Please try again.",
         variant: "error",
       });
+      // `handleApplyPanelFilter` optimistically mutates
+      // `serverPanelNormalised.current` before firing the PATCH to keep
+      // concurrent reverts (e.g. user closes the widget popover while
+      // the mutation is still in flight) from clobbering the committed
+      // value. On failure, that optimistic write is stale — force a
+      // refetch so the useEffect at line 345 rewrites the ref + local
+      // state from the authoritative server response.
+      if (dashboardId) {
+        queryClient.invalidateQueries({
+          queryKey: dashboardKeys.detail(dashboardId),
+        });
+      }
       setLocalState(serverNormalised.current);
       setLocalPanelState(serverPanelNormalised.current);
     },
@@ -682,6 +694,33 @@ export function useDashboardFilters(
       }
 
       if (Object.keys(payload).length === 0) return;
+
+      // Optimistically reflect the committed value in the server-snapshot
+      // ref BEFORE firing the PATCH. Without this, a concurrent revert —
+      // e.g. the user closes the widget popover while the mutation is
+      // still in flight and `handleRevertPanel` fires — reads the stale
+      // pre-apply snapshot and overwrites the just-committed local value,
+      // visually undoing the change until the refetch completes. The
+      // refetch following a successful mutation rewrites the ref via the
+      // useEffect at line 345 (no-op when it matches this optimistic
+      // value); on failure, `onError` invalidates the query to force a
+      // corrective refetch so this optimistic write doesn't leak.
+      const nextPanel: FilterLocalState = {
+        ...(serverPanelNormalised.current[panelId] ?? {}),
+      };
+      if (local !== undefined) {
+        nextPanel[filterId] = local;
+      } else {
+        delete nextPanel[filterId];
+      }
+      const nextRef = { ...serverPanelNormalised.current };
+      if (Object.keys(nextPanel).length === 0) {
+        delete nextRef[panelId];
+      } else {
+        nextRef[panelId] = nextPanel;
+      }
+      serverPanelNormalised.current = nextRef;
+
       setIsApplying(true);
       mutation.mutate([{ payload, panelId }]);
     },
