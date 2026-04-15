@@ -98,6 +98,21 @@ function normaliseServerState(
   return out;
 }
 
+/**
+ * Extract def.default as an ActiveFilter, but only when its operator is
+ * allowed by the definition. Used by Reset to flip the chip to the
+ * default value immediately instead of flashing empty during the PATCH.
+ */
+function getValidDefault(def: DashboardFilterDefinition): ActiveFilter | null {
+  const parsed = normaliseFilter(def.default);
+  if (!parsed) return null;
+  const validOps = def.valid_operators?.map((o) => o.value);
+  if (validOps && validOps.length > 0 && !validOps.includes(parsed.operator)) {
+    return null;
+  }
+  return parsed;
+}
+
 function normalisePanelState(
   panelState: Record<string, Record<string, FilterValue>> | undefined,
 ): Record<string, FilterLocalState> {
@@ -453,22 +468,21 @@ export function useDashboardFilters(
     [isOwner],
   );
 
-  // Immediate-commit clear — the Clear button in a filter popover fires
-  // this rather than just dropping the filter from local state. Sends a
-  // single-filter PATCH with `null` (backend resets / removes the filter)
-  // so clearing a filter is persisted to the server without waiting for
-  // the user to hit Apply.
-  //
-  // Also clears local state optimistically so the bar chip flips to "All"
-  // immediately rather than flashing the old value during the transition
-  // and briefly after.
+  // Immediate-commit reset — PATCHes `null` so the backend resolves to
+  // the filter's default (or removes it entirely). See `getValidDefault`
+  // for the optimistic-state rule.
   const handleClearFilter = useCallback(
     (filterId: string) => {
       if (!dashboardId) return;
       const existing =
         localState[filterId] ?? serverNormalised.current[filterId];
       if (existing?.is_locked && !isOwner) return;
+      const def = definitions.find((d) => d.id === filterId);
+      const validDefault = def ? getValidDefault(def) : null;
       setLocalState((prev) => {
+        if (validDefault) {
+          return { ...prev, [filterId]: validDefault };
+        }
         if (!(filterId in prev)) return prev;
         const next = { ...prev };
         delete next[filterId];
@@ -477,7 +491,7 @@ export function useDashboardFilters(
       setIsApplying(true);
       mutation.mutate([{ payload: { [filterId]: null } }]);
     },
-    [dashboardId, isOwner, localState, mutation],
+    [dashboardId, isOwner, localState, mutation, definitions],
   );
 
   const handleAddFilter = useCallback(() => {

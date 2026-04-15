@@ -829,7 +829,7 @@ const NO_VALUE_OPERATORS = new Set(["is_blank", "is_not_blank"]);
 export function renderFilterValue(
   filter: ActiveFilter | undefined,
   def: DashboardFilterDefinition,
-  fallback = "All",
+  fallback = "Select a filter",
 ): string {
   if (!filter) return fallback;
   const v = filter.value;

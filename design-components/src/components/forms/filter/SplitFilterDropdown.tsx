@@ -221,6 +221,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const selectedOperatorRef = useRef<HTMLButtonElement>(null);
   const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const [search, setSearch] = useState('');
   // Track numeric inputs for dynamic options keyed by dynamic option id
@@ -424,6 +425,17 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       setDynamicInputDrafts({});
       setDraftOperator(null);
     }
+  }, [isOpen]);
+
+  // On open, bring the currently-selected operator into view so users
+  // don't have to hunt for it when it lives near the bottom of the list
+  // (e.g. "Is not blank" on a date filter).
+  useEffect(() => {
+    if (!isOpen) return;
+    const id = requestAnimationFrame(() => {
+      selectedOperatorRef.current?.scrollIntoView({ block: 'nearest' });
+    });
+    return () => cancelAnimationFrame(id);
   }, [isOpen]);
 
   // Close on outside click
@@ -805,6 +817,38 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   // Calendar-mode operators show the calendar directly (no option list needed)
   const showRightPanel = !isNoValue && !operatorDef?.calendarMode;
 
+  // Render the selection indicator for an option row. Single-value operators
+  // (equals / not_equals / etc.) use a radio dot so the UI signals
+  // "pick one"; multi-value operators (in / not_in) use a checkbox square.
+  const renderSelectionIndicator = (isSelected: boolean) => {
+    if (isMulti) {
+      return (
+        <div
+          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+            isSelected
+              ? locked
+                ? 'bg-gray-400 border-gray-400'
+                : 'bg-gray-900 border-gray-900'
+              : locked
+                ? 'bg-gray-100 border-gray-300'
+                : 'bg-white border-gray-300'
+          }`}
+        >
+          {isSelected && <CheckIcon size={10} weight="bold" className="text-white" />}
+        </div>
+      );
+    }
+    return (
+      <div
+        className={`w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+          isSelected ? (locked ? 'bg-gray-400' : 'bg-gray-900') : 'border-[1.5px] border-gray-300'
+        }`}
+      >
+        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+      </div>
+    );
+  };
+
   return (
     <>
       <div ref={triggerRef} onClick={handleToggle} className="inline-flex">
@@ -850,13 +894,6 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 <div
                   className={`flex flex-col ${showRightPanel || activeCalendarMode ? 'w-[148px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
                 >
-                  <div className="px-2.5 py-1 shrink-0 border-b border-gray-100">
-                    <span
-                      className={`text-xs font-medium ${locked ? 'text-gray-700' : 'text-gray-700'}`}
-                    >
-                      Operator
-                    </span>
-                  </div>
                   <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
                     {operators.map((op, i) => (
                       <React.Fragment key={op.value}>
@@ -869,6 +906,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                           </div>
                         )}
                         <button
+                          ref={currentOperator === op.value ? selectedOperatorRef : null}
                           onClick={op.disabled ? undefined : () => handleOperatorChange(op.value)}
                           disabled={op.disabled}
                           className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-xl border text-left transition-colors ${
@@ -1007,25 +1045,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                             onClick={() => handleToggleOption(option)}
                                             className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
                                           >
-                                            <div
-                                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                                isSelected
-                                                  ? locked
-                                                    ? 'bg-gray-400 border-gray-400'
-                                                    : 'bg-gray-900 border-gray-900'
-                                                  : locked
-                                                    ? 'bg-gray-100 border-gray-300'
-                                                    : 'bg-white border-gray-300'
-                                              }`}
-                                            >
-                                              {isSelected && (
-                                                <CheckIcon
-                                                  size={10}
-                                                  weight="bold"
-                                                  className="text-white"
-                                                />
-                                              )}
-                                            </div>
+                                            {renderSelectionIndicator(isSelected)}
                                             <span
                                               className={
                                                 locked
@@ -1054,25 +1074,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                               onClick={() => handleToggleDynamicOption(opt.id)}
                                               className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
                                             >
-                                              <div
-                                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                                  isSelected
-                                                    ? locked
-                                                      ? 'bg-gray-400 border-gray-400'
-                                                      : 'bg-gray-900 border-gray-900'
-                                                    : locked
-                                                      ? 'bg-gray-100 border-gray-300'
-                                                      : 'bg-white border-gray-300'
-                                                }`}
-                                              >
-                                                {isSelected && (
-                                                  <CheckIcon
-                                                    size={10}
-                                                    weight="bold"
-                                                    className="text-white"
-                                                  />
-                                                )}
-                                              </div>
+                                              {renderSelectionIndicator(isSelected)}
                                               <span
                                                 className={
                                                   locked
@@ -1142,25 +1144,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                       onClick={() => handleToggleOption(option)}
                                       className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
                                     >
-                                      <div
-                                        className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                          isSelected
-                                            ? locked
-                                              ? 'bg-gray-400 border-gray-400'
-                                              : 'bg-gray-900 border-gray-900'
-                                            : locked
-                                              ? 'bg-gray-100 border-gray-300'
-                                              : 'bg-white border-gray-300'
-                                        }`}
-                                      >
-                                        {isSelected && (
-                                          <CheckIcon
-                                            size={10}
-                                            weight="bold"
-                                            className="text-white"
-                                          />
-                                        )}
-                                      </div>
+                                      {renderSelectionIndicator(isSelected)}
                                       <span
                                         className={
                                           locked
@@ -1196,25 +1180,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                                             onClick={() => handleToggleDynamicOption(opt.id)}
                                             className={`w-full flex items-center gap-2 border border-transparent rounded-xl px-3 py-1.5 text-xs text-left transition-colors ${locked ? 'cursor-default' : 'hover:bg-gray-50 cursor-pointer'}`}
                                           >
-                                            <div
-                                              className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                                                isSelected
-                                                  ? locked
-                                                    ? 'bg-gray-400 border-gray-400'
-                                                    : 'bg-gray-900 border-gray-900'
-                                                  : locked
-                                                    ? 'bg-gray-100 border-gray-300'
-                                                    : 'bg-white border-gray-300'
-                                              }`}
-                                            >
-                                              {isSelected && (
-                                                <CheckIcon
-                                                  size={10}
-                                                  weight="bold"
-                                                  className="text-white"
-                                                />
-                                              )}
-                                            </div>
+                                            {renderSelectionIndicator(isSelected)}
                                             <span
                                               className={
                                                 locked
@@ -1487,7 +1453,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                   disabled={locked || isApplying}
                   className={`text-xs transition-colors ${locked || isApplying ? 'text-gray-700 cursor-default opacity-60' : 'text-gray-800 hover:text-gray-900 cursor-pointer'}`}
                 >
-                  Clear
+                  Reset
                 </button>
                 {onToggleLock &&
                   (() => {

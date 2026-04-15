@@ -40,8 +40,16 @@ function isValidScope(value: unknown): value is DataScope {
   return typeof value === "string" && value in SCOPE_RANK;
 }
 
+/**
+ * Default scope for the UI when the dashboard has no explicit
+ * `shared_data_scope` yet. "My team's records" is the least surprising
+ * starting point — broad enough to be useful without exposing the full
+ * org, and matches the common "share to my immediate team" intent.
+ */
+const DEFAULT_SCOPE: DataScope = "MY_TEAMS_RECORDS";
+
 function toSafeScope(value: string | null | undefined): DataScope {
-  return isValidScope(value) ? value : "MY_RECORDS";
+  return isValidScope(value) ? value : DEFAULT_SCOPE;
 }
 
 interface ShareDashboardDialogProps {
@@ -127,14 +135,6 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
     }
   };
 
-  // Close dialog after successful share
-  useEffect(() => {
-    if (sharePhase === "success" && open) {
-      const timer = setTimeout(() => setOpen(false), 800);
-      return () => clearTimeout(timer);
-    }
-  }, [sharePhase, open]);
-
   const shareLink = typeof window !== "undefined" ? window.location.href : "";
 
   return (
@@ -188,8 +188,8 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                       Share this dashboard
                     </h3>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      Only the current snapshot will be shared. Documents and
-                      dashboards will not be shared unless shared directly.
+                      Choose who can view this dashboard and what data they
+                      see.
                     </p>
                   </div>
                   <button
@@ -323,6 +323,8 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                         </span>
                         <div className="mt-1.5 flex flex-col gap-0.5">
                           {SCOPE_OPTIONS.map((opt) => {
+                            // Cumulative visualisation: selecting "My team's
+                            // records" implies "My records" is included, etc.
                             const included =
                               SCOPE_RANK[opt.value] <=
                               SCOPE_RANK[selectedScope];
@@ -331,26 +333,28 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                                 key={opt.value}
                                 onClick={() => setSelectedScope(opt.value)}
                                 disabled={isDisabled}
-                                className="flex items-center gap-2 py-1 text-left cursor-pointer"
+                                className="flex items-center gap-2 py-1 text-left cursor-pointer hover:bg-indigo-50/40 rounded-md px-1 -mx-1 transition-colors"
                               >
-                                <span
-                                  className={`flex items-center justify-center w-5 h-5 rounded-md shrink-0 ${
+                                <div
+                                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
                                     included
-                                      ? "bg-indigo-100 text-indigo-600"
-                                      : "bg-gray-100 text-gray-400"
+                                      ? "bg-indigo-600 border-indigo-600"
+                                      : "bg-white border-gray-300"
                                   }`}
                                 >
-                                  {included ? (
-                                    <CheckIcon size={11} weight="bold" />
-                                  ) : (
-                                    <XIcon size={11} />
+                                  {included && (
+                                    <CheckIcon
+                                      size={10}
+                                      weight="bold"
+                                      className="text-white"
+                                    />
                                   )}
-                                </span>
+                                </div>
                                 <span
                                   className={`text-xs ${
                                     included
-                                      ? "text-indigo-900"
-                                      : "text-gray-400"
+                                      ? "text-indigo-900 font-medium"
+                                      : "text-gray-500"
                                   }`}
                                 >
                                   {opt.label}
@@ -364,8 +368,12 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                   </div>
                 )}
 
-                {/* Share link row */}
-                {selectedShared && onCopyLink && (
+                {/* Share link row — visible only when the dashboard is
+                    currently shared org-wide on the server AND the user
+                    hasn't selected Private in the modal. Selecting Private
+                    hides the link immediately even before the change is
+                    committed, since the link is about to become invalid. */}
+                {isSharedWithTenant && selectedShared && onCopyLink && (
                   <button
                     onClick={handleCopyLink}
                     className="w-full flex items-center gap-2 mt-3 px-3.5 py-2.5 bg-gray-50 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer text-left"

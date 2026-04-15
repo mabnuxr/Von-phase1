@@ -447,7 +447,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     field: FilterFieldConfig,
     fv: FilterValue | undefined
   ): React.ReactNode => {
-    if (!fv) return 'All';
+    if (!fv) return 'Select a filter';
     const opLabel = getOperatorFullLabel(fv.operator, field);
 
     // NoValue operators (is_blank, is_not_blank, custom noValue like My Records)
@@ -513,7 +513,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       const display = formatDynamicValue(fv.value, allDynOpts) ?? fv.value;
       return `${opLabel}: ${display}`;
     }
-    return 'All';
+    return 'Select a filter';
   };
 
   const renderPill = (field: FilterFieldConfig, isAutoOpen: boolean = false) => {
@@ -555,14 +555,17 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
               fieldLocked
                 ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
-                : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
+                : !fv
+                  ? // Empty state — faint grey bg reinforces "no filter selected"
+                    'bg-gray-50/50 border-gray-100 text-gray-500 hover:bg-gray-100/60 cursor-pointer'
+                  : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
             } ${!fv ? 'min-w-[80px]' : ''}`}
           >
             {fieldLocked && <LockSimpleIcon size={11} className="text-gray-500 shrink-0" />}
             <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
             <CaretRightIcon
               size={12}
-              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
+              className={`rotate-90 shrink-0 ${fieldLocked || !fv ? 'text-gray-300' : 'text-gray-400'}`}
             />
           </button>
         </div>
