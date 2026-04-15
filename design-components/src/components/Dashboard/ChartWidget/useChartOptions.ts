@@ -68,6 +68,7 @@ function getNestedValue(point: Highcharts.Point, path: string): unknown {
 
 function buildGanttOptions(raw: Highcharts.Options): Highcharts.Options {
   return {
+    ...raw,
     chart: {
       backgroundColor: 'transparent',
       style: { fontFamily: 'inherit' },
@@ -83,11 +84,10 @@ function buildGanttOptions(raw: Highcharts.Options): Highcharts.Options {
       borderColor: '#374151',
       borderRadius: 8,
       style: { color: '#fff', fontSize: '11px' },
+      ...((raw.tooltip ?? {}) as object),
     },
-    xAxis: raw.xAxis,
-    yAxis: raw.yAxis,
-    series: raw.series,
     plotOptions: {
+      ...((raw.plotOptions ?? {}) as object),
       series: {
         animation: false,
         ...(((raw.plotOptions as Record<string, unknown>)?.series as object) ?? {}),
