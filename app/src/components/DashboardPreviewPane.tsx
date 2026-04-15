@@ -94,6 +94,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleRevertPanelFilter,
+    handleRevertPanel,
     handleApplyPanelFilter,
     canApplyPanelFilter,
     handleCommitPanelLock,
@@ -220,6 +222,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             getEffectivePanelState={getEffectivePanelState}
             onPanelFilterChange={handlePanelFilterChange}
             onResetPanelFilter={handleResetPanelFilter}
+            onRevertPanelFilter={handleRevertPanelFilter}
+            onRevertPanel={handleRevertPanel}
             onApplyPanelFilter={handleApplyPanelFilter}
             canApplyPanelFilter={canApplyPanelFilter}
             onTogglePanelLock={

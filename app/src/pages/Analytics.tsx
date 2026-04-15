@@ -89,6 +89,8 @@ function DashboardCanvas({
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleRevertPanelFilter,
+    handleRevertPanel,
     handleApplyPanelFilter,
     canApplyPanelFilter,
     handleCommitPanelLock,
@@ -220,6 +222,8 @@ function DashboardCanvas({
         getEffectivePanelState={getEffectivePanelState}
         onPanelFilterChange={handlePanelFilterChange}
         onResetPanelFilter={handleResetPanelFilter}
+        onRevertPanelFilter={handleRevertPanelFilter}
+        onRevertPanel={handleRevertPanel}
         onApplyPanelFilter={handleApplyPanelFilter}
         canApplyPanelFilter={canApplyPanelFilter}
         onTogglePanelLock={

@@ -124,6 +124,7 @@ function adaptWidget(
       title: raw.title,
       config: raw.kpi,
       query_failed: raw.query_failed,
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     };
@@ -138,6 +139,7 @@ function adaptWidget(
         type: raw.type as WidgetConfig["type"],
         title: raw.title,
         config: {},
+        queryRef: raw.query_ref,
         queryInfo,
       } as WidgetConfig;
     }
@@ -158,6 +160,7 @@ function adaptWidget(
         chartType: ((chartObj.type as string) ?? "bar") as ChartType,
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     };
@@ -182,6 +185,7 @@ function adaptWidget(
             }
           : undefined,
       },
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     } as unknown as WidgetConfig;
@@ -193,6 +197,7 @@ function adaptWidget(
     type: raw.type as WidgetConfig["type"],
     title: raw.title,
     config: {},
+    queryRef: raw.query_ref,
     drilldown: raw.drilldown ?? null,
     queryInfo,
   } as WidgetConfig;

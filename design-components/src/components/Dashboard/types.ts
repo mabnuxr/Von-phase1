@@ -56,6 +56,11 @@ export interface WidgetConfig {
   subtitle?: string;
   config: ChartWidgetConfig | CounterWidgetConfig | TableWidgetConfig | TextWidgetConfig;
   query_failed?: boolean;
+  /**
+   * Backend query ID that powers this widget. Used to match filter
+   * `applies_to` entries (which reference query IDs, not widget IDs).
+   */
+  queryRef?: string;
   /** Drilldown configuration — present when the panel supports drill-down. */
   drilldown?: DrilldownConfig | null;
   /** Query SQL and description for this widget */

@@ -135,6 +135,11 @@ export interface WidgetConfig {
     | TableWidgetConfig
     | TextWidgetConfig;
   query_failed?: boolean;
+  /**
+   * Backend query ID that powers this widget. Used to match filter
+   * `applies_to` entries (which reference query IDs, not widget IDs).
+   */
+  queryRef?: string;
   drilldown?: {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;
@@ -358,7 +363,10 @@ export interface DashboardFilterDefinition {
   options?: string[];
   /** Default value applied on first load */
   default?: unknown;
-  /** Widget IDs this filter applies to */
+  /**
+   * Query IDs this filter applies to (e.g. `"pipeline_by_owner"`).
+   * Matched against `widget.queryRef`, not `widget.id`.
+   */
   applies_to?: string[];
   /** Valid operators with display labels for this filter type */
   valid_operators?: { value: string; label: string }[];

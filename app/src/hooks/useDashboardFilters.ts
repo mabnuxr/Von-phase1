@@ -297,6 +297,16 @@ export function useDashboardFilters(
   const serverPanelNormalised = useRef<Record<string, FilterLocalState>>(
     normalisePanelState(serverPanelStateRaw),
   );
+  /**
+   * Set of panel IDs with an in-flight panel-level Apply mutation.
+   * Consumed by `handleRevertPanel` to skip the revert when the user
+   * closes the widget popover while a PATCH is still pending — the
+   * refetch after the mutation settles will sync state, so blindly
+   * reverting to the stale server snapshot would just cause a flicker.
+   * Populated in `handleApplyPanelFilter`, cleared in that mutation's
+   * per-call `onSettled`.
+   */
+  const inFlightPanelApplies = useRef<Set<string>>(new Set());
   const [serverLockedNormalised, setServerLockedNormalised] =
     useState<FilterLocalState>(() =>
       normaliseServerState(serverLockedStateRaw),
@@ -569,6 +579,82 @@ export function useDashboardFilters(
     [dashboardId, isOwner, localPanelState, mutation],
   );
 
+  /** Revert a pending per-panel filter back to the last server-committed
+   *  state. Called when a widget filter popover closes without Apply so
+   *  stale in-memory changes don't leak into the next interaction. Does
+   *  not PATCH the backend (unlike Reset). */
+  const handleRevertPanelFilter = useCallback(
+    (panelId: string, filterId: string) => {
+      // Same race-guard as `handleRevertPanel`: skip while this panel
+      // has an in-flight Apply so we don't revert to a stale ref.
+      if (inFlightPanelApplies.current.has(panelId)) return;
+
+      setLocalPanelState((prev) => {
+        const localPanel = prev[panelId];
+        const serverPanel = serverPanelNormalised.current[panelId] ?? {};
+        const serverValue = serverPanel[filterId];
+
+        if (serverValue === undefined) {
+          // No server override for this slot — drop any pending local entry.
+          if (!localPanel || !(filterId in localPanel)) return prev;
+          const rest = { ...localPanel };
+          delete rest[filterId];
+          if (Object.keys(rest).length === 0) {
+            const pRest = { ...prev };
+            delete pRest[panelId];
+            return pRest;
+          }
+          return { ...prev, [panelId]: rest };
+        }
+
+        // Server has an override — restore it if the local entry has drifted.
+        if (localPanel?.[filterId] === serverValue) return prev;
+        return {
+          ...prev,
+          [panelId]: { ...(localPanel ?? {}), [filterId]: serverValue },
+        };
+      });
+    },
+    [],
+  );
+
+  /** Revert ALL pending edits for a given panel back to the last server-
+   *  committed snapshot. Called when the widget filter popover closes
+   *  without Apply (via X button, outside click, or Escape), so drafts
+   *  don't leak into the next interaction — a bulk variant of
+   *  `handleRevertPanelFilter` that covers every open filter row. */
+  const handleRevertPanel = useCallback((panelId: string) => {
+    // Skip revert when a panel-level Apply is still in flight for this
+    // panel. `serverPanelNormalised.current` would be the stale pre-apply
+    // snapshot, and reverting would visually undo the just-committed
+    // local value. The post-mutation refetch will sync state on success;
+    // on failure the mutation's `onError` already restores local from
+    // the un-mutated ref.
+    if (inFlightPanelApplies.current.has(panelId)) return;
+
+    setLocalPanelState((prev) => {
+      const localPanel = prev[panelId];
+      const serverPanel = serverPanelNormalised.current[panelId];
+
+      // No local drafts for this panel — nothing to revert.
+      if (!localPanel) return prev;
+
+      // Server has no overrides for this panel — drop the panel entry.
+      if (!serverPanel || Object.keys(serverPanel).length === 0) {
+        if (!(panelId in prev)) return prev;
+        const pRest = { ...prev };
+        delete pRest[panelId];
+        return pRest;
+      }
+
+      // Already matches server — no-op.
+      if (JSON.stringify(localPanel) === JSON.stringify(serverPanel))
+        return prev;
+
+      return { ...prev, [panelId]: { ...serverPanel } };
+    });
+  }, []);
+
   // ── Per-panel-filter Apply (widget popover) ─────────────────
   //
   // Commit ONLY the affected filter for this panel. Populates `panel_state`
@@ -618,8 +704,22 @@ export function useDashboardFilters(
       }
 
       if (Object.keys(payload).length === 0) return;
+
+      // Track this panel as having an in-flight apply so concurrent
+      // reverts (e.g. the outer widget popover closing before the PATCH
+      // settles) can skip the slot that's being committed. The flag is
+      // cleared in this mutation's `onSettled`. Without this guard,
+      // `handleRevertPanel` reads the stale pre-apply server snapshot
+      // and visually undoes the just-committed value until the refetch
+      // catches up.
+      inFlightPanelApplies.current.add(panelId);
+
       setIsApplying(true);
-      mutation.mutate([{ payload, panelId }]);
+      mutation.mutate([{ payload, panelId }], {
+        onSettled: () => {
+          inFlightPanelApplies.current.delete(panelId);
+        },
+      });
     },
     [dashboardId, localPanelState, mutation],
   );
@@ -920,6 +1020,8 @@ export function useDashboardFilters(
     handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
+    handleRevertPanelFilter,
+    handleRevertPanel,
     handleApplyPanelFilter,
     canApplyPanelFilter,
     handleCommitPanelLock,
