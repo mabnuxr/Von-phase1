@@ -32,6 +32,7 @@ export interface DraftCard {
   cc?: string[];
   bcc?: string[];
   crm_context?: string;
+  tab_label?: string;
 }
 
 /**
@@ -90,5 +91,6 @@ export async function parseEmlContent(
     cc: toAddrs(email.cc),
     bcc: toAddrs(email.bcc),
     crm_context: email.headers?.find((h) => h.key === "x-crm-context")?.value,
+    tab_label: email.headers?.find((h) => h.key === "x-tab-label")?.value,
   };
 }

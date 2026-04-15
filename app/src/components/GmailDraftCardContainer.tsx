@@ -183,6 +183,7 @@ export const GmailDraftCardContainer: React.FC<
     body: parsed.body_full,
     bodyPlain: parsed.body_plain,
     isHtml: parsed.isHtml,
+    tabLabel: parsed.tab_label,
   };
 
   return (
@@ -291,6 +292,7 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
       body: parsed.body_full,
       bodyPlain: parsed.body_plain,
       isHtml: parsed.isHtml,
+      tabLabel: parsed.tab_label,
     });
   });
 
