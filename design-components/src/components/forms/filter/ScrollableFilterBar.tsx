@@ -233,7 +233,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   // ── Overflow measurement ────────────────────────────────────────
   // Determines which non-applied filters to show vs. put behind "+"
   const [visibleSet, setVisibleSet] = useState<Set<string>>(() => new Set());
-  // Dynamic max-width for the scroll area — 60% of the actual row width
+  // Dynamic max-width for the scroll area — 70% of the actual row width
   const [scrollAreaMaxWidth, setScrollAreaMaxWidth] = useState<number>(0);
 
   const measureOverflow = useCallback(() => {
@@ -244,7 +244,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
     const rowEl = getRowEl() ?? container;
     const rowWidth = rowEl.clientWidth;
-    const budget = rowWidth * 0.6;
+    const budget = rowWidth * 0.7;
     setScrollAreaMaxWidth(budget);
     const plusButtonWidth = 42;
     const gap = 6; // gap-1.5 = 6px
@@ -269,9 +269,9 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       }
     }
 
-    // Phase 2: fill remaining non-applied into the 60% budget.
+    // Phase 2: fill remaining non-applied into the 70% budget.
     // Mandatory+applied always show even if they exceed the budget.
-    // Non-applied only appear if there's room within the 60% allocation.
+    // Non-applied only appear if there's room within the 70% allocation.
     const nonAppliedBudget = Math.max(budget, usedWidth);
     let hasOverflow = false;
 
@@ -620,7 +620,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
           })}
         </div>
 
-        {/* Scrollable filter area — capped at 60% of the parent row */}
+        {/* Scrollable filter area — capped at 70% of the parent row */}
         <div
           className="flex items-end gap-1 min-w-0"
           style={{ maxWidth: scrollAreaMaxWidth || undefined }}
@@ -667,7 +667,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
           )}
         </div>
 
-        {/* "+" overflow button — outside the 60% scroll area */}
+        {/* "+" overflow button — outside the 70% scroll area */}
         {overflowFields.length > 0 && (
           <button
             ref={plusRef}
