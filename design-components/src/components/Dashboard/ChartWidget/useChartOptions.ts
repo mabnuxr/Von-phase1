@@ -202,7 +202,7 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
 function injectDrilldown(
   options: Highcharts.Options,
   drilldown: DrilldownConfig | null | undefined,
-  onPointClick: ((drillFilters: DrillFilters) => void) | undefined,
+  onPointClick: ((drillFilters: DrillFilters) => void) | undefined
 ): Highcharts.Options {
   const columnMap = drilldown?.column_map;
   if (!columnMap?.length || !onPointClick) return options;
@@ -276,7 +276,7 @@ export function useChartOptions({ config, drilldown, onPointClick }: UseChartOpt
 
   const finalOptions = useMemo(
     () => injectDrilldown(options, drilldown, onPointClick),
-    [options, drilldown, onPointClick],
+    [options, drilldown, onPointClick]
   );
 
   return { options: finalOptions, constructorType };
