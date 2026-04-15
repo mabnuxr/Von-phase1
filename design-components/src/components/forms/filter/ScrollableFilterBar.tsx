@@ -548,7 +548,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         defaultOpen={isAutoOpen}
       >
         <div
-          className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
+          className={`flex flex-col gap-1.5 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
         >
           <span
             className={`flex items-center gap-1 text-[11px] leading-none pl-0.5 ${fieldLocked ? 'text-gray-500' : 'text-gray-700'}`}
@@ -588,7 +588,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   // ── Overflow mode render ────────────────────────────────────────
   if (useOverflowMode) {
     return (
-      <div ref={containerRef} className="flex items-center gap-1.5 min-w-0">
+      <div ref={containerRef} className="flex items-center gap-2 min-w-0">
         {/* Hidden measurement row — renders all pills off-screen to measure widths */}
         <div
           ref={measureRef}
@@ -637,7 +637,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
 
           <div
             ref={scrollRef}
-            className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0"
+            className="flex items-center gap-2.5 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             {visibleFields.map((field, i) => {

@@ -364,10 +364,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     // just the narrow operator column. Otherwise use the full two-panel width.
     const baseWidth =
       isOperatorDrivenCalendar || hasNumberInputOp
-        ? 180
+        ? 260
         : field.type === 'picklist' || field.options?.length
-          ? 420
-          : 340;
+          ? 640
+          : 500;
     const popoverWidth = hasCalendar
       ? activeCalendarMode === 'range'
         ? baseWidth + 540
@@ -932,7 +932,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                 {/* Left panel — Operators: fixed width when right panel or calendar is
                     visible, full width when it's the sole column (all noValue operators). */}
                 <div
-                  className={`flex flex-col ${showRightPanel || activeCalendarMode ? 'w-[148px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
+                  className={`flex flex-col ${showRightPanel || activeCalendarMode ? 'w-[200px] shrink-0 border-r border-gray-100' : 'flex-1'}`}
                 >
                   <div className="flex-1 overflow-y-auto py-1 pl-1 pr-2">
                     {operators.map((op, i) => (
@@ -987,7 +987,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
 
                 {/* Right panel — Values: fixed search, scrollable list */}
                 {showRightPanel && (
-                  <div className="flex-1 min-w-[180px] flex flex-col min-h-0">
+                  <div className="flex-1 min-w-[320px] flex flex-col min-h-0">
                     {/* Number input for N-parameterized operators (e.g. Last N Days) */}
                     {operatorDef?.numberInput ? (
                       <div className="px-3 py-4 flex flex-col gap-2">
@@ -1397,7 +1397,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
                     };
                     return (
                       <div className="border-l border-gray-100 flex flex-col min-h-0 shrink-0">
-                        <div className="px-3 py-1 shrink-0 border-b border-gray-100 flex items-center justify-between gap-2">
+                        <div className="px-3 py-1.5 shrink-0 border-b border-gray-100 flex items-center justify-between gap-2">
                           <span className="text-xs font-medium text-gray-700">
                             {activeCalendarMode === 'single' ? 'Select date' : 'Select date range'}
                           </span>
