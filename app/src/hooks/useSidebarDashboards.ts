@@ -43,7 +43,9 @@ const STATUS = "published";
  * - All page data is subscribed — refetches of earlier pages trigger re-renders.
  * - `fetchNextPage` is a no-op while a fetch is in flight (built-in guard).
  */
-export function useSidebarDashboards() {
+export function useSidebarDashboards({
+  enabled = true,
+}: { enabled?: boolean } = {}) {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useInfiniteQuery<DashboardListResponse>({
       queryKey: sidebarDashboardKeys.list(STATUS, SIDEBAR_DASHBOARD_PAGE_SIZE),
@@ -59,6 +61,7 @@ export function useSidebarDashboards() {
           ? lastPage.pagination.page + 1
           : undefined,
       staleTime: DASHBOARD_LIST_STALE_TIME,
+      enabled,
     });
 
   const dashboards: DashboardSidebarItem[] = useMemo(() => {
