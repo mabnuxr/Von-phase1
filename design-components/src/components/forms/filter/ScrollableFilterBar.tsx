@@ -9,6 +9,7 @@
 
 import React, { useRef, useState, useCallback, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import {
   CaretDownIcon,
   CaretRightIcon,
@@ -278,7 +279,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     const triggerRect = trigger.getBoundingClientRect();
     const popoverRect = popover.getBoundingClientRect();
     const left = Math.max(8, Math.min(triggerRect.left, window.innerWidth - popoverRect.width - 8));
-    const preferredTop = triggerRect.bottom + 6;
+    const preferredTop = triggerRect.bottom + 2;
     const top = Math.max(8, Math.min(preferredTop, window.innerHeight - popoverRect.height - 8));
 
     setMorePopoverStyle({
@@ -436,23 +437,21 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               </Tooltip>
             )}
           </span>
-          <button
+          <motion.button
+            layout
             className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
               fieldLocked
                 ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
                 : !fv
-                  ? 'bg-white border-gray-200/50 text-gray-500 hover:bg-gray-50 cursor-pointer'
+                  ? 'bg-white border-gray-200/50 text-gray-900 hover:bg-gray-50 cursor-pointer'
                   : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
             }`}
-            style={{ minWidth: 108 }}
+            style={{ minWidth: 140 }}
           >
             {fieldLocked && <LockSimpleIcon size={11} className="text-gray-500 shrink-0" />}
             <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
-            <CaretRightIcon
-              size={12}
-              className={`rotate-90 shrink-0 ${fieldLocked || !fv ? 'text-gray-300' : 'text-gray-400'}`}
-            />
-          </button>
+            <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
+          </motion.button>
         </div>
       </SplitFilterDropdown>
     );
@@ -478,12 +477,12 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               </span>
               <button
                 className="flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap"
-                style={{ minWidth: 108 }}
+                style={{ minWidth: 140 }}
                 tabIndex={-1}
               >
                 {fieldLocked && <LockSimpleIcon size={11} className="shrink-0" />}
                 <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
-                <CaretRightIcon size={12} className="rotate-90 shrink-0" />
+                <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
               </button>
             </div>
           );
@@ -513,7 +512,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                   {hiddenFields.length}
                 </span>
                 <span>filters</span>
-                <CaretDownIcon size={10} className="shrink-0 text-gray-400" />
+                <CaretDownIcon size={10} className="shrink-0 text-gray-800" />
               </span>
             </button>
           </div>
@@ -527,12 +526,9 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               >
                 <div className="px-3 py-2 border-b border-gray-100">
                   <p className="text-xs font-medium text-gray-900">More filters</p>
-                  <p className="text-[11px] text-gray-500">
-                    Open a filter to edit it to the right.
-                  </p>
                 </div>
 
-                <div className="max-h-[320px] overflow-y-auto p-2">
+                <div className="max-h-[320px] overflow-y-auto p-2 flex flex-col gap-3">
                   {hiddenFields.map((field) => {
                     const fv = values[field.id];
                     const fieldLocked = field.locked ?? false;
@@ -553,7 +549,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                         onDismiss={onDismiss ? () => onDismiss(field.id) : undefined}
                       >
                         <div
-                          className={`w-full flex flex-col gap-1 rounded-xl p-1 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
+                          className={`w-full flex flex-col gap-1 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
                         >
                           <div className="flex items-center justify-between gap-2 pl-0.5">
                             <span
@@ -571,7 +567,8 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                             </span>
                           </div>
 
-                          <button
+                          <motion.button
+                            layout
                             className={`w-full flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
                               fieldLocked
                                 ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
@@ -583,9 +580,9 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                             </span>
                             <CaretRightIcon
                               size={12}
-                              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
+                              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-800'}`}
                             />
-                          </button>
+                          </motion.button>
                         </div>
                       </SplitFilterDropdown>
                     );
