@@ -215,7 +215,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     const rowEl = getRowEl();
     if (!measure || !rowEl) return;
 
-    const budget = rowEl.clientWidth * 0.6;
+    const budget = rowEl.clientWidth * 0.5;
     const gap = 6; // gap-1.5 = 6px
     const pinned = pinnedCount ?? 0;
 
