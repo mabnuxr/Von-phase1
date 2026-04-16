@@ -543,6 +543,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                         value={fv ?? null}
                         onChange={(val) => onFilterChange(field.id, val)}
                         triggerClassName="w-full"
+                        placement="right-start"
                         locked={fieldLocked}
                         onToggleLock={field.onToggleLock}
                         canLock={field.canLock}
@@ -583,7 +584,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                             </span>
                             <CaretRightIcon
                               size={12}
-                              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
+                              className={`shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
                             />
                           </button>
                         </div>
