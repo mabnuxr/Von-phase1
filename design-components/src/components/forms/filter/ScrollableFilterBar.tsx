@@ -263,6 +263,14 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   const inlineFields = fields.slice(0, visibleCount);
   const hiddenFields = fields.slice(visibleCount);
 
+  // True when at least one hidden filter has a committed (applied) value.
+  // `values` reflects the server state except during active popover editing
+  // (dismissed edits are reverted by onDismiss), so this is a reliable proxy.
+  const hasAppliedHiddenFilter = hiddenFields.some((f) => {
+    const fv = values[f.id];
+    return fv && !isEmptyFilterValue(fv.value);
+  });
+
   // Close More popover if all hidden fields disappear
   useEffect(() => {
     if (isMoreOpen && hiddenFields.length === 0) {
@@ -499,14 +507,20 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             <button
               ref={moreButtonRef}
               onClick={() => setIsMoreOpen((open) => !open)}
-              className={`flex items-center gap-2 h-[28px] px-2 text-xs rounded-lg border transition-colors cursor-pointer ${
+              className={`flex items-center gap-2 h-[26px] px-2 text-[11px] rounded-lg border transition-colors cursor-pointer ${
                 isMoreOpen
                   ? 'bg-gray-50 border-gray-200 text-gray-900'
                   : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50'
               }`}
-              style={{ minWidth: 80 }}
+              style={{ minWidth: 80, marginBottom: 1 }}
             >
               <span className="flex items-center gap-1 whitespace-nowrap">
+                {hasAppliedHiddenFilter && (
+                  <span
+                    className="shrink-0 rounded-full"
+                    style={{ width: 5, height: 5, backgroundColor: '#6d28d9' }}
+                  />
+                )}
                 <span className="flex items-center gap-px">
                   <PlusIcon size={8} weight="bold" className="shrink-0" />
                   {hiddenFields.length}
@@ -528,7 +542,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                   <p className="text-xs font-medium text-gray-900">More filters</p>
                 </div>
 
-                <div className="max-h-[320px] overflow-y-auto p-2 flex flex-col gap-3">
+                <div className="overflow-y-auto p-2 flex flex-col gap-2" style={{ maxHeight: 180 }}>
                   {hiddenFields.map((field) => {
                     const fv = values[field.id];
                     const fieldLocked = field.locked ?? false;
