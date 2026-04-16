@@ -480,10 +480,11 @@ export function mapDefinition(
       });
     }
 
-    // Manual operators — Is (in) / Is not (not_in) for individual user selection.
+    // Manual operators — all picklist operators for individual user selection.
     // Only add if valid_operators includes them (backend scopes these for viewers).
-    const manualOps = (def.valid_operators ?? []).filter(
-      (op) => op.value === "in" || op.value === "not_in",
+    const OWNERSHIP_MANUAL_OPS = new Set(["in", "not_in", "equals", "not_equals"]);
+    const manualOps = (def.valid_operators ?? []).filter((op) =>
+      OWNERSHIP_MANUAL_OPS.has(op.value),
     );
     if (manualOps.length > 0) {
       let firstManual = true;
