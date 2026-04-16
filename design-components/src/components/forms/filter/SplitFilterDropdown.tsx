@@ -216,6 +216,12 @@ export interface SplitFilterDropdownProps {
   /** When true, the popover opens on mount (one-shot). Used by the
    *  overflow "+" button to auto-open a newly promoted filter. */
   defaultOpen?: boolean;
+  /** Optional class name applied to the trigger wrapper div */
+  triggerClassName?: string;
+  /** Where the popover opens relative to the trigger */
+  placement?: 'bottom-start' | 'right-start';
+  /** Called when the popover opens. Lets the parent close sibling popovers. */
+  onOpen?: () => void;
 }
 
 // ============================================================================
@@ -236,6 +242,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   onClear,
   onDismiss,
   defaultOpen = false,
+  triggerClassName,
+  placement = 'bottom-start',
+  onOpen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -376,9 +385,22 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     const popoverHeight = 310;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const left = Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
-    const spaceBelow = viewportHeight - rect.bottom;
-    const top = spaceBelow >= popoverHeight + 8 ? rect.bottom + 6 : rect.top - popoverHeight - 6;
+    const left =
+      placement === 'right-start'
+        ? (() => {
+            const preferred = rect.right + 8;
+            const fallback = rect.left - popoverWidth - 8;
+            if (preferred + popoverWidth <= viewportWidth - 8) return preferred;
+            return Math.max(8, fallback);
+          })()
+        : Math.max(8, Math.min(rect.left, viewportWidth - popoverWidth - 8));
+    const top =
+      placement === 'right-start'
+        ? Math.max(8, Math.min(rect.top, viewportHeight - popoverHeight - 8))
+        : (() => {
+            const spaceBelow = viewportHeight - rect.bottom;
+            return spaceBelow >= popoverHeight + 8 ? rect.bottom + 6 : rect.top - popoverHeight - 6;
+          })();
     setPopoverStyle({
       position: 'fixed',
       top,
@@ -391,6 +413,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
     activeCalendarMode,
     isOperatorDrivenCalendar,
     hasNumberInputOp,
+    placement,
   ]);
 
   // A locked filter without an `onToggleLock` handler belongs to a
@@ -410,8 +433,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       initDynamicInputs();
       initCalendar();
       setIsOpen(true);
+      onOpen?.();
     }
-  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar, onDismiss]);
+  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar, onDismiss, onOpen]);
 
   // Auto-open when defaultOpen transitions to true. Only watches
   // `defaultOpen` — NOT the callbacks, because computePosition depends
@@ -891,7 +915,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
 
   return (
     <>
-      <div ref={triggerRef} onClick={handleToggle} className="inline-flex">
+      <div
+        ref={triggerRef}
+        onClick={handleToggle}
+        className={triggerClassName ? `inline-flex ${triggerClassName}` : 'inline-flex'}
+      >
         {children}
       </div>
 

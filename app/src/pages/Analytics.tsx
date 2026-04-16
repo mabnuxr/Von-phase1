@@ -72,7 +72,6 @@ function DashboardCanvas({
   const {
     definitions: filterDefinitions,
     filterState,
-    syncedFilterState,
     panelFilterState,
     lockedFilterState,
     lockedPanelFilterState,
@@ -168,7 +167,6 @@ function DashboardCanvas({
         refreshInfo={refreshInfo}
         filterDefinitions={filterDefinitions}
         filterState={filterState}
-        syncedFilterState={syncedFilterState}
         filterPendingRows={filterPendingRows}
         filterActiveCount={filterActiveCount}
         filterCanApply={filterCanApply}
