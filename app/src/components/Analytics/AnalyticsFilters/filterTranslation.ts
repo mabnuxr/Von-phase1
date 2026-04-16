@@ -133,10 +133,7 @@ function isCalendarSerialised(v: string): boolean {
 // ── Ownership user ID ↔ name helpers ────────────────────────────────
 
 /** Resolve a SFDC user ID to a display name using the definition's ownership_options. */
-function ownershipIdToName(
-  id: string,
-  def: DashboardFilterDefinition,
-): string {
+function ownershipIdToName(id: string, def: DashboardFilterDefinition): string {
   const opt = def.ownership_options?.find((u) => u.id === id);
   return opt?.name ?? id;
 }
@@ -482,7 +479,12 @@ export function mapDefinition(
 
     // Manual operators — all picklist operators for individual user selection.
     // Only add if valid_operators includes them (backend scopes these for viewers).
-    const OWNERSHIP_MANUAL_OPS = new Set(["in", "not_in", "equals", "not_equals"]);
+    const OWNERSHIP_MANUAL_OPS = new Set([
+      "in",
+      "not_in",
+      "equals",
+      "not_equals",
+    ]);
     const manualOps = (def.valid_operators ?? []).filter((op) =>
       OWNERSHIP_MANUAL_OPS.has(op.value),
     );
@@ -600,7 +602,11 @@ function isTokenAsOperatorFilter(def: DashboardFilterDefinition): boolean {
   // and demoted back to {operator: "equals", value: TOKEN} for the backend.
   if (type === "date" && !!def.dynamic && !!def.available_presets?.length)
     return true;
-  if (def.semantic_type === "ownership" && !!def.dynamic && !!def.available_presets?.length)
+  if (
+    def.semantic_type === "ownership" &&
+    !!def.dynamic &&
+    !!def.available_presets?.length
+  )
     return true;
   return false;
 }
