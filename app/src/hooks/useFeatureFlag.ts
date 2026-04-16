@@ -97,13 +97,13 @@ export function useFeatureFlag() {
     /**
      * Controls if we need to show new sidebar UI experience
      */
-    isSidebarV2: true,
+    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
 
     /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component
      */
-    isAgentV2: true,
+    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
 
     /**
      * User memory — permanently enabled, no longer behind a feature flag
@@ -113,12 +113,12 @@ export function useFeatureFlag() {
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
-    isDeepResearchEnabled: true,
+    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
 
     /**
      * Controls whether the Sources button is shown on assistant messages
      */
-    isSourcesEnabled: true,
+    isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
 
     /**
      * Controls whether the current tenant's subscription is inactive
@@ -190,7 +190,8 @@ export function useFeatureFlag() {
      * Controls whether the v2 dashboard filter bar UI is enabled
      * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
      */
-    isDashboardFiltersV2Enabled: true,
+    isDashboardFiltersV2Enabled:
+      flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
 
     /**
      * Controls whether Usage tab is visible in Settings
