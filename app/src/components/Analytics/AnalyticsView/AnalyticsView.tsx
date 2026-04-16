@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
@@ -19,11 +19,16 @@ import {
   Tooltip,
 } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
+import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
+import { DataSourcesSlot } from "./DataSourcesSlot";
+import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
+import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
 import { SharePopover } from "./SharePopover";
+import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
 import type {
@@ -38,7 +43,6 @@ import type {
   WidgetConfig,
   GridConfig,
   LayoutItem,
-  AppliedWidgetFilter,
 } from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
@@ -75,6 +79,14 @@ interface AnalyticsViewProps {
   ) => void;
   onApplyFilters: () => void;
   onClearAll: () => void;
+  /** Immediate-commit clear — PATCH resets/removes the filter. */
+  onClearFilter?: (filterId: string) => void;
+  /** Owner-only: commit-lock/unlock — immediate PATCH with current value. */
+  onToggleLock?: (filterId: string, locked: boolean) => void;
+  /** Owner-only: returns whether a given filter has a valid value to lock. */
+  canLockFilter?: (filterId: string) => boolean;
+  /** Revert unapplied local state for a single filter on popover dismiss. */
+  onRevertFilter?: (filterId: string) => void;
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
@@ -84,7 +96,10 @@ interface AnalyticsViewProps {
   isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
-  onShare: (isSharedWithTenant: boolean) => void;
+  onShare: (
+    isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
+  ) => void;
   sharePhase: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
   onExpand?: () => void;
@@ -142,6 +157,60 @@ interface AnalyticsViewProps {
   isRefreshing?: boolean;
   /** Whether the drilldown panel is open (hides inline edit banner to avoid duplication) */
   isDrilldownOpen?: boolean;
+  // ── v2 filter plumbing (panel-level overrides) ───────────────────────
+  /** Panel-level filter overrides (v2). */
+  panelFilterState?: Record<string, Record<string, ActiveFilter>>;
+  /** Dashboard-level locked filter state (v2). */
+  lockedFilterState?: Record<string, ActiveFilter>;
+  /** Client-side resolver for per-panel effective filter state (v2). */
+  getEffectivePanelState?: (panelId: string) => Record<string, ActiveFilter>;
+  /** Panel-level filter change handler (v2). */
+  onPanelFilterChange?: (
+    panelId: string,
+    filterId: string,
+    operator: string,
+    value?: unknown,
+    includeBlank?: boolean,
+  ) => void;
+  /** Reset a single panel-level filter back to the dashboard value (v2). */
+  onResetPanelFilter?: (panelId: string, filterId: string) => void;
+  /**
+   * Revert an unapplied panel-level edit back to the last server-
+   * committed state. Wired to the widget popover's dismiss so closing
+   * without Apply discards the draft (v2).
+   */
+  onRevertPanelFilter?: (panelId: string, filterId: string) => void;
+  /**
+   * Revert ALL pending edits for this panel. Fired when the outer
+   * widget filter popover closes via any path (v2).
+   */
+  onRevertPanel?: (panelId: string) => void;
+  /**
+   * Commit a single panel-level filter change to the server (v2).
+   * Sends only the affected filter in the PATCH payload, scoped to
+   * the given `panel_id`, so `panel_state` gets populated without
+   * touching dashboard-level state.
+   */
+  onApplyPanelFilter?: (panelId: string, filterId: string) => void;
+  /** True when the given panel+filter has a pending commit. */
+  canApplyPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /**
+   * Owner-only. Toggle the per-panel lock for a filter. Commits the
+   * effective value (panel override or dashboard value) via PATCH with
+   * `panel_id` + `is_locked`.
+   */
+  onTogglePanelLock?: (
+    panelId: string,
+    filterId: string,
+    locked: boolean,
+  ) => void;
+  /** Validity gate for the panel-level Lock button. */
+  canLockPanelFilter?: (panelId: string, filterId: string) => boolean;
+  /**
+   * Server-side per-panel locked state, keyed by panelId → filterId.
+   * Used to show (locked) indicator on widget-level filter rows.
+   */
+  lockedPanelFilterState?: Record<string, Record<string, ActiveFilter>>;
 }
 
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
@@ -160,6 +229,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onCommitPendingRow,
   onApplyFilters,
   onClearAll,
+  onClearFilter,
+  onToggleLock,
+  canLockFilter,
+  onRevertFilter,
   onRefresh,
   onSave,
   savePhase,
@@ -196,7 +269,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isRefetchingData,
   isRefreshing,
   isDrilldownOpen,
+  // Panel-filter props accepted but unused until widget-level filter UI is re-enabled
 }) => {
+  const { isDashboardFiltersV2Enabled } = useFeatureFlag();
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
     ...rawGridConfig,
@@ -208,64 +283,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
-  const widgetIds = useMemo(() => Object.keys(widgets), [widgets]);
-
-  const widgetAppliedFilters = useMemo(() => {
-    if (!filterDefinitions.length || !filterState) return undefined;
-
-    // Pre-compute display-ready filter info once per active definition
-    const stringify = (v: unknown) => {
-      if (v == null) return "";
-      if (typeof v === "object" && v !== null && "start" in v && "end" in v) {
-        const r = v as { start: string; end: string };
-        return `${r.start} – ${r.end}`;
-      }
-      return typeof v === "object" ? JSON.stringify(v) : String(v);
-    };
-
-    const enrichedDefs = filterDefinitions
-      .filter((def) => def.id in filterState)
-      .map((def) => {
-        const state = filterState[def.id];
-        const operatorLabel =
-          def.valid_operators?.find((op) => op.value === state.operator)
-            ?.label ?? state.operator;
-        const values = Array.isArray(state.value)
-          ? state.value.map(stringify)
-          : state.value != null
-            ? [stringify(state.value)]
-            : [];
-        const includeBlank = !!state.include_blank;
-        return {
-          label: def.label,
-          operatorLabel,
-          values,
-          includeBlank,
-          appliesTo: def.applies_to,
-        };
-      });
-    if (!enrichedDefs.length) return undefined;
-
-    const result: Record<string, AppliedWidgetFilter[]> = {};
-    for (const wId of widgetIds) {
-      const filtersForWidget: AppliedWidgetFilter[] = [];
-      for (const def of enrichedDefs) {
-        // No applies_to means the filter applies to all widgets
-        if (def.appliesTo && !def.appliesTo.includes(wId)) continue;
-        filtersForWidget.push({
-          label: def.label,
-          operatorLabel: def.operatorLabel,
-          values: def.values,
-          ...(def.includeBlank && { includeBlank: true }),
-        });
-      }
-      if (filtersForWidget.length > 0) {
-        result[wId] = filtersForWidget;
-      }
-    }
-
-    return Object.keys(result).length > 0 ? result : undefined;
-  }, [filterDefinitions, filterState, widgetIds]);
+  // Widget-level filter UI hidden until panel-filter designs are ready.
+  // widgetIds, widgetQueryRefMap, widgetAppliedFilters, and widgetFilterSlot
+  // memos removed — restore when re-enabling widget-level filters.
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
     isOwner: dashboard.isOwner,
@@ -440,6 +460,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </button>
             )}
 
+            {/* Data sources pill (v2) — header-right, next to Ask Von */}
+            {isDashboardFiltersV2Enabled && dashboard.data_sources && (
+              <DataSourcesSlot dataSources={dashboard.data_sources} />
+            )}
+
             {/* "Ask Von" button — only shown when chat panel is closed */}
             {onChatClick && !isChatOpen && (
               <motion.button
@@ -480,21 +505,38 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
         <DashboardLayout.HeaderRow bordered>
           <DashboardLayout.HeaderRow.Left>
-            <AnalyticsFilters
-              definitions={filterDefinitions}
-              filterState={filterState}
-              pendingRows={filterPendingRows}
-              activeCount={filterActiveCount}
-              canApply={filterCanApply}
-              isApplying={filterIsApplying}
-              onFilterChange={onFilterChange}
-              onRemoveFilter={onRemoveFilter}
-              onAddFilter={onAddFilter}
-              onRemovePendingRow={onRemovePendingRow}
-              onCommitPendingRow={onCommitPendingRow}
-              onApply={onApplyFilters}
-              onClearAll={onClearAll}
-            />
+            {isDashboardFiltersV2Enabled ? (
+              <DashboardFilterBarV2
+                definitions={filterDefinitions}
+                filterState={filterState}
+                isApplying={filterIsApplying}
+                canApply={filterCanApply}
+                isOwner={dashboard.isOwner}
+                onFilterChange={onFilterChange}
+                onRemoveFilter={onRemoveFilter}
+                onClearFilter={onClearFilter}
+                onToggleLock={onToggleLock}
+                canLockFilter={canLockFilter}
+                onApply={onApplyFilters}
+                onRevertFilter={onRevertFilter}
+              />
+            ) : (
+              <AnalyticsFilters
+                definitions={filterDefinitions}
+                filterState={filterState}
+                pendingRows={filterPendingRows}
+                activeCount={filterActiveCount}
+                canApply={filterCanApply}
+                isApplying={filterIsApplying}
+                onFilterChange={onFilterChange}
+                onRemoveFilter={onRemoveFilter}
+                onAddFilter={onAddFilter}
+                onRemovePendingRow={onRemovePendingRow}
+                onCommitPendingRow={onCommitPendingRow}
+                onApply={onApplyFilters}
+                onClearAll={onClearAll}
+              />
+            )}
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
@@ -546,13 +588,29 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-                <SharePopover
-                  isSharedWithTenant={dashboard.isSharedWithTenant}
-                  canShare={isSaved}
-                  sharePhase={sharePhase}
-                  onShare={onShare}
-                  onCopyLink={handleCopyLink}
-                />
+                {isDashboardFiltersV2Enabled ? (
+                  <ShareDashboardDialog
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    sharedDataScope={dashboard.sharedDataScope}
+                    dataScopingAvailable={
+                      dashboard.data_sources?.some(
+                        (s) => s.type === "salesforce",
+                      ) ?? false
+                    }
+                    canShare={isSaved}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                ) : (
+                  <SharePopover
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    canShare={isSaved}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                )}
 
                 {/* Edit / Save toggle */}
                 {isEditMode ||
@@ -594,10 +652,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       </DashboardLayout.Header>
 
       <DashboardLayout.Canvas
-        className={`relative ${
-          isEditMode
-            ? "bg-gray-50 transition-colors duration-200"
-            : "transition-colors duration-200"
+        className={`relative transition-colors duration-200 ${
+          isEditMode ? "bg-gray-100" : "bg-gray-50"
         }`}
       >
         {/* Save toast — absolute top-center, no layout impact */}
@@ -651,7 +707,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
-            widgetAppliedFilters={widgetAppliedFilters}
+            // Widget-level filter UI hidden until panel-filter designs are ready
+            // widgetAppliedFilters={widgetAppliedFilters}
+            // widgetFilterSlot={widgetFilterSlot}
           />
         </ErrorBoundary>
 

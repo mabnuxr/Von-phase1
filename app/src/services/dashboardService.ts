@@ -98,10 +98,16 @@ class DashboardService {
   async shareDashboard(
     dashboardId: string,
     isSharedWithTenant: boolean,
+    sharedDataScope?: string | null,
   ): Promise<DashboardMetadataResponse> {
     return apiClient.post<DashboardMetadataResponse>(
       `/api/v1/dashboards/${dashboardId}/share`,
-      { is_shared_with_tenant: isSharedWithTenant },
+      {
+        is_shared_with_tenant: isSharedWithTenant,
+        shared_data_scope: isSharedWithTenant
+          ? (sharedDataScope ?? null)
+          : null,
+      },
     );
   }
 
@@ -201,14 +207,25 @@ class DashboardService {
 
   // ─── Filters ────────────────────────────────────────────────────
 
+  /**
+   * PATCH /api/v1/dashboards/{id}/filters
+   *
+   * v2 additions:
+   * - `panelId`: when present, the update is scoped to that panel's `panel_state`.
+   * - `isLocked`: owner-only default for all filters in the payload. Individual
+   *   `FilterValue.is_locked` in the payload overrides this default.
+   */
   async updateFilters(
     dashboardId: string,
     filters?: FilterPatchPayload | null,
     resetFields?: string[],
+    opts?: { panelId?: string; isLocked?: boolean },
   ): Promise<FilterPatchResponse> {
     const body: Record<string, unknown> = {};
     if (filters) body.filters = filters;
     if (resetFields?.length) body.reset_fields = resetFields;
+    if (opts?.panelId) body.panel_id = opts.panelId;
+    if (opts?.isLocked !== undefined) body.is_locked = opts.isLocked;
     return apiClient.patch<FilterPatchResponse>(
       `/api/v1/dashboards/${dashboardId}/filters`,
       body,

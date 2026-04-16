@@ -126,8 +126,18 @@ export function useAnalyticsTools(dashboardId: string) {
 
   // ─── Share ─────────────────────────────────────────────────────
   const shareMutation = useMutation({
-    mutationFn: (isSharedWithTenant: boolean) =>
-      dashboardService.shareDashboard(dashboardId, isSharedWithTenant),
+    mutationFn: ({
+      isSharedWithTenant,
+      sharedDataScope,
+    }: {
+      isSharedWithTenant: boolean;
+      sharedDataScope?: string | null;
+    }) =>
+      dashboardService.shareDashboard(
+        dashboardId,
+        isSharedWithTenant,
+        sharedDataScope,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
@@ -141,8 +151,8 @@ export function useAnalyticsTools(dashboardId: string) {
   });
 
   const handleShare = useCallback(
-    (isSharedWithTenant: boolean) => {
-      shareMutation.mutate(isSharedWithTenant);
+    (isSharedWithTenant: boolean, sharedDataScope?: string | null) => {
+      shareMutation.mutate({ isSharedWithTenant, sharedDataScope });
     },
     [shareMutation],
   );

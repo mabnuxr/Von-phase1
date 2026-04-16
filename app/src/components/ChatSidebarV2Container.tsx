@@ -8,6 +8,7 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useTitleAnimation } from "../hooks/useTitleAnimation";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
@@ -60,6 +61,7 @@ export function ChatSidebarV2Container({
 }: ChatSidebarV2ContainerProps) {
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
+  const { isDeepResearchEnabled } = useFeatureFlag();
 
   const {
     folders,
@@ -83,12 +85,12 @@ export function ChatSidebarV2Container({
     unfiledConversations,
   } = useChatSidebarV2();
 
-  // Dashboard data for sidebar
+  // Dashboard data for sidebar (skip query entirely when flag is off)
   const {
     dashboards: sidebarDashboards,
     hasNextPage: hasMoreDashboards,
     loadMore: loadMoreDashboards,
-  } = useSidebarDashboards();
+  } = useSidebarDashboards({ enabled: isDeepResearchEnabled });
 
   const renameDashboard = useSidebarDashboardRename();
 
@@ -195,7 +197,7 @@ export function ChatSidebarV2Container({
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
-      dashboards={sidebarDashboards}
+      dashboards={isDeepResearchEnabled ? sidebarDashboards : undefined}
       selectedDashboardId={dashboardId}
       hasMoreDashboards={hasMoreDashboards}
       onLoadMoreDashboards={loadMoreDashboards}

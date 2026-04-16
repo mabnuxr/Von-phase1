@@ -26,6 +26,8 @@ export interface EmailData {
   bodyPlain?: string;
   /** Whether body contains HTML (false = legacy plain text / markdown) */
   isHtml?: boolean;
+  /** Contextual tab label from agent (e.g. "Formal", "Sarah Chen") */
+  tabLabel?: string;
 }
 
 export interface EmailComposerProps {
@@ -40,6 +42,29 @@ export interface EmailComposerProps {
 }
 
 // ============================================================================
+// Helpers
+// ============================================================================
+
+const MAX_TABS = 10;
+
+function truncateLabel(label?: string, max = 25): string | undefined {
+  if (!label) return undefined;
+  return label.length > max ? label.slice(0, max - 3) + '...' : label;
+}
+
+function deduplicateLabels(emails: EmailData[]): EmailData[] {
+  const seen = new Set<string>();
+  return emails.map((email) => {
+    const label = email.tabLabel;
+    if (!label || seen.has(label)) {
+      return { ...email, tabLabel: undefined };
+    }
+    seen.add(label);
+    return email;
+  });
+}
+
+// ============================================================================
 // EmailComposer
 // ============================================================================
 
@@ -49,6 +74,14 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   onOpenInGmail,
   isCreatingDraft = false,
 }) => {
+  const totalCount = emails.length;
+  const labelsKey = useMemo(() => emails.map((e) => e.tabLabel ?? '').join('\0'), [emails]);
+  const dedupedEmails = useMemo(
+    () => deduplicateLabels(emails.slice(0, MAX_TABS)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelsKey, totalCount]
+  );
+
   const [activeTab, setActiveTab] = useState(0);
   const [showCc, setShowCc] = useState(false);
   const [showBcc, setShowBcc] = useState(false);
@@ -58,10 +91,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
 
   // Clamp activeTab when emails array shrinks
   useEffect(() => {
-    setActiveTab((prev) => (prev >= emails.length ? Math.max(0, emails.length - 1) : prev));
-  }, [emails.length]);
+    setActiveTab((prev) =>
+      prev >= dedupedEmails.length ? Math.max(0, dedupedEmails.length - 1) : prev
+    );
+  }, [dedupedEmails.length]);
 
-  const currentEmail = emails.length > 0 ? emails[activeTab] : null;
+  const currentEmail = dedupedEmails.length > 0 ? dedupedEmails[activeTab] : null;
 
   const handleCopyBody = useCallback(async () => {
     if (!currentEmail) return;
@@ -121,23 +156,29 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       style={{ maxHeight }}
     >
       {/* Tabs — only shown when multiple emails */}
-      {emails.length > 1 && (
+      {dedupedEmails.length > 1 && (
         <>
-          <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0">
-            {emails.map((_, i) => (
+          <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0 overflow-x-auto">
+            {dedupedEmails.map((email, i) => (
               <button
                 key={i}
                 onClick={() => handleTabChange(i)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer truncate max-w-[160px] flex-shrink-0 ${
                   i === activeTab
                     ? 'bg-gray-900 text-white'
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
                 }`}
+                title={email.tabLabel || `Email ${i + 1}`}
               >
-                Email {i + 1}
+                {truncateLabel(email.tabLabel) || `Email ${i + 1}`}
               </button>
             ))}
           </div>
+          {totalCount > MAX_TABS && (
+            <p className="text-xs text-gray-500 px-3 pb-1">
+              Showing {MAX_TABS} of {totalCount} — narrow your selection to see others.
+            </p>
+          )}
           <div className="border-b border-gray-100" />
         </>
       )}

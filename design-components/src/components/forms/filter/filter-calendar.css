@@ -1,0 +1,254 @@
+/* Filter calendar — overrides react-day-picker defaults */
+
+.filter-calendar.rdp-root {
+  --rdp-accent-color: #111827;
+  --rdp-accent-background-color: #f3f4f6;
+  --rdp-day-height: 28px;
+  --rdp-day-width: 28px;
+  --rdp-day_button-border-radius: 6px;
+  --rdp-day_button-border: none;
+  --rdp-day_button-height: 26px;
+  --rdp-day_button-width: 26px;
+  --rdp-selected-border: none;
+  --rdp-selected-font: inherit;
+  --rdp-outside-opacity: 0.4;
+  --rdp-disabled-opacity: 0.3;
+  --rdp-range_start-color: white;
+  --rdp-range_start-background: transparent;
+  --rdp-range_start-date-background-color: #111827;
+  --rdp-range_end-color: white;
+  --rdp-range_end-background: transparent;
+  --rdp-range_end-date-background-color: #111827;
+  --rdp-range_middle-background-color: #f3f4f6;
+  --rdp-range_middle-color: #111827;
+
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  padding: 4px;
+}
+
+/* ── Layout ─────────────────────────────────────── */
+
+.filter-calendar .rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  position: relative;
+  padding: 2px 24px;
+  min-height: 26px;
+}
+
+/* ── Dropdowns (month/year selectors) ───────────── */
+
+.filter-calendar .rdp-dropdowns {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.filter-calendar .rdp-dropdown_root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Visible label inside dropdown */
+.filter-calendar .rdp-dropdown_root > .rdp-caption_label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #1f2937;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  pointer-events: none;
+}
+
+/* Invisible <select> overlay */
+.filter-calendar .rdp-dropdown_root select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+/* Chevron in dropdown label */
+.filter-calendar .rdp-dropdown_root .rdp-chevron {
+  width: 10px;
+  height: 10px;
+  color: #6b7280;
+}
+
+/* ── Nav arrows ────────────────────────────────── */
+
+.filter-calendar .rdp-nav {
+  position: absolute;
+  top: 9px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 26px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.filter-calendar .rdp-button_previous,
+.filter-calendar .rdp-button_next {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+  pointer-events: auto;
+}
+
+.filter-calendar .rdp-button_previous:hover,
+.filter-calendar .rdp-button_next:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+/* Months wrapper */
+.filter-calendar .rdp-months {
+  display: flex;
+  gap: 12px;
+  position: relative;
+}
+
+/* ── Weekday headers ──────────────────────────── */
+
+.filter-calendar .rdp-weekday {
+  font-size: 10px;
+  font-weight: 500;
+  color: #9ca3af;
+  width: 28px;
+  text-align: center;
+  padding: 2px 0;
+}
+
+/* ── Day cells ────────────────────────────────── */
+
+.filter-calendar .rdp-day {
+  padding: 1px;
+  text-align: center;
+}
+
+.filter-calendar .rdp-day_button {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #374151;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: background-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.filter-calendar .rdp-day_button:hover {
+  background-color: #f3f4f6;
+}
+
+/* Today */
+.filter-calendar .rdp-today .rdp-day_button {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ── Selection states ─────────────────────────── */
+
+.filter-calendar .rdp-selected .rdp-day_button {
+  background-color: #111827 !important;
+  color: white !important;
+}
+
+.filter-calendar .rdp-selected .rdp-day_button:hover {
+  background-color: #1f2937 !important;
+}
+
+/* Range start */
+.filter-calendar .rdp-range_start {
+  background: linear-gradient(to left, #f3f4f6 50%, transparent 50%) !important;
+}
+
+.filter-calendar .rdp-range_start .rdp-day_button {
+  background-color: #111827 !important;
+  color: white !important;
+  border-radius: 6px !important;
+}
+
+/* Range end */
+.filter-calendar .rdp-range_end {
+  background: linear-gradient(to right, #f3f4f6 50%, transparent 50%) !important;
+}
+
+.filter-calendar .rdp-range_end .rdp-day_button {
+  background-color: #111827 !important;
+  color: white !important;
+  border-radius: 6px !important;
+}
+
+/* Single day range */
+.filter-calendar .rdp-range_start.rdp-range_end {
+  background: transparent !important;
+}
+
+/* Range middle */
+.filter-calendar .rdp-range_middle {
+  background-color: #f3f4f6 !important;
+}
+
+.filter-calendar .rdp-range_middle .rdp-day_button {
+  color: #111827 !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+
+.filter-calendar .rdp-range_middle .rdp-day_button:hover {
+  background-color: #e5e7eb !important;
+}
+
+/* ── Outside / disabled ───────────────────────── */
+
+.filter-calendar .rdp-outside .rdp-day_button {
+  color: #d1d5db;
+}
+
+.filter-calendar .rdp-disabled .rdp-day_button {
+  color: #e5e7eb;
+  cursor: default;
+}
+
+/* ── Grid ─────────────────────────────────────── */
+
+.filter-calendar .rdp-month_grid {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Nav chevrons */
+.filter-calendar .rdp-nav .rdp-chevron {
+  width: 12px;
+  height: 12px;
+}

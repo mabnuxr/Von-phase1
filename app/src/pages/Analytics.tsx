@@ -72,21 +72,43 @@ function DashboardCanvas({
   const {
     definitions: filterDefinitions,
     filterState,
+    panelFilterState,
+    lockedFilterState,
+    lockedPanelFilterState,
     pendingRows: filterPendingRows,
     activeCount: filterActiveCount,
     canApply: filterCanApply,
     isApplying: filterIsApplying,
     handleFilterChange,
+    handleRevertFilter,
     handleRemoveFilter,
+    handleClearFilter,
     handleAddFilter,
     handleRemovePendingRow,
     handleCommitPendingRow,
+    handlePanelFilterChange,
+    handleResetPanelFilter,
+    handleRevertPanelFilter,
+    handleRevertPanel,
+    handleApplyPanelFilter,
+    canApplyPanelFilter,
+    handleCommitPanelLock,
+    canLockPanelFilter,
+    handleCommitLock,
+    canLockFilter,
+    getEffectivePanelState,
     handleApply,
     handleClearAll,
   } = useDashboardFilters(
     dashboardId,
     dashboard?.filters?.definitions ?? [],
     activeFilters,
+    {
+      panelState: dashboard?.filters?.panel_state,
+      lockedFilterState: dashboard?.filters?.locked_filter_state,
+      lockedPanelFilterState: dashboard?.filters?.locked_panel_filter_state,
+      isOwner: dashboard?.isOwner,
+    },
   );
   const {
     mergedWidgets,
@@ -156,6 +178,10 @@ function DashboardCanvas({
         onCommitPendingRow={handleCommitPendingRow}
         onApplyFilters={handleApply}
         onClearAll={handleClearAll}
+        onClearFilter={handleClearFilter}
+        onToggleLock={handleCommitLock}
+        canLockFilter={canLockFilter}
+        onRevertFilter={handleRevertFilter}
         onRefresh={handleRefresh}
         onSave={handleSave}
         savePhase={savePhase}
@@ -189,6 +215,20 @@ function DashboardCanvas({
         isRefetchingData={isFetching && !isLoading}
         isRefreshing={isRefreshing}
         isDrilldownOpen={isDrilldownOpen}
+        panelFilterState={panelFilterState}
+        lockedFilterState={lockedFilterState}
+        getEffectivePanelState={getEffectivePanelState}
+        onPanelFilterChange={handlePanelFilterChange}
+        onResetPanelFilter={handleResetPanelFilter}
+        onRevertPanelFilter={handleRevertPanelFilter}
+        onRevertPanel={handleRevertPanel}
+        onApplyPanelFilter={handleApplyPanelFilter}
+        canApplyPanelFilter={canApplyPanelFilter}
+        onTogglePanelLock={
+          dashboard.isOwner ? handleCommitPanelLock : undefined
+        }
+        canLockPanelFilter={canLockPanelFilter}
+        lockedPanelFilterState={lockedPanelFilterState}
       />
       {/* Edit mode banner — floats above drilldown panel when both are active */}
       <EditModeBanner

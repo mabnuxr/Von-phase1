@@ -34,7 +34,16 @@ export const FEATURE_FLAGS = {
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
+<<<<<<< HEAD
   DATABRICKS: "enableDatabricks",
+=======
+  // LaunchDarkly key: `enable-dashboard-filters-v2` (auto-camelCased by the
+  // React SDK for `useFlags()` access). Shared with the backend gate
+  // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
+  // so a single toggle in LaunchDarkly flips both sides in sync.
+  DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  USAGE_METRICS: "enableUsageMetrics",
+>>>>>>> main
 } as const;
 
 /**
@@ -182,9 +191,22 @@ export function useFeatureFlag() {
     isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
 
     /**
+<<<<<<< HEAD
      * Controls whether Databricks integration is visible
      */
     isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
+=======
+     * Controls whether the v2 dashboard filter bar UI is enabled
+     * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
+     */
+    isDashboardFiltersV2Enabled:
+      flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether Usage tab is visible in Settings
+     */
+    isUsageMetricsEnabled: flags[FEATURE_FLAGS.USAGE_METRICS] === true,
+>>>>>>> main
 
     /**
      * Raw flags object for advanced usage

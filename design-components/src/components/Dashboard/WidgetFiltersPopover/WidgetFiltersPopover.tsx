@@ -24,10 +24,15 @@ const WidgetFiltersPopover: React.FC<WidgetFiltersPopoverProps> = ({ filters }) 
           e.stopPropagation();
           toggleVisibility();
         }}
-        className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
+        className="opacity-0 group-hover:opacity-100 transition-opacity relative flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
         title="View applied filters"
       >
         <FunnelIcon size={14} />
+        {filters.length > 0 && (
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-gray-100 text-[9px] font-semibold leading-none text-gray-500">
+            {filters.length}
+          </span>
+        )}
       </button>
       {open &&
         createPortal(

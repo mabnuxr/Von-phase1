@@ -15,6 +15,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   onDrillDown,
   queryInfo,
   appliedFilters,
+  filterSlot,
 }) => {
   return (
     <div className="group h-full bg-white border border-gray-200 flex flex-col cursor-default hover:border-gray-300 transition-all overflow-hidden">
@@ -24,7 +25,9 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
           {subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-0.5">
-          {appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
+          {filterSlot
+            ? filterSlot
+            : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
           {onDrillDown && (
             <button

@@ -49,7 +49,7 @@ import { useDashboardPane } from "../../hooks/useDashboardPane";
 import { useTeamMembers } from "../../hooks/useTeam";
 import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
-import usePreferencesStore from "../../store/preferencesStore";
+
 import useChatStore from "../../store/chatStore";
 import { useDashboardVersionInvalidation } from "../../hooks/useDashboardVersionInvalidation";
 import {
@@ -259,17 +259,14 @@ function ExistingChatInner(
     return connected;
   }, [integrationsData]);
 
-  const setConfiguringPersonalIntegration = usePreferencesStore(
-    (s) => s.setConfiguringPersonalIntegration,
-  );
-  const handleIntegrate = useCallback(
-    (integrationType: string) => {
-      const frontendId = getFrontendIntegrationId(integrationType);
-      setConfiguringPersonalIntegration(frontendId);
-      navigate("/settings?tab=integrations");
-    },
-    [setConfiguringPersonalIntegration, navigate],
-  );
+  const handleIntegrate = useCallback((integrationType: string) => {
+    const frontendId = getFrontendIntegrationId(integrationType);
+    const params = new URLSearchParams({
+      tab: "integrations",
+      configure: frontendId,
+    });
+    window.open(`/settings?${params.toString()}`, "_blank");
+  }, []);
   const handleGetIntegrationMetadata = useCallback(
     (integrationType: string) => {
       const frontendId = getFrontendIntegrationId(integrationType);
@@ -363,7 +360,7 @@ function ExistingChatInner(
     ? dashboardPaneState.dashboardId
     : props.dashboardId;
   useDashboardVersionInvalidation({
-    dashboard: chatV2.dashboard,
+    dashboards: chatV2.dashboards,
     activeDashboardId,
   });
 

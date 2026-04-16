@@ -547,11 +547,33 @@ export type { UseVisibilityToggleReturn } from '../hooks';
 export { useCopyToClipboard } from '../hooks';
 export type { UseCopyToClipboardReturn } from '../hooks';
 
+export { usePortalPopover } from '../hooks';
+
 // ============================================================================
 // FILTER
 // ============================================================================
-export { FilterButton } from './forms/filter';
-export type { FilterButtonProps, FilterField, FilterCondition, FilterGroup } from './forms/filter';
+export {
+  FilterButton,
+  ScrollableFilterBar,
+  SplitFilterDropdown,
+  isEmptyFilterValue,
+} from './forms/filter';
+export type {
+  FilterButtonProps,
+  FilterField,
+  FilterCondition,
+  FilterGroup,
+  FieldType,
+  DynamicOptionConfig,
+  CustomOperatorDef,
+  FilterFieldConfig,
+  FilterValue,
+  FilterBarValue,
+  OptionGroup,
+  CalendarOptionConfig,
+  ScrollableFilterBarProps,
+  SplitFilterDropdownProps,
+} from './forms/filter';
 
 // ============================================================================
 // DASHBOARD (View-only dashboard display components)
@@ -564,6 +586,7 @@ export {
   CounterWidget,
   TextWidget,
   DashboardLayout,
+  DataSources,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -580,4 +603,7 @@ export type {
   CounterWidgetConfig,
   TextWidgetConfig,
   AppliedWidgetFilter,
+  DataSourcesProps,
+  DataSource,
+  DataSourceIcon,
 } from './Dashboard';

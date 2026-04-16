@@ -56,6 +56,11 @@ export interface WidgetConfig {
   subtitle?: string;
   config: ChartWidgetConfig | CounterWidgetConfig | TableWidgetConfig | TextWidgetConfig;
   query_failed?: boolean;
+  /**
+   * Backend query ID that powers this widget. Used to match filter
+   * `applies_to` entries (which reference query IDs, not widget IDs).
+   */
+  queryRef?: string;
   /** Drilldown configuration — present when the panel supports drill-down. */
   drilldown?: DrilldownConfig | null;
   /** Query SQL and description for this widget */
@@ -110,6 +115,8 @@ export interface CounterWidgetProps {
   queryInfo?: QueryInfo;
   /** Filters currently applied to this widget (read-only display) */
   appliedFilters?: AppliedWidgetFilter[];
+  /** Optional slot rendered in place of the read-only filter popover (v2). */
+  filterSlot?: React.ReactNode;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -177,6 +184,11 @@ export interface WidgetShellProps {
   queryInfo?: QueryInfo;
   /** Filters currently applied to this widget (read-only display) */
   appliedFilters?: AppliedWidgetFilter[];
+  /**
+   * Optional slot rendered in place of the read-only WidgetFiltersPopover.
+   * Used by the v2 filter UI to render an editable panel-level filter popover.
+   */
+  filterSlot?: React.ReactNode;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -195,6 +207,8 @@ export interface WidgetRendererProps {
   tableSortState?: SortState;
   /** Filters currently applied to this widget (read-only display) */
   appliedFilters?: AppliedWidgetFilter[];
+  /** Optional slot rendered in place of the read-only filter popover (v2). */
+  filterSlot?: React.ReactNode;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -219,4 +233,9 @@ export interface DashboardGridProps {
   isLoading?: boolean;
   /** Applied filters per widget ID (read-only display) */
   widgetAppliedFilters?: Record<string, AppliedWidgetFilter[]>;
+  /**
+   * Per-widget filter slot factory (v2). When provided, replaces the read-only
+   * WidgetFiltersPopover with app-supplied editable UI.
+   */
+  widgetFilterSlot?: (panelId: string) => React.ReactNode;
 }

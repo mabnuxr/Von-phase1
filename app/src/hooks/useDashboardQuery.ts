@@ -4,6 +4,8 @@ import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
   DashboardFilters,
+  DataBoundary,
+  DataSourceGroup,
   RefreshInfo,
   DashboardMetadataResponse,
   WidgetConfig,
@@ -77,6 +79,7 @@ interface RawApiDashboardResponse {
   dashboard_version: number;
   is_owner: boolean;
   is_shared_with_tenant: boolean;
+  shared_data_scope?: string | null;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
   queries?: Record<string, RawApiQuery>;
@@ -89,6 +92,8 @@ interface RawApiDashboardResponse {
     color_palette?: string | null;
   };
   filters?: DashboardFilters;
+  data_boundary?: DataBoundary;
+  data_sources?: DataSourceGroup[];
   created_at: string;
   updated_at: string;
   created_by?: string;
@@ -119,6 +124,7 @@ function adaptWidget(
       title: raw.title,
       config: raw.kpi,
       query_failed: raw.query_failed,
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     };
@@ -133,6 +139,7 @@ function adaptWidget(
         type: raw.type as WidgetConfig["type"],
         title: raw.title,
         config: {},
+        queryRef: raw.query_ref,
         queryInfo,
       } as WidgetConfig;
     }
@@ -153,6 +160,7 @@ function adaptWidget(
         chartType: ((chartObj.type as string) ?? "bar") as ChartType,
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     };
@@ -177,6 +185,7 @@ function adaptWidget(
             }
           : undefined,
       },
+      queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
       queryInfo,
     } as unknown as WidgetConfig;
@@ -188,6 +197,7 @@ function adaptWidget(
     type: raw.type as WidgetConfig["type"],
     title: raw.title,
     config: {},
+    queryRef: raw.query_ref,
     drilldown: raw.drilldown ?? null,
     queryInfo,
   } as WidgetConfig;
@@ -212,6 +222,8 @@ function adaptApiResponse(
         dashboardVersion: raw.dashboard_version ?? 1,
         isOwner: raw.is_owner ?? false,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
+        sharedDataScope: (raw.shared_data_scope ??
+          null) as Dashboard["sharedDataScope"],
         gridConfig: raw.gridConfig,
         // Prefer panel_layouts when it has entries; fall back to each widget's
         // own layout field when panel_layouts is absent or an empty object (the
@@ -243,8 +255,17 @@ function adaptApiResponse(
                 : [],
               state: raw.filters.state ?? {},
               defaults: raw.filters.defaults ?? {},
+              // v2 additions — pass through as-is (already snake_case on response)
+              panel_state: raw.filters.panel_state ?? {},
+              locked_filter_state: raw.filters.locked_filter_state ?? {},
+              locked_panel_filter_state:
+                raw.filters.locked_panel_filter_state ?? {},
+              source_applicability: raw.filters.source_applicability ?? {},
+              query_sources: raw.filters.query_sources ?? {},
             }
           : undefined,
+        data_boundary: raw.data_boundary,
+        data_sources: raw.data_sources,
         createdAt: raw.created_at,
         updatedAt: raw.updated_at,
         createdBy: raw.created_by ?? "",

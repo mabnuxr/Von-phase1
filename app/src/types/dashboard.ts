@@ -48,10 +48,20 @@ export interface Dashboard {
   dashboardVersion: number;
   isOwner: boolean;
   isSharedWithTenant: boolean;
+  sharedDataScope?:
+    | "MY_RECORDS"
+    | "MY_TEAMS_RECORDS"
+    | "MY_MANAGERS_TEAM"
+    | "ALL_RECORDS"
+    | null;
   gridConfig: GridConfig;
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;
   filters?: DashboardFilters;
+  /** Extraction metadata — what data was pulled and from where (v2). */
+  data_boundary?: DataBoundary;
+  /** Source systems grouped by type, with dataset details (v2). */
+  data_sources?: DataSourceGroup[];
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -64,6 +74,20 @@ export interface Dashboard {
       { x: number; y: number; w: number; h: number }
     >;
   };
+}
+
+// ─── Data Sources & Boundary (v2) ────────────────────────────────
+
+export interface DataBoundary {
+  summary: string;
+  row_counts: Record<string, number>;
+}
+
+export interface DataSourceGroup {
+  /** Source type, e.g. "salesforce", "snowflake", "von_iq". */
+  type: string;
+  /** Unique source objects (table/object names) exposed by this source type. */
+  objects: string[];
 }
 
 export interface GridConfig {
@@ -111,6 +135,11 @@ export interface WidgetConfig {
     | TableWidgetConfig
     | TextWidgetConfig;
   query_failed?: boolean;
+  /**
+   * Backend query ID that powers this widget. Used to match filter
+   * `applies_to` entries (which reference query IDs, not widget IDs).
+   */
+  queryRef?: string;
   drilldown?: {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;
@@ -306,25 +335,105 @@ export type DashboardFilterType =
   | "picklist"
   | "select"
   | "multi-select"
+  | "date"
   | "date-range"
+  | "number"
+  | "text"
   | "search"
   | "range";
+
+/**
+ * Semantic role of a filter, independent of its UI type. Unlike `type` (which
+ * describes the UI control — picklist, date-range, etc.), `semantic_type`
+ * identifies the filter's business role so backend/frontend can dispatch
+ * specialized behavior (e.g. the ownership scope selector).
+ */
+export type DashboardFilterSemanticType = "ownership";
 
 export interface DashboardFilterDefinition {
   id: string;
   label: string;
+  /** Structural UI control type. */
   type: DashboardFilterType;
+  /** Semantic business role (optional). E.g. "ownership" for the scope filter. */
+  semantic_type?: DashboardFilterSemanticType;
   /** Column name used in SQL queries */
   column: string;
   /** Available option values (for select / multi-select) */
   options?: string[];
   /** Default value applied on first load */
   default?: unknown;
-  /** Widget IDs this filter applies to */
+  /**
+   * Query IDs this filter applies to (e.g. `"pipeline_by_owner"`).
+   * Matched against `widget.queryRef`, not `widget.id`.
+   */
   applies_to?: string[];
   /** Valid operators with display labels for this filter type */
   valid_operators?: { value: string; label: string }[];
+  // ─── v2 additions ─────────────────────────────────────────────
+  /** When true, the filter's value may be a dynamic token (e.g. THIS_QUARTER, MY_RECORDS). */
+  dynamic?: boolean;
+  /** True if this filter is locked at the dashboard level by the owner. */
+  is_locked?: boolean;
+  /**
+   * Whether the current viewer may edit this filter at the dashboard level.
+   * Owners: always true. Viewers: true unless `is_locked`.
+   */
+  is_editable?: boolean;
+  /** Hard extraction boundary — values outside this range are not queryable. */
+  boundary?: { operator: string; value: unknown };
+  /** Human-readable description of the boundary (e.g., "Last 1 year"). */
+  boundary_description?: string;
+  /** Source types this filter applies to (e.g. ["salesforce", "snowflake"]). */
+  sources?: string[];
+  /** For dynamic date filters — non-parameterized tokens (TODAY, THIS_QUARTER, LAST_30_DAYS, …). */
+  available_presets?: string[];
+  /**
+   * For dynamic date filters — parameterized tokens that take an N value (e.g. LAST_N_DAYS).
+   * The frontend renders each as a selectable option with an inline number input.
+   */
+  available_dynamic_options?: {
+    id: string; // e.g. "LAST_N_DAYS"
+    label: string; // display label, e.g. "Last N days"
+    default_n: number;
+    unit: string; // suffix shown next to the input, e.g. "days"
+  }[];
+  /** Per-panel lock metadata: panel_id → true if locked for that panel. */
+  panel_locks?: Record<string, boolean>;
 }
+
+// ─── Dynamic Tokens (v2) ─────────────────────────────────────────
+
+/** Dynamic date tokens resolved server-side at query time. */
+export type DynamicDateToken =
+  // Tier 1
+  | "TODAY"
+  | "THIS_WEEK"
+  | "THIS_MONTH"
+  | "THIS_QUARTER"
+  | "THIS_FISCAL_QUARTER"
+  | "THIS_YEAR"
+  | "THIS_FISCAL_YEAR"
+  | "LAST_QUARTER"
+  | "QUARTER_TO_DATE"
+  | "YEAR_TO_DATE"
+  | "LAST_7_DAYS"
+  | "LAST_30_DAYS"
+  | "LAST_90_DAYS"
+  // Tier 2
+  | "YESTERDAY"
+  | "TOMORROW"
+  | "LAST_WEEK"
+  | "NEXT_WEEK"
+  // N-parameterized tokens use "TOKEN:N" form (e.g. "LAST_N_DAYS:30").
+  | string;
+
+/** Dynamic ownership tokens resolved server-side per viewer. */
+export type OwnershipToken =
+  | "MY_RECORDS"
+  | "MY_TEAMS_RECORDS"
+  | "MY_MANAGERS_TEAM"
+  | "ALL_RECORDS";
 
 /** Active filter state values per filter type:
  *  select       → string
@@ -339,6 +448,17 @@ export interface DashboardFilters {
   definitions: DashboardFilterDefinition[];
   state: DashboardFilterState;
   defaults?: DashboardFilterState;
+  // ─── v2 additions ─────────────────────────────────────────────
+  /** Per-panel user filter overrides: {panel_id: {filter_id: FilterValue}}. */
+  panel_state?: Record<string, Record<string, FilterValue>>;
+  /** Dashboard-level owner-locked filters: {filter_id: FilterValue}. */
+  locked_filter_state?: Record<string, FilterValue>;
+  /** Panel-level owner-locked filters: {panel_id: {filter_id: FilterValue}}. */
+  locked_panel_filter_state?: Record<string, Record<string, FilterValue>>;
+  /** For each filter, the source types it applies to (for badge rendering). */
+  source_applicability?: Record<string, string[]>;
+  /** For each query, the source types it reads from (for widget badges). */
+  query_sources?: Record<string, string[]>;
 }
 
 /** @deprecated Use DashboardFilterDefinition */
@@ -380,6 +500,11 @@ export interface FilterValue {
   operator: FilterOperator;
   value?: string | number | string[] | [string, string] | [number, number];
   include_blank?: boolean;
+  // ─── v2 additions ─────────────────────────────────────────────
+  /** Owner-only: lock this filter so non-owners cannot edit it. */
+  is_locked?: boolean;
+  /** Server-resolved concrete value for dynamic tokens (e.g. THIS_QUARTER → [date, date]). */
+  resolved_value?: unknown;
 }
 
 export type FilterPatchPayload = Record<
@@ -393,6 +518,10 @@ export interface FilterPatchResponse {
   definitions: DashboardFilterDefinition[];
   state: Record<string, FilterValue>;
   defaults?: Record<string, FilterValue>;
+  // ─── v2 additions ─────────────────────────────────────────────
+  panel_state?: Record<string, Record<string, FilterValue>>;
+  locked_filter_state?: Record<string, FilterValue>;
+  locked_panel_filter_state?: Record<string, Record<string, FilterValue>>;
 }
 
 // ─── Schedule ────────────────────────────────────────────────────

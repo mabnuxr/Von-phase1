@@ -126,10 +126,10 @@ export interface Message {
   /** References returned by the backend (e.g. dashboard references) */
   references?: MessageReference[];
   /**
-   * Dashboard metadata from dashboard_ready event (assistant messages only)
-   * Present when a dashboard was created during this run
+   * Dashboard metadata from dashboard_ready events (assistant messages only)
+   * Present when dashboards were created during this run
    */
-  dashboard?: DashboardMetadata;
+  dashboards?: DashboardMetadata[];
   /**
    * Gmail draft data (assistant messages only)
    * Present when the agent created a Gmail draft during this run

@@ -54,7 +54,7 @@ export interface ChatMessageProps {
   salesforceInstanceUrl?: string;
   enableDeepLinks?: boolean;
   // Dashboard Builder / Plan Approval
-  dashboard?: import('./types').DashboardMetadata | null;
+  dashboards?: import('./types').DashboardMetadata[];
   executionId?: string | null;
   isDashboardBuilderMode?: boolean;
   onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
@@ -161,7 +161,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onIntegrate,
   getIntegrationMetadata,
   compact = false,
-  dashboard,
+  dashboards,
   executionId,
   isDashboardBuilderMode = false,
   onApprovePlan,
@@ -282,7 +282,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onReject={onReject}
                         onExpire={onExpire}
                         onArtifactClick={onArtifactClick}
-                        dashboard={dashboard}
+                        dashboards={dashboards}
                         executionId={executionId}
                         isDashboardBuilderMode={isDashboardBuilderMode}
                         onApprovePlan={onApprovePlan}
