@@ -352,7 +352,22 @@ export const ShareDashboardDialog: React.FC<ShareDashboardDialogProps> = ({
                             return (
                               <button
                                 key={opt.value}
-                                onClick={() => setSelectedScope(opt.value)}
+                                onClick={() => {
+                                  if (
+                                    included &&
+                                    opt.value !== SCOPE_OPTIONS[0].value
+                                  ) {
+                                    // Deselect: drop to one level below the clicked option
+                                    const idx = SCOPE_OPTIONS.findIndex(
+                                      (o) => o.value === opt.value,
+                                    );
+                                    setSelectedScope(
+                                      SCOPE_OPTIONS[idx - 1].value,
+                                    );
+                                  } else {
+                                    setSelectedScope(opt.value);
+                                  }
+                                }}
                                 disabled={isDisabled}
                                 className="flex items-center gap-2 py-1 text-left cursor-pointer hover:bg-indigo-50/40 rounded-md px-1 -mx-1 transition-colors"
                               >
