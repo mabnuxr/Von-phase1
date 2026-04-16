@@ -7,22 +7,21 @@
  * token labels, type mapping, and round-trip logic.
  *
  * Filter priority ordering:
- *   1. Date type filters (always visible)
- *   2. Ownership semantic type filters (always visible)
- *   3. Applied filters (have a value in filterState)
- *   4. Non-applied filters (overflow behind "+" button)
+ *   1. Mandatory filters (date with boundary, ownership) — always inline
+ *   2. Everything else in original definition order — inline up to 4,
+ *      then overflow behind "More +N" button
  *
  * Commit model: each filter popover has its own Apply button that
  * commits all pending changes when clicked. There's no outer
  * bar-level Apply / Clear-all — the inner popover footer is the
- * sole commit surface (matches Aniket's storybook design).
+ * sole commit surface.
  *
  * Locking model: per-filter. Each filter chip carries its own
  * `locked` + `onToggleLock` — the owner flips lock state inside each
  * filter's popover. Non-owners see a locked chip with a lock icon
  * and can't edit.
  */
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import { ScrollableFilterBar } from "@vonlabs/design-components";
 import type { FilterBarValue } from "@vonlabs/design-components";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
@@ -36,12 +35,6 @@ import {
 interface DashboardFilterBarV2Props {
   definitions: DashboardFilterDefinition[];
   filterState: Record<string, ActiveFilter>;
-  /**
-   * Server-committed filter state. Drives the sort tiering so chips don't
-   * re-order while the user is tinkering with a pending edit. Updates only
-   * on refetch, not on local edits.
-   */
-  syncedFilterState: Record<string, ActiveFilter>;
   isApplying: boolean;
   /** True when there are pending filter changes. Gates the in-popover Apply. */
   canApply: boolean;
@@ -82,58 +75,38 @@ interface DashboardFilterBarV2Props {
 }
 
 /**
- * Sort definitions into priority tiers and compute pinned count.
+ * Sort definitions into priority tiers.
  *
  * Tier order (left → right):
- *   1. Date filters with boundary  (mandatory — always visible)
- *   2. Ownership filters           (mandatory — always visible)
- *   3. Applied filters             (regardless of boundary)
- *   4. Non-applied filters with boundary
- *   5. Non-applied filters without boundary
+ *   1. Mandatory filters (date with boundary, ownership) — always visible
+ *   2. Everything else in original definition order
  *
- * "boundary" = definition has a non-empty `boundary` object.
- * "applied"  = filter has a value in `filterState` OR was promoted via "+".
+ * No state-based re-ordering — applying a filter doesn't move its chip.
  */
-function sortDefinitions(
-  definitions: DashboardFilterDefinition[],
-  filterState: Record<string, ActiveFilter>,
-  promotedIds: Set<string>,
-) {
+function sortDefinitions(definitions: DashboardFilterDefinition[]) {
   const mandatory: DashboardFilterDefinition[] = [];
-  const applied: DashboardFilterDefinition[] = [];
-  const restBoundary: DashboardFilterDefinition[] = [];
-  const restNormal: DashboardFilterDefinition[] = [];
+  const rest: DashboardFilterDefinition[] = [];
 
   for (const def of definitions) {
-    const hasBoundary = !!def.boundary;
     const isMandatory =
-      (def.type === "date" && hasBoundary) || def.semantic_type === "ownership";
-    const isApplied = def.id in filterState || promotedIds.has(def.id);
+      (def.type === "date" && !!def.boundary) ||
+      def.semantic_type === "ownership";
 
     if (isMandatory) {
       mandatory.push(def);
-    } else if (isApplied) {
-      applied.push(def);
-    } else if (hasBoundary) {
-      restBoundary.push(def);
     } else {
-      restNormal.push(def);
+      rest.push(def);
     }
   }
 
-  // pinnedCount covers mandatory + applied + promoted — all of these are
-  // always visible in the bar. Only restBoundary / restNormal are subject
-  // to the 60% budget and overflow behind the "+" button.
-  const pinnedCount = mandatory.length + applied.length;
-  const mandatoryCount = mandatory.length;
-  const sorted = [...mandatory, ...applied, ...restBoundary, ...restNormal];
-  return { sorted, pinnedCount, mandatoryCount };
+  const pinnedCount = mandatory.length;
+  const sorted = [...mandatory, ...rest];
+  return { sorted, pinnedCount };
 }
 
 export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   definitions,
   filterState,
-  syncedFilterState,
   isApplying,
   canApply,
   isOwner,
@@ -145,16 +118,10 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
   onApply,
   onRevertFilter,
 }) => {
-  // Tracks filters the user has manually promoted from the overflow "+" dropdown
-  const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());
-  const [autoOpenFieldId, setAutoOpenFieldId] = useState<string | undefined>();
-
-  // Sort uses the server-committed snapshot (`syncedFilterState`) so chips
-  // stay put while the user is mid-edit. The bar only re-orders once a
-  // change lands on the server.
-  const { sorted, pinnedCount, mandatoryCount } = useMemo(
-    () => sortDefinitions(definitions, syncedFilterState, promotedIds),
-    [definitions, syncedFilterState, promotedIds],
+  // Mandatory filters first, then the rest in definition order.
+  const { sorted, pinnedCount } = useMemo(
+    () => sortDefinitions(definitions),
+    [definitions],
   );
 
   const fields = useMemo(
@@ -162,13 +129,7 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       sorted.map((def) =>
         mapDefinition(def, {
           currentFilter: filterState[def.id],
-          // Visual lock shown to everyone — owner and viewer alike — whenever
-          // the filter is server-locked. Owners can unlock via the popover
-          // button; viewers see a read-only chip.
           locked: !!def.is_locked,
-          // Lock toggle hidden for now — data scoping moved to the share
-          // dialog. Keep the infrastructure (onToggleLock prop, canLockFilter)
-          // so we can re-enable per-filter locking in the future.
           onToggleLock: undefined,
           canLock: canLockFilter ? canLockFilter(def.id) : undefined,
         }),
@@ -191,14 +152,10 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
     return map;
   }, [definitions]);
 
-  // Memoised so SplitFilterDropdown's effects that close over this
-  // callback don't capture a stale reference between parent renders.
   const handleBarChange = useCallback(
     (fieldId: string, barValue: FilterBarValue | null) => {
       const def = defById.get(fieldId);
       if (!def) return;
-      // Guard: non-owner can't mutate a locked filter (the dropdown should
-      // already prevent this, but belt-and-braces in case of timing).
       if (def.is_locked && !isOwner) return;
       if (barValue === null) {
         onRemoveFilter(fieldId);
@@ -213,15 +170,6 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
     [defById, isOwner, onRemoveFilter, onFilterChange],
   );
 
-  const handleOverflowSelect = useCallback((fieldId: string) => {
-    setPromotedIds((prev) => {
-      const next = new Set(prev);
-      next.add(fieldId);
-      return next;
-    });
-    setAutoOpenFieldId(fieldId);
-  }, []);
-
   return (
     <ScrollableFilterBar
       fields={fields}
@@ -232,9 +180,6 @@ export const DashboardFilterBarV2: React.FC<DashboardFilterBarV2Props> = ({
       canApply={canApply}
       onClearField={onClearFilter}
       pinnedCount={pinnedCount}
-      dividerAfterIndex={mandatoryCount}
-      onOverflowSelect={handleOverflowSelect}
-      autoOpenFieldId={autoOpenFieldId}
       onDismiss={onRevertFilter}
     />
   );
