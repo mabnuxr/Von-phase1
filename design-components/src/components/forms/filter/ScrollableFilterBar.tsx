@@ -512,7 +512,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                   ? 'bg-gray-50 border-gray-200 text-gray-900'
                   : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50'
               }`}
-              style={{ minWidth: 80 }}
+              style={{ minWidth: 80, marginBottom: 1 }}
             >
               <span className="flex items-center gap-1 whitespace-nowrap">
                 {hasAppliedHiddenFilter && (
