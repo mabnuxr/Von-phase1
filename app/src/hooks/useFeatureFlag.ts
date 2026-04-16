@@ -34,6 +34,7 @@ export const FEATURE_FLAGS = {
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
+  DATABRICKS: "enableDatabricks",
 } as const;
 
 /**
@@ -179,6 +180,11 @@ export function useFeatureFlag() {
      * Controls whether Jiminny integration is visible
      */
     isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
+
+    /**
+     * Controls whether Databricks integration is visible
+     */
+    isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
 
     /**
      * Raw flags object for advanced usage

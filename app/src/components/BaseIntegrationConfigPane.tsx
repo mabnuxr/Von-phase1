@@ -105,6 +105,12 @@ export function BaseIntegrationConfigPane({
   const [snowflakeUsername, setSnowflakeUsername] = useState("");
   const [snowflakePrivateKey, setSnowflakePrivateKey] = useState("");
 
+  // Databricks OAuth M2M configuration state
+  const [databricksWorkspaceUrl, setDatabricksWorkspaceUrl] = useState("");
+  const [databricksClientId, setDatabricksClientId] = useState("");
+  const [databricksClientSecret, setDatabricksClientSecret] = useState("");
+  const [databricksWarehouseId, setDatabricksWarehouseId] = useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -236,6 +242,26 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "databricks") {
+      if (!hasExistingCredentials) {
+        if (!databricksWorkspaceUrl) {
+          errors.push("Workspace URL is required");
+        } else if (
+          !/^[a-z0-9-]+\.cloud\.databricks\.com$/.test(databricksWorkspaceUrl)
+        ) {
+          errors.push(
+            "Workspace URL must be a valid Databricks hostname (e.g. dbc-b69d7b3c-a430.cloud.databricks.com)",
+          );
+        }
+        if (!databricksClientId) {
+          errors.push("Client ID is required");
+        }
+        if (!databricksClientSecret) {
+          errors.push("Client Secret is required");
+        }
+      }
+    }
+
     // If there are validation errors, display them and return
     if (errors.length > 0) {
       setValidationErrors(errors);
@@ -260,6 +286,10 @@ export function BaseIntegrationConfigPane({
 
       if (integrationId === "zendesk") {
         config.instance_url = zendeskSubdomain;
+      }
+
+      if (integrationId === "databricks" && databricksWarehouseId) {
+        config.warehouse_id = databricksWarehouseId;
       }
 
       if (isEditMode && editData?.id) {
@@ -333,6 +363,22 @@ export function BaseIntegrationConfigPane({
           if (snowflakeAccountId) {
             (updateData as Record<string, unknown>).apiKey = snowflakeAccountId;
           }
+        } else if (integrationId === "databricks") {
+          if (databricksClientId) {
+            updateData.accessKey = databricksClientId;
+          }
+          if (databricksClientSecret) {
+            updateData.accessSecret = databricksClientSecret;
+          }
+          if (databricksWorkspaceUrl) {
+            (updateData as Record<string, unknown>).apiKey =
+              databricksWorkspaceUrl;
+          }
+          if (databricksWarehouseId) {
+            if (!updateData.config) updateData.config = {};
+            (updateData.config as Record<string, unknown>).warehouse_id =
+              databricksWarehouseId;
+          }
         }
 
         // Update existing integration
@@ -358,7 +404,9 @@ export function BaseIntegrationConfigPane({
                   ? zendeskEmail
                   : integrationId === "snowflake"
                     ? snowflakeDomain
-                    : undefined,
+                    : integrationId === "databricks"
+                      ? databricksClientId
+                      : undefined,
           accessSecret:
             integrationId === "gong"
               ? gongAccessSecret
@@ -366,7 +414,9 @@ export function BaseIntegrationConfigPane({
                 ? zendeskApiToken
                 : integrationId === "snowflake"
                   ? snowflakePrivateKey
-                  : undefined,
+                  : integrationId === "databricks"
+                    ? databricksClientSecret
+                    : undefined,
           // Semantic credentials for Basic Auth and specific integrations
           username:
             integrationId === "chorus"
@@ -391,7 +441,9 @@ export function BaseIntegrationConfigPane({
                     ? clariUsername
                     : integrationId === "snowflake"
                       ? snowflakeAccountId
-                      : undefined,
+                      : integrationId === "databricks"
+                        ? databricksWorkspaceUrl
+                        : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -428,6 +480,12 @@ export function BaseIntegrationConfigPane({
           setSnowflakeAccountId("");
           setSnowflakeUsername("");
           setSnowflakePrivateKey("");
+        }
+        if (integrationId === "databricks") {
+          setDatabricksWorkspaceUrl("");
+          setDatabricksClientId("");
+          setDatabricksClientSecret("");
+          setDatabricksWarehouseId("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -1146,6 +1204,108 @@ export function BaseIntegrationConfigPane({
                     `}</style>
                 </>
               )}
+
+              {integrationId === "databricks" && (
+                <>
+                  {/* Workspace URL */}
+                  <div className="databricks-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Workspace URL"
+                      value={databricksWorkspaceUrl}
+                      onChange={(e) =>
+                        setDatabricksWorkspaceUrl(e.target.value)
+                      }
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "e.g. dbc-a1b2c3d4-e5f6.cloud.databricks.com"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "Hostname only — no https:// prefix"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Client ID */}
+                  <div className="databricks-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Client ID"
+                      value={databricksClientId}
+                      onChange={(e) => setDatabricksClientId(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "e.g. 697842dc-73a9-4268-8097-dc08391a6000"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "Service principal Client ID from Databricks Account Console"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Client Secret */}
+                  <div className="databricks-input-wrapper">
+                    <Input
+                      type="password"
+                      label="Client Secret"
+                      value={databricksClientSecret}
+                      onChange={(e) =>
+                        setDatabricksClientSecret(e.target.value)
+                      }
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Paste your service principal secret"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "OAuth secret generated for the service principal"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  {/* Warehouse ID (optional) */}
+                  <div className="databricks-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Warehouse ID"
+                      value={databricksWarehouseId}
+                      onChange={(e) => setDatabricksWarehouseId(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "e.g. 019baf45ad4c311e"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing value"
+                          : "SQL Warehouses → Connection details → last segment of HTTP Path (optional)"
+                      }
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .databricks-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
             </div>
 
             {/* Validation Errors Banner */}
@@ -1171,6 +1331,7 @@ export function BaseIntegrationConfigPane({
             integrationId === "jiminny" ||
             integrationId === "zendesk" ||
             integrationId === "snowflake" ||
+            integrationId === "databricks" ||
             integrationId === "salesloft_engagement") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
@@ -1184,9 +1345,11 @@ export function BaseIntegrationConfigPane({
                           ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
                           : integrationId === "snowflake"
                             ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
-                            : integrationId === "salesloft_engagement"
-                              ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
-                              : "https://developers.fathom.ai/quickstart"
+                            : integrationId === "databricks"
+                              ? "https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html"
+                              : integrationId === "salesloft_engagement"
+                                ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
+                                : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1200,9 +1363,11 @@ export function BaseIntegrationConfigPane({
                         ? "Generating a new API token"
                         : integrationId === "snowflake"
                           ? "How to generate a key pair"
-                          : integrationId === "salesloft_engagement"
-                            ? "How to generate an API key"
-                            : "How to generate an API key"}
+                          : integrationId === "databricks"
+                            ? "How to set up OAuth M2M"
+                            : integrationId === "salesloft_engagement"
+                              ? "How to generate an API key"
+                              : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -1226,7 +1391,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "databricks" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button
