@@ -1,3 +1,4 @@
+import { TiptapViewer } from '../../TiptapEditor';
 import type { TextWidgetProps } from '../types';
 
 const variantStyles: Record<string, string> = {
@@ -14,11 +15,24 @@ const alignmentStyles: Record<string, string> = {
 };
 
 /**
- * Text widget for headings, body text, and captions.
+ * Text widget for headings, body text, captions, and rich markdown content.
+ *
+ * When `variant` is set, renders plain styled text (legacy).
+ * When `variant` is absent, renders content as rich markdown via TiptapViewer.
  */
 const TextWidget: React.FC<TextWidgetProps> = ({ config }) => {
   const { content, variant, alignment = 'left' } = config;
 
+  // Rich markdown mode — no variant means backend-resolved markdown content
+  if (!variant) {
+    return (
+      <div className={`h-full overflow-auto px-4 py-3 ${alignmentStyles[alignment]}`}>
+        <TiptapViewer content={content} className="text-sm text-gray-700" />
+      </div>
+    );
+  }
+
+  // Plain text mode — styled by variant
   return (
     <div className={`flex items-center h-full px-4 py-2 ${alignmentStyles[alignment]}`}>
       <p className={`${variantStyles[variant]} w-full`}>{content}</p>
