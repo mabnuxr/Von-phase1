@@ -596,11 +596,11 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
 
     // Single-value operators (equals / not_equals / etc. — i.e. !isMulti)
     // use radio semantics on a non-calendar option: clicking a different
-    // option replaces the current value; clicking the already-selected
-    // option clears it.
+    // option replaces the current value. Re-clicking the already-selected
+    // option is a no-op (radio buttons don't deselect).
     if (!isMulti && !isCalendarOption) {
       const isCurrent = currentValues.length === 1 && currentValues[0] === option;
-      onChange(isCurrent ? null : { operator: currentOperator, value: option });
+      if (!isCurrent) onChange({ operator: currentOperator, value: option });
       return;
     }
 
