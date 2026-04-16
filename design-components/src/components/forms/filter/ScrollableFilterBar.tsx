@@ -583,7 +583,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                             </span>
                             <CaretRightIcon
                               size={12}
-                              className={`shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
+                              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-400'}`}
                             />
                           </button>
                         </div>
