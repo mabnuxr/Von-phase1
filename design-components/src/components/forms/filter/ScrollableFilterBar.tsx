@@ -382,7 +382,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       return (
         <span className="flex items-center gap-1">
           <span>{opLabel}:</span>
-          {displayValues.slice(0, 2).map((v, i) => (
+          {displayValues.slice(0, 1).map((v, i) => (
             <span
               key={fv.value![i] as string}
               className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full"
@@ -390,9 +390,9 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               {v}
             </span>
           ))}
-          {displayValues.length > 2 && (
+          {displayValues.length > 1 && (
             <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">
-              +{displayValues.length - 2}
+              +{displayValues.length - 1}
             </span>
           )}
         </span>
