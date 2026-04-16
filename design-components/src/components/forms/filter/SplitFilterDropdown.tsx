@@ -220,6 +220,8 @@ export interface SplitFilterDropdownProps {
   triggerClassName?: string;
   /** Where the popover opens relative to the trigger */
   placement?: 'bottom-start' | 'right-start';
+  /** Called when the popover opens. Lets the parent close sibling popovers. */
+  onOpen?: () => void;
 }
 
 // ============================================================================
@@ -242,6 +244,7 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
   defaultOpen = false,
   triggerClassName,
   placement = 'bottom-start',
+  onOpen,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -430,8 +433,9 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
       initDynamicInputs();
       initCalendar();
       setIsOpen(true);
+      onOpen?.();
     }
-  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar, onDismiss]);
+  }, [viewOnly, isOpen, computePosition, initDynamicInputs, initCalendar, onDismiss, onOpen]);
 
   // Auto-open when defaultOpen transitions to true. Only watches
   // `defaultOpen` — NOT the callbacks, because computePosition depends
