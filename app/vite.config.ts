@@ -39,8 +39,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), s3ProxyPlugin()],
-    resolve:
-      mode === "development"
+    resolve: {
+      // Prevent duplicate React instances from different packages
+      dedupe: ["react", "react-dom"],
+      ...(mode === "development"
         ? {
             alias: [
               // CSS files use the built dist version to avoid @import ordering issues
@@ -68,7 +70,8 @@ export default defineConfig(({ mode }) => {
               },
             ],
           }
-        : undefined,
+        : {}),
+    },
     envDir: path.resolve(__dirname, ".."),
     server: {
       port: 5173, // always start on 5173

@@ -39,6 +39,7 @@ export const FEATURE_FLAGS = {
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
   // so a single toggle in LaunchDarkly flips both sides in sync.
   DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  USAGE_METRICS: "enableUsageMetrics",
 } as const;
 
 /**
@@ -191,6 +192,11 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether Usage tab is visible in Settings
+     */
+    isUsageMetricsEnabled: flags[FEATURE_FLAGS.USAGE_METRICS] === true,
 
     /**
      * Raw flags object for advanced usage

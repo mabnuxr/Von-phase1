@@ -18,6 +18,7 @@ export interface SettingsGroupItem {
   integrations: SettingsItem[];
   configurations: SettingsItem[];
   team: SettingsItem[];
+  usage?: SettingsItem[];
 }
 
 export interface SettingsSidebarProps {
@@ -54,6 +55,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     ...(settingsItems?.integrations || []),
     ...(settingsItems?.configurations || []),
     ...(settingsItems?.team || []),
+    ...(settingsItems?.usage || []),
   ];
 
   // Reusable menu item renderer
@@ -254,11 +256,21 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         {/* Team Section */}
         {settingsItems?.team && settingsItems.team.length > 0 && (
-          <div>
+          <div className="mb-3">
             <div className="px-2 py-1.5">
               <span className="text-xs font-medium text-gray-600">Team</span>
             </div>
             {settingsItems.team.map(renderMenuItem)}
+          </div>
+        )}
+
+        {/* Usage Section */}
+        {settingsItems?.usage && settingsItems.usage.length > 0 && (
+          <div>
+            <div className="px-2 py-1.5">
+              <span className="text-xs font-medium text-gray-600">Usage</span>
+            </div>
+            {settingsItems.usage.map(renderMenuItem)}
           </div>
         )}
       </div>
