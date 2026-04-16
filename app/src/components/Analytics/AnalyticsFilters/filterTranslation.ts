@@ -895,16 +895,25 @@ export function renderFilterValue(
     }
   }
 
+  const isOwnership = def.semantic_type === "ownership";
   const formatOne = (x: unknown): string => {
     const s = String(x);
+    // Ownership: resolve SFDC IDs to display names
+    if (isOwnership) return ownershipIdToName(s, def);
     return (
       formatCalendarSerialised(s) ??
       formatDynamicNValue(s, def) ??
       (def.dynamic ? tokenLabel(s) : s)
     );
   };
-  // For token-as-operator between/not_between with date array, show formatted range
-  if (isTokenAsOperatorFilter(def) && Array.isArray(v) && v.length === 2) {
+  // For token-as-operator between/not_between with date array, show formatted range.
+  // Skip for ownership filters — a 2-element array is "2 users", not a date range.
+  if (
+    isTokenAsOperatorFilter(def) &&
+    !isOwnership &&
+    Array.isArray(v) &&
+    v.length === 2
+  ) {
     const labeled = v.map(formatOne);
     return `${opLabel}: ${labeled.join(" – ")}`;
   }
