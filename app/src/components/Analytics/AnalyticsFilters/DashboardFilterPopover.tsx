@@ -357,7 +357,7 @@ const ActiveFilterRow: React.FC<ActiveFilterRowProps> = memo(
           </div>
 
           {/* Operator dropdown */}
-          <div className="w-36 flex-shrink-0">
+          <div className="flex-shrink-0" style={{ width: "108px" }}>
             <Select
               options={operatorOptions}
               value={filter.operator}
@@ -462,15 +462,15 @@ const PendingFilterRow: React.FC<PendingFilterRowProps> = ({
       </div>
 
       {/* Operator placeholder */}
-      <div className="w-36 flex-shrink-0">
-        <div className="px-2.5 py-1.5 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg">
+      <div className="flex-shrink-0" style={{ width: "108px" }}>
+        <div className="px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg">
           is
         </div>
       </div>
 
       {/* Value placeholder */}
       <div className="flex-1 min-w-0">
-        <div className="px-2.5 py-1.5 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg">
+        <div className="px-2.5 py-1.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg">
           Enter a value
         </div>
       </div>
