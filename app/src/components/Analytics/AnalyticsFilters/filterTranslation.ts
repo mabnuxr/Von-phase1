@@ -468,12 +468,22 @@ export function mapDefinition(
     const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
     const presets = def.available_presets ?? [];
 
-    // Scope tokens — rendered as noValue operators
-    for (const token of presets) {
+    // All ownership tokens — enabled if in available_presets, disabled otherwise.
+    // Disabled tokens are greyed out so viewers know they exist but are
+    // restricted by the dashboard's shared data scope.
+    const ALL_OWNERSHIP_TOKENS = [
+      "MY_RECORDS",
+      "MY_TEAMS_RECORDS",
+      "MY_MANAGERS_TEAM",
+      "ALL_RECORDS",
+    ];
+    const enabledSet = new Set(presets);
+    for (const token of ALL_OWNERSHIP_TOKENS) {
       ops.push({
         value: token,
         label: tokenLabel(token),
         noValue: true,
+        ...(!enabledSet.has(token) && { disabled: true }),
       });
     }
 
