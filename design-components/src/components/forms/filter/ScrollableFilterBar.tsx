@@ -551,7 +551,6 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                         canApply={canApply}
                         onClear={onClearField ? () => onClearField(field.id) : undefined}
                         onDismiss={onDismiss ? () => onDismiss(field.id) : undefined}
-                        onOpen={() => setIsMoreOpen(false)}
                       >
                         <div
                           className={`w-full flex flex-col gap-1 rounded-xl p-1 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
