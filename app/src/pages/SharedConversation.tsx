@@ -153,16 +153,21 @@ export default function SharedConversation() {
 
   return (
     <div className="flex flex-col flex-1 w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none">
-      {/* Header — read-only indicator + shared by */}
-      <div className="flex items-center justify-end px-5 py-3 border-b border-gray-100 bg-white shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600">
+      {/* Header — conversation name + read-only indicator + shared by */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          {currentConversation?.title && (
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {currentConversation.title}
+            </span>
+          )}
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600 shrink-0">
             Read-only
           </span>
-          <span className="text-sm text-gray-500">
-            Shared by {validation.sharedByName}
-          </span>
         </div>
+        <span className="text-sm text-gray-500 shrink-0 ml-3">
+          Shared by {validation.sharedByName}
+        </span>
       </div>
 
       {/* Chat (read-only — no input) */}
