@@ -12,6 +12,7 @@ const KNOWN_ICONS: Record<string, DataSourceIcon> = {
   salesforce: "salesforce",
   sfdc: "salesforce",
   snowflake: "snowflake",
+  von_iq: "von_iq",
 };
 
 function iconFor(type: string): DataSourceIcon {
