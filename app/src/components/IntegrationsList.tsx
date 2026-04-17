@@ -586,6 +586,7 @@ export function IntegrationsList({
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
+    isDatabricksEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -602,6 +603,7 @@ export function IntegrationsList({
       if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
         return false;
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
+      if (app.id === "databricks" && !isDatabricksEnabled) return false;
       return true;
     });
   }, [
@@ -615,6 +617,7 @@ export function IntegrationsList({
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
+    isDatabricksEnabled,
   ]);
 
   // Merge available apps with connected integrations

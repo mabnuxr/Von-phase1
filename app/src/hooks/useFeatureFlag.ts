@@ -34,6 +34,7 @@ export const FEATURE_FLAGS = {
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
+  DATABRICKS: "enableDatabricks",
   // LaunchDarkly key: `enable-dashboard-filters-v2` (auto-camelCased by the
   // React SDK for `useFlags()` access). Shared with the backend gate
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
@@ -186,6 +187,11 @@ export function useFeatureFlag() {
      */
     isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
 
+    /**
+
+     * Controls whether Databricks integration is visible
+     */
+    isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
     /**
      * Controls whether the v2 dashboard filter bar UI is enabled
      * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
