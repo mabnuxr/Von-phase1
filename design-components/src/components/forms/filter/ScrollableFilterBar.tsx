@@ -1,19 +1,17 @@
 /**
- * ScrollableFilterBar — horizontal pill bar with overflow "+" dropdown.
+ * ScrollableFilterBar — dashboard filter bar with inline chips plus a
+ * "More +N" popover for overflow filters.
  *
- * Renders filter fields as individual pill dropdowns. When content overflows
- * the available width, excess pills move behind a "+N" button that opens a
- * dropdown list of the overflow filter names. Selecting one promotes it into
- * the visible set and auto-opens its popover.
- *
- * When `pinnedCount` / `onOverflowSelect` are not provided, falls back to the
- * original horizontal-scroll behaviour with gradient fades and caret buttons.
+ * The first `pinnedCount` (or INLINE_FIELD_COUNT, whichever is larger)
+ * filters stay inline. Additional filters move into a More popover,
+ * where each list item opens the existing split dropdown editor to the right.
  */
 
-import React, { useRef, useState, useCallback, useLayoutEffect, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import {
-  CaretLeftIcon,
+  CaretDownIcon,
   CaretRightIcon,
   InfoIcon,
   LockSimpleIcon,
@@ -132,6 +130,8 @@ export interface FilterValue {
   includeBlank?: boolean;
 }
 
+export type FilterBarValue = FilterValue;
+
 export interface ScrollableFilterBarProps {
   fields: FilterFieldConfig[];
   /** Current filter values keyed by field id */
@@ -164,28 +164,10 @@ export interface ScrollableFilterBarProps {
    */
   onClearField?: (fieldId: string) => void;
   /**
-   * Number of fields at the start of the `fields` array that are always
-   * visible and never overflow. When provided together with
-   * `onOverflowSelect`, enables the responsive overflow "+" behaviour.
+   * Minimum number of fields that are always visible inline regardless
+   * of the 60% width budget.
    */
   pinnedCount?: number;
-  /**
-   * Render a vertical divider after the Nth field (0-indexed count from
-   * the start). When the count is 0 or >= fields.length, no divider is
-   * drawn. Used by the dashboard filter bar to separate mandatory filters
-   * from the rest.
-   */
-  dividerAfterIndex?: number;
-  /**
-   * Called when the user selects a filter from the overflow "+" dropdown.
-   * The parent is responsible for promoting that filter into the visible set.
-   */
-  onOverflowSelect?: (fieldId: string) => void;
-  /**
-   * When set, the matching SplitFilterDropdown opens on mount (one-shot).
-   * Used to auto-open the popover for a filter just promoted from overflow.
-   */
-  autoOpenFieldId?: string;
   /**
    * Called when a filter popover closes without Apply (dismiss). Receives
    * the field id so the parent can revert unapplied local state.
@@ -206,15 +188,19 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   canApply = true,
   onClearField,
   pinnedCount,
-  dividerAfterIndex,
-  onOverflowSelect,
-  autoOpenFieldId,
   onDismiss,
 }) => {
-  const useOverflowMode = pinnedCount != null && onOverflowSelect != null;
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const morePopoverRef = useRef<HTMLDivElement>(null);
+  const [morePopoverStyle, setMorePopoverStyle] = useState<React.CSSProperties>({});
 
-  // Find the parent row element for budget calculation (cached in ref)
+  // ── 60% budget measurement ─────────────────────────────────────
+  const containerRef = useRef<HTMLDivElement>(null);
+  const measureRef = useRef<HTMLDivElement>(null);
   const rowElRef = useRef<HTMLElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(fields.length);
+
   const getRowEl = useCallback(() => {
     if (rowElRef.current) return rowElRef.current;
     const container = containerRef.current;
@@ -225,232 +211,129 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     return rowElRef.current;
   }, []);
 
-  // ── Refs shared between overflow and scroll modes ───────────────
-  const containerRef = useRef<HTMLDivElement>(null);
-  const measureRef = useRef<HTMLDivElement>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // ── Overflow measurement ────────────────────────────────────────
-  // Determines which non-applied filters to show vs. put behind "+"
-  const [visibleSet, setVisibleSet] = useState<Set<string>>(() => new Set());
-  // Dynamic max-width for the scroll area — 70% of the actual row width
-  const [scrollAreaMaxWidth, setScrollAreaMaxWidth] = useState<number>(0);
-
   const measureOverflow = useCallback(() => {
-    if (!useOverflowMode) return;
-    const container = containerRef.current;
     const measure = measureRef.current;
-    if (!container || !measure) return;
+    const rowEl = getRowEl();
+    if (!measure || !rowEl) return;
 
-    const rowEl = getRowEl() ?? container;
-    const rowWidth = rowEl.clientWidth;
-    const budget = rowWidth * 0.7;
-    setScrollAreaMaxWidth(budget);
-    const plusButtonWidth = 42;
+    const budget = rowEl.clientWidth * 0.5;
     const gap = 6; // gap-1.5 = 6px
-
-    const children = Array.from(measure.children) as HTMLElement[];
     const pinned = pinnedCount ?? 0;
 
-    // Phase 1: mandatory (pinned) + applied always visible — measure their width
+    const children = Array.from(measure.children) as HTMLElement[];
     let usedWidth = 0;
     let count = 0;
-    const visible = new Set<string>();
 
-    for (let i = 0; i < children.length; i++) {
-      const field = fields[i];
-      const isPinned = i < pinned;
-      const isApplied = field.id in values;
-
-      if (isPinned || isApplied) {
-        usedWidth += children[i].offsetWidth + (count > 0 ? gap : 0);
-        count++;
-        visible.add(field.id);
-      }
-    }
-
-    // Phase 2: fill remaining non-applied into the 70% budget.
-    // Mandatory+applied always show even if they exceed the budget.
-    // Non-applied only appear if there's room within the 70% allocation.
-    const nonAppliedBudget = Math.max(budget, usedWidth);
-    let hasOverflow = false;
-
-    for (let i = 0; i < children.length; i++) {
-      const field = fields[i];
-      if (visible.has(field.id)) continue; // already mandatory/applied
-
+    for (let i = 0; i < children.length && i < fields.length; i++) {
       const childWidth = children[i].offsetWidth;
       const nextWidth = usedWidth + childWidth + (count > 0 ? gap : 0);
-      // Reserve "+" button space when checking fit
-      if (nextWidth + plusButtonWidth <= nonAppliedBudget) {
+
+      // Mandatory (pinned) filters always show, even if they exceed budget
+      if (i < pinned) {
         usedWidth = nextWidth;
         count++;
-        visible.add(field.id);
+        continue;
+      }
+
+      if (nextWidth <= budget) {
+        usedWidth = nextWidth;
+        count++;
       } else {
-        hasOverflow = true;
         break;
       }
     }
 
-    // If all fit, no "+" button needed — include everything
-    if (!hasOverflow) {
-      for (const f of fields) visible.add(f.id);
-    }
+    if (count >= fields.length) count = fields.length;
 
-    // Skip state update if the visible set hasn't changed (avoids no-op re-renders on resize)
-    setVisibleSet((prev) => {
-      if (prev.size === visible.size && [...visible].every((id) => prev.has(id))) return prev;
-      return visible;
-    });
-  }, [useOverflowMode, fields, pinnedCount, values, getRowEl]);
+    setVisibleCount((prev) => (prev === count ? prev : count));
+  }, [fields.length, pinnedCount, getRowEl]);
 
   useLayoutEffect(() => {
     measureOverflow();
   }, [measureOverflow]);
 
   useEffect(() => {
-    if (!useOverflowMode) return;
-    const container = containerRef.current;
-    if (!container) return;
-    const rowEl = getRowEl() ?? container;
+    const rowEl = getRowEl();
+    if (!rowEl) return;
     const observer = new ResizeObserver(measureOverflow);
     observer.observe(rowEl);
-    observer.observe(container);
     return () => observer.disconnect();
-  }, [useOverflowMode, measureOverflow, getRowEl]);
+  }, [measureOverflow, getRowEl]);
 
-  const visibleFields = useMemo(
-    () => (useOverflowMode ? fields.filter((f) => visibleSet.has(f.id)) : fields),
-    [useOverflowMode, fields, visibleSet]
-  );
-  const overflowFields = useMemo(
-    () => (useOverflowMode ? fields.filter((f) => !visibleSet.has(f.id)) : []),
-    [useOverflowMode, fields, visibleSet]
-  );
+  const inlineFields = fields.slice(0, visibleCount);
+  const hiddenFields = fields.slice(visibleCount);
 
-  // ── Overflow dropdown state ─────────────────────────────────────
-  const [overflowOpen, setOverflowOpen] = useState(false);
-  const plusRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  // True when at least one hidden filter has a committed (applied) value.
+  // `values` reflects the server state except during active popover editing
+  // (dismissed edits are reverted by onDismiss), so this is a reliable proxy.
+  const hasAppliedHiddenFilter = hiddenFields.some((f) => {
+    const fv = values[f.id];
+    return fv && !isEmptyFilterValue(fv.value);
+  });
 
-  const repositionDropdown = useCallback(() => {
-    if (!plusRef.current) return;
-    const rect = plusRef.current.getBoundingClientRect();
-    setDropdownStyle({
+  // Close More popover if all hidden fields disappear
+  useEffect(() => {
+    if (isMoreOpen && hiddenFields.length === 0) {
+      setIsMoreOpen(false);
+    }
+  }, [hiddenFields.length, isMoreOpen]);
+
+  // ── More popover positioning ───────────────────────────────────
+  const computeMorePopoverPosition = useCallback(() => {
+    const trigger = moreButtonRef.current;
+    const popover = morePopoverRef.current;
+    if (!trigger || !popover) return;
+
+    const triggerRect = trigger.getBoundingClientRect();
+    const popoverRect = popover.getBoundingClientRect();
+    const left = Math.max(8, Math.min(triggerRect.left, window.innerWidth - popoverRect.width - 8));
+    const preferredTop = triggerRect.bottom + 2;
+    const top = Math.max(8, Math.min(preferredTop, window.innerHeight - popoverRect.height - 8));
+
+    setMorePopoverStyle({
       position: 'fixed',
-      top: rect.bottom + 4,
-      left: rect.left,
-      zIndex: 9100,
+      top,
+      left,
+      zIndex: 10000,
     });
   }, []);
 
   useLayoutEffect(() => {
-    if (!overflowOpen) return;
-    repositionDropdown();
-  }, [overflowOpen, repositionDropdown]);
+    if (!isMoreOpen) return;
+    computeMorePopoverPosition();
 
-  // Reposition dropdown on scroll/resize while open
-  useEffect(() => {
-    if (!overflowOpen) return;
-    window.addEventListener('resize', repositionDropdown);
-    window.addEventListener('scroll', repositionDropdown, true);
-    return () => {
-      window.removeEventListener('resize', repositionDropdown);
-      window.removeEventListener('scroll', repositionDropdown, true);
-    };
-  }, [overflowOpen, repositionDropdown]);
+    const popover = morePopoverRef.current;
+    const observer = new ResizeObserver(computeMorePopoverPosition);
+    if (popover) observer.observe(popover);
+    window.addEventListener('resize', computeMorePopoverPosition);
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!overflowOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        dropdownRef.current?.contains(e.target as Node) ||
-        plusRef.current?.contains(e.target as Node)
-      )
-        return;
-      setOverflowOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [overflowOpen]);
-
-  // ── Horizontal scroll (shared by both modes) ───────────────────
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setCanScrollLeft(el.scrollLeft > 2);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-  }, []);
-
-  useLayoutEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    checkScroll();
-    const observer = new ResizeObserver(checkScroll);
-    observer.observe(el);
-    el.addEventListener('scroll', checkScroll, { passive: true });
     return () => {
       observer.disconnect();
-      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', computeMorePopoverPosition);
     };
-  }, [checkScroll, visibleFields.length]);
+  }, [isMoreOpen, computeMorePopoverPosition]);
 
-  const scroll = useCallback((direction: 'left' | 'right') => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const amount = 200;
-    el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
-  }, []);
-
-  // Deferred auto-open: polls until the promoted pill is in the DOM,
-  // scrolls to end, waits for scroll to finish, then opens the popover.
-  const [deferredOpenId, setDeferredOpenId] = useState<string | undefined>();
-  const lastAutoOpenRef = useRef<string | undefined>(undefined);
-
+  // Close on outside click
   useEffect(() => {
-    if (!autoOpenFieldId || autoOpenFieldId === lastAutoOpenRef.current) return;
-    lastAutoOpenRef.current = autoOpenFieldId;
+    if (!isMoreOpen) return;
 
-    let lastScrollWidth = 0;
-    let rafId: number;
-
-    const poll = setInterval(() => {
-      const el = scrollRef.current;
-      if (!el || el.children.length === 0) return;
-
-      // If scrollWidth changed (new pill appeared or layout shifted),
-      // re-trigger instant scroll to the new end.
-      if (el.scrollWidth !== lastScrollWidth) {
-        lastScrollWidth = el.scrollWidth;
-        el.scrollTo({ left: el.scrollWidth, behavior: 'instant' });
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        morePopoverRef.current?.contains(target) ||
+        moreButtonRef.current?.contains(target) ||
+        target.closest('[data-filter-dropdown-root="true"]')
+      ) {
         return;
       }
-
-      // scrollWidth stable + scroll is at end → open the popover
-      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
-      if (atEnd) {
-        clearInterval(poll);
-        setDeferredOpenId(autoOpenFieldId);
-        rafId = requestAnimationFrame(() => setDeferredOpenId(undefined));
-      }
-    }, 50);
-
-    // Safety: give up after 2s
-    const safety = setTimeout(() => clearInterval(poll), 2000);
-
-    return () => {
-      clearInterval(poll);
-      clearTimeout(safety);
-      cancelAnimationFrame(rafId);
+      setIsMoreOpen(false);
     };
-  }, [autoOpenFieldId]);
 
-  // ── Shared render helpers ───────────────────────────────────────
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isMoreOpen]);
+
+  // ── Render helpers ─────────────────────────────────────────────
 
   const renderFilterValue = (
     field: FilterFieldConfig,
@@ -460,30 +343,47 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
     const opLabel = getOperatorFullLabel(fv.operator, field);
 
     // Show the operator label by itself when the value is unset or empty
-    // — covers true noValue ops (is_blank / My Records), plus the
-    // in-between state where the user has picked an operator but hasn't
-    // supplied a value yet (e.g. picked "Is" on a previously-empty chip).
     if (isEmptyFilterValue(fv.value)) return opLabel;
 
-    // N-parameterized operator: substitute N in label ("Last N Days" + "7" → "Last 7 Days")
+    // N-parameterized operator: substitute N in label
     const opDef = field.customOperators?.find((o) => o.value === fv.operator);
     if (opDef?.numberInput && fv.value && typeof fv.value === 'string') {
       return opLabel.replace(/\bN\b/, fv.value);
     }
 
-    // Calendar-mode operator: show formatted date without operator prefix
+    // Calendar-mode operator: show the formatted date/range without the
+    // operator prefix — the bare value is enough for `custom_date` and
+    // `between` (single date / natural "from–to" range). `not_between`
+    // is the exception: without the prefix it's indistinguishable from
+    // `between`, so keep the label visible.
     if (opDef?.calendarMode && fv.value && typeof fv.value === 'string') {
       const display = formatDynamicValue(fv.value, undefined);
-      if (display) return display;
+      if (display) {
+        if (fv.operator === 'not_between') {
+          return (
+            <span className="flex items-center gap-1 min-w-0">
+              <span className="shrink-0">{opLabel}:</span>
+              <span className="truncate min-w-0" title={display}>
+                {display}
+              </span>
+            </span>
+          );
+        }
+        return display;
+      }
     }
 
-    // Between range display
-    if (fv.operator === 'between' && Array.isArray(fv.value) && fv.value.length === 2) {
+    // Between / Not between range display
+    if (
+      (fv.operator === 'between' || fv.operator === 'not_between') &&
+      Array.isArray(fv.value) &&
+      fv.value.length === 2
+    ) {
       const [min, max] = fv.value;
-      if (min && max) return `Between: ${min} – ${max}`;
-      if (min) return `From: ${min}`;
-      if (max) return `To: ${max}`;
-      return 'Between';
+      if (min && max) return `${opLabel}: ${min} – ${max}`;
+      if (min) return `${opLabel}: from ${min}`;
+      if (max) return `${opLabel}: to ${max}`;
+      return opLabel;
     }
 
     // Multi-value (picklist chips)
@@ -496,41 +396,48 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         return dynLabel ?? v;
       });
       return (
-        <span className="flex items-center gap-1">
-          <span>{opLabel}:</span>
-          {displayValues.slice(0, 2).map((v, i) => (
+        <span className="flex items-center gap-1 min-w-0">
+          <span className="shrink-0">{opLabel}:</span>
+          {displayValues.slice(0, 1).map((v, i) => (
             <span
               key={fv.value![i] as string}
-              className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full"
+              title={v}
+              className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full truncate max-w-[160px]"
             >
               {v}
             </span>
           ))}
-          {displayValues.length > 2 && (
-            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">
-              +{displayValues.length - 2}
+          {displayValues.length > 1 && (
+            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full shrink-0">
+              +{displayValues.length - 1}
             </span>
           )}
         </span>
       );
     }
 
-    // Single value — run through the dynamic/calendar formatter so wire
-    // tokens like "NEXT_N_DAYS:45" render as "Next 45 days" instead of
-    // the raw serialised token.
+    // Single value
     if (fv.value && typeof fv.value === 'string') {
       const allDynOpts = field.optionGroups
         ? field.optionGroups.flatMap((g) => g.dynamicOptions ?? [])
         : field.dynamicOptions;
       const display = formatDynamicValue(fv.value, allDynOpts) ?? fv.value;
-      return `${opLabel}: ${display}`;
+      return (
+        <span className="flex items-center gap-1 min-w-0">
+          <span className="shrink-0">{opLabel}:</span>
+          <span className="truncate min-w-0" title={display}>
+            {display}
+          </span>
+        </span>
+      );
     }
     return 'Select a filter';
   };
 
-  const renderPill = (field: FilterFieldConfig, isAutoOpen: boolean = false) => {
+  const renderInlineFilter = (field: FilterFieldConfig) => {
     const fv = values[field.id];
     const fieldLocked = field.locked ?? false;
+
     return (
       <SplitFilterDropdown
         key={field.id}
@@ -545,13 +452,12 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         canApply={canApply}
         onClear={onClearField ? () => onClearField(field.id) : undefined}
         onDismiss={onDismiss ? () => onDismiss(field.id) : undefined}
-        defaultOpen={isAutoOpen}
       >
         <div
-          className={`flex flex-col gap-1.5 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
+          className={`flex flex-col gap-1 shrink-0 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
         >
           <span
-            className={`flex items-center gap-1 text-[11px] leading-none pl-0.5 ${fieldLocked ? 'text-gray-500' : 'text-gray-700'}`}
+            className={`flex items-center gap-1 text-[11px] font-medium leading-none pl-0.5 ${fieldLocked ? 'text-gray-500' : 'text-gray-800'}`}
           >
             {field.label}
             {field.tooltip && (
@@ -563,199 +469,170 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
               </Tooltip>
             )}
           </span>
-          <button
-            className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
+          <motion.button
+            layout
+            className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors min-w-0 max-w-[320px] ${
               fieldLocked
                 ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
                 : !fv
-                  ? // Empty state — faint grey bg reinforces "no filter selected"
-                    'bg-gray-50/50 border-gray-100 text-gray-500 hover:bg-gray-100/60 cursor-pointer'
+                  ? 'bg-white border-gray-200/50 text-gray-900 hover:bg-gray-50 cursor-pointer'
                   : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
-            } ${!fv ? 'min-w-[80px]' : ''}`}
+            }`}
+            style={{ minWidth: 140 }}
           >
             {fieldLocked && <LockSimpleIcon size={11} className="text-gray-500 shrink-0" />}
-            <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
-            <CaretRightIcon
-              size={12}
-              className={`rotate-90 shrink-0 ${fieldLocked || !fv ? 'text-gray-300' : 'text-gray-400'}`}
-            />
-          </button>
+            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+              {renderFilterValue(field, fv)}
+            </span>
+            <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
+          </motion.button>
         </div>
       </SplitFilterDropdown>
     );
   };
 
-  // ── Overflow mode render ────────────────────────────────────────
-  if (useOverflowMode) {
-    return (
-      <div ref={containerRef} className="flex items-center gap-2 min-w-0">
-        {/* Hidden measurement row — renders all pills off-screen to measure widths */}
-        <div
-          ref={measureRef}
-          aria-hidden
-          className="flex items-center gap-1.5 absolute top-0 left-0 invisible pointer-events-none whitespace-nowrap"
-          style={{ height: 0, overflow: 'hidden' }}
-        >
-          {fields.map((field) => {
-            const fv = values[field.id];
-            const fieldLocked = field.locked ?? false;
-            return (
-              <div key={field.id} className="flex flex-col gap-1 shrink-0">
-                <span className="flex items-center gap-1 text-[11px] leading-none pl-0.5">
-                  {field.label}
-                  {field.tooltip && <InfoIcon size={11} className="shrink-0" />}
-                </span>
-                <button
-                  className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap ${
-                    !fv ? 'min-w-[80px]' : ''
-                  }`}
-                  tabIndex={-1}
-                >
-                  {fieldLocked && <LockSimpleIcon size={11} className="shrink-0" />}
-                  <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
-                  <CaretRightIcon size={12} className="rotate-90 shrink-0" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Scrollable filter area — capped at 70% of the parent row */}
-        <div
-          className="flex items-end gap-1 min-w-0"
-          style={{ maxWidth: scrollAreaMaxWidth || undefined }}
-        >
-          {/* Left caret — h-[28px] matches chip height for perfect alignment */}
-          {canScrollLeft && (
-            <button
-              onClick={() => scroll('left')}
-              className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
-            >
-              <CaretLeftIcon size={12} weight="bold" />
-            </button>
-          )}
-
-          <div
-            ref={scrollRef}
-            className="flex items-center gap-2.5 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {visibleFields.map((field, i) => {
-              const showDivider = dividerAfterIndex != null && i === dividerAfterIndex && i > 0;
-              return (
-                <React.Fragment key={field.id}>
-                  {showDivider && (
-                    <div
-                      aria-hidden
-                      className="h-[28px] w-px bg-gray-200 mx-0.5 self-end shrink-0"
-                    />
-                  )}
-                  {renderPill(field, field.id === deferredOpenId)}
-                </React.Fragment>
-              );
-            })}
-          </div>
-
-          {/* Right caret — h-[28px] matches chip height for perfect alignment */}
-          {canScrollRight && (
-            <button
-              onClick={() => scroll('right')}
-              className="w-7 h-7 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
-            >
-              <CaretRightIcon size={12} weight="bold" />
-            </button>
-          )}
-        </div>
-
-        {/* "+" overflow button — outside the 70% scroll area */}
-        {overflowFields.length > 0 && (
-          <button
-            ref={plusRef}
-            onClick={() => setOverflowOpen((o) => !o)}
-            className="flex items-center justify-center w-7 h-7 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:text-gray-700 hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer shrink-0 self-end"
-            title="More filters"
-          >
-            <PlusIcon size={14} />
-          </button>
-        )}
-
-        {/* Overflow dropdown */}
-        {overflowOpen &&
-          createPortal(
-            <div
-              ref={dropdownRef}
-              style={dropdownStyle}
-              className="bg-white rounded-lg border border-gray-200 shadow-lg py-1 min-w-[180px] max-h-[280px] overflow-auto"
-            >
-              {overflowFields.map((field) => {
-                const fv = values[field.id];
-                const hasValue = !!fv;
-                return (
-                  <button
-                    key={field.id}
-                    onClick={() => {
-                      onOverflowSelect(field.id);
-                      setOverflowOpen(false);
-                    }}
-                    className="w-full flex items-center justify-between gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-                  >
-                    <span>{field.label}</span>
-                    {hasValue && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>,
-            document.body
-          )}
-      </div>
-    );
-  }
-
-  // ── Legacy scroll mode render ───────────────────────────────────
   return (
-    <div className="relative flex items-center gap-0 min-w-0 max-w-full">
-      {/* Left caret + fade */}
-      {canScrollLeft && (
-        <>
-          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none" />
-          <button
-            onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <CaretLeftIcon size={12} weight="bold" />
-          </button>
-        </>
-      )}
-
-      {/* Scrollable pills */}
+    <div ref={containerRef} className="relative flex items-end gap-1.5 min-w-0 max-w-full">
+      {/* Hidden measurement row — renders all pills off-screen to measure widths */}
       <div
-        ref={scrollRef}
-        className="flex items-center gap-1.5 overflow-x-auto scrollbar-none whitespace-nowrap"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        ref={measureRef}
+        aria-hidden
+        className="flex items-center gap-1.5 absolute top-0 left-0 invisible pointer-events-none whitespace-nowrap"
+        style={{ height: 0, overflow: 'hidden' }}
       >
-        {fields.map((field, i) => {
-          const showDivider = dividerAfterIndex != null && i === dividerAfterIndex && i > 0;
+        {fields.map((field) => {
+          const fv = values[field.id];
+          const fieldLocked = field.locked ?? false;
           return (
-            <React.Fragment key={field.id}>
-              {showDivider && (
-                <div aria-hidden className="h-[28px] w-px bg-gray-200 mx-0.5 self-end shrink-0" />
-              )}
-              {renderPill(field)}
-            </React.Fragment>
+            <div key={field.id} className="flex flex-col gap-1 shrink-0">
+              <span className="flex items-center gap-1 text-[11px] leading-none pl-0.5">
+                {field.label}
+                {field.tooltip && <InfoIcon size={11} className="shrink-0" />}
+              </span>
+              <button
+                className="flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap min-w-0 max-w-[320px]"
+                style={{ minWidth: 140 }}
+                tabIndex={-1}
+              >
+                {fieldLocked && <LockSimpleIcon size={11} className="shrink-0" />}
+                <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+                  {renderFilterValue(field, fv)}
+                </span>
+                <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
+              </button>
+            </div>
           );
         })}
       </div>
 
-      {/* Right caret + fade */}
-      {canScrollRight && (
+      {inlineFields.map((field) => renderInlineFilter(field))}
+
+      {hiddenFields.length > 0 && (
         <>
-          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none" />
-          <button
-            onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full shadow-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <CaretRightIcon size={12} weight="bold" />
-          </button>
+          <div className="flex flex-col gap-1 shrink-0">
+            {/* Spacer to align with label row above inline chips */}
+            <span className="h-[11px]" aria-hidden="true" />
+            <button
+              ref={moreButtonRef}
+              onClick={() => setIsMoreOpen((open) => !open)}
+              className={`flex items-center gap-2 h-[26px] px-2 text-[11px] rounded-lg border transition-colors cursor-pointer ${
+                isMoreOpen
+                  ? 'bg-gray-50 border-gray-200 text-gray-900'
+                  : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50'
+              }`}
+              style={{ minWidth: 80, marginBottom: 1 }}
+            >
+              <span className="flex items-center gap-1 whitespace-nowrap">
+                {hasAppliedHiddenFilter && (
+                  <span
+                    className="shrink-0 rounded-full"
+                    style={{ width: 5, height: 5, backgroundColor: '#6d28d9' }}
+                  />
+                )}
+                <span className="flex items-center gap-px">
+                  <PlusIcon size={8} weight="bold" className="shrink-0" />
+                  {hiddenFields.length}
+                </span>
+                <span>filters</span>
+                <CaretDownIcon size={10} className="shrink-0 text-gray-800" />
+              </span>
+            </button>
+          </div>
+
+          {isMoreOpen &&
+            createPortal(
+              <div
+                ref={morePopoverRef}
+                style={{ ...morePopoverStyle, width: 220 }}
+                className="rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden"
+              >
+                <div className="px-3 py-2 border-b border-gray-100">
+                  <p className="text-xs font-medium text-gray-900">More filters</p>
+                </div>
+
+                <div className="overflow-y-auto p-2 flex flex-col gap-2" style={{ maxHeight: 180 }}>
+                  {hiddenFields.map((field) => {
+                    const fv = values[field.id];
+                    const fieldLocked = field.locked ?? false;
+                    return (
+                      <SplitFilterDropdown
+                        key={field.id}
+                        field={field}
+                        value={fv ?? null}
+                        onChange={(val) => onFilterChange(field.id, val)}
+                        triggerClassName="w-full"
+                        locked={fieldLocked}
+                        onToggleLock={field.onToggleLock}
+                        canLock={field.canLock}
+                        onApply={onApply}
+                        isApplying={isApplying}
+                        canApply={canApply}
+                        onClear={onClearField ? () => onClearField(field.id) : undefined}
+                        onDismiss={onDismiss ? () => onDismiss(field.id) : undefined}
+                      >
+                        <div
+                          className={`w-full flex flex-col gap-1 ${fieldLocked ? 'cursor-default' : 'cursor-pointer'}`}
+                        >
+                          <div className="flex items-center justify-between gap-2 pl-0.5">
+                            <span
+                              className={`flex items-center gap-0.5 text-[11px] font-medium leading-none min-w-0 ${fieldLocked ? 'text-gray-500' : 'text-gray-800'}`}
+                            >
+                              <span className="truncate">{field.label}</span>
+                              {field.tooltip && (
+                                <Tooltip content={field.tooltip} placement="top">
+                                  <InfoIcon
+                                    size={11}
+                                    className={`shrink-0 transition-colors ${fieldLocked ? 'text-gray-400' : 'text-gray-800 hover:text-gray-600'}`}
+                                  />
+                                </Tooltip>
+                              )}
+                            </span>
+                          </div>
+
+                          <motion.button
+                            layout
+                            className={`w-full flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
+                              fieldLocked
+                                ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
+                                : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50 cursor-pointer'
+                            }`}
+                          >
+                            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+                              {renderFilterValue(field, fv)}
+                            </span>
+                            <CaretRightIcon
+                              size={12}
+                              className={`rotate-90 shrink-0 ${fieldLocked ? 'text-gray-300' : 'text-gray-800'}`}
+                            />
+                          </motion.button>
+                        </div>
+                      </SplitFilterDropdown>
+                    );
+                  })}
+                </div>
+              </div>,
+              document.body
+            )}
         </>
       )}
     </div>
@@ -836,8 +713,5 @@ function formatDynamicValue(v: string, dynamicOptions?: DynamicOptionConfig[]): 
   const [, id, nStr] = match;
   const opt = dynamicOptions.find((o) => o.id === id);
   if (!opt) return null;
-  // Replace the standalone `N` placeholder in the backend template (e.g.
-  // "Next N days" → "Next 45 days"). `\b` prevents accidental matches
-  // inside other words (none today, but cheap to guard against).
   return opt.label.replace(/\bN\b/, nStr);
 }

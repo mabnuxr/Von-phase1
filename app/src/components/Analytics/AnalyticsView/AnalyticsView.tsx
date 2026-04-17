@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
@@ -20,7 +20,6 @@ import {
 } from "@vonlabs/design-components";
 import { AnalyticsFilters } from "../AnalyticsFilters";
 import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
-import { PanelFilterPopover } from "../AnalyticsFilters/PanelFilterPopover";
 import { DataSourcesSlot } from "./DataSourcesSlot";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
@@ -44,7 +43,6 @@ import type {
   WidgetConfig,
   GridConfig,
   LayoutItem,
-  AppliedWidgetFilter,
 } from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
@@ -54,15 +52,6 @@ interface AnalyticsViewProps {
   filterDefinitions: DashboardFilterDefinition[];
   /** Current filter state in API-native format */
   filterState: Record<
-    string,
-    { operator: string; value?: unknown; include_blank?: boolean }
-  >;
-  /**
-   * Server-committed snapshot of filter state. Same shape as `filterState`
-   * but stable across pending local edits — used for the filter bar's
-   * stable sort so chips don't re-order mid-interaction.
-   */
-  syncedFilterState: Record<
     string,
     { operator: string; value?: unknown; include_blank?: boolean }
   >;
@@ -229,7 +218,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   refreshInfo,
   filterDefinitions,
   filterState,
-  syncedFilterState,
   filterPendingRows,
   filterActiveCount,
   filterCanApply,
@@ -281,18 +269,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isRefetchingData,
   isRefreshing,
   isDrilldownOpen,
-  panelFilterState,
-  lockedFilterState,
-  getEffectivePanelState,
-  onPanelFilterChange,
-  onResetPanelFilter,
-  onRevertPanelFilter,
-  onRevertPanel,
-  onApplyPanelFilter,
-  canApplyPanelFilter,
-  onTogglePanelLock,
-  canLockPanelFilter,
-  lockedPanelFilterState,
+  // Panel-filter props accepted but unused until widget-level filter UI is re-enabled
 }) => {
   const { isDashboardFiltersV2Enabled } = useFeatureFlag();
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
@@ -306,140 +283,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
-  const widgetIds = useMemo(() => Object.keys(widgets), [widgets]);
-
-  /**
-   * Stable widget-id → query-id map derived from the canonical (non-paginated)
-   * widget definitions. Filter `applies_to` references query IDs (e.g.
-   * `pipeline_by_owner`), but React Query pagination/sort produces a new
-   * `paginatedWidgets` reference on each refetch. Keying the map off
-   * `dashboard.widgets` keeps it stable across those refetches so the
-   * per-panel filter factory and `widgetAppliedFilters` memo don't thrash.
-   * Falls back to the widget id so KPIs (whose id == query_ref) and legacy
-   * widgets without a queryRef continue to match the same way.
-   */
-  const widgetQueryRefMap = useMemo(() => {
-    const dashboardWidgets = dashboard.widgets as unknown as Record<
-      string,
-      WidgetConfig
-    >;
-    const map: Record<string, string> = {};
-    for (const [id, w] of Object.entries(dashboardWidgets)) {
-      map[id] = w?.queryRef ?? id;
-    }
-    return map;
-  }, [dashboard.widgets]);
-
-  const widgetAppliedFilters = useMemo(() => {
-    if (!filterDefinitions.length || !filterState) return undefined;
-
-    // Pre-compute display-ready filter info once per active definition
-    const stringify = (v: unknown) => {
-      if (v == null) return "";
-      if (typeof v === "object" && v !== null && "start" in v && "end" in v) {
-        const r = v as { start: string; end: string };
-        return `${r.start} – ${r.end}`;
-      }
-      return typeof v === "object" ? JSON.stringify(v) : String(v);
-    };
-
-    const enrichedDefs = filterDefinitions
-      .filter((def) => def.id in filterState)
-      .map((def) => {
-        const state = filterState[def.id];
-        const operatorLabel =
-          def.valid_operators?.find((op) => op.value === state.operator)
-            ?.label ?? state.operator;
-        const values = Array.isArray(state.value)
-          ? state.value.map(stringify)
-          : state.value != null
-            ? [stringify(state.value)]
-            : [];
-        const includeBlank = !!state.include_blank;
-        return {
-          label: def.label,
-          operatorLabel,
-          values,
-          includeBlank,
-          appliesTo: def.applies_to,
-        };
-      });
-    if (!enrichedDefs.length) return undefined;
-
-    const result: Record<string, AppliedWidgetFilter[]> = {};
-    for (const wId of widgetIds) {
-      // Filter `applies_to` references the backend query ID (e.g.
-      // `pipeline_by_owner`), not the widget ID (e.g. `chart_pipeline_by_owner`).
-      const queryRef = widgetQueryRefMap[wId] ?? wId;
-      const filtersForWidget: AppliedWidgetFilter[] = [];
-      for (const def of enrichedDefs) {
-        // No applies_to means the filter applies to all widgets
-        if (def.appliesTo && !def.appliesTo.includes(queryRef)) continue;
-        filtersForWidget.push({
-          label: def.label,
-          operatorLabel: def.operatorLabel,
-          values: def.values,
-          ...(def.includeBlank && { includeBlank: true }),
-        });
-      }
-      if (filtersForWidget.length > 0) {
-        result[wId] = filtersForWidget;
-      }
-    }
-
-    return Object.keys(result).length > 0 ? result : undefined;
-  }, [filterDefinitions, filterState, widgetIds, widgetQueryRefMap]);
-
-  // v2: per-panel filter slot factory. Only mounted when the flag is on and
-  // required handlers are provided; otherwise DashboardGrid falls back to the
-  // read-only WidgetFiltersPopover it already renders.
-  const widgetFilterSlot = useMemo(() => {
-    if (
-      !isDashboardFiltersV2Enabled ||
-      !getEffectivePanelState ||
-      !onPanelFilterChange ||
-      !onResetPanelFilter
-    ) {
-      return undefined;
-    }
-    return (panelId: string) => (
-      <PanelFilterPopover
-        panelId={panelId}
-        queryRef={widgetQueryRefMap[panelId] ?? panelId}
-        definitions={filterDefinitions}
-        effectiveState={getEffectivePanelState(panelId)}
-        lockedFilterState={lockedFilterState ?? {}}
-        lockedPanelFilterState={lockedPanelFilterState?.[panelId] ?? {}}
-        panelFilterState={panelFilterState?.[panelId] ?? {}}
-        onPanelFilterChange={onPanelFilterChange}
-        onResetPanelFilter={onResetPanelFilter}
-        onRevertPanelFilter={onRevertPanelFilter}
-        onRevertPanel={onRevertPanel}
-        onApplyPanelFilter={onApplyPanelFilter}
-        canApplyPanelFilter={canApplyPanelFilter}
-        onTogglePanelLock={onTogglePanelLock}
-        canLockPanelFilter={canLockPanelFilter}
-        isApplying={filterIsApplying}
-      />
-    );
-  }, [
-    isDashboardFiltersV2Enabled,
-    filterDefinitions,
-    getEffectivePanelState,
-    lockedFilterState,
-    lockedPanelFilterState,
-    panelFilterState,
-    onApplyPanelFilter,
-    canApplyPanelFilter,
-    onTogglePanelLock,
-    canLockPanelFilter,
-    filterIsApplying,
-    onPanelFilterChange,
-    onResetPanelFilter,
-    onRevertPanelFilter,
-    onRevertPanel,
-    widgetQueryRefMap,
-  ]);
+  // Widget-level filter UI hidden until panel-filter designs are ready.
+  // widgetIds, widgetQueryRefMap, widgetAppliedFilters, and widgetFilterSlot
+  // memos removed — restore when re-enabling widget-level filters.
 
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
     isOwner: dashboard.isOwner,
@@ -663,7 +509,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <DashboardFilterBarV2
                 definitions={filterDefinitions}
                 filterState={filterState}
-                syncedFilterState={syncedFilterState}
                 isApplying={filterIsApplying}
                 canApply={filterCanApply}
                 isOwner={dashboard.isOwner}
@@ -862,8 +707,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
-            widgetAppliedFilters={widgetAppliedFilters}
-            widgetFilterSlot={widgetFilterSlot}
+            // Widget-level filter UI hidden until panel-filter designs are ready
+            // widgetAppliedFilters={widgetAppliedFilters}
+            // widgetFilterSlot={widgetFilterSlot}
           />
         </ErrorBoundary>
 

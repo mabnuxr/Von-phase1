@@ -12,12 +12,14 @@ import {
   EnvelopeIcon,
   UsersIcon,
   BrainIcon,
+  ChartBarIcon,
 } from "@phosphor-icons/react";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
+import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
@@ -31,7 +33,8 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled } = useFeatureFlag();
+  const { isEmailCategorizationEnabled, isUsageMetricsEnabled } =
+    useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations
   const tabFromUrl = searchParams.get("tab");
@@ -172,6 +175,17 @@ const Settings = () => {
         icon: <UsersIcon size={20} weight="regular" />,
       },
     ],
+    ...(isUsageMetricsEnabled
+      ? {
+          usage: [
+            {
+              id: "usage",
+              label: "Usage",
+              icon: <ChartBarIcon size={20} weight="regular" />,
+            },
+          ],
+        }
+      : {}),
   };
 
   const renderContent = () => {
@@ -186,6 +200,8 @@ const Settings = () => {
         return <ManageUsersTab />;
       case "memory":
         return <OrgContextTab />;
+      case "usage":
+        return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:
         return null;
     }

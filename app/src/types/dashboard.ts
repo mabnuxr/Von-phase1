@@ -398,6 +398,12 @@ export interface DashboardFilterDefinition {
     default_n: number;
     unit: string; // suffix shown next to the input, e.g. "days"
   }[];
+  /**
+   * For ownership filters — Salesforce user IDs resolved to display names.
+   * The agent sets raw SFDC IDs in `options`; the backend enriches them here.
+   * Used by the frontend to render a searchable user picklist for Is/Is not operators.
+   */
+  ownership_options?: { id: string; name: string }[];
   /** Per-panel lock metadata: panel_id → true if locked for that panel. */
   panel_locks?: Record<string, boolean>;
 }

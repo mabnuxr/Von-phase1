@@ -43,6 +43,7 @@ export const FEATURE_FLAGS = {
   // context-menu item). The recipient `/shared/:token` route stays
   // reachable so already-generated links continue to work.
   CHAT_SHARING: "enableChatSharing",
+  USAGE_METRICS: "enableUsageMetrics",
 } as const;
 
 /**
@@ -200,6 +201,11 @@ export function useFeatureFlag() {
      * Controls whether the chat sharing feature is enabled
      */
     isChatSharingEnabled: flags[FEATURE_FLAGS.CHAT_SHARING] === true,
+
+    /**
+     * Controls whether Usage tab is visible in Settings
+     */
+    isUsageMetricsEnabled: flags[FEATURE_FLAGS.USAGE_METRICS] === true,
 
     /**
      * Raw flags object for advanced usage

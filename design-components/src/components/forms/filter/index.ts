@@ -15,6 +15,7 @@ export type {
   CustomOperatorDef,
   FilterFieldConfig,
   FilterValue,
+  FilterBarValue,
   OptionGroup,
   CalendarOptionConfig,
   ScrollableFilterBarProps,
