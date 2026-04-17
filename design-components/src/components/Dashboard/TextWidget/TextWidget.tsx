@@ -26,9 +26,7 @@ const alignmentStyles: Record<string, string> = {
 const TextWidget: React.FC<TextWidgetProps> = ({ config }) => {
   const { content, variant, alignment = 'left' } = config;
   const knownVariant =
-    typeof variant === 'string' && variant in variantStyles
-      ? (variant as VariantKey)
-      : null;
+    typeof variant === 'string' && variant in variantStyles ? (variant as VariantKey) : null;
 
   if (!knownVariant) {
     return (
