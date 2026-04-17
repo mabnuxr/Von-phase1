@@ -25,8 +25,10 @@ export const FEATURE_FLAGS = {
   /** @deprecated permanently enabled — kept for reference only */
   ARTIFACTS: "enableArtifacts",
   SCHEDULED_COMMANDS: "enableScheduledCommands",
+  /** @deprecated permanently enabled — kept for reference only */
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
+  /** @deprecated permanently enabled — kept for reference only */
   GMAIL: "enableGmail",
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
@@ -142,9 +144,9 @@ export function useFeatureFlag() {
     isScheduledCommandsEnabled: true,
 
     /**
-     * Controls whether Zendesk integration is visible
+     * Zendesk integration — permanently enabled, no longer behind a feature flag
      */
-    isZendeskEnabled: flags[FEATURE_FLAGS.ZENDESK_INTEGRATION] === true,
+    isZendeskEnabled: true,
 
     /**
      * Controls whether Snowflake integration is visible
@@ -152,9 +154,9 @@ export function useFeatureFlag() {
     isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
 
     /**
-     * Controls whether Gmail integration is visible
+     * Gmail integration — permanently enabled, no longer behind a feature flag
      */
-    isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
+    isGmailEnabled: true,
 
     /**
      * Controls whether Gong Engage integration is visible
