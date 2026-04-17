@@ -154,12 +154,17 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
     load();
   }, [isOpen, conversationId, onGetShareStatus, onGetTeamMembers]);
 
-  const handleCopyLink = useCallback(() => {
+  const handleCopyLink = useCallback(async () => {
     const url = shareStatus?.shareUrl;
-    if (url) {
-      navigator.clipboard.writeText(url);
+    if (!url) return;
+
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for non-HTTPS or denied clipboard permission
+      console.warn('Clipboard write failed');
     }
   }, [shareStatus?.shareUrl]);
 

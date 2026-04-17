@@ -163,7 +163,7 @@ export default function SharedConversation() {
       </div>
 
       {/* Chat (read-only — no input) */}
-      <div className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0">
         {conversationId && currentConversation && (
           <ChatSession
             key={conversationId}
@@ -178,52 +178,52 @@ export default function SharedConversation() {
             readOnly
           />
         )}
+      </div>
 
-        {/* Sticky bottom CTAs overlaying chat */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-100 px-5 py-3 bg-white/95 backdrop-blur">
-          <div className="flex items-center justify-center gap-2">
-            {/* "New chat with context" — not shipped yet. Kept as a
-                disabled placeholder so the slot is reserved in the UI. */}
-            <button
-              type="button"
-              disabled
-              aria-disabled="true"
-              title="Coming soon"
-              className="relative inline-flex items-center gap-2 h-[36px] px-4 text-sm font-medium text-gray-400 bg-white rounded-xl cursor-not-allowed border border-gray-200"
+      {/* Bottom CTAs — rendered outside the scroll area so they never obscure messages */}
+      <div className="border-t border-gray-100 px-5 py-3 bg-white shrink-0">
+        <div className="flex items-center justify-center gap-2">
+          {/* "New chat with context" — not shipped yet. Kept as a
+              disabled placeholder so the slot is reserved in the UI. */}
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            title="Coming soon"
+            className="relative inline-flex items-center gap-2 h-[36px] px-4 text-sm font-medium text-gray-400 bg-white rounded-xl cursor-not-allowed border border-gray-200"
+          >
+            <svg
+              width={18}
+              height={18}
+              viewBox="0 0 28 28"
+              fill="none"
+              className="flex-shrink-0 opacity-50"
             >
-              <svg
-                width={18}
-                height={18}
-                viewBox="0 0 28 28"
-                fill="none"
-                className="flex-shrink-0 opacity-50"
-              >
-                <circle cx="14" cy="14" r="14" fill="#E5E7EB" />
-                <path
-                  d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-                  stroke="white"
-                  strokeWidth="1.33"
-                />
-                <circle
-                  cx="13.9932"
-                  cy="14"
-                  r="7.835"
-                  stroke="white"
-                  strokeWidth="1.33"
-                />
-              </svg>
-              <span>New chat with context</span>
-              <span className="ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 bg-gray-100 rounded">
-                Coming soon
-              </span>
-            </button>
-            <button
-              onClick={handleNewChat}
-              className="inline-flex items-center gap-1.5 h-[36px] px-4 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              New chat
-            </button>
-          </div>
+              <circle cx="14" cy="14" r="14" fill="#E5E7EB" />
+              <path
+                d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
+                stroke="white"
+                strokeWidth="1.33"
+              />
+              <circle
+                cx="13.9932"
+                cy="14"
+                r="7.835"
+                stroke="white"
+                strokeWidth="1.33"
+              />
+            </svg>
+            <span>New chat with context</span>
+            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 bg-gray-100 rounded">
+              Coming soon
+            </span>
+          </button>
+          <button
+            onClick={handleNewChat}
+            className="inline-flex items-center gap-1.5 h-[36px] px-4 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            New chat
+          </button>
         </div>
       </div>
     </div>
