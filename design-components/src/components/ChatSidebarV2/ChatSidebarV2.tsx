@@ -55,6 +55,14 @@ const VON_COMBINATION_MARK_URL =
 export type ItemType = 'chat';
 export type ItemStatus = 'idle' | 'running' | 'complete';
 
+/**
+ * Approval indicator state for a conversation row.
+ * - "pending": awaiting user action → pulsing purple dot
+ * - "expired": TTL passed without action → orange→red gradient dot
+ * - absent: no indicator
+ */
+export type ApprovalState = 'pending' | 'expired';
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -64,6 +72,8 @@ export interface SidebarItem {
   folderId?: string | null;
   /** Status indicator for the item */
   status?: ItemStatus;
+  /** Approval indicator state. Absent means no indicator. */
+  approvalState?: ApprovalState;
 }
 
 // ============================================================================
@@ -527,6 +537,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     return sortedFolders.slice(0, MAX_ITEMS_SHOWN);
   }, [sortedFolders, showAllFolders, hasMoreFolders]);
 
+  // Single summary dot for the collapsed Chats icon. Pending beats expired —
+  // any actionable approval should win over a passive "overdue" hint.
+  const summaryApprovalState: ApprovalState | undefined = useMemo(() => {
+    const all = [...items, ...Object.values(folderItems).flat()];
+    if (all.some((i) => i.approvalState === 'pending')) return 'pending';
+    if (all.some((i) => i.approvalState === 'expired')) return 'expired';
+    return undefined;
+  }, [items, folderItems]);
+
   // ============================================================================
   // Render: Stacked layers for smooth collapse/expand animation
   // ============================================================================
@@ -577,6 +596,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           isNewChatActive={isNewChatActive}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
+          summaryApprovalState={summaryApprovalState}
         />
       </div>
 
