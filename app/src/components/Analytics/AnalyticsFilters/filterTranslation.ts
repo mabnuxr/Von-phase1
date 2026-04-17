@@ -758,6 +758,24 @@ export function toFilterBarValue(
   };
 }
 
+/**
+ * Coerce string-valued numbers to native JS numbers (recursively for arrays).
+ * Used only for number-typed filters — the HTML `<input type="number">` emits
+ * a string via `.value`, but the backend validator rejects non-numeric JSON
+ * on numeric operators (>, <, between, etc.). Non-parseable values are left
+ * untouched so the caller / validator can surface the original error.
+ */
+function coerceNumericFilterValue(v: unknown): unknown {
+  if (v === null || v === undefined) return v;
+  if (Array.isArray(v)) return v.map(coerceNumericFilterValue);
+  if (typeof v === "number") return v;
+  if (typeof v === "string" && v.trim() !== "") {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return v;
+}
+
 export function fromFilterBarValue(
   barValue: FilterBarValue,
   def: DashboardFilterDefinition,
@@ -823,6 +841,14 @@ export function fromFilterBarValue(
   } else {
     rawValue = v;
   }
+
+  // Number-typed filters emit strings from `<input type="number">`; the
+  // backend validator rejects non-numeric JSON on >, <, between, etc.
+  // Coerce to native numbers (single + arrays for between/not_between).
+  if (def.type === "number") {
+    rawValue = coerceNumericFilterValue(rawValue);
+  }
+
   return {
     operator: op,
     ...(rawValue !== undefined && { value: rawValue }),
