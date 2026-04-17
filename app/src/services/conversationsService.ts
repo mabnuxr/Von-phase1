@@ -95,13 +95,10 @@ class ConversationsService {
     mode?: ConversationMode,
     agentVersion?: "v1" | "v2",
   ): Promise<CreateConversationResponse> {
+    const body: Record<string, unknown> = { title, mode, agentVersion };
     return apiClient.post<CreateConversationResponse>(
       `/api/v1/chat/conversations`,
-      {
-        title,
-        mode,
-        agentVersion,
-      },
+      body,
     );
   }
 
@@ -380,6 +377,110 @@ class ConversationsService {
       },
     );
   }
+
+  // ── Sharing ──────────────────────────────────────────────────────
+
+  /** Get the share status for a conversation */
+  async getShareStatus(
+    conversationId: string,
+  ): Promise<ConversationShareStatusResponse> {
+    return apiClient.get<ConversationShareStatusResponse>(
+      `/api/v1/chat/conversations/${conversationId}/share`,
+    );
+  }
+
+  /** Create (or update-if-exists) a share link */
+  async createShareLink(
+    conversationId: string,
+    accessType: "org_wide" | "restricted" = "org_wide",
+    allowedUserIds: string[] = [],
+    allowFileAttachments: boolean = true,
+  ): Promise<ConversationShareResponse> {
+    return apiClient.post<ConversationShareResponse>(
+      `/api/v1/chat/conversations/${conversationId}/share`,
+      { accessType, allowedUserIds, allowFileAttachments },
+    );
+  }
+
+  /** Update access type, recipients, and/or file attachment setting */
+  async updateShare(
+    conversationId: string,
+    accessType?: "org_wide" | "restricted",
+    allowedUserIds?: string[],
+    allowFileAttachments?: boolean,
+  ): Promise<ConversationShareResponse> {
+    const body: Record<string, unknown> = {};
+    if (accessType !== undefined) body.accessType = accessType;
+    if (allowedUserIds !== undefined) body.allowedUserIds = allowedUserIds;
+    if (allowFileAttachments !== undefined)
+      body.allowFileAttachments = allowFileAttachments;
+    return apiClient.patch<ConversationShareResponse>(
+      `/api/v1/chat/conversations/${conversationId}/share`,
+      body,
+    );
+  }
+
+  /** Deactivate the share link ("Keep private") */
+  async deactivateShareLink(conversationId: string): Promise<void> {
+    return apiClient.delete<void>(
+      `/api/v1/chat/conversations/${conversationId}/share`,
+    );
+  }
+
+  /**
+   * Validate a share token and return just enough metadata to bootstrap
+   * the read-only view. After validation, set the share token on
+   * `apiClient` and reuse the normal conversation/messages/files endpoints —
+   * the auth middleware elevates the requests to the owner's context.
+   */
+  async validateShare(
+    shareId: string,
+  ): Promise<SharedConversationValidationResponse> {
+    return apiClient.get<SharedConversationValidationResponse>(
+      `/api/v1/chat/shared/${shareId}/validate`,
+    );
+  }
+}
+
+// ── Sharing response types ─────────────────────────────────────────
+
+export interface ShareRecipient {
+  userId: string;
+  email: string;
+  displayName: string;
+}
+
+export interface ConversationShareResponse {
+  shareId: string;
+  shareUrl: string;
+  isActive: boolean;
+  accessType: "org_wide" | "restricted";
+  sharedWith: ShareRecipient[];
+  sharedAt: string;
+  allowFileAttachments: boolean;
+}
+
+export interface ConversationShareStatusResponse {
+  isShared: boolean;
+  shareId?: string;
+  shareUrl?: string;
+  accessType?: "org_wide" | "restricted";
+  sharedWith?: ShareRecipient[];
+  sharedAt?: string;
+  allowFileAttachments?: boolean;
+}
+
+/**
+ * Lightweight response from the share-validation endpoint. Recipients use
+ * this to bootstrap the read-only view; subsequent message/file/artifact
+ * fetches go through the normal endpoints with `X-Share-Id` set, and
+ * the shared_read_context dependency elevates them to the owner's context.
+ */
+export interface SharedConversationValidationResponse {
+  conversationId: string;
+  sharedByName: string;
+  sharedByEmail: string;
+  sharedAt: string;
 }
 
 // Singleton instance

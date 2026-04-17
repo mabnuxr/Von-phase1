@@ -40,6 +40,10 @@ export const FEATURE_FLAGS = {
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
   // so a single toggle in LaunchDarkly flips both sides in sync.
   DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  // Gates the "Share chat" entry points (header button + sidebar
+  // context-menu item). The recipient `/shared/:token` route stays
+  // reachable so already-generated links continue to work.
+  CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
 } as const;
 
@@ -198,6 +202,11 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether the chat sharing feature is enabled
+     */
+    isChatSharingEnabled: flags[FEATURE_FLAGS.CHAT_SHARING] === true,
 
     /**
      * Controls whether Usage tab is visible in Settings
