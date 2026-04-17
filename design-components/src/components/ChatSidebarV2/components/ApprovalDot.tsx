@@ -24,9 +24,7 @@ export const ApprovalDot: React.FC<ApprovalDotProps> = ({ state, className = '' 
       aria-label={isExpired ? 'Approval expired' : 'Pending approval'}
       className={`
         w-2 h-2 rounded-full ring-2 ring-white pointer-events-none
-        ${isExpired
-          ? 'bg-gradient-to-br from-orange-400 to-red-500'
-          : 'bg-purple-500'}
+        ${isExpired ? 'bg-gradient-to-br from-orange-400 to-red-500' : 'bg-purple-500'}
         ${className}
       `}
       animate={

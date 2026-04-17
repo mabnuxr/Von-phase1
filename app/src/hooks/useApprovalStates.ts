@@ -81,9 +81,9 @@ export function useApprovalStates({
     return map;
   }, [sidebarConversations, folderConversations]);
 
-  const [pusherStates, setPusherStates] = useState<Map<string, PusherStateValue>>(
-    new Map(),
-  );
+  const [pusherStates, setPusherStates] = useState<
+    Map<string, PusherStateValue>
+  >(new Map());
   const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
 
   const applyLiveTransition = useCallback(
@@ -117,9 +117,18 @@ export function useApprovalStates({
       applyLiveTransition(data.conversationId, "cleared");
     };
 
-    userChannel.bind(UserChannelEvents.CONVERSATION_APPROVAL_PENDING, handlePending);
-    userChannel.bind(UserChannelEvents.CONVERSATION_APPROVAL_EXPIRED, handleExpired);
-    userChannel.bind(UserChannelEvents.CONVERSATION_APPROVAL_RESOLVED, handleResolved);
+    userChannel.bind(
+      UserChannelEvents.CONVERSATION_APPROVAL_PENDING,
+      handlePending,
+    );
+    userChannel.bind(
+      UserChannelEvents.CONVERSATION_APPROVAL_EXPIRED,
+      handleExpired,
+    );
+    userChannel.bind(
+      UserChannelEvents.CONVERSATION_APPROVAL_RESOLVED,
+      handleResolved,
+    );
 
     return () => {
       userChannel.unbind(
