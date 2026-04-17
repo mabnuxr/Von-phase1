@@ -143,10 +143,7 @@ export function ChatSidebarV2Container({
   const renameDashboard = useSidebarDashboardRename();
 
   // Title animation (shared with V1)
-  const { animatedTitles } = useTitleAnimation({
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  });
+  const { animatedTitles } = useTitleAnimation({ userChannel });
 
   // Apply animated titles then approval badges. Order matters only in that
   // both transforms are pure — badges layer on top of the title overlay.

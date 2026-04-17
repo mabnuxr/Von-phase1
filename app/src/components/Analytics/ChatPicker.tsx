@@ -4,6 +4,7 @@ import { ensureUTC } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
+import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
 import type { SidebarConversation } from "../../types/chatSidebar";
 
 interface ChatPickerProps {
@@ -80,10 +81,11 @@ export function ChatPicker({
   const { unfiledConversations, isLoading, renameConversation } =
     useChatSidebarV2();
   const { user } = useAppShell();
-  const { animatedTitles } = useTitleAnimation({
+  const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
     userId: user?.id,
   });
+  const { animatedTitles } = useTitleAnimation({ userChannel });
 
   const activeConversation = unfiledConversations.find(
     (c) => c.conversationId === activeChatId,
