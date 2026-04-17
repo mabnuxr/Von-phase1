@@ -1,12 +1,14 @@
 import { TiptapViewer } from '../../TiptapEditor';
 import type { TextWidgetProps } from '../types';
 
-const variantStyles: Record<string, string> = {
+const variantStyles = {
   heading: 'text-xl font-bold text-gray-900',
   subheading: 'text-base font-semibold text-gray-700',
   body: 'text-sm text-gray-600',
   caption: 'text-xs text-gray-500',
-};
+} as const;
+
+type VariantKey = keyof typeof variantStyles;
 
 const alignmentStyles: Record<string, string> = {
   left: 'text-left',
@@ -17,14 +19,18 @@ const alignmentStyles: Record<string, string> = {
 /**
  * Text widget for headings, body text, captions, and rich markdown content.
  *
- * When `variant` is set, renders plain styled text (legacy).
- * When `variant` is absent, renders content as rich markdown via TiptapViewer.
+ * Plain-styled mode fires only when `variant` is one of the known enum keys.
+ * Anything else (undefined, empty string, or an unknown value the backend
+ * might pass through) falls to rich markdown via TiptapViewer.
  */
 const TextWidget: React.FC<TextWidgetProps> = ({ config }) => {
   const { content, variant, alignment = 'left' } = config;
+  const knownVariant =
+    typeof variant === 'string' && variant in variantStyles
+      ? (variant as VariantKey)
+      : null;
 
-  // Rich markdown mode — no variant means backend-resolved markdown content
-  if (!variant) {
+  if (!knownVariant) {
     return (
       <div className={`h-full overflow-auto px-4 py-3 ${alignmentStyles[alignment]}`}>
         <TiptapViewer content={content} className="text-sm text-gray-700" />
@@ -32,10 +38,9 @@ const TextWidget: React.FC<TextWidgetProps> = ({ config }) => {
     );
   }
 
-  // Plain text mode — styled by variant
   return (
     <div className={`flex items-center h-full px-4 py-2 ${alignmentStyles[alignment]}`}>
-      <p className={`${variantStyles[variant]} w-full`}>{content}</p>
+      <p className={`${variantStyles[knownVariant]} w-full`}>{content}</p>
     </div>
   );
 };

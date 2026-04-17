@@ -18,8 +18,6 @@ import type {
 /**
  * Routes a widget config to the correct atomic widget component,
  * wrapped in a WidgetShell for consistent card styling.
- *
- * Text widgets render without a shell since they ARE the header content.
  */
 const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
   ({
@@ -103,9 +101,9 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       case 'text':
         return (
-          <div className="h-full">
+          <WidgetShell title={widget.title}>
             <TextWidget config={widget.config as TextWidgetConfig} />
-          </div>
+          </WidgetShell>
         );
 
       case 'table':

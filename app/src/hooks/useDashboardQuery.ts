@@ -49,6 +49,7 @@ interface RawApiWidget {
   } | null;
   highcharts: Record<string, unknown> | null;
   gridOptions: Record<string, unknown> | null;
+  text_content?: string | null;
   query_failed?: boolean;
   drilldown?: {
     query_ref: string;
@@ -189,6 +190,25 @@ function adaptWidget(
       drilldown: raw.drilldown ?? null,
       queryInfo,
     } as unknown as WidgetConfig;
+  }
+
+  if (raw.type === "text") {
+    // Backend sends markdown with JSON-escape sequences (\n, \t, \") that
+    // survive JSON.parse as literal backslash-n pairs. Convert to real
+    // newlines so marked can parse paragraphs, tables, and blockquotes.
+    const rawContent = raw.text_content ?? "";
+    const content = rawContent
+      .replace(/\\n/g, "\n")
+      .replace(/\\t/g, "\t")
+      .replace(/\\"/g, '"');
+    return {
+      id: raw.id,
+      type: "text",
+      title: raw.title,
+      config: { content },
+      queryRef: raw.query_ref,
+      queryInfo,
+    } as WidgetConfig;
   }
 
   // Fallback for unknown widget types
