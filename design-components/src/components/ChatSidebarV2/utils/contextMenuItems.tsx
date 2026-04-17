@@ -18,7 +18,7 @@ import type { ContextMenuItem } from '../../popups';
  * entry.
  */
 export function getContextMenuItems(
-  options: { isInFolder?: boolean; enableShare?: boolean } = {},
+  options: { isInFolder?: boolean; enableShare?: boolean } = {}
 ): ContextMenuItem[] {
   return [
     { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },

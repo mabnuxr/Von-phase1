@@ -66,13 +66,13 @@ export interface ShareChatPopupProps {
   onCreateShare: (
     conversationId: string,
     accessType: AccessType,
-    allowedUserIds: string[],
+    allowedUserIds: string[]
   ) => Promise<ShareResult>;
   /** Update snapshot (advance to include newer messages) and optionally change type/recipients */
   onUpdateShare: (
     conversationId: string,
     accessType?: AccessType,
-    allowedUserIds?: string[],
+    allowedUserIds?: string[]
   ) => Promise<ShareResult>;
   /** Deactivate share link */
   onDeactivateShare: (conversationId: string) => Promise<void>;
@@ -113,11 +113,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         firstName: m.firstName,
         lastName: m.lastName,
       })),
-    [teamMembers],
+    [teamMembers]
   );
   const selectedRecipients = useMemo<Recipient[]>(
     () => availableRecipients.filter((r) => selectedUserIds.includes(r.id)),
-    [availableRecipients, selectedUserIds],
+    [availableRecipients, selectedUserIds]
   );
   const handleRecipientsChange = useCallback((recipients: Recipient[]) => {
     setSelectedUserIds(recipients.map((r) => r.id));
@@ -174,7 +174,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         const result = await onUpdateShare(
           conversationId,
           selectedType,
-          selectedType === 'restricted' ? selectedUserIds : [],
+          selectedType === 'restricted' ? selectedUserIds : []
         );
         setShareStatus({
           isShared: true,
@@ -191,7 +191,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         const result = await onCreateShare(
           conversationId,
           selectedType,
-          selectedType === 'restricted' ? selectedUserIds : [],
+          selectedType === 'restricted' ? selectedUserIds : []
         );
         setShareStatus({
           isShared: true,
@@ -295,10 +295,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         disabled={saving}
                         className="flex items-center gap-1 text-xs font-medium text-amber-900 hover:text-amber-950 cursor-pointer disabled:opacity-50"
                       >
-                        <ArrowsClockwiseIcon
-                          size={12}
-                          className={saving ? 'animate-spin' : ''}
-                        />
+                        <ArrowsClockwiseIcon size={12} className={saving ? 'animate-spin' : ''} />
                         Update
                       </button>
                     </div>
@@ -326,7 +323,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         </p>
                       </div>
                       {selectedType === 'org_wide' && (
-                        <CheckIcon size={16} weight="bold" className="text-gray-900 mt-1 shrink-0" />
+                        <CheckIcon
+                          size={16}
+                          weight="bold"
+                          className="text-gray-900 mt-1 shrink-0"
+                        />
                       )}
                     </button>
 
@@ -351,7 +352,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         </p>
                       </div>
                       {selectedType === 'restricted' && (
-                        <CheckIcon size={16} weight="bold" className="text-gray-900 mt-1 shrink-0" />
+                        <CheckIcon
+                          size={16}
+                          weight="bold"
+                          className="text-gray-900 mt-1 shrink-0"
+                        />
                       )}
                     </button>
 
@@ -374,7 +379,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         </p>
                       </div>
                       {selectedType === 'private' && (
-                        <CheckIcon size={16} weight="bold" className="text-gray-900 mt-1 shrink-0" />
+                        <CheckIcon
+                          size={16}
+                          weight="bold"
+                          className="text-gray-900 mt-1 shrink-0"
+                        />
                       )}
                     </button>
                   </div>

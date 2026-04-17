@@ -55,9 +55,8 @@ export default function SharedConversation() {
       setLoading(true);
       setError(null);
       try {
-        const result = await conversationsService.validateShareToken(
-          shareToken,
-        );
+        const result =
+          await conversationsService.validateShareToken(shareToken);
         if (!cancelled) setValidation(result);
       } catch (err: unknown) {
         if (cancelled) return;
