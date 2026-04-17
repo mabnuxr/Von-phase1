@@ -639,9 +639,9 @@ export function IntegrationsList({
     });
   }, [allApps, integrations]);
 
-  // Group by category
+  // Group by category, disabled (coming soon) items sorted to the bottom
   const byCategory = useMemo(() => {
-    return mergedData.reduce(
+    const grouped = mergedData.reduce(
       (acc, item) => {
         if (!acc[item.category]) acc[item.category] = [];
         acc[item.category].push(item);
@@ -649,6 +649,13 @@ export function IntegrationsList({
       },
       {} as Record<string, typeof mergedData>,
     );
+    for (const category of Object.keys(grouped)) {
+      grouped[category].sort((a, b) => {
+        if (a.disabled === b.disabled) return 0;
+        return a.disabled ? 1 : -1;
+      });
+    }
+    return grouped;
   }, [mergedData]);
 
   return (
