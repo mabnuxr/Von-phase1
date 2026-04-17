@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Outlet, useParams } from "react-router-dom";
-import { TopBar, Banner } from "@vonlabs/design-components";
+import { TopBar, Banner, ShareChatPopup } from "@vonlabs/design-components";
 
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useUser } from "../hooks/useUser";
@@ -8,11 +8,13 @@ import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
 import { useLogout } from "../hooks/useLogout";
+import { useTeamMembers } from "../hooks/useTeam";
 import { ChatSidebarV1Container } from "./ChatSidebarV1Container";
 import { ChatSidebarV2Container } from "./ChatSidebarV2Container";
 import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
+import { conversationsService } from "../services";
 
 /**
  * AppShell — shared layout for pages that need the sidebar shell.
@@ -52,6 +54,22 @@ export function AppShell() {
     navigate("/settings");
   }, [navigate]);
 
+  // --- Share Modal ---
+  const [shareConversationId, setShareConversationId] = useState<string | null>(
+    null,
+  );
+  const openShareModal = useCallback((conversationId: string) => {
+    setShareConversationId(conversationId);
+  }, []);
+  const closeShareModal = useCallback(() => {
+    setShareConversationId(null);
+  }, []);
+
+  // Fetch team members for the user picker (only when modal opens)
+  const { data: teamMembersData } = useTeamMembers(
+    shareConversationId ? user?.tenantId : undefined,
+  );
+
   // --- Connection Error Banner ---
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
 
@@ -75,8 +93,9 @@ export function AppShell() {
       collapseSidebar,
       handleLogout,
       handleNewChatClick,
+      openShareModal,
     }),
-    [user, collapseSidebar, handleLogout, handleNewChatClick],
+    [user, collapseSidebar, handleLogout, handleNewChatClick, openShareModal],
   );
 
   return (
@@ -147,6 +166,54 @@ export function AppShell() {
             </div>
           </div>
         </div>
+
+        {/* Share Chat Modal */}
+        {shareConversationId && (
+          <ShareChatPopup
+            isOpen={!!shareConversationId}
+            conversationId={shareConversationId}
+            onClose={closeShareModal}
+            onGetShareStatus={(id) => conversationsService.getShareStatus(id)}
+            onCreateShare={(
+              id,
+              accessType,
+              allowedUserIds,
+              allowFileAttachments,
+            ) =>
+              conversationsService.createShareLink(
+                id,
+                accessType,
+                allowedUserIds,
+                allowFileAttachments,
+              )
+            }
+            onUpdateShare={(
+              id,
+              accessType,
+              allowedUserIds,
+              allowFileAttachments,
+            ) =>
+              conversationsService.updateShare(
+                id,
+                accessType,
+                allowedUserIds,
+                allowFileAttachments,
+              )
+            }
+            onDeactivateShare={(id) =>
+              conversationsService.deactivateShareLink(id)
+            }
+            onGetTeamMembers={async () => {
+              const members = teamMembersData ?? [];
+              return members.map((m) => ({
+                id: m.id,
+                email: m.email,
+                firstName: m.firstName,
+                lastName: m.lastName,
+              }));
+            }}
+          />
+        )}
       </div>
     </AppShellContext.Provider>
   );

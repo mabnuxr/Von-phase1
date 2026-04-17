@@ -60,3 +60,13 @@ export type { DashboardSharePopoverProps, ShareConfig, AccessLevel } from './Das
 
 export { ExpensiveOperationModal } from './ExpensiveOperationModal';
 export type { ExpensiveOperationModalProps } from './ExpensiveOperationModal';
+
+export { ShareChatPopup } from './ShareChatPopup';
+export type {
+  ShareChatPopupProps,
+  AccessType,
+  ShareRecipient,
+  ShareStatus,
+  ShareResult,
+  TeamMemberOption,
+} from './ShareChatPopup';

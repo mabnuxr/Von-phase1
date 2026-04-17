@@ -530,6 +530,16 @@ export {
 export { ExpensiveOperationModal } from './popups';
 export type { ExpensiveOperationModalProps } from './popups';
 
+export { ShareChatPopup } from './popups';
+export type {
+  ShareChatPopupProps,
+  AccessType as ChatAccessType,
+  ShareRecipient as ChatShareRecipient,
+  ShareStatus as ChatShareStatus,
+  ShareResult as ChatShareResult,
+  TeamMemberOption,
+} from './popups';
+
 // ============================================================================
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================

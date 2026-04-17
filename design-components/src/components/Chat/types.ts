@@ -1477,6 +1477,12 @@ export interface ChatProps {
   onDismissFileError?: () => void;
 
   /**
+   * Hide the chat input bar. Used for read-only views (shared conversation, archived, etc).
+   * @default false
+   */
+  hideInput?: boolean;
+
+  /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable
    * When enabled, URLs are rendered as clickable links
    * @default false

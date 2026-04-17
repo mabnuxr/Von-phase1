@@ -263,6 +263,14 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
   const inlineFields = fields.slice(0, visibleCount);
   const hiddenFields = fields.slice(visibleCount);
 
+  // True when at least one hidden filter has a committed (applied) value.
+  // `values` reflects the server state except during active popover editing
+  // (dismissed edits are reverted by onDismiss), so this is a reliable proxy.
+  const hasAppliedHiddenFilter = hiddenFields.some((f) => {
+    const fv = values[f.id];
+    return fv && !isEmptyFilterValue(fv.value);
+  });
+
   // Close More popover if all hidden fields disappear
   useEffect(() => {
     if (isMoreOpen && hiddenFields.length === 0) {
@@ -343,10 +351,26 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
       return opLabel.replace(/\bN\b/, fv.value);
     }
 
-    // Calendar-mode operator: show formatted date without operator prefix
+    // Calendar-mode operator: show the formatted date/range without the
+    // operator prefix — the bare value is enough for `custom_date` and
+    // `between` (single date / natural "from–to" range). `not_between`
+    // is the exception: without the prefix it's indistinguishable from
+    // `between`, so keep the label visible.
     if (opDef?.calendarMode && fv.value && typeof fv.value === 'string') {
       const display = formatDynamicValue(fv.value, undefined);
-      if (display) return display;
+      if (display) {
+        if (fv.operator === 'not_between') {
+          return (
+            <span className="flex items-center gap-1 min-w-0">
+              <span className="shrink-0">{opLabel}:</span>
+              <span className="truncate min-w-0" title={display}>
+                {display}
+              </span>
+            </span>
+          );
+        }
+        return display;
+      }
     }
 
     // Between / Not between range display
@@ -372,19 +396,20 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         return dynLabel ?? v;
       });
       return (
-        <span className="flex items-center gap-1">
-          <span>{opLabel}:</span>
-          {displayValues.slice(0, 2).map((v, i) => (
+        <span className="flex items-center gap-1 min-w-0">
+          <span className="shrink-0">{opLabel}:</span>
+          {displayValues.slice(0, 1).map((v, i) => (
             <span
               key={fv.value![i] as string}
-              className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full"
+              title={v}
+              className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full truncate max-w-[160px]"
             >
               {v}
             </span>
           ))}
-          {displayValues.length > 2 && (
-            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full">
-              +{displayValues.length - 2}
+          {displayValues.length > 1 && (
+            <span className="inline-flex items-center h-[18px] px-1.5 bg-gray-50 border border-gray-100 text-gray-800 text-xs rounded-full shrink-0">
+              +{displayValues.length - 1}
             </span>
           )}
         </span>
@@ -397,7 +422,14 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
         ? field.optionGroups.flatMap((g) => g.dynamicOptions ?? [])
         : field.dynamicOptions;
       const display = formatDynamicValue(fv.value, allDynOpts) ?? fv.value;
-      return `${opLabel}: ${display}`;
+      return (
+        <span className="flex items-center gap-1 min-w-0">
+          <span className="shrink-0">{opLabel}:</span>
+          <span className="truncate min-w-0" title={display}>
+            {display}
+          </span>
+        </span>
+      );
     }
     return 'Select a filter';
   };
@@ -439,7 +471,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
           </span>
           <motion.button
             layout
-            className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors ${
+            className={`flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap transition-colors min-w-0 max-w-[320px] ${
               fieldLocked
                 ? 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
                 : !fv
@@ -449,7 +481,9 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             style={{ minWidth: 140 }}
           >
             {fieldLocked && <LockSimpleIcon size={11} className="text-gray-500 shrink-0" />}
-            <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
+            <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+              {renderFilterValue(field, fv)}
+            </span>
             <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
           </motion.button>
         </div>
@@ -476,12 +510,14 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                 {field.tooltip && <InfoIcon size={11} className="shrink-0" />}
               </span>
               <button
-                className="flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap"
+                className="flex items-center justify-between gap-2 h-[28px] px-2 text-xs rounded-lg border whitespace-nowrap min-w-0 max-w-[320px]"
                 style={{ minWidth: 140 }}
                 tabIndex={-1}
               >
                 {fieldLocked && <LockSimpleIcon size={11} className="shrink-0" />}
-                <span className="flex items-center gap-1">{renderFilterValue(field, fv)}</span>
+                <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+                  {renderFilterValue(field, fv)}
+                </span>
                 <CaretRightIcon size={12} className="rotate-90 shrink-0 text-gray-800" />
               </button>
             </div>
@@ -499,14 +535,20 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
             <button
               ref={moreButtonRef}
               onClick={() => setIsMoreOpen((open) => !open)}
-              className={`flex items-center gap-2 h-[28px] px-2 text-xs rounded-lg border transition-colors cursor-pointer ${
+              className={`flex items-center gap-2 h-[26px] px-2 text-[11px] rounded-lg border transition-colors cursor-pointer ${
                 isMoreOpen
                   ? 'bg-gray-50 border-gray-200 text-gray-900'
                   : 'bg-white border-gray-200/50 text-gray-900 shadow-xs hover:bg-gray-50'
               }`}
-              style={{ minWidth: 80 }}
+              style={{ minWidth: 80, marginBottom: 1 }}
             >
               <span className="flex items-center gap-1 whitespace-nowrap">
+                {hasAppliedHiddenFilter && (
+                  <span
+                    className="shrink-0 rounded-full"
+                    style={{ width: 5, height: 5, backgroundColor: '#6d28d9' }}
+                  />
+                )}
                 <span className="flex items-center gap-px">
                   <PlusIcon size={8} weight="bold" className="shrink-0" />
                   {hiddenFields.length}
@@ -528,7 +570,7 @@ export const ScrollableFilterBar: React.FC<ScrollableFilterBarProps> = ({
                   <p className="text-xs font-medium text-gray-900">More filters</p>
                 </div>
 
-                <div className="max-h-[320px] overflow-y-auto p-2 flex flex-col gap-3">
+                <div className="overflow-y-auto p-2 flex flex-col gap-2" style={{ maxHeight: 180 }}>
                   {hiddenFields.map((field) => {
                     const fv = values[field.id];
                     const fieldLocked = field.locked ?? false;

@@ -9,6 +9,7 @@ import AuthStart from "./pages/AuthStart";
 import Health from "./pages/Health";
 import Redirecting from "./pages/Redirecting";
 import Settings from "./pages/Settings";
+import SharedConversation from "./pages/SharedConversation";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
 import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
@@ -43,6 +44,8 @@ export default function App() {
             <Route path="/chat/:conversationId" element={<Conversation />} />
             <Route path="/dashboard/:dashboardId" element={<Analytics />} />
             <Route path="/redirecting" element={<Redirecting />} />
+            {/* Shared chat — read-only, rendered inside AppShell (with sidebar) */}
+            <Route path="/shared/:shareId" element={<SharedConversation />} />
           </Route>
 
           {/* Settings has its own sidebar */}

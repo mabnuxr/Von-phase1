@@ -2,6 +2,8 @@ import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
+import { useAppShell } from "../hooks/useAppShell";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -10,7 +12,6 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useApprovalStates } from "../hooks/useApprovalStates";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
@@ -98,6 +99,12 @@ export function ChatSidebarV2Container({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { isDeepResearchEnabled } = useFeatureFlag();
+  // Share action is shell-scoped — pull directly from context instead of
+  // drilling it through AppShell as a prop. Gated by the chat-sharing
+  // feature flag so tenants without the feature don't see the "Share"
+  // context-menu entry at all.
+  const { openShareModal } = useAppShell();
+  const { isChatSharingEnabled } = useFeatureFlag();
 
   const {
     folders,
@@ -233,6 +240,7 @@ export function ChatSidebarV2Container({
       onNewChatClick={onNewChatClick}
       onNewChatFolderClick={createFolder}
       onRenameItem={renameConversation}
+      onShareItem={isChatSharingEnabled ? openShareModal : undefined}
       onDeleteItem={handleDeleteItem}
       onDeleteFolder={deleteFolder}
       onRenameFolder={renameFolder}

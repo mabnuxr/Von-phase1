@@ -130,6 +130,27 @@ function isCalendarSerialised(v: string): boolean {
   return CUSTOM_DATE_RE.test(v) || CUSTOM_RANGE_RE.test(v);
 }
 
+// ── Ownership user ID ↔ name helpers ────────────────────────────────
+
+/** Resolve a SFDC user ID to a display name using the definition's ownership_options. */
+function ownershipIdToName(id: string, def: DashboardFilterDefinition): string {
+  const opt = def.ownership_options?.find((u) => u.id === id);
+  return opt?.name ?? id;
+}
+
+/** Reverse a display name to a SFDC user ID using the definition's ownership_options. */
+function ownershipNameToId(
+  name: string,
+  def: DashboardFilterDefinition,
+): string {
+  const opt = def.ownership_options?.find((u) => u.name === name);
+  if (opt) return opt.id;
+  // Backward compat: label might be a token label (e.g. "My Records" → "MY_RECORDS")
+  const token = LABEL_TO_TOKEN[name];
+  if (token) return token;
+  return name;
+}
+
 // ── Structural type mapping ─────────────────────────────────────────
 
 export function mapFieldType(type: DashboardFilterType): FieldType {
@@ -342,18 +363,21 @@ export function mapDefinition(
 
   // ── Token-as-operator model ──────────────────────────────────────
   //
-  // Date dynamic filters promote their dynamic tokens from *values*
-  // into top-level *operators*. The left panel shows two sections:
-  //   Relative — dynamic tokens as noValue operators (+ Custom Date,
-  //              N-parameterized) with category dividers
-  //   Manual   — structural backend operators (before, after, between,
-  //              etc.) that still take values via the right panel
+  // Date dynamic and ownership dynamic filters promote their dynamic
+  // tokens from *values* into top-level *operators*.
   //
-  // Ownership filters fall through to the standard path: operators come
-  // from `valid_operators`, ownership tokens are picklist values.
+  // Date filters: Relative (tokens, Custom Date, N-parameterized)
+  //               + Manual (before, after, between, etc.)
+  //
+  // Ownership filters: Scope tokens (My Records, My Team's Records, etc.)
+  //                    + Manual (Is / Is not with user picklist)
 
   const isDateDynamic =
     type === "date" && def.dynamic && !!def.available_presets?.length;
+  const isOwnershipDynamic =
+    def.semantic_type === "ownership" &&
+    def.dynamic &&
+    !!def.available_presets?.length;
 
   if (isDateDynamic) {
     const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
@@ -436,6 +460,62 @@ export function mapDefinition(
         singleDateLabel: CUSTOM_DATE_LABEL,
         dateRangeLabel: CUSTOM_RANGE_LABEL,
       };
+    }
+  } else if (isOwnershipDynamic) {
+    // ── Ownership token-as-operator model ──────────────────────────
+    // Scope tokens (MY_RECORDS, etc.) become noValue operators.
+    // "Is" / "Is not" are manual operators that open a user picklist.
+    const ops: NonNullable<FilterFieldConfig["customOperators"]> = [];
+    const presets = def.available_presets ?? [];
+
+    // All ownership tokens — enabled if in available_presets, disabled otherwise.
+    // Disabled tokens are greyed out so viewers know they exist but are
+    // restricted by the dashboard's shared data scope.
+    const ALL_OWNERSHIP_TOKENS = [
+      "MY_RECORDS",
+      "MY_TEAMS_RECORDS",
+      "MY_MANAGERS_TEAM",
+      "ALL_RECORDS",
+    ];
+    const enabledSet = new Set(presets);
+    for (const token of ALL_OWNERSHIP_TOKENS) {
+      ops.push({
+        value: token,
+        label: tokenLabel(token),
+        noValue: true,
+        ...(!enabledSet.has(token) && { disabled: true }),
+      });
+    }
+
+    // Manual operators — all picklist operators for individual user selection.
+    // Only add if valid_operators includes them (backend scopes these for viewers).
+    const OWNERSHIP_MANUAL_OPS = new Set([
+      "in",
+      "not_in",
+      "equals",
+      "not_equals",
+    ]);
+    const manualOps = (def.valid_operators ?? []).filter((op) =>
+      OWNERSHIP_MANUAL_OPS.has(op.value),
+    );
+    if (manualOps.length > 0) {
+      let firstManual = true;
+      for (const op of manualOps) {
+        ops.push({
+          value: op.value,
+          label: op.label,
+          ...(firstManual && { separatorBefore: "Manual" }),
+        });
+        firstManual = false;
+      }
+    }
+
+    config.customOperators = ops;
+
+    // User picklist options from ownership_options (SFDC users resolved to names).
+    // These are shown in the right panel when Is / Is not is selected.
+    if (def.ownership_options?.length) {
+      config.options = def.ownership_options.map((u) => u.name);
     }
   } else {
     // Standard (non-token-as-operator) picklist options
@@ -527,10 +607,18 @@ const REMOVED_OPS = new Set([DEFAULT_BACKEND_OP]);
 
 function isTokenAsOperatorFilter(def: DashboardFilterDefinition): boolean {
   const type = mapFieldType(def.type);
-  // Only date dynamic filters use the token-as-operator model. Ownership
-  // filters render as a normal picklist (operators from valid_operators,
-  // tokens as values).
-  return type === "date" && !!def.dynamic && !!def.available_presets?.length;
+  // Date dynamic filters and ownership dynamic filters use the
+  // token-as-operator model: tokens are promoted to operators in the UI
+  // and demoted back to {operator: "equals", value: TOKEN} for the backend.
+  if (type === "date" && !!def.dynamic && !!def.available_presets?.length)
+    return true;
+  if (
+    def.semantic_type === "ownership" &&
+    !!def.dynamic &&
+    !!def.available_presets?.length
+  )
+    return true;
+  return false;
 }
 
 // ── State <-> bar value translation ─────────────────────────────────
@@ -644,9 +732,12 @@ export function toFilterBarValue(
     ) {
       barValue = `custom_range:${v[0]}_${v[1]}`;
     } else {
+      const isOwnership = def.semantic_type === "ownership";
       barValue = v.map((x) => {
         const s = String(x);
         if (isCalendarSerialised(s)) return s;
+        // Ownership: resolve SFDC IDs to display names
+        if (isOwnership) return ownershipIdToName(s, def);
         return def.dynamic ? tokenLabel(s) : s;
       });
     }
@@ -654,6 +745,8 @@ export function toFilterBarValue(
     if (isCalendarSerialised(v)) barValue = v;
     else if (def.type === "date" && /^\d{4}-\d{2}-\d{2}$/.test(v))
       barValue = `custom_date:${v}`;
+    else if (def.semantic_type === "ownership")
+      barValue = ownershipIdToName(v, def);
     else barValue = def.dynamic ? tokenLabel(v) : v;
   } else {
     barValue = String(v);
@@ -710,15 +803,22 @@ export function fromFilterBarValue(
   }
 
   // ── Legacy path ──────────────────────────────────────────────────
+  const isOwnership = def.semantic_type === "ownership";
   let rawValue: unknown;
   if (v === undefined) {
     rawValue = undefined;
   } else if (Array.isArray(v)) {
-    rawValue = def.dynamic
-      ? v.map((x) => (isCalendarSerialised(x) ? x : reverseToken(x)))
-      : v;
+    if (isOwnership) {
+      // Ownership: reverse display names to SFDC user IDs
+      rawValue = v.map((x) => ownershipNameToId(x, def));
+    } else {
+      rawValue = def.dynamic
+        ? v.map((x) => (isCalendarSerialised(x) ? x : reverseToken(x)))
+        : v;
+    }
   } else if (typeof v === "string") {
     if (isCalendarSerialised(v)) rawValue = v;
+    else if (isOwnership) rawValue = ownershipNameToId(v, def);
     else rawValue = def.dynamic ? reverseToken(v) : v;
   } else {
     rawValue = v;
@@ -811,16 +911,25 @@ export function renderFilterValue(
     }
   }
 
+  const isOwnership = def.semantic_type === "ownership";
   const formatOne = (x: unknown): string => {
     const s = String(x);
+    // Ownership: resolve SFDC IDs to display names
+    if (isOwnership) return ownershipIdToName(s, def);
     return (
       formatCalendarSerialised(s) ??
       formatDynamicNValue(s, def) ??
       (def.dynamic ? tokenLabel(s) : s)
     );
   };
-  // For token-as-operator between/not_between with date array, show formatted range
-  if (isTokenAsOperatorFilter(def) && Array.isArray(v) && v.length === 2) {
+  // For token-as-operator between/not_between with date array, show formatted range.
+  // Skip for ownership filters — a 2-element array is "2 users", not a date range.
+  if (
+    isTokenAsOperatorFilter(def) &&
+    !isOwnership &&
+    Array.isArray(v) &&
+    v.length === 2
+  ) {
     const labeled = v.map(formatOne);
     return `${opLabel}: ${labeled.join(" – ")}`;
   }

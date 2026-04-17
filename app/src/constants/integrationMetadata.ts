@@ -252,7 +252,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Databricks.svg",
     category: "Data Warehouse",
-    disabled: true,
   },
   // Customer Support integrations
   zendesk: {
@@ -494,7 +493,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   salesloft: ["user"],
   salesloft_engagement: ["tenant"],
   snowflake: ["tenant"],
-  databricks: ["user"],
+  databricks: ["tenant"],
   pylon: ["user"],
   granola: ["user"],
   notion: ["tenant"],

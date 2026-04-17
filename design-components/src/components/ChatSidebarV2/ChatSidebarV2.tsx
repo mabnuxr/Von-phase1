@@ -127,6 +127,7 @@ export interface ChatSidebarProps {
   onNewChatClick?: () => void;
   onNewChatFolderClick?: (folderName: string) => void;
   onRenameItem?: (id: string, newName: string) => void;
+  onShareItem?: (id: string) => void;
   onDeleteItem?: (id: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
@@ -411,6 +412,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onNewChatClick,
   onNewChatFolderClick,
   onRenameItem,
+  onShareItem,
   onDeleteItem,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
@@ -786,7 +788,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <ContextMenu
         isOpen={contextMenu.isOpen}
         onClose={handleCloseContextMenu}
-        items={getContextMenuItems({ isInFolder: !!contextMenu.item?.folderId })}
+        items={getContextMenuItems({
+          isInFolder: !!contextMenu.item?.folderId,
+          enableShare: !!onShareItem,
+        })}
         fixedPosition={contextMenu.position}
         width={160}
         onItemClick={(menuItem) => {
@@ -794,6 +799,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             handleStartRename(contextMenu.item);
           } else if (menuItem.id === 'move' && contextMenu.item) {
             handleShowMoveToFolder(contextMenu.item);
+          } else if (menuItem.id === 'share' && contextMenu.item) {
+            onShareItem?.(contextMenu.item.id);
           } else if (menuItem.id === 'remove-from-folder' && contextMenu.item) {
             handleRemoveFromFolder(contextMenu.item);
           } else if (menuItem.id === 'delete' && contextMenu.item) {
