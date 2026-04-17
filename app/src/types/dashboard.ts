@@ -325,7 +325,7 @@ export interface TableColumn {
 
 export interface TextWidgetConfig {
   content: string;
-  variant: "heading" | "subheading" | "body" | "caption";
+  variant?: "heading" | "subheading" | "body" | "caption";
   alignment?: "left" | "center" | "right";
 }
 
