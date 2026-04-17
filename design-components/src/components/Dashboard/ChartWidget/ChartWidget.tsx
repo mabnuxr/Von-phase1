@@ -1,9 +1,5 @@
 import { useRef, useEffect, memo } from 'react';
-import Highcharts from 'highcharts';
-import 'highcharts/modules/xrange';
-import 'highcharts/modules/gantt';
-import 'highcharts/modules/funnel';
-import 'highcharts/highcharts-more';
+import Highcharts from './highchartsSetup';
 import HighchartsReact from 'highcharts-react-official';
 import type { ChartWidgetConfig, DrilldownConfig, DrillFilters } from '../types';
 import { useChartOptions } from './useChartOptions';
@@ -19,7 +15,11 @@ export interface ChartWidgetProps {
 const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
-  const { options, constructorType } = useChartOptions({ config, drilldown, onPointClick });
+  const { options: finalOptions, constructorType } = useChartOptions({
+    config,
+    drilldown,
+    onPointClick,
+  });
 
   useEffect(() => {
     const el = sizeRef.current;
@@ -55,7 +55,7 @@ const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPoi
           ref={chartRef}
           highcharts={Highcharts}
           constructorType={constructorType}
-          options={options}
+          options={finalOptions}
           containerProps={{ style: { height: '100%', width: '100%' } }}
         />
       </div>
