@@ -75,6 +75,8 @@ export interface MessageCommand {
   slug?: string;
   prompt: string;
   dataSources?: CommandDataSource[];
+  /** 'tenant' = org-level (public), 'user' = private. Sent at message-creation time. */
+  accessLevel?: string;
 }
 
 import type { ReferenceType } from "./constants";

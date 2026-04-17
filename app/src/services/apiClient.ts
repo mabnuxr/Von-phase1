@@ -67,21 +67,19 @@ function getErrorCode(data: unknown): string | null {
 }
 
 /**
- * Module-level share token store. When set (via `setShareToken`), every
- * outbound request from `apiClient` carries an `X-Share-Token` header. The
- * backend's auth middleware uses this header to context-switch into the
- * share owner's identity for the duration of the request, so a recipient
- * viewing `/shared/<token>` reuses the regular conversation/messages/files
- * endpoints in read-only mode without needing parallel "shared" endpoints.
+ * Module-level share ID store. When set, every outbound request from
+ * `apiClient` carries an `X-Share-Id` header so the backend's
+ * `shared_read_context` dependency can elevate the request to the
+ * conversation owner's identity.
  */
-let _shareToken: string | null = null;
+let _shareId: string | null = null;
 
-export function setShareToken(token: string | null): void {
-  _shareToken = token;
+export function setShareId(id: string | null): void {
+  _shareId = id;
 }
 
-export function getShareToken(): string | null {
-  return _shareToken;
+export function getShareId(): string | null {
+  return _shareId;
 }
 
 /**
@@ -102,8 +100,8 @@ export class ApiClient {
       Accept: "application/json",
       "Content-Type": "application/json",
     };
-    if (_shareToken) {
-      headers["X-Share-Token"] = _shareToken;
+    if (_shareId) {
+      headers["X-Share-Id"] = _shareId;
     }
     return headers;
   }

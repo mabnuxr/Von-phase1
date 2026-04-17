@@ -394,22 +394,26 @@ class ConversationsService {
     conversationId: string,
     accessType: "org_wide" | "restricted" = "org_wide",
     allowedUserIds: string[] = [],
+    allowFileAttachments: boolean = true,
   ): Promise<ConversationShareResponse> {
     return apiClient.post<ConversationShareResponse>(
       `/api/v1/chat/conversations/${conversationId}/share`,
-      { accessType, allowedUserIds },
+      { accessType, allowedUserIds, allowFileAttachments },
     );
   }
 
-  /** Advance snapshot and/or change access type / recipients */
+  /** Update access type, recipients, and/or file attachment setting */
   async updateShare(
     conversationId: string,
     accessType?: "org_wide" | "restricted",
     allowedUserIds?: string[],
+    allowFileAttachments?: boolean,
   ): Promise<ConversationShareResponse> {
     const body: Record<string, unknown> = {};
     if (accessType !== undefined) body.accessType = accessType;
     if (allowedUserIds !== undefined) body.allowedUserIds = allowedUserIds;
+    if (allowFileAttachments !== undefined)
+      body.allowFileAttachments = allowFileAttachments;
     return apiClient.patch<ConversationShareResponse>(
       `/api/v1/chat/conversations/${conversationId}/share`,
       body,
@@ -429,11 +433,11 @@ class ConversationsService {
    * `apiClient` and reuse the normal conversation/messages/files endpoints —
    * the auth middleware elevates the requests to the owner's context.
    */
-  async validateShareToken(
-    shareToken: string,
+  async validateShare(
+    shareId: string,
   ): Promise<SharedConversationValidationResponse> {
     return apiClient.get<SharedConversationValidationResponse>(
-      `/api/v1/chat/shared/${shareToken}/validate`,
+      `/api/v1/chat/shared/${shareId}/validate`,
     );
   }
 }
@@ -447,39 +451,36 @@ export interface ShareRecipient {
 }
 
 export interface ConversationShareResponse {
-  shareToken: string;
+  shareId: string;
   shareUrl: string;
   isActive: boolean;
   accessType: "org_wide" | "restricted";
   sharedWith: ShareRecipient[];
   sharedAt: string;
-  snapshotAt: string;
-  hasNewMessages: boolean;
+  allowFileAttachments: boolean;
 }
 
 export interface ConversationShareStatusResponse {
   isShared: boolean;
-  shareToken?: string;
+  shareId?: string;
   shareUrl?: string;
   accessType?: "org_wide" | "restricted";
   sharedWith?: ShareRecipient[];
   sharedAt?: string;
-  snapshotAt?: string;
-  hasNewMessages?: boolean;
+  allowFileAttachments?: boolean;
 }
 
 /**
  * Lightweight response from the share-validation endpoint. Recipients use
  * this to bootstrap the read-only view; subsequent message/file/artifact
- * fetches go through the normal endpoints with `X-Share-Token` set, and
- * the auth middleware elevates them to the owner's context.
+ * fetches go through the normal endpoints with `X-Share-Id` set, and
+ * the shared_read_context dependency elevates them to the owner's context.
  */
 export interface SharedConversationValidationResponse {
   conversationId: string;
   sharedByName: string;
   sharedByEmail: string;
   sharedAt: string;
-  snapshotAt: string;
 }
 
 // Singleton instance

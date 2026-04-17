@@ -605,6 +605,8 @@ export function useChatV2(props: UseChatV2Props) {
                   category: ds.category,
                   s3Key: ds.s3Key!,
                 })),
+              accessLevel:
+                options.command.sharingScope === "org" ? "tenant" : "user",
             }
           : undefined,
       });

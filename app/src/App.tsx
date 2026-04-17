@@ -45,10 +45,7 @@ export default function App() {
             <Route path="/dashboard/:dashboardId" element={<Analytics />} />
             <Route path="/redirecting" element={<Redirecting />} />
             {/* Shared chat — read-only, rendered inside AppShell (with sidebar) */}
-            <Route
-              path="/shared/:shareToken"
-              element={<SharedConversation />}
-            />
+            <Route path="/shared/:shareId" element={<SharedConversation />} />
           </Route>
 
           {/* Settings has its own sidebar */}

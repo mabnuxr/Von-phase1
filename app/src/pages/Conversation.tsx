@@ -252,20 +252,6 @@ const Conversation = () => {
         <ChatSkeleton messageCount={4} />
       ) : currentConversationId && isAgentV2 && currentConversation ? (
         <div className="flex flex-col flex-1 min-w-0 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none">
-          {/* Sticky header — Claude-style, flush with chat below.
-              Only rendered when at least one action slot is active; the
-              Share button is gated behind the chat-sharing feature flag. */}
-          {isChatSharingEnabled && (
-            <div className="flex items-center justify-end px-4 py-2.5 border-b border-gray-100 bg-white shrink-0">
-              <button
-                onClick={() => openShareModal(currentConversationId)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-              >
-                <ShareNetworkIcon size={14} />
-                Share
-              </button>
-            </div>
-          )}
           <div className="flex-1 min-h-0">
             <ChatSession
               key={currentConversationId}
@@ -286,6 +272,19 @@ const Conversation = () => {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              headerAction={
+                isChatSharingEnabled
+                  ? (compact: boolean) => (
+                      <button
+                        onClick={() => openShareModal(currentConversationId)}
+                        className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer shadow-sm"
+                      >
+                        <ShareNetworkIcon size={14} />
+                        {!compact && "Share"}
+                      </button>
+                    )
+                  : undefined
+              }
             />
           </div>
         </div>

@@ -153,6 +153,9 @@ export interface ChatSessionProps {
    */
   readOnly?: boolean;
 
+  /** Action element rendered in the chat pane header area (e.g. Share button) — scoped to chat only, won't cover artifact/dashboard panels. Receives `compact` when a side panel is open. */
+  headerAction?: ReactNode | ((compact: boolean) => ReactNode);
+
   children?: ReactNode;
 }
 
@@ -585,7 +588,7 @@ function ExistingChatInner(
     <>
       <div ref={splitContainerRef} className="flex h-full w-full gap-1">
         <div
-          className="flex-1 min-w-0"
+          className="relative flex-1 min-w-0"
           style={
             dashboardPaneState.isOpen
               ? {
@@ -594,6 +597,9 @@ function ExistingChatInner(
               : undefined
           }
         >
+          {typeof props.headerAction === "function"
+            ? props.headerAction(isCompact || chatV2.fileArtifactPanel.isOpen)
+            : props.headerAction}
           {chatElement}
         </div>
         {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (

@@ -154,6 +154,8 @@ export function useCreateAndSendMessage({
                 category: ds.category,
                 s3Key: ds.s3Key!,
               })),
+            accessLevel:
+              options.command.sharingScope === "org" ? "tenant" : "user",
           }
         : undefined;
 

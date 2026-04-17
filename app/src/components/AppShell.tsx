@@ -174,15 +174,31 @@ export function AppShell() {
             conversationId={shareConversationId}
             onClose={closeShareModal}
             onGetShareStatus={(id) => conversationsService.getShareStatus(id)}
-            onCreateShare={(id, accessType, allowedUserIds) =>
+            onCreateShare={(
+              id,
+              accessType,
+              allowedUserIds,
+              allowFileAttachments,
+            ) =>
               conversationsService.createShareLink(
                 id,
                 accessType,
                 allowedUserIds,
+                allowFileAttachments,
               )
             }
-            onUpdateShare={(id, accessType, allowedUserIds) =>
-              conversationsService.updateShare(id, accessType, allowedUserIds)
+            onUpdateShare={(
+              id,
+              accessType,
+              allowedUserIds,
+              allowFileAttachments,
+            ) =>
+              conversationsService.updateShare(
+                id,
+                accessType,
+                allowedUserIds,
+                allowFileAttachments,
+              )
             }
             onDeactivateShare={(id) =>
               conversationsService.deactivateShareLink(id)

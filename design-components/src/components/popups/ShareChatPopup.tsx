@@ -8,7 +8,6 @@ import {
   CheckIcon,
   CopyIcon,
   UsersIcon,
-  ArrowsClockwiseIcon,
 } from '@phosphor-icons/react';
 import { RecipientPicker } from '../RecipientPicker';
 import type { Recipient } from '../RecipientPicker';
@@ -27,24 +26,22 @@ export interface ShareRecipient {
 
 export interface ShareStatus {
   isShared: boolean;
-  shareToken?: string;
+  shareId?: string;
   shareUrl?: string;
   accessType?: AccessType;
   sharedWith?: ShareRecipient[];
   sharedAt?: string;
-  snapshotAt?: string;
-  hasNewMessages?: boolean;
+  allowFileAttachments?: boolean;
 }
 
 export interface ShareResult {
-  shareToken: string;
+  shareId: string;
   shareUrl: string;
   isActive: boolean;
   accessType: AccessType;
   sharedWith: ShareRecipient[];
   sharedAt: string;
-  snapshotAt: string;
-  hasNewMessages: boolean;
+  allowFileAttachments: boolean;
 }
 
 export interface TeamMemberOption {
@@ -66,13 +63,15 @@ export interface ShareChatPopupProps {
   onCreateShare: (
     conversationId: string,
     accessType: AccessType,
-    allowedUserIds: string[]
+    allowedUserIds: string[],
+    allowFileAttachments: boolean
   ) => Promise<ShareResult>;
-  /** Update snapshot (advance to include newer messages) and optionally change type/recipients */
+  /** Update access type, recipients, and/or file attachment setting */
   onUpdateShare: (
     conversationId: string,
     accessType?: AccessType,
-    allowedUserIds?: string[]
+    allowedUserIds?: string[],
+    allowFileAttachments?: boolean
   ) => Promise<ShareResult>;
   /** Deactivate share link */
   onDeactivateShare: (conversationId: string) => Promise<void>;
@@ -96,8 +95,9 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   onGetTeamMembers,
 }) => {
   const [shareStatus, setShareStatus] = useState<ShareStatus | null>(null);
-  const [selectedType, setSelectedType] = useState<AccessType | 'private'>('org_wide');
+  const [selectedType, setSelectedType] = useState<AccessType | 'private'>('private');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [allowFileAttachments, setAllowFileAttachments] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
 
   const [loading, setLoading] = useState(false);
@@ -135,9 +135,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         if (status.isShared) {
           setSelectedType(status.accessType || 'org_wide');
           setSelectedUserIds(status.sharedWith?.map((r) => r.userId) || []);
+          setAllowFileAttachments(status.allowFileAttachments ?? true);
         } else {
-          setSelectedType('org_wide');
+          setSelectedType('private');
           setSelectedUserIds([]);
+          setAllowFileAttachments(true);
         }
 
         if (onGetTeamMembers) {
@@ -179,60 +181,39 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         const result = await onUpdateShare(
           conversationId,
           selectedType,
-          selectedType === 'restricted' ? selectedUserIds : []
+          selectedType === 'restricted' ? selectedUserIds : [],
+          allowFileAttachments
         );
         setShareStatus({
           isShared: true,
-          shareToken: result.shareToken,
+          shareId: result.shareId,
           shareUrl: result.shareUrl,
           accessType: result.accessType,
           sharedWith: result.sharedWith,
           sharedAt: result.sharedAt,
-          snapshotAt: result.snapshotAt,
-          hasNewMessages: result.hasNewMessages,
+          allowFileAttachments: result.allowFileAttachments,
         });
         onShareStatusChange?.(true);
       } else {
         const result = await onCreateShare(
           conversationId,
           selectedType,
-          selectedType === 'restricted' ? selectedUserIds : []
+          selectedType === 'restricted' ? selectedUserIds : [],
+          allowFileAttachments
         );
         setShareStatus({
           isShared: true,
-          shareToken: result.shareToken,
+          shareId: result.shareId,
           shareUrl: result.shareUrl,
           accessType: result.accessType,
           sharedWith: result.sharedWith,
           sharedAt: result.sharedAt,
-          snapshotAt: result.snapshotAt,
-          hasNewMessages: result.hasNewMessages,
+          allowFileAttachments: result.allowFileAttachments,
         });
         onShareStatusChange?.(true);
       }
     } catch (error) {
       console.error('Failed to share:', error);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateSnapshot = async () => {
-    setSaving(true);
-    try {
-      const result = await onUpdateShare(conversationId);
-      setShareStatus({
-        isShared: true,
-        shareToken: result.shareToken,
-        shareUrl: result.shareUrl,
-        accessType: result.accessType,
-        sharedWith: result.sharedWith,
-        sharedAt: result.sharedAt,
-        snapshotAt: result.snapshotAt,
-        hasNewMessages: false,
-      });
-    } catch (error) {
-      console.error('Failed to update snapshot:', error);
     } finally {
       setSaving(false);
     }
@@ -244,7 +225,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   };
 
   const isAlreadyShared = shareStatus?.isShared ?? false;
-  const hasNewMessages = shareStatus?.hasNewMessages ?? false;
 
   return (
     <AnimatePresence>
@@ -290,81 +270,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                 </div>
               ) : (
                 <>
-                  {isAlreadyShared && hasNewMessages && (
-                    <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
-                      <span className="text-xs text-amber-800 flex-1">
-                        New messages since last shared
-                      </span>
-                      <button
-                        onClick={handleUpdateSnapshot}
-                        disabled={saving}
-                        className="flex items-center gap-1 text-xs font-medium text-amber-900 hover:text-amber-950 cursor-pointer disabled:opacity-50"
-                      >
-                        <ArrowsClockwiseIcon size={12} className={saving ? 'animate-spin' : ''} />
-                        Update
-                      </button>
-                    </div>
-                  )}
-
                   <div className="flex flex-col gap-1.5 mt-3">
-                    <button
-                      onClick={() => setSelectedType('org_wide')}
-                      className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
-                        selectedType === 'org_wide'
-                          ? 'border-gray-300 bg-gray-50'
-                          : 'border-gray-100 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <GlobeSimpleIcon
-                        size={16}
-                        className={`mt-1 ${selectedType === 'org_wide' ? 'text-gray-900' : 'text-gray-400'}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">
-                          Create public link
-                        </span>
-                        <p className="text-xs text-gray-700 mt-0.5">
-                          Anyone at your company with this link can open and read this chat.
-                        </p>
-                      </div>
-                      {selectedType === 'org_wide' && (
-                        <CheckIcon
-                          size={16}
-                          weight="bold"
-                          className="text-gray-900 mt-1 shrink-0"
-                        />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedType('restricted')}
-                      className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
-                        selectedType === 'restricted'
-                          ? 'border-gray-300 bg-gray-50'
-                          : 'border-gray-100 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <UsersIcon
-                        size={16}
-                        className={`mt-1 ${selectedType === 'restricted' ? 'text-gray-900' : 'text-gray-400'}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">
-                          Share with specific people
-                        </span>
-                        <p className="text-xs text-gray-700 mt-0.5">
-                          Only selected team members can open this chat.
-                        </p>
-                      </div>
-                      {selectedType === 'restricted' && (
-                        <CheckIcon
-                          size={16}
-                          weight="bold"
-                          className="text-gray-900 mt-1 shrink-0"
-                        />
-                      )}
-                    </button>
-
                     <button
                       onClick={() => setSelectedType('private')}
                       className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
@@ -391,19 +297,78 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         />
                       )}
                     </button>
-                  </div>
 
-                  {selectedType === 'restricted' && (
-                    <div className="mt-3">
-                      <RecipientPicker
-                        recipients={selectedRecipients}
-                        onChange={handleRecipientsChange}
-                        availableRecipients={availableRecipients}
-                        label=""
-                        placeholder="Search team members..."
-                      />
+                    <div
+                      className={`rounded-xl border transition-colors ${
+                        selectedType === 'restricted'
+                          ? 'border-gray-300 bg-gray-50'
+                          : 'border-gray-100 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <button
+                        onClick={() => setSelectedType('restricted')}
+                        className="flex items-start gap-2.5 px-3 py-2 w-full cursor-pointer text-left"
+                      >
+                        <UsersIcon
+                          size={16}
+                          className={`mt-1 ${selectedType === 'restricted' ? 'text-gray-900' : 'text-gray-400'}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-gray-900">
+                            Share with specific people
+                          </span>
+                          <p className="text-xs text-gray-700 mt-0.5">
+                            Only selected team members can open this chat.
+                          </p>
+                        </div>
+                        {selectedType === 'restricted' && (
+                          <CheckIcon
+                            size={16}
+                            weight="bold"
+                            className="text-gray-900 mt-1 shrink-0"
+                          />
+                        )}
+                      </button>
+                      {selectedType === 'restricted' && (
+                        <div className="px-3 pb-2">
+                          <RecipientPicker
+                            recipients={selectedRecipients}
+                            onChange={handleRecipientsChange}
+                            availableRecipients={availableRecipients}
+                            label=""
+                            placeholder="Search team members..."
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    <button
+                      onClick={() => setSelectedType('org_wide')}
+                      className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
+                        selectedType === 'org_wide'
+                          ? 'border-gray-300 bg-gray-50'
+                          : 'border-gray-100 bg-white hover:bg-gray-50'
+                      }`}
+                    >
+                      <GlobeSimpleIcon
+                        size={16}
+                        className={`mt-1 ${selectedType === 'org_wide' ? 'text-gray-900' : 'text-gray-400'}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900">Share to org wide</span>
+                        <p className="text-xs text-gray-700 mt-0.5">
+                          Anyone at your company with this link can open and read this chat.
+                        </p>
+                      </div>
+                      {selectedType === 'org_wide' && (
+                        <CheckIcon
+                          size={16}
+                          weight="bold"
+                          className="text-gray-900 mt-1 shrink-0"
+                        />
+                      )}
+                    </button>
+                  </div>
 
                   {isAlreadyShared && selectedType !== 'private' && shareStatus?.shareUrl && (
                     <button
@@ -419,6 +384,27 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                         <CopyIcon size={13} className="text-gray-700 shrink-0" />
                       )}
                     </button>
+                  )}
+
+                  {/* File attachment toggle — only shown when sharing is active */}
+                  {selectedType !== 'private' && (
+                    <label className="flex items-start gap-2.5 mt-3 px-3 py-2 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowFileAttachments}
+                        onChange={(e) => setAllowFileAttachments(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-gray-900">
+                          Allow file attachments to be shared
+                        </span>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          When disabled, only agent-generated artifacts and public command files
+                          will be visible.
+                        </p>
+                      </div>
+                    </label>
                   )}
 
                   <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">

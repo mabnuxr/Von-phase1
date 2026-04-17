@@ -10,28 +10,30 @@ import {
   conversationsService,
   type SharedConversationValidationResponse,
 } from "../services/conversationsService";
-import { setShareToken } from "../services/apiClient";
+import { setShareId } from "../services/apiClient";
 
 /**
  * Read-only view of a shared conversation.
  *
  * Flow:
- *   1. Install the share token into `apiClient` so every subsequent request
- *      carries the `X-Share-Token` header. The backend's auth middleware
- *      uses it to context-switch into the conversation owner's identity.
- *   2. Validate the token via `/shared/:token/validate` — returns the
+ *   1. Install the share ID on `apiClient` so every subsequent request
+ *      carries the `X-Share-Id` header. The backend's
+ *      `shared_read_context` dependency uses it to context-switch into
+ *      the conversation owner's identity.
+ *   2. Validate the share ID via `/shared/:id/validate` — returns the
  *      `conversationId` plus "shared by" metadata.
- *   3. Render `ChatSession` in read-only mode against that `conversationId`.
- *      Messages, files, artifacts, transparency drawer, dashboard previews
- *      all flow through the normal endpoints — no parallel "shared"
- *      endpoints or duplicated rendering logic.
+ *   3. Render `ChatSession` in read-only mode against that
+ *      `conversationId`. Messages, files, artifacts, transparency
+ *      drawer, dashboard previews all flow through the normal
+ *      endpoints — no parallel "shared" endpoints or duplicated
+ *      rendering logic.
  *
- * The share token is cleared on unmount so that navigating back to the
- * user's own chats doesn't accidentally continue routing requests through
- * the owner's context.
+ * The share ID is cleared on unmount so that navigating back to the
+ * user's own chats doesn't continue routing requests through the
+ * owner's context.
  */
 export default function SharedConversation() {
-  const { shareToken } = useParams<{ shareToken: string }>();
+  const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
 
   const [validation, setValidation] =
@@ -39,24 +41,22 @@ export default function SharedConversation() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Install the share token on apiClient synchronously before any other
-  // request in this view fires. Clean up on unmount.
+  // Install the share ID on apiClient before any other request fires.
   useEffect(() => {
-    if (!shareToken) return;
-    setShareToken(shareToken);
-    return () => setShareToken(null);
-  }, [shareToken]);
+    if (!shareId) return;
+    setShareId(shareId);
+    return () => setShareId(null);
+  }, [shareId]);
 
-  // Validate the token and fetch bootstrap metadata (conversationId, sharedBy).
+  // Validate the share ID and fetch bootstrap metadata (conversationId, sharedBy).
   useEffect(() => {
-    if (!shareToken) return;
+    if (!shareId) return;
     let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const result =
-          await conversationsService.validateShareToken(shareToken);
+        const result = await conversationsService.validateShare(shareId);
         if (!cancelled) setValidation(result);
       } catch (err: unknown) {
         if (cancelled) return;
@@ -69,7 +69,7 @@ export default function SharedConversation() {
     return () => {
       cancelled = true;
     };
-  }, [shareToken]);
+  }, [shareId]);
 
   const conversationId = validation?.conversationId ?? null;
 
@@ -90,7 +90,10 @@ export default function SharedConversation() {
     ? storeMessages[conversationId] || []
     : [];
 
-  const handleNewChat = () => navigate("/chat/new");
+  const handleNewChat = () => {
+    setShareId(null);
+    navigate("/chat/new");
+  };
 
   if (loading) {
     return (
