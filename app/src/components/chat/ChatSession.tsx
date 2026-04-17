@@ -144,6 +144,15 @@ export interface ChatSessionProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
 
+  /**
+   * Read-only mode for shared-chat recipients.
+   * Hides the input bar and disables actions that would mutate the
+   * conversation (approvals, scheduling, commands, file uploads).
+   * Viewing behaviour — opening files, artifacts, transparency, dashboards —
+   * stays enabled so the recipient can inspect the full session.
+   */
+  readOnly?: boolean;
+
   children?: ReactNode;
 }
 
@@ -487,6 +496,7 @@ function ExistingChatInner(
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
+      hideInput={props.readOnly}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner

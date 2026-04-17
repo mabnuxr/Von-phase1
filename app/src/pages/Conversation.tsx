@@ -17,6 +17,7 @@
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
+import { ShareNetworkIcon } from "@phosphor-icons/react";
 
 import { IntegrationType, AuthenticationStatus } from "../services";
 import { useIntegrations } from "../hooks/useIntegrations";
@@ -48,7 +49,7 @@ const Conversation = () => {
     ?.newlyCreated;
 
   // --- AppShell context (auth, user, sidebar, flags) ---
-  const { user, collapseSidebar } = useAppShell();
+  const { user, collapseSidebar, openShareModal } = useAppShell();
   const {
     isSlashCommandsEnabled,
     isActionsEnabled,
@@ -59,6 +60,7 @@ const Conversation = () => {
     isArtifactsEnabled,
     isGoogleDriveEnabled,
     isScheduledCommandsEnabled,
+    isChatSharingEnabled,
   } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
@@ -249,26 +251,44 @@ const Conversation = () => {
       {isLoading ? (
         <ChatSkeleton messageCount={4} />
       ) : currentConversationId && isAgentV2 && currentConversation ? (
-        <ChatSession
-          key={currentConversationId}
-          conversationId={currentConversationId}
-          currentConversation={currentConversation}
-          conversationMessages={conversationMessages}
-          isLoadingMessages={isLoadingMessages}
-          fetchNextMessagePage={fetchNextMessagePage}
-          hasNextMessagePage={!!hasNextMessagePage}
-          isFetchingNextMessagePage={isFetchingNextMessagePage}
-          refetchMessages={refetchMessages as () => Promise<unknown>}
-          banner={chatBanner}
-          onDisabledInteraction={handleDisabledInteraction}
-          onCollapseSidebar={collapseSidebar}
-          salesforceInstanceUrl={salesforceInstanceUrl}
-          onGoogleDriveClick={handleGoogleDriveClick}
-          isDriveEnabled={isDriveEnabled}
-          isDriveConnected={isDriveConnected}
-          driveTooltip={driveTooltip}
-          driveLoadingFileId={driveLoadingFileId}
-        />
+        <div className="flex flex-col flex-1 min-w-0 bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none">
+          {/* Sticky header — Claude-style, flush with chat below.
+              Only rendered when at least one action slot is active; the
+              Share button is gated behind the chat-sharing feature flag. */}
+          {isChatSharingEnabled && (
+            <div className="flex items-center justify-end px-4 py-2.5 border-b border-gray-100 bg-white shrink-0">
+              <button
+                onClick={() => openShareModal(currentConversationId)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+              >
+                <ShareNetworkIcon size={14} />
+                Share
+              </button>
+            </div>
+          )}
+          <div className="flex-1 min-h-0">
+            <ChatSession
+              key={currentConversationId}
+              conversationId={currentConversationId}
+              currentConversation={currentConversation}
+              conversationMessages={conversationMessages}
+              isLoadingMessages={isLoadingMessages}
+              fetchNextMessagePage={fetchNextMessagePage}
+              hasNextMessagePage={!!hasNextMessagePage}
+              isFetchingNextMessagePage={isFetchingNextMessagePage}
+              refetchMessages={refetchMessages as () => Promise<unknown>}
+              banner={chatBanner}
+              onDisabledInteraction={handleDisabledInteraction}
+              onCollapseSidebar={collapseSidebar}
+              salesforceInstanceUrl={salesforceInstanceUrl}
+              onGoogleDriveClick={handleGoogleDriveClick}
+              isDriveEnabled={isDriveEnabled}
+              isDriveConnected={isDriveConnected}
+              driveTooltip={driveTooltip}
+              driveLoadingFileId={driveLoadingFileId}
+            />
+          </div>
+        </div>
       ) : currentConversationId ? (
         <ChatV1Container
           key={currentConversationId}

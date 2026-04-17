@@ -9,6 +9,8 @@ export interface AppShellContextValue {
   handleLogout: () => Promise<void>;
   /** Navigate to new chat page */
   handleNewChatClick: () => void;
+  /** Open the share modal for a given conversation */
+  openShareModal: (conversationId: string) => void;
 }
 
 export const AppShellContext = createContext<AppShellContextValue | null>(null);

@@ -9,11 +9,11 @@ import { useGuardedNavigate } from "../providers/NavigationGuard";
  * avoiding orphaned conversations with no user messages.
  */
 export function useNewChat() {
-  const navigate = useGuardedNavigate();
+  const guardedNavigate = useGuardedNavigate();
 
   const handleNewChatClick = useCallback(() => {
-    navigate("/chat/new");
-  }, [navigate]);
+    guardedNavigate("/chat/new");
+  }, [guardedNavigate]);
 
   return { handleNewChatClick };
 }

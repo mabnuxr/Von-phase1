@@ -67,6 +67,24 @@ function getErrorCode(data: unknown): string | null {
 }
 
 /**
+ * Module-level share token store. When set (via `setShareToken`), every
+ * outbound request from `apiClient` carries an `X-Share-Token` header. The
+ * backend's auth middleware uses this header to context-switch into the
+ * share owner's identity for the duration of the request, so a recipient
+ * viewing `/shared/<token>` reuses the regular conversation/messages/files
+ * endpoints in read-only mode without needing parallel "shared" endpoints.
+ */
+let _shareToken: string | null = null;
+
+export function setShareToken(token: string | null): void {
+  _shareToken = token;
+}
+
+export function getShareToken(): string | null {
+  return _shareToken;
+}
+
+/**
  * Base API client for making HTTP requests to the backend
  */
 export class ApiClient {
@@ -80,10 +98,14 @@ export class ApiClient {
    * Get default headers for API requests
    */
   private getDefaultHeaders(): HeadersInit {
-    return {
+    const headers: Record<string, string> = {
       Accept: "application/json",
       "Content-Type": "application/json",
     };
+    if (_shareToken) {
+      headers["X-Share-Token"] = _shareToken;
+    }
+    return headers;
   }
 
   /**
