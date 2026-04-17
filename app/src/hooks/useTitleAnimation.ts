@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useUserPusherChannel } from "./useUserPusherChannel";
+import type { Channel } from "pusher-js";
 import { chatSidebarKeys } from "./useChatSidebar";
 import {
   UserChannelEvents,
@@ -8,8 +8,7 @@ import {
 } from "../types/userChannelEvents";
 
 interface UseTitleAnimationParams {
-  tenantId?: string;
-  userId?: string;
+  userChannel: Channel | null;
 }
 
 /**
@@ -21,10 +20,7 @@ interface UseTitleAnimationParams {
  *
  * Shared between V1 and V2 sidebar containers.
  */
-export function useTitleAnimation({
-  tenantId,
-  userId,
-}: UseTitleAnimationParams) {
+export function useTitleAnimation({ userChannel }: UseTitleAnimationParams) {
   const queryClient = useQueryClient();
 
   const [titleUpdate, setTitleUpdate] = useState<{
@@ -34,11 +30,6 @@ export function useTitleAnimation({
   const [animatedTitles, setAnimatedTitles] = useState<Map<string, string>>(
     new Map(),
   );
-
-  const { channel: userChannel } = useUserPusherChannel({
-    tenantId,
-    userId,
-  });
 
   // Subscribe to title updates on user channel
   useEffect(() => {

@@ -268,12 +268,15 @@ export type {
   Folder,
   ItemType,
   ItemStatus,
+  ApprovalState,
   FolderItemsMap,
   FolderLoadingMap,
   DashboardSidebarItem,
   DashboardItemState,
   DashboardItemVisibility,
 } from './ChatSidebarV2';
+export { ApprovalDot } from './ChatSidebarV2';
+export type { ApprovalDotProps } from './ChatSidebarV2';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)

@@ -10,12 +10,14 @@ import {
 import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import { FolderList } from './FolderList';
+import { ApprovalDot } from './ApprovalDot';
 import type {
   SidebarItem,
   Folder,
   FolderItemsMap,
   FolderLoadingMap,
   DashboardSidebarItem,
+  ApprovalState,
 } from '../ChatSidebarV2';
 import type { PopoverPosition } from '../hooks';
 
@@ -71,6 +73,12 @@ export interface CollapsedSidebarProps {
   // Folder data (derived, for the FolderList)
   sortedFolders: Folder[];
   itemsByFolder: Record<string, SidebarItem[]>;
+
+  /**
+   * Summary indicator for the Chats icon. "pending" takes priority over
+   * "expired" since pending approvals are still actionable.
+   */
+  summaryApprovalState?: ApprovalState;
 }
 
 /**
@@ -121,6 +129,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   isNewChatActive = false,
   sortedFolders,
   itemsByFolder,
+  summaryApprovalState,
 }) => {
   return (
     <div className="px-2 py-3 h-full w-full bg-white rounded-xl border border-gray-100 shadow-xs flex text-sm flex-col antialiased font-sf">
@@ -290,6 +299,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
             <button
               ref={chatButtonRef}
               className={`
+                relative
                 flex items-center justify-center w-8 h-8
                 rounded-lg border cursor-pointer
                 transition-all duration-150
@@ -298,6 +308,12 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
               title="Chats"
             >
               <ChatTextIcon size={18} weight="regular" />
+              {isCollapsed && summaryApprovalState && (
+                <ApprovalDot
+                  state={summaryApprovalState}
+                  className="absolute -top-0.5 -right-0.5 z-10"
+                />
+              )}
             </button>
 
             {/* Chats Hover Dropdown */}
@@ -319,18 +335,33 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                   <div className="overflow-y-auto max-h-64 py-0.5">
                     {items.slice(0, 10).map((item) => {
                       const isSelected = item.id === selectedItemId;
+                      const rowApprovalState = !isSelected ? item.approvalState : undefined;
 
                       return (
                         <div
                           key={item.id}
                           className={`
-                            px-3 py-2 rounded-xl text-sm
+                            relative px-3 py-2 rounded-xl text-sm
                             transition-colors duration-150 cursor-pointer
-                            ${isSelected ? 'bg-gray-50 text-gray-900 font-medium' : 'text-gray-900 hover:bg-gray-50'}
+                            ${
+                              isSelected
+                                ? 'bg-gray-50 text-gray-900 font-medium'
+                                : rowApprovalState === 'expired'
+                                  ? 'bg-orange-50 text-gray-900 hover:bg-orange-100'
+                                  : rowApprovalState === 'pending'
+                                    ? 'bg-purple-50 text-gray-900 hover:bg-purple-100'
+                                    : 'text-gray-900 hover:bg-gray-50'
+                            }
                           `}
                           onClick={() => onItemClick?.(item.id)}
                           title={item.label}
                         >
+                          {rowApprovalState && (
+                            <ApprovalDot
+                              state={rowApprovalState}
+                              className="absolute top-0 left-0.5 z-10"
+                            />
+                          )}
                           <span className="truncate block">{item.label}</span>
                         </div>
                       );

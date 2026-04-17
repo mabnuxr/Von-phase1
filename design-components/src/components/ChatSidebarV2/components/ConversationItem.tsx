@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DotsThreeIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
+import { ApprovalDot } from './ApprovalDot';
 import type { SidebarItem } from '../ChatSidebarV2';
 
 export interface ConversationItemProps {
@@ -38,6 +39,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const [editValue, setEditValue] = useState(item.label);
   const inputRef = useRef<HTMLInputElement>(null);
   const showButton = !!onContextMenu && (isHovered || isMenuOpen) && !isEditing;
+  const approvalState = !isSelected && !isEditing ? item.approvalState : undefined;
+  const showApprovalDot = !!approvalState;
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -79,13 +82,22 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     onClick();
   };
 
+  const baseClasses =
+    'group relative flex items-center gap-1.5 px-2 h-8 rounded-xl text-sm transition-colors duration-150';
+
+  const stateClasses = isEditing
+    ? 'bg-gray-50'
+    : isSelected
+      ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 cursor-pointer'
+      : approvalState === 'expired'
+        ? 'border border-transparent bg-orange-50 hover:bg-orange-100 cursor-pointer'
+        : approvalState === 'pending'
+          ? 'border border-transparent bg-purple-50 hover:bg-purple-100 cursor-pointer'
+          : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer';
+
   const content = (
     <div
-      className={`
-        group relative flex items-center gap-2.5 px-2 h-8 rounded-xl text-sm
-        transition-colors duration-150
-        ${isEditing ? 'bg-gray-50' : isSelected ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 cursor-pointer' : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer'}
-      `}
+      className={`${baseClasses} ${stateClasses}`}
       onClick={isEditing ? undefined : handleClick}
       onContextMenu={isEditing ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
@@ -105,6 +117,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
         />
       ) : (
         <>
+          {showApprovalDot && approvalState && (
+            <ApprovalDot state={approvalState} className="absolute -top-0.5 left-0 z-10" />
+          )}
           <span className="flex-1 text-sm text-gray-900 truncate">{item.label}</span>
 
           {/* More options button - shows on hover or when menu is open */}
