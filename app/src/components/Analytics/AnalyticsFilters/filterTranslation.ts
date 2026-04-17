@@ -845,7 +845,9 @@ export function fromFilterBarValue(
   // Number-typed filters emit strings from `<input type="number">`; the
   // backend validator rejects non-numeric JSON on >, <, between, etc.
   // Coerce to native numbers (single + arrays for between/not_between).
-  if (def.type === "number") {
+  // `"range"` is treated like `"number"` by `mapFieldType` (both render
+  // a number input), so coerce those too.
+  if (def.type === "number" || def.type === "range") {
     rawValue = coerceNumericFilterValue(rawValue);
   }
 
