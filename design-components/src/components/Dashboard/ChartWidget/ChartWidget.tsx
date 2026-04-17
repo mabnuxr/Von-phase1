@@ -15,7 +15,11 @@ export interface ChartWidgetProps {
 const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
-  const { options: finalOptions, constructorType } = useChartOptions({ config, drilldown, onPointClick });
+  const { options: finalOptions, constructorType } = useChartOptions({
+    config,
+    drilldown,
+    onPointClick,
+  });
 
   useEffect(() => {
     const el = sizeRef.current;
