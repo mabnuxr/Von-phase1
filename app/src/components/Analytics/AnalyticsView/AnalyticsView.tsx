@@ -18,16 +18,13 @@ import {
   ErrorBoundary,
   Tooltip,
 } from "@vonlabs/design-components";
-import { AnalyticsFilters } from "../AnalyticsFilters";
 import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
 import { DataSourcesSlot } from "./DataSourcesSlot";
-import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import type { DashboardFilterDefinition } from "../../../types/dashboard";
 import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
-import { SharePopover } from "./SharePopover";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -55,10 +52,6 @@ interface AnalyticsViewProps {
     string,
     { operator: string; value?: unknown; include_blank?: boolean }
   >;
-  /** Pending rows where user hasn't picked a field yet */
-  filterPendingRows: { tempId: string }[];
-  /** Number of active filters */
-  filterActiveCount: number;
   /** Whether filters can be applied (dirty + all valid) */
   filterCanApply: boolean;
   /** Whether filters are being applied (PATCH + refetch in progress) */
@@ -70,15 +63,7 @@ interface AnalyticsViewProps {
     includeBlank?: boolean,
   ) => void;
   onRemoveFilter: (filterId: string) => void;
-  onAddFilter: () => void;
-  onRemovePendingRow: (tempId: string) => void;
-  onCommitPendingRow: (
-    pendingId: string,
-    filterId: string,
-    defaultOperator: string,
-  ) => void;
   onApplyFilters: () => void;
-  onClearAll: () => void;
   /** Immediate-commit clear — PATCH resets/removes the filter. */
   onClearFilter?: (filterId: string) => void;
   /** Owner-only: commit-lock/unlock — immediate PATCH with current value. */
@@ -218,17 +203,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   refreshInfo,
   filterDefinitions,
   filterState,
-  filterPendingRows,
-  filterActiveCount,
   filterCanApply,
   filterIsApplying,
   onFilterChange,
   onRemoveFilter,
-  onAddFilter,
-  onRemovePendingRow,
-  onCommitPendingRow,
   onApplyFilters,
-  onClearAll,
   onClearFilter,
   onToggleLock,
   canLockFilter,
@@ -271,7 +250,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isDrilldownOpen,
   // Panel-filter props accepted but unused until widget-level filter UI is re-enabled
 }) => {
-  const { isDashboardFiltersV2Enabled } = useFeatureFlag();
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
     ...rawGridConfig,
@@ -460,8 +438,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               </button>
             )}
 
-            {/* Data sources pill (v2) — header-right, next to Ask Von */}
-            {isDashboardFiltersV2Enabled && dashboard.data_sources && (
+            {/* Data sources pill — header-right, next to Ask Von */}
+            {dashboard.data_sources && (
               <DataSourcesSlot dataSources={dashboard.data_sources} />
             )}
 
@@ -505,38 +483,20 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
         <DashboardLayout.HeaderRow bordered>
           <DashboardLayout.HeaderRow.Left>
-            {isDashboardFiltersV2Enabled ? (
-              <DashboardFilterBarV2
-                definitions={filterDefinitions}
-                filterState={filterState}
-                isApplying={filterIsApplying}
-                canApply={filterCanApply}
-                isOwner={dashboard.isOwner}
-                onFilterChange={onFilterChange}
-                onRemoveFilter={onRemoveFilter}
-                onClearFilter={onClearFilter}
-                onToggleLock={onToggleLock}
-                canLockFilter={canLockFilter}
-                onApply={onApplyFilters}
-                onRevertFilter={onRevertFilter}
-              />
-            ) : (
-              <AnalyticsFilters
-                definitions={filterDefinitions}
-                filterState={filterState}
-                pendingRows={filterPendingRows}
-                activeCount={filterActiveCount}
-                canApply={filterCanApply}
-                isApplying={filterIsApplying}
-                onFilterChange={onFilterChange}
-                onRemoveFilter={onRemoveFilter}
-                onAddFilter={onAddFilter}
-                onRemovePendingRow={onRemovePendingRow}
-                onCommitPendingRow={onCommitPendingRow}
-                onApply={onApplyFilters}
-                onClearAll={onClearAll}
-              />
-            )}
+            <DashboardFilterBarV2
+              definitions={filterDefinitions}
+              filterState={filterState}
+              isApplying={filterIsApplying}
+              canApply={filterCanApply}
+              isOwner={dashboard.isOwner}
+              onFilterChange={onFilterChange}
+              onRemoveFilter={onRemoveFilter}
+              onClearFilter={onClearFilter}
+              onToggleLock={onToggleLock}
+              canLockFilter={canLockFilter}
+              onApply={onApplyFilters}
+              onRevertFilter={onRevertFilter}
+            />
           </DashboardLayout.HeaderRow.Left>
 
           <DashboardLayout.HeaderRow.Right>
@@ -588,29 +548,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-                {isDashboardFiltersV2Enabled ? (
-                  <ShareDashboardDialog
-                    isSharedWithTenant={dashboard.isSharedWithTenant}
-                    sharedDataScope={dashboard.sharedDataScope}
-                    dataScopingAvailable={
-                      dashboard.data_sources?.some(
-                        (s) => s.type === "salesforce",
-                      ) ?? false
-                    }
-                    canShare={isSaved}
-                    sharePhase={sharePhase}
-                    onShare={onShare}
-                    onCopyLink={handleCopyLink}
-                  />
-                ) : (
-                  <SharePopover
-                    isSharedWithTenant={dashboard.isSharedWithTenant}
-                    canShare={isSaved}
-                    sharePhase={sharePhase}
-                    onShare={onShare}
-                    onCopyLink={handleCopyLink}
-                  />
-                )}
+                <ShareDashboardDialog
+                  isSharedWithTenant={dashboard.isSharedWithTenant}
+                  sharedDataScope={dashboard.sharedDataScope}
+                  dataScopingAvailable={
+                    dashboard.data_sources?.some(
+                      (s) => s.type === "salesforce",
+                    ) ?? false
+                  }
+                  canShare={isSaved}
+                  sharePhase={sharePhase}
+                  onShare={onShare}
+                  onCopyLink={handleCopyLink}
+                />
 
                 {/* Edit / Save toggle */}
                 {isEditMode ||
