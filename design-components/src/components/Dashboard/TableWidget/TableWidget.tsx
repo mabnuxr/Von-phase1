@@ -111,7 +111,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
-  const [theadHeight, setTheadHeight] = useState(26);
+  const [theadHeight, setTheadHeight] = useState(40);
   const [tableHeight, setTableHeight] = useState(0);
   const [colWidths, setColWidths] = useState<number[]>([]);
 
@@ -159,7 +159,6 @@ const TableWidget: React.FC<TableWidgetProps> = ({
         <ReportTable
           options={stableOptions}
           hidePagination
-          compact
           onSortChange={hasServerPagination ? onSortChange : undefined}
           sortState={hasServerPagination ? sortState : undefined}
           onCellClick={onCellClick}
