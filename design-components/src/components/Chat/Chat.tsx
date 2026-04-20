@@ -121,6 +121,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onSelectMention,
   onMentionsActivated,
   dashboardMention,
+  widgetMentions,
+  onWidgetMentionRemoved,
   children,
   compact = false,
 }) => {
@@ -282,6 +284,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
               onSelectMention={onSelectMention}
               onMentionsActivated={onMentionsActivated}
               dashboardMention={dashboardMention}
+              widgetMentions={widgetMentions}
+              onWidgetMentionRemoved={onWidgetMentionRemoved}
             />
           )
         ) : (
@@ -420,6 +424,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           onSelectMention={onSelectMention}
           onMentionsActivated={onMentionsActivated}
           dashboardMention={dashboardMention}
+          widgetMentions={widgetMentions}
+          onWidgetMentionRemoved={onWidgetMentionRemoved}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { TableIcon } from '@phosphor-icons/react';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
+import { AddToChatButton } from '../../VonIcon';
 import type { WidgetShellProps } from '../types';
 
 /**
@@ -16,6 +17,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   queryInfo,
   appliedFilters,
   filterSlot,
+  onAddToChat,
 }) => {
   return (
     <div className="group h-full bg-white border border-gray-200 flex flex-col cursor-default hover:border-gray-300 transition-all overflow-hidden">
@@ -25,6 +27,7 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
           {subtitle && <p className="text-xs text-gray-400 mt-0.5 truncate">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-0.5">
+          {onAddToChat && <AddToChatButton onClick={onAddToChat} />}
           {filterSlot
             ? filterSlot
             : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}

@@ -160,6 +160,10 @@ export interface ChatEmptyStateProps {
   onMentionsActivated?: () => void;
   /** Dashboard mention to auto-add when chat opens alongside a dashboard */
   dashboardMention?: MentionItem | null;
+  /** Widget mentions added by the user via the Add-to-Chat widget icon */
+  widgetMentions?: MentionItem[];
+  /** Called when a widget chip is removed via its X button */
+  onWidgetMentionRemoved?: (args: { id: string }) => void;
 }
 
 /**
@@ -224,6 +228,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSelectMention,
   onMentionsActivated,
   dashboardMention,
+  widgetMentions,
+  onWidgetMentionRemoved,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
@@ -444,6 +450,8 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onSelectMention={onSelectMention}
           onMentionsActivated={onMentionsActivated}
           dashboardMention={dashboardMention}
+          widgetMentions={widgetMentions}
+          onWidgetMentionRemoved={onWidgetMentionRemoved}
         />
       </motion.div>
 

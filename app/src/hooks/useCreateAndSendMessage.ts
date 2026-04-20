@@ -27,7 +27,7 @@ import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import type { MessageFileAttachment } from "./useFileUploadPipeline";
 import { fileUploadService } from "../services/fileUploadService";
 import { transformConversationMessages } from "../lib/dashboardUtils";
-import { ReferenceType } from "../types/conversation";
+import { buildMentionReferences } from "../lib/messageReferenceUtils";
 import type {
   MessageWithStreaming,
   MessageReference,
@@ -159,17 +159,9 @@ export function useCreateAndSendMessage({
           }
         : undefined;
 
-      const mentionRefsForOptimistic: MessageReference[] = (
-        options?.mentions ?? []
-      ).map((m) => ({
-        refId: `${ReferenceType.Dashboard}-${m.id}`,
-        type: ReferenceType.Dashboard,
-        context: {
-          dashboardId: m.id,
-          dashboardVersion: m.version,
-          dashboardName: m.name,
-        },
-      }));
+      const mentionRefsForOptimistic = buildMentionReferences(
+        options?.mentions ?? [],
+      );
       const optimisticReferences =
         mentionRefsForOptimistic.length > 0
           ? [...(references ?? []), ...mentionRefsForOptimistic]
@@ -290,18 +282,7 @@ export function useCreateAndSendMessage({
         // 6. Send message — await so we only navigate/onCreated on success.
         //    If this throws, onError in useSendMessage rolls back the chatStore
         //    pre-seeded messages, and the catch block below resets local UI state.
-        //    Merge static references (e.g. dashboard) with any @mention references.
-        const mentionRefs: MessageReference[] = (options?.mentions ?? []).map(
-          (m) => ({
-            refId: `${ReferenceType.Dashboard}-${m.id}`,
-            type: ReferenceType.Dashboard,
-            context: {
-              dashboardId: m.id,
-              dashboardVersion: m.version,
-              dashboardName: m.name,
-            },
-          }),
-        );
+        const mentionRefs = buildMentionReferences(options?.mentions ?? []);
         const allReferences =
           mentionRefs.length > 0
             ? [...(references ?? []), ...mentionRefs]

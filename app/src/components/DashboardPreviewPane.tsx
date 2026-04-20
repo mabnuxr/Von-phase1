@@ -9,6 +9,7 @@
 import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useAppShell } from "../hooks/useAppShell";
+import { useAddWidgetToChat } from "../hooks/useAddWidgetToChat";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -148,6 +149,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     );
   }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
+  const handleAddWidgetToChat = useAddWidgetToChat(conversationId, dashboard);
+
   return (
     <div
       style={{
@@ -197,6 +200,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             paginatedWidgets={mergedWidgets}
             onDrillDown={openDrilldown}
             onPointDrillDown={openPointDrilldown}
+            onAddWidgetToChat={handleAddWidgetToChat}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
             onRename={handleRename}

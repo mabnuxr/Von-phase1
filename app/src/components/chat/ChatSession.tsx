@@ -51,6 +51,7 @@ import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
 
 import useChatStore from "../../store/chatStore";
+import { useConversationWidgetMentions } from "../../hooks/useConversationWidgetMentions";
 import { useDashboardVersionInvalidation } from "../../hooks/useDashboardVersionInvalidation";
 import {
   getFrontendIntegrationId,
@@ -127,6 +128,14 @@ export interface ChatSessionProps {
   dashboardId?: string;
   dashboardTitle?: string;
   dashboardVersion?: number;
+
+  /**
+   * Widget chips to show in the input before a conversation exists (new-chat path).
+   * Rendered as chips in NewChatInner; flushed into the message payload on first send.
+   * Ignored in ExistingChatInner — that path reads from the widget mentions store.
+   */
+  pendingWidgetMentions?: MentionItem[];
+  onPendingWidgetMentionRemoved?: (args: { id: string }) => void;
 
   // ── New conversation callback ───────────────────
   onCreated?: (conversationId: string) => void;
@@ -446,6 +455,12 @@ function ExistingChatInner(
     [conversationId, navigate],
   );
 
+  const {
+    widgetMentions,
+    onWidgetMentionRemoved: handleWidgetMentionRemoved,
+    wrappedHandleSendMessage: handleSendMessage,
+  } = useConversationWidgetMentions(conversationId, chatV2.handleSendMessage);
+
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (props.compact) return;
@@ -488,7 +503,7 @@ function ExistingChatInner(
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId={conversationId}
       messages={chatV2.transformedMessages}
-      onSendMessage={chatV2.handleSendMessage}
+      onSendMessage={handleSendMessage}
       onStopStreaming={chatV2.handleStopStreaming}
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
@@ -568,6 +583,8 @@ function ExistingChatInner(
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
+      widgetMentions={widgetMentions}
+      onWidgetMentionRemoved={handleWidgetMentionRemoved}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -749,6 +766,8 @@ function NewChatInner(props: ChatSessionProps) {
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
+      widgetMentions={props.pendingWidgetMentions}
+      onWidgetMentionRemoved={props.onPendingWidgetMentionRemoved}
     >
       {slots.emptyState && (
         <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>

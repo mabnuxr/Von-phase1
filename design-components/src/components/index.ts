@@ -21,6 +21,9 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 
+export { VonIcon } from './VonIcon';
+export type { VonIconProps, VonIconVariant, VonIconShape } from './VonIcon';
+
 export { TruncateWithText } from './TruncateWithText/TruncateWithText';
 export type { TruncateWithTextProps } from './TruncateWithText/TruncateWithText';
 
@@ -223,6 +226,7 @@ export type {
   MentionsOverlayProps,
   MentionsListProps,
   MentionStripProps,
+  WidgetMentionType,
 } from './Mentions';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
@@ -619,4 +623,5 @@ export type {
   DataSourcesProps,
   DataSource,
   DataSourceIcon,
+  WidgetAddToChatPayload,
 } from './Dashboard';
