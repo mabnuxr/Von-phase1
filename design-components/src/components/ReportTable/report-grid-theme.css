@@ -11,14 +11,24 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .report-grid-wrapper .hcg-container {
-  /* Color palette (slate-based BI look) */
+  /* Color palette — light, flat, gray-200 borders */
   --hcg-color: #334155;
   --ig-default-color: #334155;
-  --hcg-row-hover-background: #f1f5f9;
-  --hcg-header-background: #f1f5f9;
-  --hcg-border-color: #e2e8f0;
-  --hcg-row-border-color: #e2e8f0;
-  --hcg-button-hover-background: #e2e8f0;
+  --hcg-row-hover-background: #f9fafb;
+  --hcg-row-even-background: #ffffff;
+  --hcg-row-hover-opacity: 1;
+  /* Neutralise Grid Lite's per-cell hover blend so every cell in a hovered row
+     shows the same solid #f9fafb instead of the cell under the cursor going
+     lighter than the rest of the row. */
+  --hcg-cell-hover-opacity: 0;
+  --hcg-header-background: #f9fafb;
+  --hcg-header-color: #1f2937;
+  --hcg-border-color: #e5e7eb;
+  --hcg-row-border-color: #e5e7eb;
+  --hcg-column-border-color: #e5e7eb;
+  --hcg-header-row-border-color: #e5e7eb;
+  --hcg-header-column-border-color: #e5e7eb;
+  --hcg-button-hover-background: #e5e7eb;
   --hcg-button-color: #475569;
   --hcg-button-hover-color: #1e293b;
   --hcg-pagination-button-selected-background: #1e293b;
@@ -73,19 +83,20 @@
 
 /* Header cells */
 .report-grid-wrapper .hcg-header-cell {
-  background: #f1f5f9;
-  color: #475569;
+  background: #f9fafb;
+  color: #1f2937;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid #cbd5e1;
-  border-right: 1px solid #e2e8f0;
+  height: 40px;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
   text-align: left !important;
   white-space: nowrap;
 }
 
 .report-grid-wrapper .hcg-header-cell-content {
   font-weight: 600;
-  color: #475569;
+  color: #1f2937;
   justify-content: flex-start !important;
   text-align: left !important;
 }
@@ -106,8 +117,8 @@
   font-weight: 400;
   color: #334155;
   background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  border-right: 1px solid #eef2f7;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -121,15 +132,7 @@
   transition: background-color 0.15s;
 }
 .report-grid-wrapper .hcg-table tbody tr:hover td {
-  background: #f1f5f9;
-}
-
-/* Even row striping */
-.report-grid-wrapper .hcg-row-even td {
-  background: #f8fafc;
-}
-.report-grid-wrapper .hcg-row-even:hover td {
-  background: #f1f5f9;
+  background: #f9fafb;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -221,13 +224,70 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23F97316'/%3E%3Cstop offset='100%25' stop-color='%23A855F7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='3' y='3' width='18' height='18' rx='4' fill='url(%23g)'/%3E%3Cpath d='M8 12l3 3 5-6' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
-/* Sort icon styling */
-.report-grid-wrapper .hcg-column-sortable-icon {
-  opacity: 0.4;
+/* ───────────────────────────────────────────────────────────────
+   Sort icons — stacked Phosphor-style carets
+   Replaces Grid Lite's single-arrow icon. Two carets are always
+   visible; the active direction renders in gray-800, the other
+   in gray-300. Unsorted columns show both in gray-400.
+   ─────────────────────────────────────────────────────────────── */
+
+/* Hide Grid Lite's native sort button (the arrowUpDown pill).
+   Grid Lite renders the sort indicator as a .hcg-button inside
+   .hcg-header-cell-icons — hiding the wrapper kills the pill +
+   icon in one go. */
+.report-grid-wrapper .hcg-header-cell-icons {
+  display: none !important;
 }
-.report-grid-wrapper .hcg-column-sorted-asc .hcg-column-sortable-icon,
-.report-grid-wrapper .hcg-column-sorted-desc .hcg-column-sortable-icon {
+
+/* Reserve trailing space on sortable columns for the custom caret */
+.report-grid-wrapper
+  .hcg-column-sortable
+  .hcg-header-cell-content {
+  position: relative;
+  padding-right: 18px;
+}
+
+.report-grid-wrapper
+  .hcg-column-sortable
+  .hcg-header-cell-content::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 14px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* Hidden by default — shown on hover or when the column is sorted */
+  opacity: 0;
+  transition: opacity 0.1s, background-image 0.1s;
+  pointer-events: none;
+}
+
+/* Hover — show both carets in gray-600 to invite clicks */
+.report-grid-wrapper
+  .hcg-column-sortable:hover
+  .hcg-header-cell-content::after {
   opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%236b7280'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%236b7280'/%3E%3C/svg%3E");
+}
+
+/* Sorted ascending — always visible, top caret gray-800, bottom gray-300 */
+.report-grid-wrapper
+  .hcg-column-sorted-asc
+  .hcg-header-cell-content::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%231f2937'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%23d1d5db'/%3E%3C/svg%3E");
+}
+
+/* Sorted descending — always visible, bottom caret gray-800, top gray-300 */
+.report-grid-wrapper
+  .hcg-column-sorted-desc
+  .hcg-header-cell-content::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%23d1d5db'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%231f2937'/%3E%3C/svg%3E");
 }
 
 /* Column resizer — wider hit area, visible on hover */
@@ -250,7 +310,7 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .report-grid-wrapper .hcg-pagination-wrapper {
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e5e7eb;
   background: #ffffff;
   padding: 10px 16px;
   font-size: 12px;
@@ -265,7 +325,7 @@
   padding: 3px 7px;
   min-width: 26px;
   height: 26px;
-  color: #475569;
+  color: #1f2937;
   transition:
     background-color 0.15s,
     color 0.15s;
@@ -274,7 +334,7 @@
 
 .report-grid-wrapper .hcg-pagination-nav-buttons-container button:hover,
 .report-grid-wrapper .hcg-pagination-controls-container button:hover {
-  background: #e2e8f0;
+  background: #e5e7eb;
 }
 
 .report-grid-wrapper .hcg-pagination-controls-container button[aria-current='page'],
@@ -294,21 +354,21 @@
   width: 6px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #f9fafb;
   border-radius: 3px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #e5e7eb;
   border-radius: 3px;
 }
 .report-grid-wrapper .hcg-scrollable-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #d1d5db;
 }
 
 /* No data message */
 .report-grid-wrapper .hcg-no-data {
   font-size: 13px;
-  color: #475569;
+  color: #1f2937;
   padding: 48px 16px;
   background: #ffffff;
 }

@@ -2,8 +2,8 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 
 // ─── Fixed heights (must match table-widget.css) ───────────────────
 // These are the exact pixel heights we enforce via CSS on the grid.
-const ROW_HEIGHT = 26; // Each body row: 26px (height + border, box-sizing: border-box)
-const HEADER_HEIGHT = 26; // The <thead> row: same 26px
+const ROW_HEIGHT = 36; // Each body row: 36px (height + border, box-sizing: border-box)
+const HEADER_HEIGHT = 40; // The <thead> row is slightly taller for visual hierarchy
 const PAGINATION_HEIGHT = 44; // Pagination bar: ~18px text + 24px padding + 1px border-top
 
 /**

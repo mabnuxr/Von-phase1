@@ -58,3 +58,218 @@
 .dt-expand-btn:hover {
   background-color: #f3f4f6;
 }
+
+/* ========================================
+   DrilldownPanel — table theme overrides
+   Softer gray-50 header, gray-200 borders,
+   no alternating row stripes.
+   ======================================== */
+
+.drilldown-grid .report-grid-wrapper .hcg-container {
+  --hcg-row-hover-background: #f9fafb;
+  --hcg-header-background: #f9fafb;
+  --hcg-border-color: #e5e7eb;
+  --hcg-row-border-color: #e5e7eb;
+  --hcg-button-hover-background: #f3f4f6;
+}
+
+.drilldown-grid .report-grid-wrapper .hcg-header-cell,
+.drilldown-grid .report-grid-wrapper .hcg-header-cell-content {
+  color: #1f2937;
+  background: #f9fafb;
+}
+
+.drilldown-grid .report-grid-wrapper .hcg-table td {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* Remove alternating row stripes — every row is white */
+.drilldown-grid .report-grid-wrapper .hcg-row-even td,
+.drilldown-grid .report-grid-wrapper .hcg-table tbody tr.hcg-row-even td {
+  background: #ffffff;
+}
+
+/* Unified hover — both even and odd rows get the same soft gray */
+.drilldown-grid .report-grid-wrapper .hcg-table tbody tr:hover td,
+.drilldown-grid .report-grid-wrapper .hcg-row-even:hover td {
+  background: #f9fafb;
+}
+
+/* ========================================
+   DrilldownPanel — stacked caret sort icons
+   Hides Grid Lite's native arrowUpDown button
+   and paints two Phosphor-style carets via
+   ::after on the header cell content.
+   ======================================== */
+
+/* Hide Grid Lite's sort button entirely — the whole .hcg-header-cell-icons
+   wrapper becomes visible when a column is selected/sorted, so we hide at
+   that level to also kill the gray pill background. */
+.drilldown-grid .report-grid-wrapper .hcg-header-cell-icons {
+  display: none !important;
+}
+
+/* Reserve space + anchor for the caret on every sortable column */
+.drilldown-grid
+  .report-grid-wrapper
+  .hcg-column-sortable
+  .hcg-header-cell-content {
+  position: relative;
+  padding-right: 18px;
+}
+
+.drilldown-grid
+  .report-grid-wrapper
+  .hcg-column-sortable
+  .hcg-header-cell-content::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 14px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* Hidden by default — shown on hover or when the column is sorted */
+  opacity: 0;
+  transition: opacity 0.1s, background-image 0.1s;
+  pointer-events: none;
+}
+
+/* Show on header hover (unsorted columns) */
+.drilldown-grid
+  .report-grid-wrapper
+  .hcg-column-sortable:hover
+  .hcg-header-cell-content::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%236b7280'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%236b7280'/%3E%3C/svg%3E");
+}
+
+/* Sorted columns — always show the caret, regardless of hover */
+.drilldown-grid
+  .report-grid-wrapper
+  .hcg-column-sorted-asc
+  .hcg-header-cell-content::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%231f2937'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%23d1d5db'/%3E%3C/svg%3E");
+}
+
+.drilldown-grid
+  .report-grid-wrapper
+  .hcg-column-sorted-desc
+  .hcg-header-cell-content::after {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%23d1d5db'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%231f2937'/%3E%3C/svg%3E");
+}
+
+/* ========================================
+   DrilldownPanel — loading skeleton
+   Flex rows, one bar per column. Pulse
+   animation is uniform across the grid so
+   no row looks like it has partial data.
+   ======================================== */
+
+.drilldown-skeleton {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  z-index: 1;
+  overflow: hidden;
+  /* Replicate the real grid's outer edge so the table still looks framed
+     while the skeleton overlays the body. */
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Standalone skeleton (when no gridOptions are available yet) —
+   sits below the skeleton header rather than overlaying a real grid.
+   No side borders here — the wrapper provides them. */
+.drilldown-skeleton-standalone {
+  top: 36px;
+  border: none;
+}
+
+/* Wrapper (standalone): give the whole table an outer frame */
+.drilldown-grid-standalone {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Skeleton header row — matches .hcg-header-cell look */
+.drilldown-skeleton-header {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.drilldown-skeleton-header-cell {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.drilldown-skeleton-header-cell:last-child {
+  border-right: none;
+}
+
+.drilldown-skeleton-header-cell .drilldown-skeleton-bar {
+  width: 50%;
+  background: #d1d5db;
+}
+
+/* Table layout mirrors the real grid — column widths set via <colgroup>
+   using measurements from the live <thead>. */
+.drilldown-skeleton-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.drilldown-skeleton-row {
+  height: 36px;
+}
+
+.drilldown-skeleton-cell {
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  vertical-align: middle;
+  overflow: hidden;
+}
+
+.drilldown-skeleton-cell:last-child {
+  border-right: none;
+}
+
+.drilldown-skeleton-bar {
+  width: 70%;
+  height: 10px;
+  border-radius: 4px;
+  background: #e5e7eb;
+  animation: drilldown-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes drilldown-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
