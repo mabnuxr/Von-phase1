@@ -136,7 +136,9 @@
   background-size: contain;
   /* Hidden by default — shown on hover or when the column is sorted */
   opacity: 0;
-  transition: opacity 0.1s, background-image 0.1s;
+  transition:
+    opacity 0.1s,
+    background-image 0.1s;
   pointer-events: none;
 }
 

@@ -240,17 +240,13 @@
 }
 
 /* Reserve trailing space on sortable columns for the custom caret */
-.report-grid-wrapper
-  .hcg-column-sortable
-  .hcg-header-cell-content {
+.report-grid-wrapper .hcg-column-sortable .hcg-header-cell-content {
   position: relative;
   padding-right: 18px;
 }
 
-.report-grid-wrapper
-  .hcg-column-sortable
-  .hcg-header-cell-content::after {
-  content: "";
+.report-grid-wrapper .hcg-column-sortable .hcg-header-cell-content::after {
+  content: '';
   position: absolute;
   right: 0;
   top: 50%;
@@ -262,30 +258,26 @@
   background-size: contain;
   /* Hidden by default — shown on hover or when the column is sorted */
   opacity: 0;
-  transition: opacity 0.1s, background-image 0.1s;
+  transition:
+    opacity 0.1s,
+    background-image 0.1s;
   pointer-events: none;
 }
 
 /* Hover — show both carets in gray-600 to invite clicks */
-.report-grid-wrapper
-  .hcg-column-sortable:hover
-  .hcg-header-cell-content::after {
+.report-grid-wrapper .hcg-column-sortable:hover .hcg-header-cell-content::after {
   opacity: 1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%236b7280'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%236b7280'/%3E%3C/svg%3E");
 }
 
 /* Sorted ascending — always visible, top caret gray-800, bottom gray-300 */
-.report-grid-wrapper
-  .hcg-column-sorted-asc
-  .hcg-header-cell-content::after {
+.report-grid-wrapper .hcg-column-sorted-asc .hcg-header-cell-content::after {
   opacity: 1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%231f2937'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%23d1d5db'/%3E%3C/svg%3E");
 }
 
 /* Sorted descending — always visible, bottom caret gray-800, top gray-300 */
-.report-grid-wrapper
-  .hcg-column-sorted-desc
-  .hcg-header-cell-content::after {
+.report-grid-wrapper .hcg-column-sorted-desc .hcg-header-cell-content::after {
   opacity: 1;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M1 5L5 1L9 5Z' fill='%23d1d5db'/%3E%3Cpath d='M1 9L5 13L9 9Z' fill='%231f2937'/%3E%3C/svg%3E");
 }

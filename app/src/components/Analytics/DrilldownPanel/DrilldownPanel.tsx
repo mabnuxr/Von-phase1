@@ -354,13 +354,9 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
                           }).map((_, i) => (
                             <tr key={i} className="drilldown-skeleton-row">
                               {Array.from({
-                                length:
-                                  colWidths.length || columns.length || 6,
+                                length: colWidths.length || columns.length || 6,
                               }).map((_, j) => (
-                                <td
-                                  key={j}
-                                  className="drilldown-skeleton-cell"
-                                >
+                                <td key={j} className="drilldown-skeleton-cell">
                                   <div className="drilldown-skeleton-bar" />
                                 </td>
                               ))}
