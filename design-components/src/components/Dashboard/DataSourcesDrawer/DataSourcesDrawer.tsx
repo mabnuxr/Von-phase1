@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, TableIcon, DatabaseIcon } from '@phosphor-icons/react';
+import { VonIcon } from '../../VonIcon';
 
 // ============================================================================
 // Types
@@ -50,42 +51,10 @@ const SnowflakeLogo: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
-const VonIqLogo: React.FC<{ size?: number }> = ({ size = 16 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 28 28"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <circle cx="14" cy="14" r="14" fill="url(#vonIqLogoGradient)" />
-    <path
-      d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-      stroke="white"
-      strokeWidth="1.33"
-    />
-    <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
-    <defs>
-      <radialGradient
-        id="vonIqLogoGradient"
-        cx="0"
-        cy="0"
-        r="1"
-        gradientUnits="userSpaceOnUse"
-        gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
-      >
-        <stop stopColor="#FFF3EB" />
-        <stop offset="0.26" stopColor="#FF9042" />
-        <stop offset="1" stopColor="#854FFF" />
-      </radialGradient>
-    </defs>
-  </svg>
-);
-
 const SourceIcon: React.FC<{ icon?: DataSourceIcon; size?: number }> = ({ icon, size = 16 }) => {
   if (icon === 'salesforce') return <SalesforceLogo size={size} />;
   if (icon === 'snowflake') return <SnowflakeLogo size={size} />;
-  if (icon === 'von_iq') return <VonIqLogo size={size} />;
+  if (icon === 'von_iq') return <VonIcon variant="badge" shape="circle" size={size} />;
   return (
     <div className="w-4 h-4 rounded bg-gray-200 flex items-center justify-center">
       <DatabaseIcon size={10} className="text-gray-500" />

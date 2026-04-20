@@ -43,6 +43,7 @@ import type {
   WidgetConfig,
   GridConfig,
   LayoutItem,
+  WidgetAddToChatPayload,
 } from "@vonlabs/design-components";
 
 interface AnalyticsViewProps {
@@ -127,6 +128,8 @@ interface AnalyticsViewProps {
     panelId: string,
     drillFilters: Record<string, unknown>,
   ) => void;
+  /** Callback when a widget's "add to chat" icon is clicked. Button hidden when absent. */
+  onAddWidgetToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Server-side table sort handler */
   onTableSortChange?: (
     panelId: string,
@@ -253,6 +256,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   paginatedWidgets,
   onDrillDown,
   onPointDrillDown,
+  onAddWidgetToChat,
   onTableSortChange,
   tableSortStates,
   onRename,
@@ -703,6 +707,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             loadingTablePanels={loadingTablePanels}
             onDrillDown={onDrillDown}
             onPointDrillDown={onPointDrillDown}
+            onAddToChat={onAddWidgetToChat}
             onTableSortChange={onTableSortChange}
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}

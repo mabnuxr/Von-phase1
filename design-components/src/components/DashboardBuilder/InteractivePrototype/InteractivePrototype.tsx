@@ -19,36 +19,7 @@ import { ThinkingProcess } from '../ThinkingProcess';
 import { usePrototypeOrchestrator } from './usePrototypeOrchestrator';
 import { mockDataTables, mockDashboard } from '../mockData';
 import type { DashboardWidget } from '../types';
-
-// Von logo for collapsed sidebar
-const VonLogoMini: React.FC = () => (
-  <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path
-      d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
-      fill="url(#paint0_radial_mini)"
-    />
-    <path
-      d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-      stroke="white"
-      strokeWidth="1.33"
-    />
-    <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
-    <defs>
-      <radialGradient
-        id="paint0_radial_mini"
-        cx="0"
-        cy="0"
-        r="1"
-        gradientUnits="userSpaceOnUse"
-        gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
-      >
-        <stop stopColor="#FFF3EB" />
-        <stop offset="0.26" stopColor="#FF9042" />
-        <stop offset="1" stopColor="#854FFF" />
-      </radialGradient>
-    </defs>
-  </svg>
-);
+import { VonIcon } from '../../VonIcon';
 
 export interface InteractivePrototypeProps {
   /**
@@ -112,7 +83,7 @@ export const InteractivePrototype: React.FC<InteractivePrototypeProps> = ({ onCo
         {/* 1. Collapsed Navigation */}
         <div className="w-14 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col items-center py-3">
           <div className="mb-6">
-            <VonLogoMini />
+            <VonIcon variant="badge" size={28} />
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1">

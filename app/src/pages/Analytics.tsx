@@ -13,7 +13,14 @@ import {
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
-import { Tooltip, useVisibilityToggle } from "@vonlabs/design-components";
+import {
+  Tooltip,
+  useVisibilityToggle,
+  type MentionItem,
+  type WidgetAddToChatPayload,
+} from "@vonlabs/design-components";
+import { useWidgetMentionsStore } from "../store/widgetMentionsStore";
+import { buildWidgetMention } from "../lib/widgetMentionUtils";
 import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
@@ -29,6 +36,8 @@ interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
   isChatOpen: boolean;
+  /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
+  onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
 }
 
 /**
@@ -40,6 +49,7 @@ function DashboardCanvas({
   dashboardId,
   onChatClick,
   isChatOpen,
+  onAddWidgetToChat,
 }: DashboardCanvasProps) {
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
 
@@ -200,6 +210,7 @@ function DashboardCanvas({
         paginatedWidgets={mergedWidgets}
         onDrillDown={openDrilldown}
         onPointDrillDown={openPointDrilldown}
+        onAddWidgetToChat={onAddWidgetToChat}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
         onRename={handleRename}
@@ -305,11 +316,25 @@ const Analytics = () => {
   // after the user has navigated to a different dashboard.
   const activeDashboardIdRef = useRef(dashboardId);
 
+  // Widget chips queued before a conversation exists (new-chat path).
+  // Passed to ChatSession so NewChatInner can render them; flushed into the
+  // widget-mentions store once a conversationId resolves via auto-select.
+  // Cleared without flush when a conversation is created via first send —
+  // the outgoing message payload already includes the chips, so re-adding
+  // them to the store would show stale chips in the resulting existing chat.
+  const [pendingWidgetMentions, setPendingWidgetMentions] = useState<
+    MentionItem[]
+  >([]);
+  const pendingWidgetMentionsRef = useRef(pendingWidgetMentions);
+  pendingWidgetMentionsRef.current = pendingWidgetMentions;
+  const addWidgetMentionToStore = useWidgetMentionsStore((s) => s.add);
+
   const handleConversationCreated = useCallback(
     (conversationId: string) => {
       if (activeDashboardIdRef.current === dashboardId) {
         setCreatedConversationId(conversationId);
         setActiveChatId(conversationId);
+        setPendingWidgetMentions([]);
       }
     },
     [dashboardId, setActiveChatId],
@@ -321,6 +346,7 @@ const Analytics = () => {
   useEffect(() => {
     activeDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
+    setPendingWidgetMentions([]);
   }, [dashboardId]);
 
   // Deep-link support: when a conversationId is present in the URL, activate it.
@@ -340,8 +366,10 @@ const Analytics = () => {
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
 
-  // Select the most recent conversation each time the panel opens.
-  // Skips auto-selection when a deep link already set the active conversation.
+  // Select the most recent conversation each time the panel opens, and flush
+  // any chips that were queued before the panel opened into the newly-selected
+  // conversation's store. Skips auto-selection when a deep link already set the
+  // active conversation.
   useEffect(() => {
     const justOpened = isChatPanelOpen && !prevChatPanelOpenRef.current;
     prevChatPanelOpenRef.current = isChatPanelOpen;
@@ -352,18 +380,62 @@ const Analytics = () => {
 
     if (unfiledConversations.length === 0) return;
 
-    setActiveChatId(unfiledConversations[0].conversationId);
+    const selectedId = unfiledConversations[0].conversationId;
+    setActiveChatId(selectedId);
+
+    if (pendingWidgetMentionsRef.current.length > 0) {
+      pendingWidgetMentionsRef.current.forEach((m) =>
+        addWidgetMentionToStore(selectedId, m),
+      );
+      setPendingWidgetMentions([]);
+    }
   }, [
     isChatPanelOpen,
     unfiledConversations,
     setActiveChatId,
     conversationIdFromParams,
+    addWidgetMentionToStore,
   ]);
 
   const handleNewChat = useCallback(() => {
     setActiveChatId(null);
     setCreatedConversationId(null);
   }, [setActiveChatId]);
+
+  // Widget "Add to chat" handler — opens the chat pane, then routes the
+  // mention to the store (existing convo) or pending state (new chat).
+  const handleAddWidgetToChat = useCallback(
+    (widget: WidgetAddToChatPayload) => {
+      const dashboard = data?.dashboard;
+      if (!dashboard) return;
+      const mention = buildWidgetMention(widget, {
+        dashboardId: dashboard.id,
+        dashboardVersion: dashboard.dashboardVersion,
+        dashboardName: dashboard.title,
+      });
+      if (!isChatPanelOpen) openChatPanel();
+      if (conversationId) {
+        addWidgetMentionToStore(conversationId, mention);
+      } else {
+        setPendingWidgetMentions((prev) =>
+          prev.some((m) => m.id === mention.id) ? prev : [...prev, mention],
+        );
+      }
+    },
+    [
+      data?.dashboard,
+      isChatPanelOpen,
+      openChatPanel,
+      conversationId,
+      addWidgetMentionToStore,
+    ],
+  );
+
+  const handleRemovePendingWidget = useCallback(
+    ({ id }: { id: string }) =>
+      setPendingWidgetMentions((prev) => prev.filter((m) => m.id !== id)),
+    [],
+  );
 
   const {
     widthCss: chatPaneWidth,
@@ -382,6 +454,7 @@ const Analytics = () => {
           dashboardId={dashboardId}
           onChatClick={openChatPanel}
           isChatOpen={isChatPanelOpen}
+          onAddWidgetToChat={handleAddWidgetToChat}
         />
       </div>
 
@@ -449,6 +522,8 @@ const Analytics = () => {
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}
             onCreated={handleConversationCreated}
+            pendingWidgetMentions={pendingWidgetMentions}
+            onPendingWidgetMentionRemoved={handleRemovePendingWidget}
           >
             <ChatSession.EmptyState>
               <AnalyticsChatEmptyState />

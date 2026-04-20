@@ -17,12 +17,12 @@ import type {
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
-import { ReferenceType } from "../types/conversation";
 import type {
   MessageWithStreaming,
   Conversation,
   MessageReference,
 } from "../types/conversation";
+import { buildMentionReferences } from "../lib/messageReferenceUtils";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
@@ -563,22 +563,11 @@ export function useChatV2(props: UseChatV2Props) {
           fileAttachments = await uploadPendingFiles(conversationId);
         } catch (error) {
           console.error("[useChatV2] File upload failed:", error);
-          return;
+          return false;
         }
       }
 
-      // Merge static references (e.g. dashboard page) with dynamic mention references
-      const mentionRefs: MessageReference[] = (options?.mentions ?? []).map(
-        (m) => ({
-          refId: `${ReferenceType.Dashboard}-${m.id}`,
-          type: ReferenceType.Dashboard,
-          context: {
-            dashboardId: m.id,
-            dashboardVersion: m.version,
-            dashboardName: m.name,
-          },
-        }),
-      );
+      const mentionRefs = buildMentionReferences(options?.mentions ?? []);
       const allReferences =
         mentionRefs.length > 0
           ? [...(references ?? []), ...mentionRefs]
@@ -611,6 +600,7 @@ export function useChatV2(props: UseChatV2Props) {
           : undefined,
       });
       clearFileAttachments();
+      return true;
     },
     [
       v2Processor,

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { Editor, Extension, JSONContent } from '@tiptap/react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import type { MentionItem } from '../../Mentions/types';
@@ -19,6 +19,17 @@ export interface UseMentionsOptions {
   onMentionsActivated?: () => void;
   /** Dashboard mention to auto-add (e.g. current dashboard context). Updated on dashboard switch. */
   dashboardMention?: MentionItem | null;
+  /**
+   * Widget mentions added by the user (e.g. via the Add-to-Chat widget icon).
+   * Parent owns the list; this hook derives selectedMentions from it directly.
+   */
+  widgetMentions?: MentionItem[];
+  /**
+   * Called when a widget chip is removed via its X button. Parent is expected
+   * to drop the widget from its source list, which removes it from the derived
+   * selectedMentions on the next render.
+   */
+  onWidgetMentionRemoved?: (args: { id: string }) => void;
 }
 
 export interface UseMentionsReturn {
@@ -93,50 +104,48 @@ export function useMentions({
   onSelectMention,
   onMentionsActivated,
   dashboardMention,
+  widgetMentions,
+  onWidgetMentionRemoved,
 }: UseMentionsOptions): UseMentionsReturn {
   const [suggestionState, setSuggestionState] =
     useState<MentionSuggestionState>(INITIAL_SUGGESTION_STATE);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>(() =>
-    dashboardMention ? [dashboardMention] : []
-  );
 
-  // Track whether the user explicitly dismissed the current dashboard mention
-  const dashboardDismissedRef = useRef(false);
+  // Mentions added by the user via the @ overlay. Dashboard and widget chips
+  // are not stored here — they're owned by the parent and derived into
+  // selectedMentions below.
+  const [userMentions, setUserMentions] = useState<MentionItem[]>([]);
 
-  // Sync dashboard mention into selectedMentions on dashboard switch
-  const prevDashboardIdRef = useRef(dashboardMention?.id);
-  useEffect(() => {
-    const prevId = prevDashboardIdRef.current;
+  // The dashboard id the user explicitly dismissed (X button). Reset when the
+  // dashboard switches or the mention list is cleared after send.
+  const [dismissedDashboardId, setDismissedDashboardId] = useState<string | null>(null);
 
-    if (!dashboardMention) {
-      // Dashboard mention cleared — remove the previous dashboard mention
-      prevDashboardIdRef.current = undefined;
-      dashboardDismissedRef.current = false;
-      if (prevId) {
-        setSelectedMentions((prev) => prev.filter((m) => m.id !== prevId));
+  // Reset dismissal when the dashboard itself changes — render-phase state
+  // update, per React docs on storing previous prop values.
+  const prevDashboardIdRef = useRef<string | undefined>(dashboardMention?.id);
+  if (prevDashboardIdRef.current !== dashboardMention?.id) {
+    prevDashboardIdRef.current = dashboardMention?.id;
+    if (dismissedDashboardId !== null) setDismissedDashboardId(null);
+  }
+
+  // selectedMentions is derived from external state (dashboard + widgets) and
+  // local @-mention state. No reconciliation effect, no array diffing.
+  const selectedMentions = useMemo(() => {
+    const result: MentionItem[] = [];
+    if (dashboardMention && dashboardMention.id !== dismissedDashboardId) {
+      result.push(dashboardMention);
+    }
+    if (widgetMentions?.length) {
+      for (const m of widgetMentions) {
+        if (m.id !== dashboardMention?.id) result.push(m);
       }
-      return;
     }
-
-    prevDashboardIdRef.current = dashboardMention.id;
-
-    if (prevId !== dashboardMention.id) {
-      // Dashboard changed — replace old with new, reset dismissed state
-      dashboardDismissedRef.current = false;
-      setSelectedMentions((prev) => {
-        const withoutOld = prev.filter((m) => m.id !== prevId && m.id !== dashboardMention.id);
-        return [dashboardMention, ...withoutOld];
-      });
-    } else if (!dashboardDismissedRef.current) {
-      // Same dashboard — re-add if missing (e.g. after clearSelectedMentions), update in place otherwise
-      setSelectedMentions((prev) => {
-        const exists = prev.some((m) => m.id === dashboardMention.id);
-        if (!exists) return [dashboardMention, ...prev];
-        return prev.map((m) => (m.id === dashboardMention.id ? dashboardMention : m));
-      });
+    for (const m of userMentions) {
+      if (result.some((existing) => existing.id === m.id)) continue;
+      result.push(m);
     }
-  }, [dashboardMention, selectedMentions.length]);
+    return result;
+  }, [dashboardMention, dismissedDashboardId, widgetMentions, userMentions]);
 
   // Refs for values accessed inside the suggestion bridge callbacks
   // (avoids stale closures since the suggestion config is memoized)
@@ -232,27 +241,37 @@ export function useMentions({
       });
     }
 
-    // Add to selected mentions (avoid duplicates)
-    setSelectedMentions((prev) => (prev.some((m) => m.id === item.id) ? prev : [...prev, item]));
+    // Add to user-mention list (avoid duplicates)
+    setUserMentions((prev) => (prev.some((m) => m.id === item.id) ? prev : [...prev, item]));
 
     onSelectMentionRef.current?.(item);
   }, []);
 
-  const removeSelectedMention = useCallback(
-    (id: string) => {
-      // If removing the current dashboard mention, mark it as dismissed
-      // so the sync effect doesn't re-add it
-      if (dashboardMention && id === dashboardMention.id) {
-        dashboardDismissedRef.current = true;
-      }
-      setSelectedMentions((prev) => prev.filter((m) => m.id !== id));
-    },
-    [dashboardMention]
-  );
+  const onWidgetMentionRemovedRef = useRef(onWidgetMentionRemoved);
+  onWidgetMentionRemovedRef.current = onWidgetMentionRemoved;
+
+  // Keep refs synced so removeSelectedMention can route dismissals without
+  // depending on changing prop identities.
+  const dashboardMentionIdRef = useRef(dashboardMention?.id);
+  dashboardMentionIdRef.current = dashboardMention?.id;
+  const widgetMentionsRef = useRef(widgetMentions);
+  widgetMentionsRef.current = widgetMentions;
+
+  const removeSelectedMention = useCallback((id: string) => {
+    if (dashboardMentionIdRef.current === id) {
+      setDismissedDashboardId(id);
+      return;
+    }
+    if (widgetMentionsRef.current?.some((m) => m.id === id)) {
+      onWidgetMentionRemovedRef.current?.({ id });
+      return;
+    }
+    setUserMentions((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   const clearSelectedMentions = useCallback(() => {
-    dashboardDismissedRef.current = false;
-    setSelectedMentions([]);
+    setDismissedDashboardId(null);
+    setUserMentions([]);
   }, []);
 
   const handleCloseMentionsList = useCallback(() => {

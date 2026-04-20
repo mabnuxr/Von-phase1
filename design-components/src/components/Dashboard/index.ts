@@ -31,6 +31,7 @@ export type {
   DrillFilters,
   QueryInfo,
   AppliedWidgetFilter,
+  WidgetAddToChatPayload,
 } from './types';
 
 // ── DashboardLayout (Compound component) ────────────────────────────

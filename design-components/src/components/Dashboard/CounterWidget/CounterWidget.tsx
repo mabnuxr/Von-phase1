@@ -2,6 +2,7 @@ import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
+import { AddToChatButton } from '../../VonIcon';
 import type { CounterWidgetProps } from '../types';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
@@ -101,6 +102,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   queryInfo,
   appliedFilters,
   filterSlot,
+  onAddToChat,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
 
@@ -130,12 +132,13 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
       className="group relative h-full bg-white border border-gray-200 px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
       onClick={onDrillDown}
     >
-      {(filterSlot || appliedFilters || queryInfo || onDrillDown) && (
+      {(filterSlot || appliedFilters || queryInfo || onDrillDown || onAddToChat) && (
         <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
           {filterSlot
             ? filterSlot
             : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
           {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
+          {onAddToChat && <AddToChatButton onClick={onAddToChat} />}
           {onDrillDown && (
             <button
               onClick={(e) => {

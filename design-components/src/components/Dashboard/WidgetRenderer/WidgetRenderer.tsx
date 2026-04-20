@@ -1,5 +1,6 @@
 import { useCallback, memo } from 'react';
 import { WidgetShell } from '../WidgetShell';
+import { AddToChatButton } from '../../VonIcon';
 import { ChartWidget } from '../ChartWidget';
 import { CounterWidget } from '../CounterWidget';
 import { TextWidget } from '../TextWidget';
@@ -30,6 +31,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     tableSortState,
     appliedFilters,
     filterSlot,
+    onAddToChat,
   }) => {
     const handleDrillDown = useCallback(() => {
       onDrillDown?.(widget.id);
@@ -44,6 +46,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
       [onPointDrillDown, widget.id]
     );
 
+    const handleAddToChat = useCallback(() => {
+      onAddToChat?.({ id: widget.id, title: widget.title, type: widget.type });
+    }, [onAddToChat, widget.id, widget.title, widget.type]);
+
+    const addToChatHandler = onAddToChat ? handleAddToChat : undefined;
+
     switch (widget.type) {
       case 'chart':
         return (
@@ -54,6 +62,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
+            onAddToChat={addToChatHandler}
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
@@ -70,12 +79,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               className="group relative h-full bg-white border border-gray-200 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
               onClick={drillDownHandler}
             >
-              {(filterSlot || appliedFilters || widget.queryInfo) && (
+              {(filterSlot || appliedFilters || widget.queryInfo || addToChatHandler) && (
                 <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
                   {filterSlot
                     ? filterSlot
                     : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
                   {widget.queryInfo && <QueryInfoPopover queryInfo={widget.queryInfo} />}
+                  {addToChatHandler && <AddToChatButton onClick={addToChatHandler} />}
                 </div>
               )}
               {widget.title && (
@@ -96,12 +106,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
+            onAddToChat={addToChatHandler}
           />
         );
 
       case 'text':
         return (
-          <WidgetShell title={widget.title}>
+          <WidgetShell title={widget.title} onAddToChat={addToChatHandler}>
             <TextWidget config={widget.config as TextWidgetConfig} />
           </WidgetShell>
         );
@@ -115,6 +126,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             queryInfo={widget.queryInfo}
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
+            onAddToChat={addToChatHandler}
           >
             <TableWidget
               config={widget.config as TableWidgetConfig}
@@ -135,7 +147,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       default:
         return (
-          <WidgetShell title={widget.title}>
+          <WidgetShell title={widget.title} onAddToChat={addToChatHandler}>
             <div className="flex items-center justify-center h-full text-sm text-gray-400">
               Unknown widget type
             </div>
