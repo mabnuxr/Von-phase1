@@ -90,11 +90,7 @@ function AssociatedConvButton({
 }) {
   const tooltip = `This dashboard was mentioned · ${formatRelativeTime(chat.lastMentionedAt)}`;
   return (
-    <Tooltip
-      content={tooltip}
-      placement="right"
-      wrapperClassName="block w-full"
-    >
+    <Tooltip content={tooltip} placement="top" wrapperClassName="block w-full">
       <button
         onClick={() => {
           onSelect(chat.conversationId);
