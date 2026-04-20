@@ -1,12 +1,7 @@
 import { useMemo, useRef, useEffect } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import {
-  ArrowUpIcon,
-  ArrowDownIcon,
-  MinusIcon,
-  TableIcon,
-} from '@phosphor-icons/react';
+import { ArrowUpIcon, ArrowDownIcon, MinusIcon, TableIcon } from '@phosphor-icons/react';
 import { AddToChatButton } from '../../VonIcon';
 import type { CounterWidgetProps } from '../types';
 import { QueryInfoPopover } from '../QueryInfoPopover';
