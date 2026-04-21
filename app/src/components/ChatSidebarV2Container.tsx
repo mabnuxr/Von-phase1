@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -105,6 +106,23 @@ export function ChatSidebarV2Container({
   // context-menu entry at all.
   const { openShareModal } = useAppShell();
   const { isChatSharingEnabled } = useFeatureFlag();
+
+  // Track which conversation's context menu is open to fetch its share status
+  const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
+    null,
+  );
+  const handleContextMenuOpen = useCallback((itemId: string) => {
+    setContextMenuConvId(itemId);
+  }, []);
+  const { data: contextMenuShareStatus } = useShareStatus(
+    isChatSharingEnabled ? contextMenuConvId : null,
+  );
+  const contextMenuShareInfo = contextMenuConvId
+    ? {
+        isShared: contextMenuShareStatus?.isShared ?? false,
+        accessType: contextMenuShareStatus?.accessType,
+      }
+    : undefined;
 
   const {
     folders,
@@ -241,6 +259,10 @@ export function ChatSidebarV2Container({
       onNewChatFolderClick={createFolder}
       onRenameItem={renameConversation}
       onShareItem={isChatSharingEnabled ? openShareModal : undefined}
+      onContextMenuOpen={
+        isChatSharingEnabled ? handleContextMenuOpen : undefined
+      }
+      contextMenuShareInfo={contextMenuShareInfo}
       onDeleteItem={handleDeleteItem}
       onDeleteFolder={deleteFolder}
       onRenameFolder={renameFolder}

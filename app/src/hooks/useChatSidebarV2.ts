@@ -44,8 +44,6 @@ function transformConversationsToSidebarItems(
       type: "chat" as const,
       href: `/chat/${conv.conversationId}`,
       folderId: null,
-      isShared: conv.isShared,
-      shareAccessType: conv.shareAccessType,
     }));
 }
 
@@ -205,8 +203,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
             type: "chat" as const,
             href: `/chat/${conv.conversationId}`,
             folderId: conv.folderId,
-            isShared: conv.isShared,
-            shareAccessType: conv.shareAccessType,
           }));
       } else {
         map[folderId] = [];

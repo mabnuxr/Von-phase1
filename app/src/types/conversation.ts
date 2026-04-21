@@ -21,8 +21,6 @@ export interface Conversation {
   createdAt: string;
   createdBy: string | null; // Optional - can be null if context not set
   updatedAt: string | null;
-  isShared?: boolean;
-  shareAccessType?: "org_wide" | "restricted" | null;
 }
 
 /**

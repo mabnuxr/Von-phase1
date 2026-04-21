@@ -139,7 +139,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         if (status.isShared) {
           setSelectedType(status.accessType || 'org_wide');
           setSelectedUserIds(status.sharedWith?.map((r) => r.userId) || []);
-          setAllowFileAttachments(status.allowFileAttachments ?? false);
+          setAllowFileAttachments(status.allowFileAttachments ?? true);
         } else {
           setSelectedType('private');
           setSelectedUserIds([]);

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidebarSimpleIcon, PlusCircleIcon, DotsThreeIcon } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
@@ -63,8 +63,6 @@ export type ItemStatus = 'idle' | 'running' | 'complete';
  */
 export type ApprovalState = 'pending' | 'expired';
 
-export type ShareAccessType = 'org_wide' | 'restricted';
-
 export interface SidebarItem {
   id: string;
   label: string;
@@ -76,10 +74,6 @@ export interface SidebarItem {
   status?: ItemStatus;
   /** Approval indicator state. Absent means no indicator. */
   approvalState?: ApprovalState;
-  /** Whether this conversation is shared */
-  isShared?: boolean;
-  /** How it's shared — drives the icon in the context menu */
-  shareAccessType?: ShareAccessType | null;
 }
 
 // ============================================================================
@@ -134,6 +128,10 @@ export interface ChatSidebarProps {
   onNewChatFolderClick?: (folderName: string) => void;
   onRenameItem?: (id: string, newName: string) => void;
   onShareItem?: (id: string) => void;
+  /** Called when a conversation's context menu opens — lets the container fetch share status */
+  onContextMenuOpen?: (itemId: string) => void;
+  /** Share status for the item whose context menu is currently open */
+  contextMenuShareInfo?: { isShared: boolean; accessType?: string | null };
   onDeleteItem?: (id: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
@@ -419,6 +417,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onNewChatFolderClick,
   onRenameItem,
   onShareItem,
+  onContextMenuOpen,
+  contextMenuShareInfo,
   onDeleteItem,
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
@@ -488,7 +488,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     getAvailableFoldersForMove,
 
     // Item handlers
-    handleContextMenu,
+    handleContextMenu: rawHandleContextMenu,
     handleCloseContextMenu,
     handleStartRename,
     handleSaveRename,
@@ -535,6 +535,15 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onCreateFolderAndMoveItem,
     onRemoveItemFromFolder,
   });
+
+  // Wrap context menu handler to notify container (for share status fetch)
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, item: SidebarItem) => {
+      rawHandleContextMenu(e, item);
+      onContextMenuOpen?.(item.id);
+    },
+    [rawHandleContextMenu, onContextMenuOpen]
+  );
 
   // Show more / show less state for folders
   const [showAllFolders, setShowAllFolders] = useState(false);
@@ -797,8 +806,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         items={getContextMenuItems({
           isInFolder: !!contextMenu.item?.folderId,
           enableShare: !!onShareItem,
-          isShared: contextMenu.item?.isShared,
-          shareAccessType: contextMenu.item?.shareAccessType,
+          shareInfo: contextMenuShareInfo,
         })}
         fixedPosition={contextMenu.position}
         width={160}

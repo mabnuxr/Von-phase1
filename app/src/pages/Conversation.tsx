@@ -27,6 +27,7 @@ import { useConversationInit } from "../hooks/useConversationInit";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useShareStatus } from "../hooks/useShareStatus";
 import { useToast } from "../hooks/useToast";
 import { ChatV1Container } from "../components/ChatV1Container";
 import { ChatSession } from "../components/chat/ChatSession";
@@ -82,10 +83,12 @@ const Conversation = () => {
     currentConversationId,
   );
 
-  // --- Share Status (from conversation metadata — no extra API call) ---
-  const isShared =
-    isChatSharingEnabled && (currentConversation?.isShared ?? false);
-  const shareAccessType = currentConversation?.shareAccessType;
+  // --- Share Status (for header CTA) ---
+  const { data: shareStatus } = useShareStatus(
+    isChatSharingEnabled ? currentConversationId : null,
+  );
+  const isShared = shareStatus?.isShared ?? false;
+  const shareAccessType = shareStatus?.accessType;
 
   // --- Messages ---
   const {
