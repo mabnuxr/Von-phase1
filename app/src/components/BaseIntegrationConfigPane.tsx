@@ -111,6 +111,10 @@ export function BaseIntegrationConfigPane({
   const [databricksClientSecret, setDatabricksClientSecret] = useState("");
   const [databricksWarehouseId, setDatabricksWarehouseId] = useState("");
 
+  // BigQuery service account configuration state
+  const [bigqueryServiceAccountJson, setBigqueryServiceAccountJson] =
+    useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -242,6 +246,27 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "bigquery") {
+      if (!hasExistingCredentials) {
+        if (!bigqueryServiceAccountJson.trim()) {
+          errors.push("Service Account JSON is required");
+        } else {
+          try {
+            const parsed = JSON.parse(bigqueryServiceAccountJson);
+            if (parsed.type !== "service_account") {
+              errors.push(
+                'Invalid service account key — the JSON must have "type": "service_account"',
+              );
+            }
+          } catch {
+            errors.push(
+              "Invalid JSON — paste the full contents of your .json key file",
+            );
+          }
+        }
+      }
+    }
+
     if (integrationId === "databricks") {
       if (!hasExistingCredentials) {
         if (!databricksWorkspaceUrl) {
@@ -363,6 +388,11 @@ export function BaseIntegrationConfigPane({
           if (snowflakeAccountId) {
             (updateData as Record<string, unknown>).apiKey = snowflakeAccountId;
           }
+        } else if (integrationId === "bigquery") {
+          if (bigqueryServiceAccountJson) {
+            (updateData as Record<string, unknown>).serviceAccountJson =
+              bigqueryServiceAccountJson;
+          }
         } else if (integrationId === "databricks") {
           if (databricksClientId) {
             updateData.accessKey = databricksClientId;
@@ -444,6 +474,12 @@ export function BaseIntegrationConfigPane({
                       : integrationId === "databricks"
                         ? databricksWorkspaceUrl
                         : undefined,
+          // BigQuery service account JSON
+          serviceAccountJson:
+            integrationId === "bigquery"
+              ? bigqueryServiceAccountJson
+              : undefined,
+          name: integrationId === "bigquery" ? "BigQuery" : undefined,
         });
 
         // Clear sensitive credentials from state after creation
@@ -486,6 +522,9 @@ export function BaseIntegrationConfigPane({
           setDatabricksClientId("");
           setDatabricksClientSecret("");
           setDatabricksWarehouseId("");
+        }
+        if (integrationId === "bigquery") {
+          setBigqueryServiceAccountJson("");
         }
 
         // Only trigger OAuth authorization if required (not for API key integrations)
@@ -543,11 +582,40 @@ export function BaseIntegrationConfigPane({
               ).response
             : null;
 
-        if (response?.status === 409) {
-          const detail = response.data?.detail || response.data?.message;
+        // BigQuery-specific error handling using ApiError.statusCode
+        const statusCode =
+          "statusCode" in error
+            ? (error as { statusCode: number }).statusCode
+            : response?.status;
+
+        if (integrationId === "bigquery" && statusCode) {
+          if (statusCode === 403) {
+            setValidationErrors([
+              "BigQuery integration is not enabled for this account.",
+            ]);
+            return;
+          }
+          if (statusCode === 400) {
+            setValidationErrors([
+              "Invalid service account key — paste the full JSON file contents.",
+            ]);
+            return;
+          }
+          if (statusCode === 500) {
+            setValidationErrors([
+              "Could not validate service account. Check that the key is valid and the service account exists.",
+            ]);
+            return;
+          }
+        }
+
+        if (statusCode === 409 || response?.status === 409) {
+          const detail = response?.data?.detail || response?.data?.message;
           setValidationErrors([
             detail ||
-              "An integration of this type already exists. Please use the existing integration or contact your admin.",
+              (integrationId === "bigquery"
+                ? "A BigQuery integration already exists. Use Reconnect to update credentials."
+                : "An integration of this type already exists. Please use the existing integration or contact your admin."),
           ]);
           return;
         }
@@ -1205,6 +1273,68 @@ export function BaseIntegrationConfigPane({
                 </>
               )}
 
+              {/* BigQuery-specific fields */}
+              {integrationId === "bigquery" && (
+                <>
+                  {/* Service Account JSON */}
+                  <div className="bigquery-input-wrapper">
+                    <label className="block text-sm font-medium text-gray-900 mb-1">
+                      Service Account JSON{" "}
+                      {!hasExistingCredentials && (
+                        <span className="text-red-500">*</span>
+                      )}
+                    </label>
+                    <textarea
+                      value={bigqueryServiceAccountJson}
+                      onChange={(e) =>
+                        setBigqueryServiceAccountJson(e.target.value)
+                      }
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Paste the full contents of your .json key file..."
+                      }
+                      rows={8}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent resize-none font-mono"
+                    />
+                    <div className="mt-1.5 flex items-center justify-between">
+                      <p className="text-xs text-gray-500">
+                        {hasExistingCredentials
+                          ? "Leave empty to keep existing credentials"
+                          : "Full JSON contents of the service account key file"}
+                      </p>
+                      <label className="text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer">
+                        Upload .json file
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) =>
+                                setBigqueryServiceAccountJson(
+                                  ev.target?.result as string,
+                                );
+                              reader.readAsText(file);
+                            }
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <style>{`
+                    .bigquery-input-wrapper textarea::placeholder {
+                      font-size: 13px;
+                      color: #9ca3af;
+                    }
+                  `}</style>
+                </>
+              )}
+
               {integrationId === "databricks" && (
                 <>
                   {/* Workspace URL */}
@@ -1332,6 +1462,7 @@ export function BaseIntegrationConfigPane({
             integrationId === "zendesk" ||
             integrationId === "snowflake" ||
             integrationId === "databricks" ||
+            integrationId === "bigquery" ||
             integrationId === "salesloft_engagement") && (
             <div className="px-6 py-3 mb-6 border-b border-gray-200 shrink-0">
               <div className="flex items-center justify-between text-xs text-gray-400">
@@ -1347,9 +1478,11 @@ export function BaseIntegrationConfigPane({
                             ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
                             : integrationId === "databricks"
                               ? "https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html"
-                              : integrationId === "salesloft_engagement"
-                                ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
-                                : "https://developers.fathom.ai/quickstart"
+                              : integrationId === "bigquery"
+                                ? "https://cloud.google.com/iam/docs/keys-create-delete"
+                                : integrationId === "salesloft_engagement"
+                                  ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
+                                  : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1365,9 +1498,11 @@ export function BaseIntegrationConfigPane({
                           ? "How to generate a key pair"
                           : integrationId === "databricks"
                             ? "How to set up OAuth M2M"
-                            : integrationId === "salesloft_engagement"
-                              ? "How to generate an API key"
-                              : "How to generate an API key"}
+                            : integrationId === "bigquery"
+                              ? "How to create a service account key"
+                              : integrationId === "salesloft_engagement"
+                                ? "How to generate an API key"
+                                : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -1391,7 +1526,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "databricks" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "databricks" || integrationId === "bigquery" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button

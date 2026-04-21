@@ -587,6 +587,7 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBigQueryEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -604,6 +605,7 @@ export function IntegrationsList({
         return false;
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
+      if (app.id === "bigquery" && !isBigQueryEnabled) return false;
       return true;
     });
   }, [
@@ -618,6 +620,7 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBigQueryEnabled,
   ]);
 
   // Merge available apps with connected integrations

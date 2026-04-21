@@ -37,6 +37,7 @@ export const FEATURE_FLAGS = {
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
   DATABRICKS: "enableDatabricks",
+  BIGQUERY: "enableGoogleBigquery",
   // LaunchDarkly key: `enable-dashboard-filters-v2` (auto-camelCased by the
   // React SDK for `useFlags()` access). Shared with the backend gate
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
@@ -198,6 +199,11 @@ export function useFeatureFlag() {
      * Controls whether Databricks integration is visible
      */
     isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
+
+    /**
+     * Controls whether BigQuery integration is visible
+     */
+    isBigQueryEnabled: flags[FEATURE_FLAGS.BIGQUERY] === true,
     /**
      * Controls whether the v2 dashboard filter bar UI is enabled
      * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
