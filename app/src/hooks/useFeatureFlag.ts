@@ -199,6 +199,7 @@ export function useFeatureFlag() {
      * Controls whether Databricks integration is visible
      */
     isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
+<<<<<<< HEAD
 
     /**
      * Controls whether BigQuery integration is visible
@@ -210,6 +211,8 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+=======
+>>>>>>> main
 
     /**
      * Controls whether the chat sharing feature is enabled

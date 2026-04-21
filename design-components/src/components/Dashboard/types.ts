@@ -117,6 +117,8 @@ export interface CounterWidgetProps {
   appliedFilters?: AppliedWidgetFilter[];
   /** Optional slot rendered in place of the read-only filter popover (v2). */
   filterSlot?: React.ReactNode;
+  /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
+  onAddToChat?: () => void;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -189,9 +191,18 @@ export interface WidgetShellProps {
    * Used by the v2 filter UI to render an editable panel-level filter popover.
    */
   filterSlot?: React.ReactNode;
+  /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
+  onAddToChat?: () => void;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
+
+/** Minimal widget snapshot emitted to the "add to chat" callback. */
+export interface WidgetAddToChatPayload {
+  id: string;
+  title: string;
+  type: WidgetType;
+}
 
 export interface WidgetRendererProps {
   widget: WidgetConfig;
@@ -209,6 +220,8 @@ export interface WidgetRendererProps {
   appliedFilters?: AppliedWidgetFilter[];
   /** Optional slot rendered in place of the read-only filter popover (v2). */
   filterSlot?: React.ReactNode;
+  /** Callback when the widget's "add to chat" icon is clicked. Button hidden when absent. */
+  onAddToChat?: (widget: WidgetAddToChatPayload) => void;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -238,4 +251,6 @@ export interface DashboardGridProps {
    * WidgetFiltersPopover with app-supplied editable UI.
    */
   widgetFilterSlot?: (panelId: string) => React.ReactNode;
+  /** Callback when a widget's "add to chat" icon is clicked. Button hidden when absent. */
+  onAddToChat?: (widget: WidgetAddToChatPayload) => void;
 }

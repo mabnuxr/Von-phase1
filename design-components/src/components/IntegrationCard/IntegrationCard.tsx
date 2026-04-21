@@ -194,7 +194,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       {/* Left side - Icon and Info */}
       <div className="flex items-center gap-4">
         {/* Integration Logo */}
-        <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 flex items-center justify-center shrink-0">
           <img
             src={integrationLogoPath}
             alt={`${name} logo`}
@@ -232,7 +232,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
               className="text-xs text-gray-400 hover:text-gray-600 text-left m-0 p-0 border-none bg-transparent cursor-pointer flex items-center gap-1 group"
               title="Click to copy"
             >
-              <span className="truncate max-w-[200px]">{instanceUrl}</span>
+              <span className="truncate max-w-50">{instanceUrl}</span>
               <CopyIcon
                 size={12}
                 className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -243,7 +243,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       </div>
 
       {/* Right side - Actions */}
-      <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+      <div className="flex items-center gap-3 shrink-0 ml-4">
         {/* Status indicator */}
         {isLoading && <span className="text-sm text-von-purple font-medium">{loadingText}</span>}
 

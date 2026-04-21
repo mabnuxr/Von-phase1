@@ -15,6 +15,7 @@ import type {
   CreateFolderResponse,
   FolderConversationsResponse,
 } from "../types/chatSidebar";
+import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 
 /**
  * Response type for resuming an interrupted conversation
@@ -269,6 +270,21 @@ class ConversationsService {
   ): Promise<ChatSidebarResponse> {
     return apiClient.get<ChatSidebarResponse>(
       `/api/v1/chat/sidebar?unfiledPage=${unfiledPage}&unfiledLimit=${unfiledLimit}`,
+    );
+  }
+
+  /**
+   * Fetch chats associated with a specific dashboard — either created in that
+   * chat or containing an @[dashboardId] mention. Sorted server-side by
+   * lastMessageAt DESC. See frontend-handoff.md.
+   */
+  async getDashboardAssociatedChats(
+    dashboardId: string,
+    page: number = 1,
+    limit: number = 50,
+  ): Promise<DashboardAssociatedChatsResponse> {
+    return apiClient.get<DashboardAssociatedChatsResponse>(
+      `/api/v1/chat/sidebar/by-dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
     );
   }
 

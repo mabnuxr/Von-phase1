@@ -4,6 +4,7 @@
  */
 export const ReferenceType = {
   Dashboard: "dashboard",
+  Widget: "widget",
 } as const;
 
 export type ReferenceType = (typeof ReferenceType)[keyof typeof ReferenceType];

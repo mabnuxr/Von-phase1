@@ -9,6 +9,7 @@
 import { useCallback, memo } from "react";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useAppShell } from "../hooks/useAppShell";
+import { useAddWidgetToChat } from "../hooks/useAddWidgetToChat";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -80,17 +81,12 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     panelFilterState,
     lockedFilterState,
     lockedPanelFilterState,
-    pendingRows: filterPendingRows,
-    activeCount: filterActiveCount,
     canApply: filterCanApply,
     isApplying: filterIsApplying,
     handleFilterChange,
     handleRevertFilter,
     handleRemoveFilter,
     handleClearFilter,
-    handleAddFilter,
-    handleRemovePendingRow,
-    handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
     handleRevertPanelFilter,
@@ -103,7 +99,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     canLockFilter,
     getEffectivePanelState,
     handleApply,
-    handleClearAll,
   } = useDashboardFilters(
     dashboardId,
     dashboard?.filters?.definitions ?? [],
@@ -148,6 +143,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     );
   }, [navigate, dashboardId, conversationId, collapseSidebar]);
 
+  const handleAddWidgetToChat = useAddWidgetToChat(conversationId, dashboard);
+
   return (
     <div
       style={{
@@ -166,17 +163,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             refreshInfo={refreshInfo}
             filterDefinitions={filterDefinitions}
             filterState={filterState}
-            filterPendingRows={filterPendingRows}
-            filterActiveCount={filterActiveCount}
             filterCanApply={filterCanApply}
             filterIsApplying={filterIsApplying}
             onFilterChange={handleFilterChange}
             onRemoveFilter={handleRemoveFilter}
-            onAddFilter={handleAddFilter}
-            onRemovePendingRow={handleRemovePendingRow}
-            onCommitPendingRow={handleCommitPendingRow}
             onApplyFilters={handleApply}
-            onClearAll={handleClearAll}
             onClearFilter={handleClearFilter}
             onToggleLock={handleCommitLock}
             canLockFilter={canLockFilter}
@@ -197,6 +188,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             paginatedWidgets={mergedWidgets}
             onDrillDown={openDrilldown}
             onPointDrillDown={openPointDrilldown}
+            onAddWidgetToChat={handleAddWidgetToChat}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
             onRename={handleRename}
