@@ -15,6 +15,7 @@ import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { conversationsService } from "../services";
+import { useToast } from "../hooks/useToast";
 
 /**
  * AppShell — shared layout for pages that need the sidebar shell.
@@ -27,6 +28,8 @@ export function AppShell() {
   const navigate = useGuardedNavigate();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const currentConversationId = conversationId ?? null;
+
+  const { showToast } = useToast();
 
   // --- Auth & User ---
   useAuthCheck();
@@ -212,6 +215,9 @@ export function AppShell() {
                 lastName: m.lastName,
               }));
             }}
+            onToast={(message) =>
+              showToast({ message, variant: "success", autoDismissMs: 4000 })
+            }
           />
         )}
       </div>

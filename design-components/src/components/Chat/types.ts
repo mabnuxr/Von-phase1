@@ -178,13 +178,13 @@ export interface Message {
   }>;
   /**
    * Integration write block metadata (persisted on assistant messages).
-   * When present, renders an integration card inline on the message.
+   * When present, renders integration cards inline on the message.
    */
-  integrationBlock?: {
+  integrationBlocks?: Array<{
     blockCode?: string;
     message: string;
     integrationType: string;
-  };
+  }>;
   /**
    * Whether the response was stopped by user
    */

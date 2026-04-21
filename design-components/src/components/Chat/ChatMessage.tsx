@@ -86,11 +86,11 @@ export interface ChatMessageProps {
   renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
-  integrationBlock?: {
+  integrationBlocks?: Array<{
     blockCode?: string;
     message: string;
     integrationType: string;
-  };
+  }>;
   isIntegrationConnected?: (integrationType: string) => boolean;
   onIntegrate?: (integrationType: string) => void;
   getIntegrationMetadata?: (integrationType: string) => {
@@ -156,7 +156,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   renderGroupedEmailArtifacts,
   command,
   onRequestFilePreviewUrl,
-  integrationBlock,
+  integrationBlocks,
   isIntegrationConnected,
   onIntegrate,
   getIntegrationMetadata,
@@ -325,15 +325,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       />
                     )}
 
-                    {/* Integration write blocked card */}
-                    {integrationBlock && !isStreaming && (
-                      <IntegrationBlockSection
-                        integrationBlock={integrationBlock}
-                        isIntegrationConnected={isIntegrationConnected}
-                        onIntegrate={onIntegrate}
-                        getIntegrationMetadata={getIntegrationMetadata}
-                      />
-                    )}
+                    {/* Integration write blocked cards */}
+                    {integrationBlocks &&
+                      integrationBlocks.length > 0 &&
+                      !isStreaming &&
+                      integrationBlocks.map((block) => (
+                        <IntegrationBlockSection
+                          key={block.integrationType}
+                          integrationBlock={block}
+                          isIntegrationConnected={isIntegrationConnected}
+                          onIntegrate={onIntegrate}
+                          getIntegrationMetadata={getIntegrationMetadata}
+                        />
+                      ))}
 
                     {/* Status indicators (stopped, timeout, expired) */}
                     <MessageStatusIndicators

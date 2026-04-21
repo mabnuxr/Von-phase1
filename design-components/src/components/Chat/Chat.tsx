@@ -354,7 +354,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   renderGroupedEmailArtifacts={
                     showArtifacts ? renderGroupedEmailArtifacts : undefined
                   }
-                  integrationBlock={message.integrationBlock}
+                  integrationBlocks={message.integrationBlocks}
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}

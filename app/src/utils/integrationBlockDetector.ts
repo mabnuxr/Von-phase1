@@ -78,19 +78,33 @@ const SALESFORCE_WRITE_PATTERNS: Array<{
 export function detectIntegrationBlock(
   messageContent: string,
 ): DetectedIntegrationBlock | null {
-  if (!messageContent) return null;
+  const blocks = detectIntegrationBlocks(messageContent);
+  return blocks.length > 0 ? blocks[0] : null;
+}
+
+/**
+ * Scan assistant message content for ALL known integration block reason patterns.
+ * Returns every match so the UI can render a card for each blocked integration.
+ */
+export function detectIntegrationBlocks(
+  messageContent: string,
+): DetectedIntegrationBlock[] {
+  if (!messageContent) return [];
 
   const contentLower = messageContent.toLowerCase();
+  const blocks: DetectedIntegrationBlock[] = [];
+  const seen = new Set<string>();
 
   // (1) Salesforce write-restriction patterns (checked first — specific
   // block codes take precedence over the generic "not connected" form).
   for (const { pattern, blockCode, message } of SALESFORCE_WRITE_PATTERNS) {
-    if (contentLower.includes(pattern)) {
-      return {
+    if (contentLower.includes(pattern) && !seen.has("salesforce")) {
+      seen.add("salesforce");
+      blocks.push({
         integrationType: "salesforce",
         message,
         blockCode,
-      };
+      });
     }
   }
 
@@ -100,15 +114,19 @@ export function detectIntegrationBlock(
   // sentence, and self-updates as new integrations are added to
   // INTEGRATION_METADATA without any change here.
   for (const entry of Object.values(INTEGRATION_METADATA)) {
+    const integrationType = getBackendIntegrationType(entry.id).toLowerCase();
+    if (seen.has(integrationType)) continue;
+
     const expected = `${entry.name} is not connected. Please connect your ${entry.name} account to continue.`;
     if (messageContent.includes(expected)) {
-      return {
-        integrationType: getBackendIntegrationType(entry.id).toLowerCase(),
+      seen.add(integrationType);
+      blocks.push({
+        integrationType,
         blockCode: "personal_oauth_not_connected",
         message: expected,
-      };
+      });
     }
   }
 
-  return null;
+  return blocks;
 }
