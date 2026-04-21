@@ -56,7 +56,7 @@ export interface ShareChatPopupProps {
   isOpen: boolean;
   conversationId: string;
   onClose: () => void;
-  onShareStatusChange?: (isShared: boolean) => void;
+  onShareStatusChange?: (isShared: boolean, accessType?: AccessType | null) => void;
 
   /** Fetch current share status */
   onGetShareStatus: (conversationId: string) => Promise<ShareStatus>;
@@ -199,7 +199,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
       if (selectedType === 'private') {
         await onDeactivateShare(conversationId);
         setShareStatus({ isShared: false });
-        onShareStatusChange?.(false);
+        onShareStatusChange?.(false, null);
         onToast?.('Chat is now private');
       } else if (wasShared) {
         const result = await onUpdateShare(
@@ -217,11 +217,19 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           sharedAt: result.sharedAt,
           allowFileAttachments: result.allowFileAttachments,
         });
-        onShareStatusChange?.(true);
+        onShareStatusChange?.(true, result.accessType);
 
         // Compute toast based on what changed
+        const previousAccessType = shareStatus?.accessType;
+        const accessTypeChanged = previousAccessType !== selectedType;
+
         if (selectedType === 'org_wide') {
           onToast?.('Chat shared with your workspace');
+        } else if (accessTypeChanged) {
+          // Switched share type (e.g. org_wide → restricted) — not "adding more"
+          onToast?.(
+            `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}\nEmail sent`
+          );
         } else {
           const added = selectedUserIds.filter((id) => !previousUserIds.includes(id));
           const removed = previousUserIds.filter((id) => !selectedUserIds.includes(id));
@@ -231,11 +239,11 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
             );
           } else if (added.length > 0) {
             onToast?.(
-              `Chat shared with ${added.length} more ${added.length === 1 ? 'person' : 'people'} \u00b7 Email sent`
+              `Chat shared with ${added.length} more ${added.length === 1 ? 'person' : 'people'}\nEmail sent`
             );
           } else {
             onToast?.(
-              `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'} \u00b7 Email sent`
+              `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}\nEmail sent`
             );
           }
         }
@@ -255,13 +263,14 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           sharedAt: result.sharedAt,
           allowFileAttachments: result.allowFileAttachments,
         });
-        onShareStatusChange?.(true);
+        onShareStatusChange?.(true, result.accessType);
 
         if (selectedType === 'org_wide') {
           onToast?.('Chat shared with your workspace');
         } else {
           onToast?.(
-            `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'} \u00b7 Email sent`
+            `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}
+Email sent`
           );
         }
       }

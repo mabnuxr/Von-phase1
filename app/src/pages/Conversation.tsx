@@ -17,7 +17,7 @@
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
-import { ExportIcon } from "@phosphor-icons/react";
+import { ExportIcon, GlobeSimpleIcon, UsersIcon } from "@phosphor-icons/react";
 
 import { IntegrationType, AuthenticationStatus } from "../services";
 import { useIntegrations } from "../hooks/useIntegrations";
@@ -81,6 +81,11 @@ const Conversation = () => {
   const { data: currentConversation } = useCurrentConversation(
     currentConversationId,
   );
+
+  // --- Share Status (from conversation metadata — no extra API call) ---
+  const isShared =
+    isChatSharingEnabled && (currentConversation?.isShared ?? false);
+  const shareAccessType = currentConversation?.shareAccessType;
 
   // --- Messages ---
   const {
@@ -279,8 +284,16 @@ const Conversation = () => {
                         onClick={() => openShareModal(currentConversationId)}
                         className="absolute top-2 right-2.5 z-10 flex items-center gap-1 px-2 py-1.5 text-xs text-gray-800 bg-white border border-gray-200/60 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
-                        <ExportIcon size={12} className="text-gray-800" />
-                        {!compact && "Share"}
+                        {isShared ? (
+                          shareAccessType === "restricted" ? (
+                            <UsersIcon size={12} />
+                          ) : (
+                            <GlobeSimpleIcon size={12} />
+                          )
+                        ) : (
+                          <ExportIcon size={12} />
+                        )}
+                        {!compact && (isShared ? "Shared" : "Share")}
                       </button>
                     )
                   : undefined

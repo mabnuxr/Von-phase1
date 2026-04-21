@@ -39,6 +39,8 @@ export interface SidebarConversation {
   approvalState?: ConversationApprovalState | null;
   /** @deprecated — use `approvalState` instead. Kept during backend rollout. */
   hasPendingApproval?: boolean;
+  isShared?: boolean;
+  shareAccessType?: "org_wide" | "restricted" | null;
 }
 
 /**

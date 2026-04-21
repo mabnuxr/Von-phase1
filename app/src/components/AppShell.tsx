@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Outlet, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { TopBar, Banner, ShareChatPopup } from "@vonlabs/design-components";
 
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -15,6 +16,8 @@ import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { conversationsService } from "../services";
+import { chatSidebarKeys } from "../hooks/useChatSidebar";
+import type { ChatSidebarResponse } from "../types/chatSidebar";
 import { useToast } from "../hooks/useToast";
 
 /**
@@ -26,6 +29,7 @@ import { useToast } from "../hooks/useToast";
  */
 export function AppShell() {
   const navigate = useGuardedNavigate();
+  const queryClient = useQueryClient();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const currentConversationId = conversationId ?? null;
 
@@ -67,6 +71,48 @@ export function AppShell() {
   const closeShareModal = useCallback(() => {
     setShareConversationId(null);
   }, []);
+
+  /** Patch caches directly when share status changes — no refetch needed. */
+  const handleShareStatusChange = useCallback(
+    (isShared: boolean, accessType?: string | null) => {
+      const convId = shareConversationId;
+      if (!convId) return;
+
+      // Invalidate conversation metadata so header CTA re-renders with new share state
+      queryClient.invalidateQueries({ queryKey: ["conversation", convId] });
+
+      // Patch sidebar cache — infinite query stores { pages: [...], pageParams: [...] }
+      queryClient.setQueryData(
+        chatSidebarKeys.sidebar(),
+        (
+          old:
+            | { pages: ChatSidebarResponse[]; pageParams: number[] }
+            | undefined,
+        ) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              unfiled: {
+                ...page.unfiled,
+                conversations: page.unfiled.conversations.map((c) =>
+                  c.conversationId === convId
+                    ? {
+                        ...c,
+                        isShared,
+                        shareAccessType: isShared ? accessType : null,
+                      }
+                    : c,
+                ),
+              },
+            })),
+          };
+        },
+      );
+    },
+    [shareConversationId, queryClient],
+  );
 
   // Fetch team members for the user picker (only when modal opens)
   const { data: teamMembersData } = useTeamMembers(
@@ -176,6 +222,7 @@ export function AppShell() {
             isOpen={!!shareConversationId}
             conversationId={shareConversationId}
             onClose={closeShareModal}
+            onShareStatusChange={handleShareStatusChange}
             onGetShareStatus={(id) => conversationsService.getShareStatus(id)}
             onCreateShare={(
               id,

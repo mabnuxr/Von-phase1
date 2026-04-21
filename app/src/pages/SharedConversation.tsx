@@ -193,7 +193,7 @@ export default function SharedConversation() {
         <div className="flex items-center justify-center">
           <button
             onClick={handleNewChat}
-            className="inline-flex items-center gap-1.5 h-[36px] px-4 text-sm font-medium text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-[36px] px-4 text-sm font-medium text-gray-700 bg-white border border-gray-200/60 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
           >
             New chat
           </button>

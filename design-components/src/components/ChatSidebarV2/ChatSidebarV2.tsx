@@ -63,6 +63,8 @@ export type ItemStatus = 'idle' | 'running' | 'complete';
  */
 export type ApprovalState = 'pending' | 'expired';
 
+export type ShareAccessType = 'org_wide' | 'restricted';
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -74,6 +76,10 @@ export interface SidebarItem {
   status?: ItemStatus;
   /** Approval indicator state. Absent means no indicator. */
   approvalState?: ApprovalState;
+  /** Whether this conversation is shared */
+  isShared?: boolean;
+  /** How it's shared — drives the icon in the context menu */
+  shareAccessType?: ShareAccessType | null;
 }
 
 // ============================================================================
@@ -791,6 +797,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         items={getContextMenuItems({
           isInFolder: !!contextMenu.item?.folderId,
           enableShare: !!onShareItem,
+          isShared: contextMenu.item?.isShared,
+          shareAccessType: contextMenu.item?.shareAccessType,
         })}
         fixedPosition={contextMenu.position}
         width={160}
