@@ -15,7 +15,11 @@ export interface UseCommandInputStateReturn {
   handleChange: (newValue: string) => void;
   /** Selects a command from the list, prefills the input, and closes the list */
   handleSelectCommand: (command: Command) => void;
+<<<<<<< Updated upstream
   /** Closes the commands list and clears the input (e.g. Escape / click outside) */
+=======
+  /** Closes the commands list and clears the input (e.g. Escape / click outside while list is open) */
+>>>>>>> Stashed changes
   handleCloseCommandsList: () => void;
   /** Clears the active command chip without touching the input value */
   clearSelectedCommand: () => void;
