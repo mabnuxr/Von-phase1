@@ -1,27 +1,17 @@
 import { useRef, useState, useEffect, useMemo } from "react";
-import {
-  CaretUpDownIcon,
-  ClockCounterClockwiseIcon,
-} from "@phosphor-icons/react";
-import {
-  ensureUTC,
-  Tooltip,
-  formatRelativeTime,
-} from "@vonlabs/design-components";
+import { CaretUpDownIcon } from "@phosphor-icons/react";
+import { ensureUTC } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
 import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
-import { useDashboardAssociatedChats } from "../../hooks/useDashboardAssociatedChats";
 import type { SidebarConversation } from "../../types/chatSidebar";
-import type { DashboardAssociatedChat } from "../../types/dashboardAssociatedChats";
 
 interface ChatPickerProps {
   activeChatId: string | null;
   onSelect: (id: string | null) => void;
   isRenaming?: boolean;
   onRenameEnd?: () => void;
-  dashboardId?: string;
 }
 
 function groupByRecency(conversations: SidebarConversation[]) {
@@ -77,61 +67,19 @@ function ConvButton({
   );
 }
 
-function AssociatedConvButton({
-  chat,
-  isActive,
-  onSelect,
-  onClose,
-}: {
-  chat: DashboardAssociatedChat;
-  isActive: boolean;
-  onSelect: (id: string) => void;
-  onClose: () => void;
-}) {
-  const tooltip = `This dashboard was mentioned · ${formatRelativeTime(chat.lastMentionedAt)}`;
-  return (
-    <Tooltip content={tooltip} placement="top" wrapperClassName="block w-full">
-      <button
-        onClick={() => {
-          onSelect(chat.conversationId);
-          onClose();
-        }}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg cursor-pointer transition-colors ${
-          isActive ? "bg-gray-100" : "hover:bg-gray-50"
-        }`}
-      >
-        <ClockCounterClockwiseIcon
-          size={14}
-          className="flex-shrink-0 text-violet-400"
-          aria-hidden
-        />
-        <span
-          className={`truncate flex-1 ${isActive ? "font-medium text-gray-900" : "text-gray-800"}`}
-        >
-          {chat.title?.trim() || "Untitled chat"}
-        </span>
-      </button>
-    </Tooltip>
-  );
-}
-
 export function ChatPicker({
   activeChatId,
   onSelect,
   isRenaming = false,
   onRenameEnd,
-  dashboardId,
 }: ChatPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
   const committedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const {
-    unfiledConversations,
-    isLoading: isLoadingFull,
-    renameConversation,
-  } = useChatSidebarV2();
+  const { unfiledConversations, isLoading, renameConversation } =
+    useChatSidebarV2();
   const { user } = useAppShell();
   const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
@@ -139,32 +87,19 @@ export function ChatPicker({
   });
   const { animatedTitles } = useTitleAnimation({ userChannel });
 
-  const { data: associatedData, isLoading: isLoadingAssociated } =
-    useDashboardAssociatedChats(dashboardId);
-
-  const isDashboardMode = Boolean(dashboardId);
-  const isLoading = isDashboardMode ? isLoadingAssociated : isLoadingFull;
-
-  // Active conversation title — prefer associated list when in dashboard
-  // mode (it may include chats outside the unfiled page), fall back to the
-  // unfiled list so the trigger still resolves for pre-dashboard chats.
-  const activeAssociated = associatedData?.conversations.find(
+  const activeConversation = unfiledConversations.find(
     (c) => c.conversationId === activeChatId,
   );
-  const activeUnfiled = unfiledConversations.find(
-    (c) => c.conversationId === activeChatId,
-  );
-  const activeTitle =
-    activeAssociated?.title?.trim() ||
-    activeUnfiled?.title?.trim() ||
-    (activeChatId ? "Chat" : "New chat");
 
   // Use streaming animated title when available (same as left sidebar)
   const animatedTitle = activeChatId
     ? animatedTitles.get(activeChatId)
     : undefined;
   const displayTitle =
-    animatedTitle !== undefined ? animatedTitle || "…" : activeTitle;
+    animatedTitle !== undefined
+      ? animatedTitle || "…"
+      : activeConversation?.title?.trim() ||
+        (activeChatId ? "Chat" : "New chat");
 
   // Close on outside click
   useEffect(() => {
@@ -185,9 +120,7 @@ export function ChatPicker({
   useEffect(() => {
     if (isRenaming) {
       committedRef.current = false;
-      const seed =
-        activeTitle === "Chat" || activeTitle === "New chat" ? "" : activeTitle;
-      setRenameValue(seed);
+      setRenameValue(activeConversation?.title?.trim() ?? "");
       setIsOpen(false);
       setTimeout(() => renameInputRef.current?.select(), 0);
     }
@@ -202,19 +135,18 @@ export function ChatPicker({
     onRenameEnd?.();
   };
 
-  const associatedChats = associatedData?.conversations ?? [];
-
-  const { last7, last30, older } = useMemo(
-    () =>
-      isDashboardMode
-        ? { last7: [], last30: [], older: [] }
-        : groupByRecency(unfiledConversations.filter((c) => c.title?.trim())),
-    [isDashboardMode, unfiledConversations],
+  const titledConversations = useMemo(
+    () => unfiledConversations.filter((c) => c.title?.trim()),
+    [unfiledConversations],
   );
 
-  const isEmpty = isDashboardMode
-    ? associatedChats.length === 0
-    : last7.length === 0 && last30.length === 0 && older.length === 0;
+  const { last7, last30, older } = useMemo(
+    () => groupByRecency(titledConversations),
+    [titledConversations],
+  );
+
+  const isEmpty =
+    last7.length === 0 && last30.length === 0 && older.length === 0;
 
   return (
     <div ref={containerRef} className="relative flex-1 min-w-0">
@@ -258,24 +190,7 @@ export function ChatPicker({
             </div>
           ) : isEmpty ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
-              {isDashboardMode
-                ? "No chats for this dashboard yet"
-                : "No chats yet"}
-            </div>
-          ) : isDashboardMode ? (
-            <div>
-              <div className="px-3 pt-2 pb-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                Recently used
-              </div>
-              {associatedChats.map((chat) => (
-                <AssociatedConvButton
-                  key={chat.conversationId}
-                  chat={chat}
-                  isActive={chat.conversationId === activeChatId}
-                  onSelect={onSelect}
-                  onClose={() => setIsOpen(false)}
-                />
-              ))}
+              No chats yet
             </div>
           ) : (
             <>
