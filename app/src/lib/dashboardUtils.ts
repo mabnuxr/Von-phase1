@@ -488,7 +488,10 @@ function transformMessagesForV2(
       }
 
       // Precedence: backend-reported expiry > expired step > skipped step > run error.
-      const terminalStatus: Pick<ChatMessage, "status" | "errorMessage"> | null =
+      const terminalStatus: Pick<
+        ChatMessage,
+        "status" | "errorMessage"
+      > | null =
         persistedIsExpiredApproval || expiredApprovalStep
           ? {
               status: "expired",
