@@ -17,7 +17,7 @@
 import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
-import { ShareNetworkIcon } from "@phosphor-icons/react";
+import { ExportIcon } from "@phosphor-icons/react";
 
 import { IntegrationType, AuthenticationStatus } from "../services";
 import { useIntegrations } from "../hooks/useIntegrations";
@@ -277,9 +277,9 @@ const Conversation = () => {
                   ? (compact: boolean) => (
                       <button
                         onClick={() => openShareModal(currentConversationId)}
-                        className="absolute top-3 right-4 z-10 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer shadow-sm"
+                        className="absolute top-2 right-2.5 z-10 flex items-center gap-1 px-2 py-1.5 text-xs text-gray-800 bg-white border border-gray-200/60 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
                       >
-                        <ShareNetworkIcon size={14} />
+                        <ExportIcon size={12} className="text-gray-800" />
                         {!compact && "Share"}
                       </button>
                     )
