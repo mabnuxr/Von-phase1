@@ -40,7 +40,6 @@ npm run dev:design   # Start Storybook (http://localhost:6006)
 **Important:** Workspaces use a single `package-lock.json` at the root level. Never commit `app/package-lock.json` or `design-components/package-lock.json`.
 
 **Option 1 - Clean install (recommended for CI/CD):**
-
 ```bash
 # Remove old workspace files if they exist
 rm -rf app/node_modules app/package-lock.json design-components/node_modules design-components/package-lock.json
@@ -48,7 +47,6 @@ npm ci
 ```
 
 **Option 2 - Development install:**
-
 ```bash
 # Remove old workspace files if they exist
 rm -rf app/node_modules app/package-lock.json design-components/node_modules design-components/package-lock.json
@@ -56,7 +54,6 @@ npm install
 ```
 
 Both commands will:
-
 - Install all dependencies for both workspaces (app + design-components)
 - Hoist packages to root node_modules (~1266 packages)
 - Set up workspace symlinks automatically
@@ -156,19 +153,19 @@ The authorize/token/logout paths (`/oauth/authorize`, `/oauth/token`, `/oauth/lo
 
 ### Daily Development
 
-| Task                    | von-fe                      | npm equivalent          |
-| ----------------------- | --------------------------- | ----------------------- |
-| Start app               | `von-fe dev up:app`         | `npm run dev:app`       |
-| Start Storybook         | `von-fe dev up:storybook`   | `npm run dev:design`    |
-| Stop app                | `von-fe dev down:app`       | Ctrl+C in the terminal  |
-| Stop Storybook          | `von-fe dev down:storybook` | Ctrl+C in the terminal  |
-| Tail app logs           | `von-fe logs app`           | —                       |
-| Build everything        | `von-fe build`              | `npm run build:all`     |
-| Build app only          | `von-fe build app`          | `npm run build:app`     |
-| Build design-components | `von-fe build design`       | `npm run build:design`  |
-| Lint                    | `von-fe lint`               | `npm run lint:all`      |
-| Type check              | `von-fe typecheck`          | `npm run typecheck:all` |
-| Clean node_modules      | `von-fe clean`              | `npm run clean`         |
+| Task | von-fe | npm equivalent |
+|------|--------|----------------|
+| Start app | `von-fe dev up:app` | `npm run dev:app` |
+| Start Storybook | `von-fe dev up:storybook` | `npm run dev:design` |
+| Stop app | `von-fe dev down:app` | Ctrl+C in the terminal |
+| Stop Storybook | `von-fe dev down:storybook` | Ctrl+C in the terminal |
+| Tail app logs | `von-fe logs app` | — |
+| Build everything | `von-fe build` | `npm run build:all` |
+| Build app only | `von-fe build app` | `npm run build:app` |
+| Build design-components | `von-fe build design` | `npm run build:design` |
+| Lint | `von-fe lint` | `npm run lint:all` |
+| Type check | `von-fe typecheck` | `npm run typecheck:all` |
+| Clean node_modules | `von-fe clean` | `npm run clean` |
 
 > **`von-fe dev up:*`** starts services in the background and writes logs to `.von/logs/<service>.log`.
 > Use `von-fe logs app` to tail the output without blocking your terminal.
@@ -180,13 +177,11 @@ The authorize/token/logout paths (`/oauth/authorize`, `/oauth/token`, `/oauth/lo
 ### Run the Application (App)
 
 **From project root:**
-
 ```bash
 npm run dev:app
 ```
 
 **Or from app folder:**
-
 ```bash
 cd app
 npm run dev
@@ -197,13 +192,11 @@ The app will be available at: **http://localhost:5173/**
 ### Run Storybook (Design Components)
 
 **From project root:**
-
 ```bash
 npm run dev:design
 ```
 
 **Or from design-components folder:**
-
 ```bash
 cd design-components
 npm run storybook
@@ -216,13 +209,11 @@ Storybook will be available at: **http://localhost:6006/**
 Open two terminal windows:
 
 **Terminal 1 - App:**
-
 ```bash
 npm run dev:app
 ```
 
 **Terminal 2 - Storybook:**
-
 ```bash
 npm run dev:design
 ```
@@ -240,7 +231,6 @@ npm run build:design
 ```
 
 This generates:
-
 - `design-components/dist/index.esm.js` - ES module bundle
 - `design-components/dist/index.js` - CommonJS bundle
 - `design-components/dist/index.d.ts` - TypeScript definitions
@@ -266,13 +256,11 @@ npm run build:all
 To build Storybook as a static site for deployment:
 
 **From project root:**
-
 ```bash
 cd design-components && npm run build-storybook
 ```
 
 **Or from design-components folder:**
-
 ```bash
 cd design-components
 npm run build-storybook
@@ -286,38 +274,38 @@ This creates a static build in `design-components/storybook-static/`
 
 ### Root Level Scripts
 
-| Command                | Description                         |
-| ---------------------- | ----------------------------------- |
-| `npm run dev:app`      | Start app in development mode       |
-| `npm run dev:design`   | Start Storybook in development mode |
-| `npm run build:design` | Build design-components as library  |
-| `npm run build:app`    | Build app for production            |
-| `npm run build:all`    | Build design-components + app       |
+| Command | Description |
+|---------|-------------|
+| `npm run dev:app` | Start app in development mode |
+| `npm run dev:design` | Start Storybook in development mode |
+| `npm run build:design` | Build design-components as library |
+| `npm run build:app` | Build app for production |
+| `npm run build:all` | Build design-components + app |
 
 ### App Scripts
 
 From `app/` directory:
 
-| Command             | Description                  |
-| ------------------- | ---------------------------- |
-| `npm run dev`       | Start development server     |
-| `npm run build`     | Build for production         |
-| `npm run preview`   | Preview production build     |
-| `npm run lint`      | Lint code                    |
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Lint code |
 | `npm run typecheck` | Run TypeScript type checking |
 
 ### Design Components Scripts
 
 From `design-components/` directory:
 
-| Command                   | Description                  |
-| ------------------------- | ---------------------------- |
-| `npm run storybook`       | Start Storybook dev server   |
-| `npm run build-storybook` | Build Storybook static site  |
-| `npm run build`           | Build library (dist/)        |
-| `npm run test`            | Run tests                    |
-| `npm run lint`            | Lint code                    |
-| `npm run typecheck`       | Run TypeScript type checking |
+| Command | Description |
+|---------|-------------|
+| `npm run storybook` | Start Storybook dev server |
+| `npm run build-storybook` | Build Storybook static site |
+| `npm run build` | Build library (dist/) |
+| `npm run test` | Run tests |
+| `npm run lint` | Lint code |
+| `npm run typecheck` | Run TypeScript type checking |
 
 ---
 
@@ -356,7 +344,6 @@ Both the app and Storybook are deployed separately via AWS App Runner with works
 ### App Deployment (app/apprunner.yaml)
 
 **Build Process:**
-
 ```bash
 # 1. Navigate to workspace root (from app/ directory)
 cd ..
@@ -372,14 +359,12 @@ npm run build:app
 ```
 
 **Serve:**
-
 ```bash
 cd app && npm run preview
 # Serves from app/dist/ on port 4173
 ```
 
 **Key Points:**
-
 - AWS App Runner starts in `app/` directory
 - Must navigate to root (`cd ..`) to access workspace
 - Must build library BEFORE building app
@@ -388,7 +373,6 @@ cd app && npm run preview
 ### Storybook Deployment (design-components/apprunner.yaml)
 
 **Build Process:**
-
 ```bash
 # 1. Navigate to workspace root (from design-components/ directory)
 cd ..
@@ -401,14 +385,12 @@ cd design-components && npm run build-storybook
 ```
 
 **Serve:**
-
 ```bash
 cd design-components && npx serve storybook-static
 # Serves from design-components/storybook-static/ on port 3000
 ```
 
 **Key Points:**
-
 - AWS App Runner starts in `design-components/` directory
 - Must navigate to root (`cd ..`) to access workspace
 - Storybook build doesn't need library build (uses source directly)
@@ -467,7 +449,6 @@ NODE_ENV=production
 ```
 
 Then reinstall:
-
 ```bash
 npm ci
 ```
@@ -475,14 +456,12 @@ npm ci
 ### Storybook or App won't start
 
 1. Clean reinstall:
-
 ```bash
 rm -rf node_modules package-lock.json
 npm install
 ```
 
 2. Verify workspace setup:
-
 ```bash
 npm list @vonlabs/design-components --depth=0
 ```
@@ -490,7 +469,6 @@ npm list @vonlabs/design-components --depth=0
 ### App can't find design-components (production builds only)
 
 For production builds, you need to build the library first:
-
 ```bash
 npm run build:design
 npm run build:app
@@ -503,14 +481,12 @@ For development, this is not needed - Vite handles it automatically.
 ## Tech Stack
 
 ### App
-
 - React 19.2.0
 - React Router 7.9.1
 - Vite 7.1.2
 - TypeScript 5.8.3
 
 ### Design Components
-
 - React 19.2.0
 - rsuite 5.70.2
 - Storybook 9.1.10
