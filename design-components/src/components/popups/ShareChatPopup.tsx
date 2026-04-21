@@ -281,14 +281,9 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
 
   const isAlreadyShared = shareStatus?.isShared ?? false;
   const isPrivate = selectedType === 'private';
-  const isShareDisabled =
-    saving || (selectedType === 'restricted' && selectedUserIds.length === 0);
+  const isShareDisabled = saving || (selectedType === 'restricted' && selectedUserIds.length === 0);
 
-  const shareLabel = saving
-    ? 'Saving...'
-    : isAlreadyShared
-      ? 'Update'
-      : 'Share';
+  const shareLabel = saving ? 'Saving...' : isAlreadyShared ? 'Update' : 'Share';
 
   return (
     <AnimatePresence>
