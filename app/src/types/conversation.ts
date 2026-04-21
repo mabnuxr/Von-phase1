@@ -36,7 +36,8 @@ export type MessageStatus =
   | "completed"
   | "failed"
   | "timeout"
-  | "expired";
+  | "expired"
+  | "skipped";
 
 /**
  * Denormalized file metadata stored on a message.

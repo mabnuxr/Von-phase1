@@ -9,6 +9,7 @@ import {
 import type { CompactApprovalCardProps, ApprovalFieldType, FieldChange } from '../types';
 import { useVisibilityToggle } from '../../../hooks/useVisibilityToggle';
 import { useCountdown } from '../../../hooks/useCountdown';
+import { getUnresolvedApprovalVariant } from '../utils';
 
 // ============================================================================
 // Helper Components
@@ -252,6 +253,7 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
     isApproved,
     isRejected,
     isExpired,
+    isSkipped,
     isError,
     defaultExpanded = true,
     hideActions = false,
@@ -306,16 +308,8 @@ export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
 
     const hasExpandableContent = displayChanges.length > 0;
 
-    // Expired/invalidated or error state
-    if (isExpired || isError) {
-      const variant = isError
-        ? { border: 'border-red-200', icon: 'text-red-400', label: 'text-red-500', text: 'Failed' }
-        : {
-            border: 'border-amber-200',
-            icon: 'text-amber-500',
-            label: 'text-amber-600',
-            text: 'Invalid',
-          };
+    if (isExpired || isSkipped || isError) {
+      const variant = getUnresolvedApprovalVariant({ isError, isSkipped });
 
       return (
         <div

@@ -178,6 +178,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     executionId &&
     isLatestMessage &&
     status !== 'expired' &&
+    status !== 'skipped' &&
     status !== 'timeout' &&
     status !== 'failed';
 

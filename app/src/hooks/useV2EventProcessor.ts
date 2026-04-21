@@ -372,7 +372,7 @@ export function useV2EventProcessor(
         setTimelineSteps((prev) => {
           const next = prev.map((step) => {
             if (step.status === "awaiting-approval") {
-              return { ...step, status: "expired" as const };
+              return { ...step, status: "skipped" as const };
             }
             if (step.status === "in-progress" || step.status === "pending") {
               return { ...step, status: "complete" as const };
@@ -393,10 +393,9 @@ export function useV2EventProcessor(
       // Trigger event persistence: onRunComplete calls forceCompleteMessage which
       // persists events from eventsRef into the chatStore message, then
       // refetchMessages() replaces the optimistic message with the server's
-      // version.  dashboardUtils post-processing unconditionally marks any
-      // remaining awaiting-approval steps as expired for non-streaming messages,
-      // and propagates the expired status to the message level — so no
-      // separate markMessageExpired call is needed here.
+      // version.  dashboardUtils post-processing maps remaining awaiting-approval
+      // steps to skipped or expired (based on whether the message is the last
+      // assistant) and propagates the status to the message level.
       //
       // When skipRefetch is true (called from handleSendMessage), we skip
       // onRunComplete because forceCompleteStreamingMessages() handles event

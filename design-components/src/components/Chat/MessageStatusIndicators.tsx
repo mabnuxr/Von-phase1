@@ -1,5 +1,8 @@
 import { InfoIcon } from '@phosphor-icons/react';
-import { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from '../../utils/constants';
+import {
+  DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+  DEFAULT_SKIPPED_APPROVAL_MESSAGE,
+} from '../../utils/constants';
 import type { MessageStatus } from './types';
 
 interface MessageStatusIndicatorsProps {
@@ -37,14 +40,16 @@ export const MessageStatusIndicators: React.FC<MessageStatusIndicatorsProps> = (
         </div>
       )}
 
-      {/* Show expired approval indicator */}
-      {status === 'expired' && (
+      {(status === 'expired' || status === 'skipped') && (
         <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
           <div className="shrink-0 mt-0.5">
             <InfoIcon size={20} className="text-gray-500" />
           </div>
           <span className="text-sm text-gray-800 leading-relaxed flex-1">
-            {errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE}
+            {errorMessage ||
+              (status === 'expired'
+                ? DEFAULT_EXPIRED_APPROVAL_MESSAGE
+                : DEFAULT_SKIPPED_APPROVAL_MESSAGE)}
           </span>
         </div>
       )}

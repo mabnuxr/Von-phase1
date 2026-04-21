@@ -17,7 +17,8 @@ export type MessageStatus =
   | 'completed'
   | 'failed'
   | 'timeout'
-  | 'expired';
+  | 'expired'
+  | 'skipped';
 
 /**
  * Additional options passed with the send message callback

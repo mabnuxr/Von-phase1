@@ -84,6 +84,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
     executionId &&
     isLatestMessage &&
     status !== 'expired' &&
+    status !== 'skipped' &&
     status !== 'timeout' &&
     status !== 'failed';
 
@@ -116,6 +117,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
               !!v2FinalResponse ||
               status === 'timeout' ||
               status === 'expired' ||
+              status === 'skipped' ||
               (status === 'failed' && !!errorMessage) ||
               !!stoppedByUser
             }
@@ -136,6 +138,7 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
       {v2FinalResponse &&
         status !== 'timeout' &&
         status !== 'expired' &&
+        status !== 'skipped' &&
         !(status === 'failed' && errorMessage) &&
         // When dashboard builder approval pending, render inside MarkdownActionCard instead
         !(showDashboardBuilderApproval && !isStreaming) && (

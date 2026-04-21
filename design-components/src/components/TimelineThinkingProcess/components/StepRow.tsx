@@ -93,6 +93,7 @@ export const StepRow = React.memo<StepRowProps>(
     const effectiveStatus = useMemo(() => {
       if (step.status === 'error') return 'error';
       if (step.status === 'expired') return 'expired';
+      if (step.status === 'skipped') return 'skipped';
       if (isLocallyApproved) return 'complete';
       if (isLocallyRejected) return 'error';
       return step.status;
@@ -202,6 +203,7 @@ export const StepRow = React.memo<StepRowProps>(
                           step.status !== 'error' &&
                           step.status !== 'rejected' &&
                           step.status !== 'expired' &&
+                          step.status !== 'skipped' &&
                           !step.rejectionReason
                         }
                         isRejected={
@@ -210,6 +212,7 @@ export const StepRow = React.memo<StepRowProps>(
                           (!!step.rejectionReason && step.status !== 'error')
                         }
                         isExpired={step.status === 'expired'}
+                        isSkipped={step.status === 'skipped'}
                         isError={step.status === 'error'}
                         onExpire={
                           step.status === 'awaiting-approval' &&
@@ -229,6 +232,7 @@ export const StepRow = React.memo<StepRowProps>(
                           step.status !== 'error' &&
                           step.status !== 'rejected' &&
                           step.status !== 'expired' &&
+                          step.status !== 'skipped' &&
                           !step.rejectionReason
                         }
                         isRejected={
@@ -237,6 +241,7 @@ export const StepRow = React.memo<StepRowProps>(
                           (!!step.rejectionReason && step.status !== 'error')
                         }
                         isExpired={step.status === 'expired'}
+                        isSkipped={step.status === 'skipped'}
                         isError={step.status === 'error'}
                         defaultExpanded={defaultApprovalExpanded}
                         onExpire={
