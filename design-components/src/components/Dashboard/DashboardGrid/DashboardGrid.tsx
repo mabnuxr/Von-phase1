@@ -28,6 +28,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     isLoading,
     widgetAppliedFilters,
     widgetFilterSlot,
+    onAddToChat,
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -96,6 +97,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                       tableSortState={tableSortStates?.[widget.id]}
                       appliedFilters={widgetAppliedFilters?.[widget.id]}
                       filterSlot={widgetFilterSlot?.(widget.id)}
+                      onAddToChat={onAddToChat}
                     />
                   </WidgetErrorBoundary>
                 )}

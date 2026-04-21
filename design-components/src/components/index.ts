@@ -21,6 +21,9 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { Tooltip } from './Tooltip';
 export type { TooltipProps } from './Tooltip';
 
+export { VonIcon } from './VonIcon';
+export type { VonIconProps, VonIconVariant, VonIconShape } from './VonIcon';
+
 export { TruncateWithText } from './TruncateWithText/TruncateWithText';
 export type { TruncateWithTextProps } from './TruncateWithText/TruncateWithText';
 
@@ -223,6 +226,7 @@ export type {
   MentionsOverlayProps,
   MentionsListProps,
   MentionStripProps,
+  WidgetMentionType,
 } from './Mentions';
 
 // Export AGUI types for external use (from Chat/index.ts, not Chat.tsx)
@@ -268,12 +272,15 @@ export type {
   Folder,
   ItemType,
   ItemStatus,
+  ApprovalState,
   FolderItemsMap,
   FolderLoadingMap,
   DashboardSidebarItem,
   DashboardItemState,
   DashboardItemVisibility,
 } from './ChatSidebarV2';
+export { ApprovalDot } from './ChatSidebarV2';
+export type { ApprovalDotProps } from './ChatSidebarV2';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)
@@ -527,6 +534,16 @@ export {
 export { ExpensiveOperationModal } from './popups';
 export type { ExpensiveOperationModalProps } from './popups';
 
+export { ShareChatPopup } from './popups';
+export type {
+  ShareChatPopupProps,
+  AccessType as ChatAccessType,
+  ShareRecipient as ChatShareRecipient,
+  ShareStatus as ChatShareStatus,
+  ShareResult as ChatShareResult,
+  TeamMemberOption,
+} from './popups';
+
 // ============================================================================
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================
@@ -606,4 +623,5 @@ export type {
   DataSourcesProps,
   DataSource,
   DataSourceIcon,
+  WidgetAddToChatPayload,
 } from './Dashboard';

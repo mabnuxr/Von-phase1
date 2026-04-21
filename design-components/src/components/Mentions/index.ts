@@ -1,5 +1,10 @@
 export { MentionItemType } from './constants';
-export type { MentionItem, DashboardVariant } from './types';
+export type {
+  MentionItem,
+  DashboardVariant,
+  WidgetMentionContext,
+  WidgetMentionType,
+} from './types';
 export { MentionsList } from './MentionsList';
 export type { MentionsListProps } from './MentionsList';
 export { MentionsOverlay } from './MentionsOverlay';

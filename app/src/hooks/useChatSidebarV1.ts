@@ -3,6 +3,7 @@ import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { useInfiniteConversations } from "./useInfiniteConversations";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { useTitleAnimation } from "./useTitleAnimation";
+import { useUserPusherChannel } from "./useUserPusherChannel";
 import { transformConversationsToChatItems } from "../lib/dashboardUtils";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { CONVERSATIONS_PAGE_LIMIT } from "../config/constants";
@@ -44,10 +45,11 @@ export function useChatSidebarV1({
   });
 
   // Title animation (shared with V2)
-  const { animatedTitles } = useTitleAnimation({
+  const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
     userId: user?.id,
   });
+  const { animatedTitles } = useTitleAnimation({ userChannel });
 
   // Flatten paginated conversations
   const allConversations = useMemo(

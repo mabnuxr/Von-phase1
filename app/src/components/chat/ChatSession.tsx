@@ -51,6 +51,7 @@ import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
 
 import useChatStore from "../../store/chatStore";
+import { useConversationWidgetMentions } from "../../hooks/useConversationWidgetMentions";
 import { useDashboardVersionInvalidation } from "../../hooks/useDashboardVersionInvalidation";
 import {
   getFrontendIntegrationId,
@@ -128,6 +129,14 @@ export interface ChatSessionProps {
   dashboardTitle?: string;
   dashboardVersion?: number;
 
+  /**
+   * Widget chips to show in the input before a conversation exists (new-chat path).
+   * Rendered as chips in NewChatInner; flushed into the message payload on first send.
+   * Ignored in ExistingChatInner — that path reads from the widget mentions store.
+   */
+  pendingWidgetMentions?: MentionItem[];
+  onPendingWidgetMentionRemoved?: (args: { id: string }) => void;
+
   // ── New conversation callback ───────────────────
   onCreated?: (conversationId: string) => void;
 
@@ -143,6 +152,18 @@ export interface ChatSessionProps {
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
+
+  /**
+   * Read-only mode for shared-chat recipients.
+   * Hides the input bar and disables actions that would mutate the
+   * conversation (approvals, scheduling, commands, file uploads).
+   * Viewing behaviour — opening files, artifacts, transparency, dashboards —
+   * stays enabled so the recipient can inspect the full session.
+   */
+  readOnly?: boolean;
+
+  /** Action element rendered in the chat pane header area (e.g. Share button) — scoped to chat only, won't cover artifact/dashboard panels. Receives `compact` when a side panel is open. */
+  headerAction?: ReactNode | ((compact: boolean) => ReactNode);
 
   children?: ReactNode;
 }
@@ -434,6 +455,12 @@ function ExistingChatInner(
     [conversationId, navigate],
   );
 
+  const {
+    widgetMentions,
+    onWidgetMentionRemoved: handleWidgetMentionRemoved,
+    wrappedHandleSendMessage: handleSendMessage,
+  } = useConversationWidgetMentions(conversationId, chatV2.handleSendMessage);
+
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (props.compact) return;
@@ -476,7 +503,7 @@ function ExistingChatInner(
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId={conversationId}
       messages={chatV2.transformedMessages}
-      onSendMessage={chatV2.handleSendMessage}
+      onSendMessage={handleSendMessage}
       onStopStreaming={chatV2.handleStopStreaming}
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
@@ -487,6 +514,7 @@ function ExistingChatInner(
       showMessagesFromIndex={chatV2.showMessagesFromIndex}
       thinkingProcessVersion="v2"
       useStandardInput
+      hideInput={props.readOnly}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
@@ -555,6 +583,8 @@ function ExistingChatInner(
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
+      widgetMentions={widgetMentions}
+      onWidgetMentionRemoved={handleWidgetMentionRemoved}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -575,7 +605,7 @@ function ExistingChatInner(
     <>
       <div ref={splitContainerRef} className="flex h-full w-full gap-1">
         <div
-          className="flex-1 min-w-0"
+          className="relative flex-1 min-w-0"
           style={
             dashboardPaneState.isOpen
               ? {
@@ -584,6 +614,9 @@ function ExistingChatInner(
               : undefined
           }
         >
+          {typeof props.headerAction === "function"
+            ? props.headerAction(isCompact || chatV2.fileArtifactPanel.isOpen)
+            : props.headerAction}
           {chatElement}
         </div>
         {dashboardPaneState.isOpen && dashboardPaneState.dashboardId && (
@@ -733,6 +766,8 @@ function NewChatInner(props: ChatSessionProps) {
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
+      widgetMentions={props.pendingWidgetMentions}
+      onWidgetMentionRemoved={props.onPendingWidgetMentionRemoved}
     >
       {slots.emptyState && (
         <Chat.EmptyState>{slots.emptyState}</Chat.EmptyState>

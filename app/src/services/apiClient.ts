@@ -67,6 +67,22 @@ function getErrorCode(data: unknown): string | null {
 }
 
 /**
+ * Module-level share ID store. When set, every outbound request from
+ * `apiClient` carries an `X-Share-Id` header so the backend's
+ * `shared_read_context` dependency can elevate the request to the
+ * conversation owner's identity.
+ */
+let _shareId: string | null = null;
+
+export function setShareId(id: string | null): void {
+  _shareId = id;
+}
+
+export function getShareId(): string | null {
+  return _shareId;
+}
+
+/**
  * Base API client for making HTTP requests to the backend
  */
 export class ApiClient {
@@ -80,10 +96,14 @@ export class ApiClient {
    * Get default headers for API requests
    */
   private getDefaultHeaders(): HeadersInit {
-    return {
+    const headers: Record<string, string> = {
       Accept: "application/json",
       "Content-Type": "application/json",
     };
+    if (_shareId) {
+      headers["X-Share-Id"] = _shareId;
+    }
+    return headers;
   }
 
   /**

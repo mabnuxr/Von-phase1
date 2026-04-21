@@ -278,11 +278,10 @@ export const SplitFilterDropdown: React.FC<SplitFilterDropdownProps> = ({
    */
   const [draftOperator, setDraftOperator] = useState<string | null>(null);
   const currentOperator = draftOperator ?? value?.operator ?? getDefaultOperator(field);
-  const currentValues = value?.value
-    ? Array.isArray(value.value)
-      ? value.value
-      : [value.value]
-    : [];
+  const currentValues = useMemo(() => {
+    if (!value?.value) return [];
+    return Array.isArray(value.value) ? value.value : [value.value];
+  }, [value?.value]);
   const isMulti = MULTI_VALUE_OPERATORS.has(currentOperator);
   const isRange = RANGE_OPERATORS.has(currentOperator);
   const useTextInput = TEXT_INPUT_OPERATORS.has(currentOperator);

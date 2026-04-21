@@ -4,6 +4,7 @@
  */
 export const MentionItemType = {
   Dashboard: 'dashboard',
+  Widget: 'widget',
 } as const;
 
 export type MentionItemType = (typeof MentionItemType)[keyof typeof MentionItemType];

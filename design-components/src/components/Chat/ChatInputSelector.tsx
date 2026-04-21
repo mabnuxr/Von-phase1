@@ -149,6 +149,10 @@ export interface ChatInputSelectorProps {
   onMentionsActivated?: () => void;
   /** Dashboard mention to auto-add when chat opens alongside a dashboard */
   dashboardMention?: MentionItem | null;
+  /** Widget mentions added by the user via the Add-to-Chat widget icon */
+  widgetMentions?: MentionItem[];
+  /** Called when a widget chip is removed via its X button */
+  onWidgetMentionRemoved?: (args: { id: string }) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +213,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSelectMention: onSelectMentionProp,
       onMentionsActivated,
       dashboardMention,
+      widgetMentions,
+      onWidgetMentionRemoved,
     },
     ref
   ) => {
@@ -315,6 +321,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSelectMention: onSelectMentionProp,
       onMentionsActivated,
       dashboardMention,
+      widgetMentions,
+      onWidgetMentionRemoved,
     });
 
     // Build additionalExtensions array for TiptapEditor — stable reference

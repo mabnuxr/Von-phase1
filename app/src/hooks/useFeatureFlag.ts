@@ -25,8 +25,10 @@ export const FEATURE_FLAGS = {
   /** @deprecated permanently enabled — kept for reference only */
   ARTIFACTS: "enableArtifacts",
   SCHEDULED_COMMANDS: "enableScheduledCommands",
+  /** @deprecated permanently enabled — kept for reference only */
   ZENDESK_INTEGRATION: "enableZendesk",
   SNOWFLAKE: "enableSnowflake",
+  /** @deprecated permanently enabled — kept for reference only */
   GMAIL: "enableGmail",
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
@@ -35,6 +37,10 @@ export const FEATURE_FLAGS = {
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
   DATABRICKS: "enableDatabricks",
+  // Gates the "Share chat" entry points (header button + sidebar
+  // context-menu item). The recipient `/shared/:token` route stays
+  // reachable so already-generated links continue to work.
+  CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
 } as const;
 
@@ -137,9 +143,9 @@ export function useFeatureFlag() {
     isScheduledCommandsEnabled: true,
 
     /**
-     * Controls whether Zendesk integration is visible
+     * Zendesk integration — permanently enabled, no longer behind a feature flag
      */
-    isZendeskEnabled: flags[FEATURE_FLAGS.ZENDESK_INTEGRATION] === true,
+    isZendeskEnabled: true,
 
     /**
      * Controls whether Snowflake integration is visible
@@ -147,9 +153,9 @@ export function useFeatureFlag() {
     isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
 
     /**
-     * Controls whether Gmail integration is visible
+     * Gmail integration — permanently enabled, no longer behind a feature flag
      */
-    isGmailEnabled: flags[FEATURE_FLAGS.GMAIL] === true,
+    isGmailEnabled: true,
 
     /**
      * Controls whether Gong Engage integration is visible
@@ -187,6 +193,11 @@ export function useFeatureFlag() {
      * Controls whether Databricks integration is visible
      */
     isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
+
+    /**
+     * Controls whether the chat sharing feature is enabled
+     */
+    isChatSharingEnabled: flags[FEATURE_FLAGS.CHAT_SHARING] === true,
 
     /**
      * Controls whether Usage tab is visible in Settings

@@ -6,6 +6,14 @@
 import type { ConversationMode } from "./conversation";
 
 /**
+ * Approval indicator state for a conversation in the sidebar.
+ * - "pending": awaiting user approval, not yet expired
+ * - "expired": TTL passed without a user decision
+ * - absent / undefined: no approval needing surfacing
+ */
+export type ConversationApprovalState = "pending" | "expired";
+
+/**
  * Folder entity for organizing conversations
  */
 export interface ChatFolder {
@@ -28,6 +36,9 @@ export interface SidebarConversation {
   agentVersion: "v1" | "v2";
   createdAt: string;
   updatedAt: string;
+  approvalState?: ConversationApprovalState | null;
+  /** @deprecated — use `approvalState` instead. Kept during backend rollout. */
+  hasPendingApproval?: boolean;
 }
 
 /**
@@ -119,6 +130,9 @@ export interface FolderConversation {
   createdAt: string;
   createdBy: string;
   updatedAt: string;
+  approvalState?: ConversationApprovalState | null;
+  /** @deprecated — use `approvalState` instead. Kept during backend rollout. */
+  hasPendingApproval?: boolean;
 }
 
 /**

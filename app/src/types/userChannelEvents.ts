@@ -11,6 +11,9 @@
  */
 export const UserChannelEvents = {
   CONVERSATION_TITLE_UPDATED: "conversation_title_updated",
+  CONVERSATION_APPROVAL_PENDING: "conversation_approval_pending",
+  CONVERSATION_APPROVAL_RESOLVED: "conversation_approval_resolved",
+  CONVERSATION_APPROVAL_EXPIRED: "conversation_approval_expired",
   DASHBOARD_REFRESH_STARTED: "dashboard_refresh_started",
   DASHBOARD_REFRESH_COMPLETED: "dashboard_refresh_completed",
   // Future events:
@@ -28,6 +31,31 @@ export interface ConversationTitleUpdatedEvent {
   conversationId: string;
   title: string;
   updatedAt: string;
+}
+
+/**
+ * Sent when an agent run in a conversation reaches a tool call awaiting user approval
+ */
+export interface ConversationApprovalPendingEvent {
+  conversationId: string;
+}
+
+/**
+ * Sent when a pending approval is resolved by user action (approved, rejected,
+ * or the conversation was deleted while holding an approval). Expiry is its
+ * own state transition — see ConversationApprovalExpiredEvent.
+ */
+export interface ConversationApprovalResolvedEvent {
+  conversationId: string;
+}
+
+/**
+ * Sent when a pending approval expires (TTL elapsed without a user decision).
+ * This is a state transition, not a removal — the sidebar keeps an indicator
+ * on the row, but switches it to the "expired" (orange→red) treatment.
+ */
+export interface ConversationApprovalExpiredEvent {
+  conversationId: string;
 }
 
 /**

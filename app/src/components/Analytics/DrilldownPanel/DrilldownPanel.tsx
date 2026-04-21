@@ -129,6 +129,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
   const gridWrapperRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState(90);
   const [popover, setPopover] = useState<ExpandPopoverState | null>(null);
+  const [colWidths, setColWidths] = useState<number[]>([]);
+  const [theadHeight, setTheadHeight] = useState(36);
   const isDraggingRef = useRef(false);
   const startYRef = useRef(0);
   const startHeightRef = useRef(0);
@@ -241,6 +243,25 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
+  // Measure real grid column widths so the skeleton overlay aligns with them.
+  // Grid Lite initializes async, so we measure on the next frame after gridOptions
+  // change. Same pattern as design-components/TableWidget.
+  useEffect(() => {
+    const el = gridWrapperRef.current;
+    if (!el || !gridOptions) return;
+    const raf = requestAnimationFrame(() => {
+      const thead = el.querySelector(".hcg-table thead");
+      if (thead) setTheadHeight(thead.getBoundingClientRect().height);
+      const ths = el.querySelectorAll(".hcg-table thead th");
+      if (ths.length > 0) {
+        const widths: number[] = [];
+        ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
+        setColWidths(widths);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [gridOptions]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -251,7 +272,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-40"
+            className="absolute inset-0 bg-black/20 backdrop-blur-[2px] z-40 rounded-xl"
             onClick={onClose}
           />
 
@@ -274,7 +295,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             </div>
 
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+            <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-100 shrink-0">
               <span className="text-sm font-medium text-gray-900 truncate">
                 {widgetTitle}
               </span>
@@ -310,52 +331,82 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
                     sortState={sortState}
                     disableTooltip
                   />
-                  {/* Shimmer overlay — same pattern as TableWidget: headers stay visible,
-                      shimmer covers only body rows. top:36px clears the HCG header. */}
+                  {/* Shimmer overlay — headers stay visible, shimmer covers only body rows.
+                      Uses a table with measured column widths so each cell aligns with
+                      the real grid's column below. */}
                   {isLoading && (
-                    <div className="table-skeleton" style={{ top: 36 }}>
-                      {Array.from({
-                        length: pagination?.limit ?? 20,
-                      }).map((_, i) => (
-                        <div key={i} className="table-skeleton-row">
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "25%" }}
-                          />
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "18%" }}
-                          />
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "15%" }}
-                          />
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "12%" }}
-                          />
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "14%" }}
-                          />
-                          <div
-                            className="table-skeleton-cell"
-                            style={{ width: "10%" }}
-                          />
-                        </div>
-                      ))}
+                    <div
+                      className="drilldown-skeleton"
+                      style={{ top: theadHeight }}
+                      aria-hidden
+                    >
+                      <table className="drilldown-skeleton-table">
+                        {colWidths.length > 0 && (
+                          <colgroup>
+                            {colWidths.map((w, i) => (
+                              <col key={i} style={{ width: w }} />
+                            ))}
+                          </colgroup>
+                        )}
+                        <tbody>
+                          {Array.from({
+                            length: pagination?.limit ?? 20,
+                          }).map((_, i) => (
+                            <tr key={i} className="drilldown-skeleton-row">
+                              {Array.from({
+                                length: colWidths.length || columns.length || 6,
+                              }).map((_, j) => (
+                                <td key={j} className="drilldown-skeleton-cell">
+                                  <div className="drilldown-skeleton-bar" />
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
+              ) : isLoading ? (
+                <div
+                  className="h-full relative drilldown-grid drilldown-grid-standalone"
+                  aria-hidden
+                >
+                  {/* Skeleton header row mirrors the real grid header */}
+                  <div className="drilldown-skeleton-header">
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <div key={j} className="drilldown-skeleton-header-cell">
+                        <div className="drilldown-skeleton-bar" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="drilldown-skeleton drilldown-skeleton-standalone">
+                    <table className="drilldown-skeleton-table">
+                      <tbody>
+                        {Array.from({
+                          length: pagination?.limit ?? 20,
+                        }).map((_, i) => (
+                          <tr key={i} className="drilldown-skeleton-row">
+                            {Array.from({ length: 6 }).map((_, j) => (
+                              <td key={j} className="drilldown-skeleton-cell">
+                                <div className="drilldown-skeleton-bar" />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-gray-500">
-                  {isLoading ? "Loading..." : "No data available"}
+                  No data available
                 </div>
               )}
             </div>
 
             {/* Footer with pagination */}
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between shrink-0">
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between shrink-0">
               <span className="text-sm text-gray-500">
                 {pagination
                   ? `${pagination.total.toLocaleString()} row${pagination.total !== 1 ? "s" : ""}`

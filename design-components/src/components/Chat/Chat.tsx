@@ -111,6 +111,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   // File error props
   fileErrorMessage,
   onDismissFileError,
+  // Read-only mode (hides input, used for shared/archived views)
+  hideInput = false,
   // Reference context
   // @ Mention props
   enableMentions = false,
@@ -119,6 +121,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onSelectMention,
   onMentionsActivated,
   dashboardMention,
+  widgetMentions,
+  onWidgetMentionRemoved,
   children,
   compact = false,
 }) => {
@@ -280,6 +284,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
               onSelectMention={onSelectMention}
               onMentionsActivated={onMentionsActivated}
               dashboardMention={dashboardMention}
+              widgetMentions={widgetMentions}
+              onWidgetMentionRemoved={onWidgetMentionRemoved}
             />
           )
         ) : (
@@ -378,7 +384,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
       )}
 
       {/* Only show bottom input when there are messages (not in empty state), or always when a custom empty state is provided */}
-      {(messages.length > 0 || hasCustomEmptyState) && (
+      {!hideInput && (messages.length > 0 || hasCustomEmptyState) && (
         <ChatInputSelector
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
@@ -418,6 +424,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           onSelectMention={onSelectMention}
           onMentionsActivated={onMentionsActivated}
           dashboardMention={dashboardMention}
+          widgetMentions={widgetMentions}
+          onWidgetMentionRemoved={onWidgetMentionRemoved}
         />
       )}
     </div>

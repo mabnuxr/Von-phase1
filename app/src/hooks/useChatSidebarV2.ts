@@ -16,6 +16,7 @@ import {
 } from "./useMoveConversationToFolder";
 import { useDeleteConversation } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
+import { dashboardAssociatedChatsKeys } from "./useDashboardAssociatedChats";
 import { conversationsService } from "../services";
 import { CONVERSATIONS_STALE_TIME } from "../config/constants";
 import type {
@@ -23,7 +24,9 @@ import type {
   SidebarPagination,
   ChatSidebarResponse,
   FolderConversationsResponse,
+  FolderConversation,
 } from "../types/chatSidebar";
+import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
 import { useToast } from "./useToast";
 
@@ -50,6 +53,11 @@ function transformConversationsToSidebarItems(
 export type FolderItemsMap = Record<string, SidebarItem[]>;
 
 /**
+ * Map of folder ID to raw folder conversations within that folder
+ */
+export type FolderConversationsMap = Record<string, FolderConversation[]>;
+
+/**
  * Map of folder ID to loading state
  */
 export type FolderLoadingMap = Record<string, boolean>;
@@ -64,6 +72,8 @@ export interface UseChatSidebarV2Return {
   items: SidebarItem[];
   /** Map of folder ID to items within that folder */
   folderItems: FolderItemsMap;
+  /** Map of folder ID to raw conversations (pre-transform) within that folder */
+  folderConversationsMap: FolderConversationsMap;
   /** Map of folder ID to loading state */
   folderLoadingMap: FolderLoadingMap;
   /** Raw unfiled conversations from API */
@@ -197,6 +207,17 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       } else {
         map[folderId] = [];
       }
+    });
+    return map;
+  }, [folderIds, folderConversationsQueries]);
+
+  // Raw folder conversations keyed by folder ID — consumers that need the
+  // full conversation shape (not the transformed SidebarItem) read from here.
+  const folderConversationsMap = useMemo(() => {
+    const map: FolderConversationsMap = {};
+    folderIds.forEach((folderId, index) => {
+      const query = folderConversationsQueries[index];
+      map[folderId] = query?.data?.conversations ?? [];
     });
     return map;
   }, [folderIds, folderConversationsQueries]);
@@ -347,6 +368,9 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       // Cancel outgoing refetches to prevent overwriting optimistic update
       queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
       queryClient.cancelQueries({ queryKey: folderConversationsKeys.all });
+      queryClient.cancelQueries({
+        queryKey: dashboardAssociatedChatsKeys.all,
+      });
 
       // Snapshot sidebar data for rollback (InfiniteData shape)
       const previousSidebarData = queryClient.getQueryData<
@@ -363,6 +387,13 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
           queryClient.getQueryData<FolderConversationsResponse>(
             folderConversationsKeys.folder(folderId),
           );
+      });
+
+      // Snapshot every cached by-dashboard list for rollback
+      const previousAssociatedSnapshots: Array<
+        [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
+      > = queryClient.getQueriesData<DashboardAssociatedChatsResponse>({
+        queryKey: dashboardAssociatedChatsKeys.all,
       });
 
       // Optimistically remove from unfiled conversations across all pages
@@ -404,6 +435,26 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         }
       });
 
+      // Optimistically remove from every cached by-dashboard list
+      previousAssociatedSnapshots.forEach(([queryKey, data]) => {
+        if (!data) return;
+        const hasConv = data.conversations.some(
+          (c) => c.conversationId === conversationId,
+        );
+        if (hasConv) {
+          queryClient.setQueryData<DashboardAssociatedChatsResponse>(queryKey, {
+            ...data,
+            conversations: data.conversations.filter(
+              (c) => c.conversationId !== conversationId,
+            ),
+            pagination: {
+              ...data.pagination,
+              total: Math.max(0, data.pagination.total - 1),
+            },
+          });
+        }
+      });
+
       deleteConversationMutation(conversationId, {
         onSuccess: () => {
           // Invalidate to refetch fresh data from server
@@ -412,6 +463,9 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
           });
           queryClient.invalidateQueries({
             queryKey: folderConversationsKeys.all,
+          });
+          queryClient.invalidateQueries({
+            queryKey: dashboardAssociatedChatsKeys.all,
           });
         },
         onError: () => {
@@ -433,6 +487,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
               }
             },
           );
+          // Rollback by-dashboard caches
+          previousAssociatedSnapshots.forEach(([queryKey, data]) => {
+            queryClient.setQueryData(queryKey, data);
+          });
         },
       });
     },
@@ -593,6 +651,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
     folders,
     items,
     folderItems,
+    folderConversationsMap,
     folderLoadingMap,
     unfiledConversations,
     pagination,

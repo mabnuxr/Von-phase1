@@ -1477,6 +1477,12 @@ export interface ChatProps {
   onDismissFileError?: () => void;
 
   /**
+   * Hide the chat input bar. Used for read-only views (shared conversation, archived, etc).
+   * @default false
+   */
+  hideInput?: boolean;
+
+  /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable
    * When enabled, URLs are rendered as clickable links
    * @default false
@@ -1575,6 +1581,18 @@ export interface ChatProps {
    * Updates on dashboard switch without reloading the chat.
    */
   dashboardMention?: MentionItem | null;
+
+  /**
+   * Widget mentions added by the user (e.g. via the Add-to-Chat widget icon).
+   * Parent owns the array; chips sync additively and clear on send.
+   */
+  widgetMentions?: MentionItem[];
+
+  /**
+   * Called when a widget chip is removed via its X button. Parent is expected
+   * to drop the widget from its source state so the sync effect doesn't keep it.
+   */
+  onWidgetMentionRemoved?: (args: { id: string }) => void;
 
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state

@@ -1,14 +1,17 @@
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
-import type { SidebarItem } from "@vonlabs/design-components";
+import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
+import { useAppShell } from "../hooks/useAppShell";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useTitleAnimation } from "../hooks/useTitleAnimation";
+import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
+import { useApprovalStates } from "../hooks/useApprovalStates";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
@@ -40,6 +43,40 @@ function applyAnimatedTitlesToFolderItems(
   return result;
 }
 
+/**
+ * Stamp `approvalState` onto each item based on the live state map.
+ * Keeps the Pusher-driven source of truth in one place (the map) and avoids
+ * threading the state through every transform step.
+ */
+function applyApprovalStates(
+  items: SidebarItem[],
+  approvalStates: Map<string, ApprovalState>,
+): SidebarItem[] {
+  if (approvalStates.size === 0) {
+    return items.some((item) => item.approvalState)
+      ? items.map((item) =>
+          item.approvalState ? { ...item, approvalState: undefined } : item,
+        )
+      : items;
+  }
+  return items.map((item) => {
+    const next = approvalStates.get(item.id);
+    if (next === item.approvalState) return item;
+    return { ...item, approvalState: next };
+  });
+}
+
+function applyApprovalStatesToFolderItems(
+  folderItems: FolderItemsMap,
+  approvalStates: Map<string, ApprovalState>,
+): FolderItemsMap {
+  const result: FolderItemsMap = {};
+  for (const [folderId, items] of Object.entries(folderItems)) {
+    result[folderId] = applyApprovalStates(items, approvalStates);
+  }
+  return result;
+}
+
 interface ChatSidebarV2ContainerProps {
   currentConversationId: string | null;
   user: User | null;
@@ -62,11 +99,18 @@ export function ChatSidebarV2Container({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { isDeepResearchEnabled } = useFeatureFlag();
+  // Share action is shell-scoped — pull directly from context instead of
+  // drilling it through AppShell as a prop. Gated by the chat-sharing
+  // feature flag so tenants without the feature don't see the "Share"
+  // context-menu entry at all.
+  const { openShareModal } = useAppShell();
+  const { isChatSharingEnabled } = useFeatureFlag();
 
   const {
     folders,
     items,
     folderItems,
+    folderConversationsMap,
     folderLoadingMap,
     isLoading,
     fetchNextPage,
@@ -85,6 +129,17 @@ export function ChatSidebarV2Container({
     unfiledConversations,
   } = useChatSidebarV2();
 
+  const { channel: userChannel } = useUserPusherChannel({
+    tenantId: user?.tenantId,
+    userId: user?.id,
+  });
+
+  const { approvalStates, markViewed } = useApprovalStates({
+    sidebarConversations: unfiledConversations,
+    folderConversations: folderConversationsMap,
+    userChannel,
+  });
+
   // Dashboard data for sidebar (skip query entirely when flag is off)
   const {
     dashboards: sidebarDashboards,
@@ -95,12 +150,10 @@ export function ChatSidebarV2Container({
   const renameDashboard = useSidebarDashboardRename();
 
   // Title animation (shared with V1)
-  const { animatedTitles } = useTitleAnimation({
-    tenantId: user?.tenantId,
-    userId: user?.id,
-  });
+  const { animatedTitles } = useTitleAnimation({ userChannel });
 
-  // Apply animated titles to items and folder items
+  // Apply animated titles then approval badges. Order matters only in that
+  // both transforms are pure — badges layer on top of the title overlay.
   const animatedItems = useMemo(
     () => applyAnimatedTitles(items, animatedTitles),
     [items, animatedTitles],
@@ -108,6 +161,14 @@ export function ChatSidebarV2Container({
   const animatedFolderItems = useMemo(
     () => applyAnimatedTitlesToFolderItems(folderItems, animatedTitles),
     [folderItems, animatedTitles],
+  );
+  const decoratedItems = useMemo(
+    () => applyApprovalStates(animatedItems, approvalStates),
+    [animatedItems, approvalStates],
+  );
+  const decoratedFolderItems = useMemo(
+    () => applyApprovalStatesToFolderItems(animatedFolderItems, approvalStates),
+    [animatedFolderItems, approvalStates],
   );
 
   // Infinite scroll for unfiled conversations
@@ -119,9 +180,10 @@ export function ChatSidebarV2Container({
 
   const handleChatClick = useCallback(
     (conversationId: string) => {
+      markViewed(conversationId);
       navigate(`/chat/${conversationId}`);
     },
-    [navigate],
+    [markViewed, navigate],
   );
 
   const handleDeleteItem = useCallback(
@@ -168,9 +230,9 @@ export function ChatSidebarV2Container({
 
   return (
     <ChatSidebarV2
-      items={animatedItems}
+      items={decoratedItems}
       folders={folders}
-      folderItems={animatedFolderItems}
+      folderItems={decoratedFolderItems}
       folderLoadingMap={folderLoadingMap}
       isLoading={isLoading}
       selectedItemId={currentConversationId || undefined}
@@ -178,6 +240,7 @@ export function ChatSidebarV2Container({
       onNewChatClick={onNewChatClick}
       onNewChatFolderClick={createFolder}
       onRenameItem={renameConversation}
+      onShareItem={isChatSharingEnabled ? openShareModal : undefined}
       onDeleteItem={handleDeleteItem}
       onDeleteFolder={deleteFolder}
       onRenameFolder={renameFolder}

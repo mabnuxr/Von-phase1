@@ -255,7 +255,7 @@ export function IntegrationsPanel() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px] p-6">
+      <div className="flex items-center justify-center min-h-100 p-6">
         <Text variant="body" color="secondary">
           Loading integrations...
         </Text>

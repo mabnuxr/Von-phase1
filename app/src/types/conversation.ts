@@ -75,6 +75,8 @@ export interface MessageCommand {
   slug?: string;
   prompt: string;
   dataSources?: CommandDataSource[];
+  /** 'tenant' = org-level (public), 'user' = private. Sent at message-creation time. */
+  accessLevel?: string;
 }
 
 import type { ReferenceType } from "./constants";
@@ -89,13 +91,31 @@ export interface DashboardReferenceContext {
   dashboardName: string;
 }
 
-export interface MessageReference {
-  /** Frontend tracking ID (opaque, client-generated) */
-  refId: string;
-  /** Discriminator */
-  type: ReferenceType;
-  context: DashboardReferenceContext;
+/**
+ * Widget reference context attached to a message. Self-contained —
+ * carries parent dashboard identity (the backend uses it for access gating).
+ */
+export interface WidgetReferenceContext {
+  widgetId: string;
+  widgetTitle: string;
+  widgetType: "kpi" | "chart" | "table" | "text";
+  dashboardId: string;
+  dashboardVersion: number;
+  dashboardName: string;
 }
+
+export type MessageReference =
+  | {
+      /** Frontend tracking ID (opaque, client-generated) */
+      refId: string;
+      type: typeof ReferenceType.Dashboard;
+      context: DashboardReferenceContext;
+    }
+  | {
+      refId: string;
+      type: typeof ReferenceType.Widget;
+      context: WidgetReferenceContext;
+    };
 
 /**
  * Dashboard metadata from dashboard_ready event
