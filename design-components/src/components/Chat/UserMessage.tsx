@@ -21,6 +21,8 @@ export interface UserMessageProps {
   onFileClick?: (attachment: MessageFileAttachment) => void;
   onMentionClick?: (mention: MentionItem) => void;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
+  /** When true, file attachments + command data sources are grayed out and non-clickable */
+  disableFileAttachments?: boolean;
   compact?: boolean;
 }
 
@@ -35,6 +37,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({
   onFileClick,
   onMentionClick,
   onRequestFilePreviewUrl,
+  disableFileAttachments = false,
   compact = false,
 }) => {
   const userInitials = getUserInitials(userName, userEmail);
@@ -73,6 +76,12 @@ export const UserMessage: React.FC<UserMessageProps> = ({
   const isTimestampOlderThan24h =
     !!timestamp && (Date.now() - timestamp.getTime()) / (1000 * 60 * 60) >= 24;
 
+  // Tenant-level (public) commands keep files enabled even when
+  // disableFileAttachments is on — only private commands are disabled.
+  const accessLevel = (command as Record<string, unknown> | undefined)?.accessLevel;
+  const isPublicCommand = accessLevel === 'tenant' || command?.sharingScope === 'org';
+  const disableCommandFiles = disableFileAttachments && !isPublicCommand;
+
   return (
     <>
       {/* Horizontal layout: Avatar + Content (reversed for user) */}
@@ -103,11 +112,17 @@ export const UserMessage: React.FC<UserMessageProps> = ({
                 command={command}
                 onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 hasContentBelow={!!(content || (attachments && attachments.length > 0))}
+                disableFileAttachments={disableCommandFiles}
               />
             )}
             {attachments && attachments.length > 0 && (
-              <div className={command ? 'mt-2' : undefined}>
-                <MessageFilePreview attachments={attachments} onFileClick={onFileClick} />
+              <div
+                className={`${command ? 'mt-2' : ''} ${disableFileAttachments ? 'opacity-50 pointer-events-none' : ''}`}
+              >
+                <MessageFilePreview
+                  attachments={attachments}
+                  onFileClick={disableFileAttachments ? undefined : onFileClick}
+                />
               </div>
             )}
             {mentions && mentions.length > 0 && (

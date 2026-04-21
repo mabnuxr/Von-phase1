@@ -497,6 +497,7 @@ export interface SharedConversationValidationResponse {
   sharedByName: string;
   sharedByEmail: string;
   sharedAt: string;
+  allowFileAttachments: boolean;
 }
 
 // Singleton instance

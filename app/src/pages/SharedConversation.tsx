@@ -184,6 +184,7 @@ export default function SharedConversation() {
             isFetchingNextMessagePage={isFetchingNextMessagePage}
             refetchMessages={refetchMessages as () => Promise<unknown>}
             readOnly
+            disableFileAttachments={!validation.allowFileAttachments}
           />
         )}
       </div>

@@ -67,6 +67,8 @@ export interface ChatMessageProps {
   thinkingElapsedTime?: number;
   v2FinalResponse?: string;
   onFileClick?: (attachment: MessageFileAttachment) => void;
+  /** When true, file attachments and command data sources render with reduced opacity */
+  disableFileAttachments?: boolean;
   // File artifacts
   artifacts?: FileArtifact[];
   onFileArtifactClick?: (
@@ -144,6 +146,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   thinkingElapsedTime,
   v2FinalResponse,
   onFileClick,
+  disableFileAttachments,
   artifacts,
   onFileArtifactClick,
   onArtifactDownload,
@@ -210,6 +213,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   onFileClick={onFileClick}
                   onMentionClick={onMentionClick}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                  disableFileAttachments={disableFileAttachments}
                   compact={compact}
                 />
               ) : (

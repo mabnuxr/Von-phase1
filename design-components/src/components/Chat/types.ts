@@ -1483,6 +1483,14 @@ export interface ChatProps {
   hideInput?: boolean;
 
   /**
+   * When true, file attachment chips and command data source chips are
+   * rendered with reduced opacity and non-clickable. Used in shared
+   * views where the owner disabled file sharing.
+   * @default false
+   */
+  disableFileAttachments?: boolean;
+
+  /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable
    * When enabled, URLs are rendered as clickable links
    * @default false
