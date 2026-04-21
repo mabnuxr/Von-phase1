@@ -16,7 +16,6 @@ import {
 } from "./useMoveConversationToFolder";
 import { useDeleteConversation } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
-import { dashboardAssociatedChatsKeys } from "./useDashboardAssociatedChats";
 import { conversationsService } from "../services";
 import { CONVERSATIONS_STALE_TIME } from "../config/constants";
 import type {
@@ -26,7 +25,6 @@ import type {
   FolderConversationsResponse,
   FolderConversation,
 } from "../types/chatSidebar";
-import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 import type { Folder, SidebarItem } from "@vonlabs/design-components";
 import { useToast } from "./useToast";
 
@@ -368,9 +366,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
       // Cancel outgoing refetches to prevent overwriting optimistic update
       queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
       queryClient.cancelQueries({ queryKey: folderConversationsKeys.all });
-      queryClient.cancelQueries({
-        queryKey: dashboardAssociatedChatsKeys.all,
-      });
 
       // Snapshot sidebar data for rollback (InfiniteData shape)
       const previousSidebarData = queryClient.getQueryData<
@@ -387,13 +382,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
           queryClient.getQueryData<FolderConversationsResponse>(
             folderConversationsKeys.folder(folderId),
           );
-      });
-
-      // Snapshot every cached by-dashboard list for rollback
-      const previousAssociatedSnapshots: Array<
-        [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
-      > = queryClient.getQueriesData<DashboardAssociatedChatsResponse>({
-        queryKey: dashboardAssociatedChatsKeys.all,
       });
 
       // Optimistically remove from unfiled conversations across all pages
@@ -435,26 +423,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         }
       });
 
-      // Optimistically remove from every cached by-dashboard list
-      previousAssociatedSnapshots.forEach(([queryKey, data]) => {
-        if (!data) return;
-        const hasConv = data.conversations.some(
-          (c) => c.conversationId === conversationId,
-        );
-        if (hasConv) {
-          queryClient.setQueryData<DashboardAssociatedChatsResponse>(queryKey, {
-            ...data,
-            conversations: data.conversations.filter(
-              (c) => c.conversationId !== conversationId,
-            ),
-            pagination: {
-              ...data.pagination,
-              total: Math.max(0, data.pagination.total - 1),
-            },
-          });
-        }
-      });
-
       deleteConversationMutation(conversationId, {
         onSuccess: () => {
           // Invalidate to refetch fresh data from server
@@ -463,9 +431,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
           });
           queryClient.invalidateQueries({
             queryKey: folderConversationsKeys.all,
-          });
-          queryClient.invalidateQueries({
-            queryKey: dashboardAssociatedChatsKeys.all,
           });
         },
         onError: () => {
@@ -487,10 +452,6 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
               }
             },
           );
-          // Rollback by-dashboard caches
-          previousAssociatedSnapshots.forEach(([queryKey, data]) => {
-            queryClient.setQueryData(queryKey, data);
-          });
         },
       });
     },

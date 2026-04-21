@@ -7,10 +7,8 @@ import { conversationsService } from "../services";
 import { chatSidebarKeys } from "./useChatSidebar";
 import { conversationKeys } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
-import { dashboardAssociatedChatsKeys } from "./useDashboardAssociatedChats";
 import type { Conversation } from "../types/conversation";
 import type { ChatSidebarResponse } from "../types/chatSidebar";
-import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 
 /**
  * Parameters for renaming a conversation
@@ -31,12 +29,7 @@ export function useRenameConversation() {
     Conversation,
     Error,
     RenameConversationParams,
-    {
-      previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined;
-      previousAssociatedSnapshots: Array<
-        [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
-      >;
-    }
+    { previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined }
   >({
     mutationFn: ({ conversationId, title }: RenameConversationParams) =>
       conversationsService.renameConversation(conversationId, title),
@@ -45,9 +38,6 @@ export function useRenameConversation() {
       await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
       await queryClient.cancelQueries({
         queryKey: folderConversationsKeys.all,
-      });
-      await queryClient.cancelQueries({
-        queryKey: dashboardAssociatedChatsKeys.all,
       });
 
       // Snapshot previous value (InfiniteData shape from useInfiniteQuery)
@@ -105,37 +95,7 @@ export function useRenameConversation() {
           }
         });
 
-      // Snapshot + optimistic update for every cached by-dashboard list.
-      // The ChatPicker reads title from this cache first in dashboard mode,
-      // so without this the rename appears to revert until the cache
-      // naturally refreshes.
-      const previousAssociatedSnapshots: Array<
-        [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
-      > = [];
-      queryClient
-        .getQueriesData<DashboardAssociatedChatsResponse>({
-          queryKey: dashboardAssociatedChatsKeys.all,
-        })
-        .forEach(([queryKey, data]) => {
-          previousAssociatedSnapshots.push([queryKey, data]);
-          if (!data) return;
-          const hasConv = data.conversations.some(
-            (c) => c.conversationId === conversationId,
-          );
-          if (hasConv) {
-            queryClient.setQueryData<DashboardAssociatedChatsResponse>(
-              queryKey,
-              {
-                ...data,
-                conversations: data.conversations.map((c) =>
-                  c.conversationId === conversationId ? { ...c, title } : c,
-                ),
-              },
-            );
-          }
-        });
-
-      return { previousSidebarData, previousAssociatedSnapshots };
+      return { previousSidebarData };
     },
     onSuccess: (_, { conversationId, title }) => {
       if (import.meta.env.DEV) {
@@ -150,12 +110,6 @@ export function useRenameConversation() {
       queryClient.invalidateQueries({
         queryKey: conversationKeys.lists(),
       });
-      // Reconcile by-dashboard caches with the server (the optimistic patch
-      // above keeps the UI instant; this catches any server-side changes
-      // like lastMessageAt nudges that affect ordering).
-      queryClient.invalidateQueries({
-        queryKey: dashboardAssociatedChatsKeys.all,
-      });
     },
     onError: (error, _, context) => {
       console.error("[useRenameConversation] Error:", error);
@@ -166,10 +120,6 @@ export function useRenameConversation() {
           context.previousSidebarData,
         );
       }
-      // Rollback by-dashboard associated-chats caches
-      context?.previousAssociatedSnapshots.forEach(([queryKey, data]) => {
-        queryClient.setQueryData(queryKey, data);
-      });
       // Invalidate folder conversations to refetch correct data
       queryClient.invalidateQueries({
         queryKey: folderConversationsKeys.all,

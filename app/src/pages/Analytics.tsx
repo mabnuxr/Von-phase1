@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import {
-  ArrowLineRightIcon,
-  ClockCounterClockwiseIcon,
-  PlusIcon,
-} from "@phosphor-icons/react";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -20,7 +16,6 @@ import {
 import {
   Tooltip,
   useVisibilityToggle,
-  formatRelativeTime,
   type MentionItem,
   type WidgetAddToChatPayload,
 } from "@vonlabs/design-components";
@@ -36,7 +31,6 @@ import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useGlobalChat } from "../providers/GlobalChat";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
-import { useDashboardAssociatedChats } from "../hooks/useDashboardAssociatedChats";
 
 interface DashboardCanvasProps {
   dashboardId: string;
@@ -360,17 +354,6 @@ const Analytics = () => {
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
 
-  // Dashboard-associated chats — shares the React Query cache with ChatPicker
-  // (one request per dashboard). Used here to decide whether to show the
-  // "This dashboard was mentioned · …" context pill for the open chat.
-  const { data: associatedChatsData } =
-    useDashboardAssociatedChats(dashboardId);
-  const activeChatAssociation = conversationId
-    ? associatedChatsData?.conversations.find(
-        (c) => c.conversationId === conversationId,
-      )
-    : undefined;
-
   // Select the most recent conversation each time the panel opens, and flush
   // any chips that were queued before the panel opened into the newly-selected
   // conversation's store. Skips auto-selection when a deep link already set the
@@ -489,7 +472,6 @@ const Analytics = () => {
             onSelect={setActiveChatId}
             isRenaming={isRenamingChat}
             onRenameEnd={stopRenamingChat}
-            dashboardId={dashboardId}
           />
           <Tooltip content="New chat">
             <button
@@ -516,18 +498,6 @@ const Analytics = () => {
             </button>
           </Tooltip>
         </div>
-
-        {/* Dashboard-association context pill — visible only when the open
-            chat is in the by-dashboard response for the active dashboard. */}
-        {activeChatAssociation && (
-          <div className="flex-shrink-0 px-3 py-1.5 border-b border-gray-100">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[11px] font-medium">
-              <ClockCounterClockwiseIcon size={11} aria-hidden />
-              This dashboard was mentioned ·{" "}
-              {formatRelativeTime(activeChatAssociation.lastMentionedAt)}
-            </span>
-          </div>
-        )}
 
         {/* Chat content — always render ChatSession so it never unmounts on dashboard switch */}
         <div className="flex-1 min-h-0 overflow-hidden">
