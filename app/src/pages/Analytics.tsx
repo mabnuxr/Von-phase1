@@ -91,17 +91,12 @@ function DashboardCanvas({
     panelFilterState,
     lockedFilterState,
     lockedPanelFilterState,
-    pendingRows: filterPendingRows,
-    activeCount: filterActiveCount,
     canApply: filterCanApply,
     isApplying: filterIsApplying,
     handleFilterChange,
     handleRevertFilter,
     handleRemoveFilter,
     handleClearFilter,
-    handleAddFilter,
-    handleRemovePendingRow,
-    handleCommitPendingRow,
     handlePanelFilterChange,
     handleResetPanelFilter,
     handleRevertPanelFilter,
@@ -114,7 +109,6 @@ function DashboardCanvas({
     canLockFilter,
     getEffectivePanelState,
     handleApply,
-    handleClearAll,
   } = useDashboardFilters(
     dashboardId,
     dashboard?.filters?.definitions ?? [],
@@ -183,17 +177,11 @@ function DashboardCanvas({
         refreshInfo={refreshInfo}
         filterDefinitions={filterDefinitions}
         filterState={filterState}
-        filterPendingRows={filterPendingRows}
-        filterActiveCount={filterActiveCount}
         filterCanApply={filterCanApply}
         filterIsApplying={filterIsApplying}
         onFilterChange={handleFilterChange}
         onRemoveFilter={handleRemoveFilter}
-        onAddFilter={handleAddFilter}
-        onRemovePendingRow={handleRemovePendingRow}
-        onCommitPendingRow={handleCommitPendingRow}
         onApplyFilters={handleApply}
-        onClearAll={handleClearAll}
         onClearFilter={handleClearFilter}
         onToggleLock={handleCommitLock}
         canLockFilter={canLockFilter}
