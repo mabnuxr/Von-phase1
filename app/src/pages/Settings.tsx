@@ -33,18 +33,22 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled, isUsageMetricsEnabled } =
+  const { isEmailCategorizationEnabled, isUsageMetricsEnabled, isUserMemoryEnabled } =
     useFeatureFlag();
 
-  // Get initial tab from URL query parameter or default to integrations
+  // Get initial tab from URL query parameter or default to integrations.
+  // Old "memory" links land on the Org Memory sub-page so we don't break URLs.
   const tabFromUrl = searchParams.get("tab");
-  const initialTab = tabFromUrl || "integrations";
+  const normalizedTab = tabFromUrl === "memory" ? "memory-org" : tabFromUrl;
+  const initialTab = normalizedTab || "integrations";
   const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
 
-  // Set default tab in URL if not present
+  // Set default tab in URL if not present, and rewrite the legacy "memory" tab
   useEffect(() => {
     if (!tabFromUrl) {
       navigate(`/settings?tab=integrations`, { replace: true });
+    } else if (tabFromUrl === "memory") {
+      navigate(`/settings?tab=memory-org`, { replace: true });
     }
   }, [tabFromUrl, navigate]);
 
@@ -156,6 +160,12 @@ const Settings = () => {
         id: "memory",
         label: "Memory",
         icon: <BrainIcon size={20} weight="regular" />,
+        children: [
+          { id: "memory-org", label: "Org Memory" },
+          ...(isUserMemoryEnabled
+            ? [{ id: "memory-user", label: "User Memory" }]
+            : []),
+        ],
       },
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
@@ -198,8 +208,10 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
-      case "memory":
-        return <OrgContextTab />;
+      case "memory-org":
+        return <OrgContextTab view="org" />;
+      case "memory-user":
+        return isUserMemoryEnabled ? <OrgContextTab view="user" /> : null;
       case "usage":
         return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:

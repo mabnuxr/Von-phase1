@@ -113,6 +113,8 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onDismissFileError,
   // Read-only mode (hides input, used for shared/archived views)
   hideInput = false,
+  // Hide the "Von AI may make mistakes" disclaimer under the input
+  hideDisclaimer = false,
   // Reference context
   // @ Mention props
   enableMentions = false,
@@ -426,6 +428,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           dashboardMention={dashboardMention}
           widgetMentions={widgetMentions}
           onWidgetMentionRemoved={onWidgetMentionRemoved}
+          hideDisclaimer={hideDisclaimer}
         />
       )}
     </div>

@@ -1483,6 +1483,13 @@ export interface ChatProps {
   hideInput?: boolean;
 
   /**
+   * Hide the "Von AI may make mistakes" disclaimer below the input. Useful
+   * for embedded/one-off chat surfaces where the disclaimer is noise.
+   * @default false
+   */
+  hideDisclaimer?: boolean;
+
+  /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable
    * When enabled, URLs are rendered as clickable links
    * @default false

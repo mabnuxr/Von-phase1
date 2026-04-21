@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -24,6 +24,7 @@ import {
   TextHTwo,
 } from "@phosphor-icons/react";
 import "./OrgContextEditor.css";
+import vonFilledLogo from "../assets/von-filled-logo.svg";
 
 interface OrgContextEditorProps {
   content: string;
@@ -31,6 +32,12 @@ interface OrgContextEditorProps {
   isEditing: boolean;
   placeholder?: string;
   contentKey?: string;
+  /** Optional handler for the "Edit with Von" toolbar CTA. When provided,
+   *  the button appears at the right edge of the toolbar. */
+  onEditWithVon?: () => void;
+  /** Fires once a non-empty text selection inside the editor stabilizes
+   *  (user stopped dragging). Used to feed a context chip into the chat pane. */
+  onSelectionCapture?: (text: string) => void;
 }
 
 // Type extension for markdown storage
@@ -60,7 +67,17 @@ export function OrgContextEditor({
   isEditing,
   placeholder = "Start typing...",
   contentKey,
+  onEditWithVon,
+  onSelectionCapture,
 }: OrgContextEditorProps) {
+  // Keep a live ref to the latest capture handler so the editor's
+  // selection listener (created once at mount) always calls the current fn.
+  const onSelectionCaptureRef = useRef(onSelectionCapture);
+  onSelectionCaptureRef.current = onSelectionCapture;
+  // Debounce timer + last-emitted tracker prevent spamming the parent with
+  // every micro-selection event while the user drags.
+  const selectionTimerRef = useRef<number | null>(null);
+  const lastEmittedRef = useRef<string>("");
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -97,16 +114,49 @@ export function OrgContextEditor({
       const markdown = getMarkdown(editor);
       onChange(markdown);
     },
+    onSelectionUpdate: ({ editor }) => {
+      if (!onSelectionCaptureRef.current) return;
+      const { from, to, empty } = editor.state.selection;
+      if (empty || from === to) return;
+      const text = editor.state.doc.textBetween(from, to, " ").trim();
+      if (!text) return;
+
+      if (selectionTimerRef.current !== null) {
+        window.clearTimeout(selectionTimerRef.current);
+      }
+      // Wait for the user to settle on a selection before promoting it to a
+      // chip. 350ms feels responsive without firing on every drag tick.
+      selectionTimerRef.current = window.setTimeout(() => {
+        if (text === lastEmittedRef.current) return;
+        lastEmittedRef.current = text;
+        onSelectionCaptureRef.current?.(text);
+      }, 350);
+    },
     editorProps: {
       attributes: {
-        class: "tiptap-editor min-h-[200px] focus:outline-none px-4 pt-0 pb-3",
+        class: "tiptap-editor min-h-[200px] focus:outline-none px-4 py-2",
       },
     },
   });
 
-  // Update editor content when content prop changes
+  // Force-reset editor content whenever `contentKey` changes. This routes
+  // the initial value through tiptap-markdown's parser, which the initial
+  // `useEditor({ content })` call does not reliably do.
+  const lastAppliedContentKey = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (editor && content !== getMarkdown(editor)) {
+    if (!editor) return;
+    const keyChanged =
+      contentKey !== undefined && contentKey !== lastAppliedContentKey.current;
+    if (keyChanged) {
+      lastAppliedContentKey.current = contentKey;
+      // Place the caret at the start so the toolbar doesn't light up with
+      // whatever node happens to be at the end of the document (often a list).
+      editor.chain().setContent(content).setTextSelection(0).run();
+      return;
+    }
+    // Otherwise keep the editor in sync with external `content` updates
+    // without fighting the user's caret while they're typing.
+    if (content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
     }
   }, [content, contentKey, editor]);
@@ -133,7 +183,7 @@ export function OrgContextEditor({
               type="button"
               title="Bold (Ctrl+B)"
             >
-              <TextB size={16} weight="bold" />
+              <TextB size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -141,7 +191,7 @@ export function OrgContextEditor({
               type="button"
               title="Italic (Ctrl+I)"
             >
-              <TextItalic size={16} weight="bold" />
+              <TextItalic size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -149,7 +199,7 @@ export function OrgContextEditor({
               type="button"
               title="Underline (Ctrl+U)"
             >
-              <TextUnderline size={16} weight="bold" />
+              <TextUnderline size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -157,7 +207,7 @@ export function OrgContextEditor({
               type="button"
               title="Strikethrough"
             >
-              <TextStrikethrough size={16} weight="bold" />
+              <TextStrikethrough size={16} weight="regular" />
             </button>
           </div>
 
@@ -174,7 +224,7 @@ export function OrgContextEditor({
               type="button"
               title="Heading 1"
             >
-              <TextHOne size={16} weight="bold" />
+              <TextHOne size={16} weight="regular" />
             </button>
             <button
               onClick={() =>
@@ -186,7 +236,7 @@ export function OrgContextEditor({
               type="button"
               title="Heading 2"
             >
-              <TextHTwo size={16} weight="bold" />
+              <TextHTwo size={16} weight="regular" />
             </button>
           </div>
 
@@ -199,7 +249,7 @@ export function OrgContextEditor({
               type="button"
               title="Bullet List"
             >
-              <ListBullets size={16} weight="bold" />
+              <ListBullets size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -207,7 +257,7 @@ export function OrgContextEditor({
               type="button"
               title="Numbered List"
             >
-              <ListNumbers size={16} weight="bold" />
+              <ListNumbers size={16} weight="regular" />
             </button>
           </div>
 
@@ -220,7 +270,7 @@ export function OrgContextEditor({
               type="button"
               title="Blockquote"
             >
-              <Quotes size={16} weight="bold" />
+              <Quotes size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -228,7 +278,7 @@ export function OrgContextEditor({
               type="button"
               title="Code Block"
             >
-              <Code size={16} weight="bold" />
+              <Code size={16} weight="regular" />
             </button>
           </div>
 
@@ -246,16 +296,34 @@ export function OrgContextEditor({
               type="button"
               title="Insert Table"
             >
-              <TableIcon size={16} weight="bold" />
+              <TableIcon size={16} weight="regular" />
             </button>
             <button
               onClick={() => editor.chain().focus().setHorizontalRule().run()}
               type="button"
               title="Horizontal Rule"
             >
-              <Minus size={16} weight="bold" />
+              <Minus size={16} weight="regular" />
             </button>
           </div>
+
+          {onEditWithVon && (
+            <button
+              type="button"
+              onClick={onEditWithVon}
+              title="Edit with Von"
+              className="tiptap-toolbar-von ml-auto flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-white text-xs whitespace-nowrap flex-shrink-0"
+            >
+              <img
+                src={vonFilledLogo}
+                alt=""
+                width={14}
+                height={14}
+                className="flex-shrink-0"
+              />
+              Edit
+            </button>
+          )}
         </div>
       )}
 

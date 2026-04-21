@@ -446,7 +446,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     };
 
     return (
-      <div className="bg-white antialiased font-sf px-2">
+      <div className="bg-white antialiased pb-1 px-2">
         <div className="max-w-4xl mx-auto w-full flex flex-col gap-1.5 relative">
           {/* ChatInputPopover - shown above the input when active */}
           {activePopover && (

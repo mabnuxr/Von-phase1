@@ -113,7 +113,7 @@ export function EmailCategorizationTab() {
     <div className="flex flex-col h-full p-2">
       {/* Heading - Fixed */}
       <div className="">
-        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+        <div className="px-4 pt-4 pb-6 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-900">
             Email Correspondence
           </h2>
