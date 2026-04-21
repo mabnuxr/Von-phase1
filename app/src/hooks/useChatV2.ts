@@ -110,7 +110,7 @@ export function useChatV2(props: UseChatV2Props) {
   // When V2 processor marks a run done: force-complete streaming messages
   // in chatStore with persisted V2 data, then refetch from backend to replace
   // optimistic messages with real ones (real IDs, events, messageContent).
-  const handleV2RunComplete = useCallback(() => {
+  const handleV2RunComplete = useCallback(async () => {
     const messages = useChatStore.getState().messages[conversationId] || [];
     const processor = v2ProcessorRef.current;
 
@@ -136,16 +136,28 @@ export function useChatV2(props: UseChatV2Props) {
           );
       }
     }
-    refetchMessages();
 
-    // Invalidate artifact cache for the current run so the query re-fires.
-    // At this point notify_pending_artifacts has already written to Redis,
-    // so the re-query will find inflight data and start polling.
+    // Await the message refetch so assistantRunIds (derived from
+    // conversationMessages) includes the new runId before we invalidate its
+    // artifact query. Without this, the invalidation lands on a key with no
+    // active observer, no refetch fires, and the cache stays empty until a
+    // manual page refresh.
+    try {
+      await refetchMessages();
+    } catch (err) {
+      console.error("[handleV2RunComplete] refetchMessages failed:", err);
+    }
+
+    // Safety net when the artifact_created Pusher event is missed (dropped
+    // or tab backgrounded). Skip if the cache already has data — refetching
+    // could race Mongo and downgrade completed rows to inflight placeholders.
     const runId = processor?.currentRunId;
     if (runId) {
-      queryClient.invalidateQueries({
-        queryKey: agentArtifactKeys.run(conversationId, runId),
-      });
+      const queryKey = agentArtifactKeys.run(conversationId, runId);
+      const existing = queryClient.getQueryData<unknown[]>(queryKey);
+      if (!existing || existing.length === 0) {
+        queryClient.invalidateQueries({ queryKey });
+      }
     }
   }, [conversationId, refetchMessages, queryClient]);
 

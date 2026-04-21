@@ -53,20 +53,27 @@ export function useArtifactCreatedEvent(
       const queryKey = agentArtifactKeys.run(convId, parsed.runId);
 
       if (parsed.status === "processing") {
-        // Seed cache with placeholders so skeletons render immediately
-        const placeholders: FileMetadataResponse[] = fileArtifacts.map((a) => ({
-          id: a.file_name,
-          fileName: a.file_name,
-          mimeType: "",
-          sizeBytes: 0,
-          status: "processing",
-          source: "agent_generated",
-          createdAt: parsed.updatedAt,
-          artifactType: a.artifact_type,
-          runId: parsed.runId,
-          isPending: true,
-        }));
-        queryClient.setQueryData(queryKey, placeholders);
+        // Seed skeletons, but never downgrade an already-populated cache
+        // (Pusher reorders can deliver `processing` after `completed`).
+        const existing =
+          queryClient.getQueryData<FileMetadataResponse[]>(queryKey);
+        if (!existing || existing.length === 0) {
+          const placeholders: FileMetadataResponse[] = fileArtifacts.map(
+            (a) => ({
+              id: a.file_name,
+              fileName: a.file_name,
+              mimeType: "",
+              sizeBytes: 0,
+              status: "processing",
+              source: "agent_generated",
+              createdAt: parsed.updatedAt,
+              artifactType: a.artifact_type,
+              runId: parsed.runId,
+              isPending: true,
+            }),
+          );
+          queryClient.setQueryData(queryKey, placeholders);
+        }
         // Mark stale so remount refetches if completed event is missed,
         // but don't trigger an immediate refetch while upload is still running
         queryClient.invalidateQueries({ queryKey, refetchType: "inactive" });
@@ -75,7 +82,7 @@ export function useArtifactCreatedEvent(
         const freshData: FileMetadataResponse[] = fileArtifacts.map((a) => ({
           id: a.id ?? a.file_name,
           fileName: a.file_name,
-          mimeType: "",
+          mimeType: a.mime_type ?? "",
           sizeBytes: 0,
           status: "completed",
           source: "agent_generated",
@@ -84,8 +91,11 @@ export function useArtifactCreatedEvent(
           runId: parsed.runId,
         }));
         queryClient.setQueryData(queryKey, freshData);
-        // Background refetch fills in full metadata (mimeType, sizeBytes, etc.)
-        queryClient.invalidateQueries({ queryKey });
+        // Mark stale for future mounts but skip the immediate refetch. The
+        // event payload already carries every record the card needs (pptx +
+        // its slide_preview_pdf sibling), and an immediate refetch can race
+        // MongoDB read-after-write and clobber the cache with [].
+        queryClient.invalidateQueries({ queryKey, refetchType: "none" });
       }
     },
     [queryClient],
