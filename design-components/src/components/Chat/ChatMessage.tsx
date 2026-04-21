@@ -329,9 +329,9 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                     {integrationBlocks &&
                       integrationBlocks.length > 0 &&
                       !isStreaming &&
-                      integrationBlocks.map((block) => (
+                      integrationBlocks.map((block, index) => (
                         <IntegrationBlockSection
-                          key={block.integrationType}
+                          key={`${block.integrationType}-${index}`}
                           integrationBlock={block}
                           isIntegrationConnected={isIntegrationConnected}
                           onIntegrate={onIntegrate}
