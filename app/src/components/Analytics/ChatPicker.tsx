@@ -200,7 +200,7 @@ export function ChatPicker({
       closeDropdown();
       setTimeout(() => renameInputRef.current?.select(), 0);
     }
-  }, [isRenaming, closeDropdown]);
+  }, [isRenaming, activeTitle, closeDropdown]);
 
   const handleRenameSubmit = () => {
     if (committedRef.current) return;
