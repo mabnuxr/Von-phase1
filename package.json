@@ -39,6 +39,7 @@
   },
   "overrides": {
     "rollup": "^4.59.0",
-    "picomatch@^4": "^4.0.4"
+    "picomatch@^4": "^4.0.4",
+    "flatted": "^3.4.2"
   }
 }
