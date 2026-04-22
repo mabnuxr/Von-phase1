@@ -112,9 +112,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       case 'text':
         return (
-          <WidgetShell title={widget.title} onAddToChat={addToChatHandler}>
-            <TextWidget config={widget.config as TextWidgetConfig} />
-          </WidgetShell>
+          <TextWidget config={widget.config as TextWidgetConfig} onAddToChat={addToChatHandler} />
         );
 
       case 'table':
