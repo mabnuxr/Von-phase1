@@ -19,10 +19,11 @@ import {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
   DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+  DEFAULT_SKIPPED_APPROVAL_MESSAGE,
 } from "@vonlabs/design-components";
 
 // Re-export so existing consumers in app/ don't break
-export { DEFAULT_EXPIRED_APPROVAL_MESSAGE };
+export { DEFAULT_EXPIRED_APPROVAL_MESSAGE, DEFAULT_SKIPPED_APPROVAL_MESSAGE };
 
 /**
  * Research results state for Deep Research workflow

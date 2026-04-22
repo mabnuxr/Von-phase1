@@ -284,7 +284,7 @@ class ConversationsService {
     limit: number = 50,
   ): Promise<DashboardAssociatedChatsResponse> {
     return apiClient.get<DashboardAssociatedChatsResponse>(
-      `/api/v1/chat/sidebar/by-dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
+      `/api/v1/chat/dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
     );
   }
 
@@ -497,6 +497,7 @@ export interface SharedConversationValidationResponse {
   sharedByName: string;
   sharedByEmail: string;
   sharedAt: string;
+  allowFileAttachments: boolean;
 }
 
 // Singleton instance

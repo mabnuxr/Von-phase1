@@ -343,9 +343,11 @@ function IntegrationItem({
     if (canBeOrgLevel(item.id)) availableChips.push("workspace");
     if (canBeUserLevel(item.id)) availableChips.push("personal");
 
-    // Gong Engage shows "Available" status instead of a Connect button —
-    // connection is managed via the existing Gong CI credentials.
-    const isStaticAvailable = item.id === "gongengage";
+    // Gong Engage and Salesloft Recorder share credentials with their parent
+    // integrations (Gong, Salesloft), so they show "Available" instead of a
+    // Connect button — they are enabled automatically when the parent connects.
+    const isStaticAvailable =
+      item.id === "gongengage" || item.id === "salesloft_recorder";
 
     return (
       <IntegrationCard

@@ -113,6 +113,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onDismissFileError,
   // Read-only mode (hides input, used for shared/archived views)
   hideInput = false,
+  disableFileAttachments = false,
   // Reference context
   // @ Mention props
   enableMentions = false,
@@ -350,11 +351,12 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   driveTooltip={driveTooltip}
                   driveLoadingFileId={driveLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                  disableFileAttachments={disableFileAttachments}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
                   renderGroupedEmailArtifacts={
                     showArtifacts ? renderGroupedEmailArtifacts : undefined
                   }
-                  integrationBlock={message.integrationBlock}
+                  integrationBlocks={message.integrationBlocks}
                   isIntegrationConnected={isIntegrationConnected}
                   onIntegrate={onIntegrate}
                   getIntegrationMetadata={getIntegrationMetadata}

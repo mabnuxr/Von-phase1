@@ -22,7 +22,6 @@ export { CONTAINER_HEIGHT, SOURCE_LABELS } from './constants';
 // Re-export components for potential external use
 export {
   StepIndicator,
-  ApprovalCard,
   CompactApprovalCard,
   BulkApprovalCard,
   StepRow,

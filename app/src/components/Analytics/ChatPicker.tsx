@@ -7,6 +7,7 @@ import {
   ensureUTC,
   Tooltip,
   formatRelativeTime,
+  useVisibilityToggle,
 } from "@vonlabs/design-components";
 import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
 import { useAppShell } from "../../hooks/useAppShell";
@@ -122,7 +123,11 @@ export function ChatPicker({
   onRenameEnd,
   dashboardId,
 }: ChatPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const {
+    isVisible: isOpen,
+    hide: closeDropdown,
+    toggleVisibility: toggleDropdown,
+  } = useVisibilityToggle(false);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
   const committedRef = useRef(false);
@@ -139,11 +144,15 @@ export function ChatPicker({
   });
   const { animatedTitles } = useTitleAnimation({ userChannel });
 
-  const { data: associatedData, isLoading: isLoadingAssociated } =
-    useDashboardAssociatedChats(dashboardId);
+  const {
+    data: associatedData,
+    isLoading: isLoadingAssociated,
+    isError: isErrorAssociated,
+  } = useDashboardAssociatedChats(dashboardId);
 
   const isDashboardMode = Boolean(dashboardId);
   const isLoading = isDashboardMode ? isLoadingAssociated : isLoadingFull;
+  const isError = isDashboardMode && isErrorAssociated;
 
   // Active conversation title — prefer associated list when in dashboard
   // mode (it may include chats outside the unfiled page), fall back to the
@@ -158,6 +167,8 @@ export function ChatPicker({
     activeAssociated?.title?.trim() ||
     activeUnfiled?.title?.trim() ||
     (activeChatId ? "Chat" : "New chat");
+  const activeTitleRef = useRef(activeTitle);
+  activeTitleRef.current = activeTitle;
 
   // Use streaming animated title when available (same as left sidebar)
   const animatedTitle = activeChatId
@@ -174,24 +185,27 @@ export function ChatPicker({
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        setIsOpen(false);
+        closeDropdown();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen]);
+  }, [isOpen, closeDropdown]);
 
   // Initialize rename input and focus it when rename mode activates
   useEffect(() => {
     if (isRenaming) {
       committedRef.current = false;
+      const currentTitle = activeTitleRef.current;
       const seed =
-        activeTitle === "Chat" || activeTitle === "New chat" ? "" : activeTitle;
+        currentTitle === "Chat" || currentTitle === "New chat"
+          ? ""
+          : currentTitle;
       setRenameValue(seed);
-      setIsOpen(false);
+      closeDropdown();
       setTimeout(() => renameInputRef.current?.select(), 0);
     }
-  }, [isRenaming]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isRenaming, closeDropdown]);
 
   const handleRenameSubmit = () => {
     if (committedRef.current) return;
@@ -216,6 +230,34 @@ export function ChatPicker({
     ? associatedChats.length === 0
     : last7.length === 0 && last30.length === 0 && older.length === 0;
 
+  // Disable only when there's no active chat to show and no chats exist for
+  // this dashboard. When an active chat is present, keep the trigger
+  // interactive so the user can still open the dropdown (New chat lives in
+  // the adjacent "+" button). Gate on !isLoading to avoid a flash.
+  const disableTrigger = !isLoading && isEmpty && !activeChatId;
+  const triggerTooltip = disableTrigger
+    ? "No chats for this dashboard yet"
+    : "Switch chat";
+
+  const triggerButton = (
+    <button
+      onClick={toggleDropdown}
+      disabled={disableTrigger}
+      className={`inline-flex items-center gap-1.5 min-w-0 max-w-full px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
+        disableTrigger ? "cursor-default" : "hover:bg-gray-100"
+      }`}
+    >
+      <span className="truncate max-w-[140px]">{displayTitle}</span>
+      {!disableTrigger && (
+        <CaretUpDownIcon
+          size={13}
+          weight="bold"
+          className="flex-shrink-0 text-gray-400"
+        />
+      )}
+    </button>
+  );
+
   return (
     <div ref={containerRef} className="relative flex-1 min-w-0">
       {/* Trigger / inline rename input */}
@@ -235,18 +277,15 @@ export function ChatPicker({
           className="w-full min-w-0 max-w-[160px] px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
         />
       ) : (
-        <button
-          onClick={() => setIsOpen((v) => !v)}
-          className="inline-flex items-center gap-1.5 min-w-0 max-w-full px-2 py-1.5 rounded-lg hover:bg-gray-100 text-sm font-medium text-gray-800 transition-colors"
-          title="Switch chat"
+        // Wrapper ensures the tooltip works even when the button is disabled
+        // (native `title` on disabled buttons is unreliable in Chrome/Safari).
+        <Tooltip
+          content={triggerTooltip}
+          placement="top"
+          wrapperClassName="inline-flex max-w-full"
         >
-          <span className="truncate max-w-[140px]">{displayTitle}</span>
-          <CaretUpDownIcon
-            size={13}
-            weight="bold"
-            className="flex-shrink-0 text-gray-400"
-          />
-        </button>
+          {triggerButton}
+        </Tooltip>
       )}
 
       {/* Dropdown */}
@@ -255,6 +294,10 @@ export function ChatPicker({
           {isLoading ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
               Loading…
+            </div>
+          ) : isError ? (
+            <div className="px-3 py-4 text-xs text-gray-400 text-center">
+              Couldn't load chats
             </div>
           ) : isEmpty ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
@@ -273,7 +316,7 @@ export function ChatPicker({
                   chat={chat}
                   isActive={chat.conversationId === activeChatId}
                   onSelect={onSelect}
-                  onClose={() => setIsOpen(false)}
+                  onClose={closeDropdown}
                 />
               ))}
             </div>
@@ -290,7 +333,7 @@ export function ChatPicker({
                       conv={conv}
                       isActive={conv.conversationId === activeChatId}
                       onSelect={onSelect}
-                      onClose={() => setIsOpen(false)}
+                      onClose={closeDropdown}
                     />
                   ))}
                 </div>
@@ -310,7 +353,7 @@ export function ChatPicker({
                       conv={conv}
                       isActive={conv.conversationId === activeChatId}
                       onSelect={onSelect}
-                      onClose={() => setIsOpen(false)}
+                      onClose={closeDropdown}
                     />
                   ))}
                 </div>
@@ -332,7 +375,7 @@ export function ChatPicker({
                       conv={conv}
                       isActive={conv.conversationId === activeChatId}
                       onSelect={onSelect}
-                      onClose={() => setIsOpen(false)}
+                      onClose={closeDropdown}
                     />
                   ))}
                 </div>

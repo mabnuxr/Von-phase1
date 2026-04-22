@@ -9,7 +9,10 @@ import { conversationKeys } from "./useConversations";
 import { folderConversationsKeys } from "./useFolderConversations";
 import { dashboardAssociatedChatsKeys } from "./useDashboardAssociatedChats";
 import type { Conversation } from "../types/conversation";
-import type { ChatSidebarResponse } from "../types/chatSidebar";
+import type {
+  ChatSidebarResponse,
+  FolderConversationsResponse,
+} from "../types/chatSidebar";
 import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 
 /**
@@ -33,6 +36,9 @@ export function useRenameConversation() {
     RenameConversationParams,
     {
       previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined;
+      previousFolderSnapshots: Array<
+        [readonly unknown[], FolderConversationsResponse | undefined]
+      >;
       previousAssociatedSnapshots: Array<
         [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
       >;
@@ -76,27 +82,24 @@ export function useRenameConversation() {
         );
       }
 
-      // Also update in any cached folder conversations
+      // Snapshot + optimistic update for every cached folder-conversations list.
+      const previousFolderSnapshots: Array<
+        [readonly unknown[], FolderConversationsResponse | undefined]
+      > = [];
       queryClient
-        .getQueriesData<unknown>({
+        .getQueriesData<FolderConversationsResponse>({
           queryKey: folderConversationsKeys.all,
         })
         .forEach(([queryKey, data]) => {
-          if (!data || typeof data !== "object" || !("conversations" in data))
-            return;
-          const folderData = data as {
-            conversations: Array<{
-              conversationId: string;
-              title: string;
-            }>;
-          };
-          const hasConv = folderData.conversations.some(
+          previousFolderSnapshots.push([queryKey, data]);
+          if (!data) return;
+          const hasConv = data.conversations.some(
             (c) => c.conversationId === conversationId,
           );
           if (hasConv) {
-            queryClient.setQueryData(queryKey, {
-              ...folderData,
-              conversations: folderData.conversations.map((conv) =>
+            queryClient.setQueryData<FolderConversationsResponse>(queryKey, {
+              ...data,
+              conversations: data.conversations.map((conv) =>
                 conv.conversationId === conversationId
                   ? { ...conv, title }
                   : conv,
@@ -135,7 +138,11 @@ export function useRenameConversation() {
           }
         });
 
-      return { previousSidebarData, previousAssociatedSnapshots };
+      return {
+        previousSidebarData,
+        previousFolderSnapshots,
+        previousAssociatedSnapshots,
+      };
     },
     onSuccess: (_, { conversationId, title }) => {
       if (import.meta.env.DEV) {
@@ -158,21 +165,23 @@ export function useRenameConversation() {
       });
     },
     onError: (error, _, context) => {
-      console.error("[useRenameConversation] Error:", error);
-      // Rollback to previous data on error
+      if (import.meta.env.DEV) {
+        console.error("[useRenameConversation] Error:", error);
+      }
+      // Rollback sidebar data
       if (context?.previousSidebarData) {
         queryClient.setQueryData(
           chatSidebarKeys.sidebar(),
           context.previousSidebarData,
         );
       }
+      // Rollback folder conversations
+      context?.previousFolderSnapshots.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       // Rollback by-dashboard associated-chats caches
       context?.previousAssociatedSnapshots.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
-      });
-      // Invalidate folder conversations to refetch correct data
-      queryClient.invalidateQueries({
-        queryKey: folderConversationsKeys.all,
       });
     },
   });

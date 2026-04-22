@@ -7,6 +7,7 @@ import {
   ExclamationMarkIcon,
   XIcon,
   CircleIcon,
+  MinusIcon,
 } from '@phosphor-icons/react';
 import type { StepIndicatorProps } from '../types';
 
@@ -91,6 +92,14 @@ export const StepIndicator = React.memo<StepIndicatorProps>(
       return (
         <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50 border border-gray-100">
           <XIcon size={10} weight="bold" className="text-red-500" />
+        </div>
+      );
+    }
+    if (status === 'skipped') {
+      // Muted minus — user moved on without acting, visually quieter than expiry
+      return (
+        <div className="flex items-center justify-center w-[14px] h-[14px] rounded-full bg-gray-50 border border-gray-100">
+          <MinusIcon size={10} weight="bold" className="text-gray-500" />
         </div>
       );
     }

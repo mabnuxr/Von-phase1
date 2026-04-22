@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Outlet, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { TopBar, Banner, ShareChatPopup } from "@vonlabs/design-components";
 
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -15,6 +16,7 @@ import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { conversationsService } from "../services";
+import { useToast } from "../hooks/useToast";
 
 /**
  * AppShell — shared layout for pages that need the sidebar shell.
@@ -25,8 +27,11 @@ import { conversationsService } from "../services";
  */
 export function AppShell() {
   const navigate = useGuardedNavigate();
+  const queryClient = useQueryClient();
   const { conversationId } = useParams<{ conversationId?: string }>();
   const currentConversationId = conversationId ?? null;
+
+  const { showToast } = useToast();
 
   // --- Auth & User ---
   useAuthCheck();
@@ -62,8 +67,13 @@ export function AppShell() {
     setShareConversationId(conversationId);
   }, []);
   const closeShareModal = useCallback(() => {
+    const closingId = shareConversationId;
     setShareConversationId(null);
-  }, []);
+    // Invalidate share-status cache so the header CTA updates
+    if (closingId) {
+      queryClient.invalidateQueries({ queryKey: ["share-status", closingId] });
+    }
+  }, [shareConversationId, queryClient]);
 
   // Fetch team members for the user picker (only when modal opens)
   const { data: teamMembersData } = useTeamMembers(
@@ -212,6 +222,9 @@ export function AppShell() {
                 lastName: m.lastName,
               }));
             }}
+            onToast={(message) =>
+              showToast({ message, variant: "success", autoDismissMs: 4000 })
+            }
           />
         )}
       </div>

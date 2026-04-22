@@ -162,6 +162,13 @@ export interface ChatSessionProps {
    */
   readOnly?: boolean;
 
+  /**
+   * When true, file attachment chips and command data source chips are
+   * visible but grayed out and non-clickable. Set when the share owner
+   * disabled file attachments.
+   */
+  disableFileAttachments?: boolean;
+
   /** Action element rendered in the chat pane header area (e.g. Share button) — scoped to chat only, won't cover artifact/dashboard panels. Receives `compact` when a side panel is open. */
   headerAction?: ReactNode | ((compact: boolean) => ReactNode);
 
@@ -440,7 +447,6 @@ function ExistingChatInner(
     [
       activeDashboardId,
       props.compact,
-      dashboardPaneState.isOpen,
       navigate,
       conversationId,
       openDashboardPane,
@@ -515,6 +521,7 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       hideInput={props.readOnly}
+      disableFileAttachments={props.disableFileAttachments}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner

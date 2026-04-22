@@ -222,19 +222,20 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     name: "Salesloft",
     description: "Manage cadences, log calls, and create tasks in Salesloft",
     personalDescription: "Connect your Salesloft account for sales engagement",
+    note: "If you have a Salesloft Recorder license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
     category: "Sales Engagement",
   },
-  salesloft: {
-    id: "salesloft",
+  salesloft_recorder: {
+    id: "salesloft_recorder",
     name: "Salesloft Recorder",
     description:
       "Import call recordings and transcripts from Salesloft Recorder",
+    note: "Set up your Salesloft connection to start using Salesloft Recorder",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
     category: "Call Recorder",
-    disabled: true,
   },
   // Data Warehouse integrations
   snowflake: {
@@ -324,7 +325,7 @@ export function getIntegrationLogoPath(type: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
-    SALESLOFT: "salesloft",
+    SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -370,7 +371,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     guru: "GURU",
     intercom: "INTERCOM",
     outreachengage: "OUTREACH_ENGAGE",
-    salesloft: "SALESLOFT",
+    salesloft_recorder: "SALESLOFT",
     salesloft_engagement: "SALESLOFT_ENGAGEMENT",
     snowflake: "SNOWFLAKE",
     databricks: "DATABRICKS",
@@ -410,7 +411,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
-    SALESLOFT: "salesloft",
+    SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -451,7 +452,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
-    SALESLOFT: "salesloft",
+    SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
@@ -503,7 +504,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   confluence: ["user"],
   guru: ["user"],
   intercom: ["user"],
-  salesloft: ["user"],
+  salesloft_recorder: ["tenant"],
   salesloft_engagement: ["tenant"],
   snowflake: ["tenant"],
   databricks: ["tenant"],

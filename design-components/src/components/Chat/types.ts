@@ -17,7 +17,8 @@ export type MessageStatus =
   | 'completed'
   | 'failed'
   | 'timeout'
-  | 'expired';
+  | 'expired'
+  | 'skipped';
 
 /**
  * Additional options passed with the send message callback
@@ -178,13 +179,13 @@ export interface Message {
   }>;
   /**
    * Integration write block metadata (persisted on assistant messages).
-   * When present, renders an integration card inline on the message.
+   * When present, renders integration cards inline on the message.
    */
-  integrationBlock?: {
+  integrationBlocks?: Array<{
     blockCode?: string;
     message: string;
     integrationType: string;
-  };
+  }>;
   /**
    * Whether the response was stopped by user
    */
@@ -1481,6 +1482,14 @@ export interface ChatProps {
    * @default false
    */
   hideInput?: boolean;
+
+  /**
+   * When true, file attachment chips and command data source chips are
+   * rendered with reduced opacity and non-clickable. Used in shared
+   * views where the owner disabled file sharing.
+   * @default false
+   */
+  disableFileAttachments?: boolean;
 
   /**
    * Enable deep links for Salesforce URLs in artifact pane DataTable

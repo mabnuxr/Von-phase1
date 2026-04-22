@@ -48,6 +48,7 @@ export const FEATURE_FLAGS = {
   // reachable so already-generated links continue to work.
   CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
+  VON_AI_FIELDS: "enableVonAiFields",
 } as const;
 
 /**
@@ -220,6 +221,11 @@ export function useFeatureFlag() {
      * Controls whether Usage tab is visible in Settings
      */
     isUsageMetricsEnabled: flags[FEATURE_FLAGS.USAGE_METRICS] === true,
+
+    /**
+     * Controls whether Von AI Fields tab is visible in Settings
+     */
+    isVonAiFieldsEnabled: flags[FEATURE_FLAGS.VON_AI_FIELDS] === true,
 
     /**
      * Raw flags object for advanced usage
