@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GlobeSimpleIcon,
@@ -8,7 +8,6 @@ import {
   CheckIcon,
   CopyIcon,
   UsersIcon,
-  CaretUpIcon,
 } from '@phosphor-icons/react';
 import { RecipientPicker } from '../RecipientPicker';
 import type { Recipient } from '../RecipientPicker';
@@ -101,13 +100,10 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   const [shareStatus, setShareStatus] = useState<ShareStatus | null>(null);
   const [selectedType, setSelectedType] = useState<AccessType | 'private'>('private');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [allowFileAttachments, setAllowFileAttachments] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [caretOpen, setCaretOpen] = useState(false);
-  const splitButtonRef = useRef<HTMLDivElement>(null);
 
   // RecipientPicker expects Recipient[] — derive from team members list
   const availableRecipients = useMemo<Recipient[]>(
@@ -139,11 +135,9 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         if (status.isShared) {
           setSelectedType(status.accessType || 'org_wide');
           setSelectedUserIds(status.sharedWith?.map((r) => r.userId) || []);
-          setAllowFileAttachments(status.allowFileAttachments ?? true);
         } else {
           setSelectedType('private');
           setSelectedUserIds([]);
-          setAllowFileAttachments(false);
         }
 
         if (onGetTeamMembers) {
@@ -157,25 +151,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
 
     load();
   }, [isOpen, conversationId, onGetShareStatus, onGetTeamMembers]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!caretOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (splitButtonRef.current && !splitButtonRef.current.contains(e.target as Node)) {
-        setCaretOpen(false);
-      }
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCaretOpen(false);
-    };
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [caretOpen]);
 
   const handleCopyLink = useCallback(async () => {
     const url = shareStatus?.shareUrl;
@@ -206,7 +181,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           conversationId,
           selectedType,
           selectedType === 'restricted' ? selectedUserIds : [],
-          allowFileAttachments
+          true
         );
         setShareStatus({
           isShared: true,
@@ -215,7 +190,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           accessType: result.accessType,
           sharedWith: result.sharedWith,
           sharedAt: result.sharedAt,
-          allowFileAttachments: result.allowFileAttachments,
         });
         onShareStatusChange?.(true, result.accessType);
 
@@ -252,7 +226,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           conversationId,
           selectedType,
           selectedType === 'restricted' ? selectedUserIds : [],
-          allowFileAttachments
+          true
         );
         setShareStatus({
           isShared: true,
@@ -261,7 +235,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           accessType: result.accessType,
           sharedWith: result.sharedWith,
           sharedAt: result.sharedAt,
-          allowFileAttachments: result.allowFileAttachments,
         });
         onShareStatusChange?.(true, result.accessType);
 
@@ -278,14 +251,12 @@ Email sent`
       console.error('Failed to share:', error);
     } finally {
       setSaving(false);
-      setCaretOpen(false);
     }
   };
 
   const handleClose = () => {
     onClose();
     setCopied(false);
-    setCaretOpen(false);
   };
 
   const isAlreadyShared = shareStatus?.isShared ?? false;
@@ -437,96 +408,22 @@ Email sent`
                     Cancel
                   </button>
 
-                  {isPrivate ? (
-                    /* Single "Make private" button — no caret */
-                    <button
-                      onClick={handleShare}
-                      disabled={saving}
-                      className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                    >
-                      {saving ? (
-                        <>
-                          <SpinnerGapIcon size={13} className="animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        'Make private'
-                      )}
-                    </button>
-                  ) : (
-                    /* Split button: Share/Update + caret dropdown */
-                    <div ref={splitButtonRef} className="relative flex-1">
-                      <div className="flex rounded-lg overflow-hidden">
-                        <button
-                          onClick={handleShare}
-                          disabled={isShareDisabled}
-                          className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                        >
-                          {saving ? (
-                            <>
-                              <SpinnerGapIcon size={13} className="animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            shareLabel
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setCaretOpen((v) => !v)}
-                          disabled={isShareDisabled}
-                          className="px-2 py-1.5 text-white bg-gray-900 border-l border-gray-700 hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                          <CaretUpIcon
-                            size={12}
-                            weight="bold"
-                            className={`transition-transform duration-200 ${caretOpen ? '' : 'rotate-180'}`}
-                          />
-                        </button>
-                      </div>
-
-                      {/* Attachment dropdown */}
-                      <AnimatePresence>
-                        {caretOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -4 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                setAllowFileAttachments(true);
-                                setCaretOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 cursor-pointer text-left"
-                            >
-                              <span className="w-4 shrink-0">
-                                {allowFileAttachments && (
-                                  <CheckIcon size={14} weight="bold" className="text-gray-900" />
-                                )}
-                              </span>
-                              Share with attachments
-                            </button>
-                            <button
-                              onClick={() => {
-                                setAllowFileAttachments(false);
-                                setCaretOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 cursor-pointer text-left"
-                            >
-                              <span className="w-4 shrink-0">
-                                {!allowFileAttachments && (
-                                  <CheckIcon size={14} weight="bold" className="text-gray-900" />
-                                )}
-                              </span>
-                              Share without attachments
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleShare}
+                    disabled={isShareDisabled}
+                    className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                  >
+                    {saving ? (
+                      <>
+                        <SpinnerGapIcon size={13} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : isPrivate ? (
+                      'Make private'
+                    ) : (
+                      shareLabel
+                    )}
+                  </button>
                 </div>
               </>
             </div>
