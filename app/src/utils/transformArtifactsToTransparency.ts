@@ -13,6 +13,7 @@ import type {
   QueryColumn,
   CallTranscript,
 } from "@vonlabs/design-components";
+import { isQueryTool, getToolConfig } from "../constants/warehouseToolRegistry";
 
 /**
  * RAG artifact content structure
@@ -75,6 +76,9 @@ interface SqlArtifactContent {
     dialect?: string;
     statement: string;
   }>;
+  // Optional warehouse source hint (e.g., "bigquery", "databricks")
+  // Used when backend sends all warehouse queries as execute_sql_query
+  source?: string;
 }
 
 /**
@@ -100,6 +104,299 @@ interface GenericArtifactContent {
     statement: string;
   }>;
 }
+
+// ============================================================================
+// Dynamic Content Parser
+// ============================================================================
+
+interface ExtractedTableData {
+  columns: Array<{ name: string; display_name?: string; type?: string }>;
+  rows: Array<Record<string, unknown>>;
+  query?: string;
+  row_count?: number;
+  execution_time_ms?: number;
+  query_name?: string;
+}
+
+/**
+ * Keys to skip when extracting tabular data — these are metadata, not data.
+ */
+const METADATA_KEYS = new Set([
+  "success",
+  "error",
+  "message",
+  "status",
+  "query",
+  "query_name",
+  "row_count",
+  "execution_time_ms",
+  "source",
+  "statement_id",
+  "catalog",
+  "schema",
+]);
+
+/**
+ * Try to parse a value as JSON if it's a string.
+ */
+function tryParseJson(value: unknown): unknown {
+  if (typeof value !== "string") return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if a value is an array of objects (i.e. tabular data).
+ */
+function isArrayOfObjects(
+  value: unknown,
+): value is Array<Record<string, unknown>> {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    typeof value[0] === "object" &&
+    value[0] !== null &&
+    !Array.isArray(value[0])
+  );
+}
+
+/**
+ * Infer columns from an array of objects by collecting all unique keys.
+ */
+function inferColumnsFromRows(
+  rows: Array<Record<string, unknown>>,
+): Array<{ name: string; display_name: string }> {
+  const keySet = new Set<string>();
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      keySet.add(key);
+    }
+  }
+  return Array.from(keySet).map((key) => ({
+    name: key,
+    display_name: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+  }));
+}
+
+/**
+ * Recursively search an object for the first array of objects (tabular data).
+ * Skips metadata keys and searches up to 3 levels deep.
+ */
+function findFirstArrayOfObjects(
+  obj: Record<string, unknown>,
+  depth = 0,
+): Array<Record<string, unknown>> | null {
+  if (depth > 3) return null;
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (METADATA_KEYS.has(key)) continue;
+
+    // Check if this value is directly an array of objects
+    if (isArrayOfObjects(value)) {
+      return value;
+    }
+
+    // Check if this value is a JSON string that parses to an array of objects
+    const parsed = tryParseJson(value);
+    if (isArrayOfObjects(parsed)) {
+      return parsed;
+    }
+
+    // If parsed is an object, recurse into it
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ) {
+      const found = findFirstArrayOfObjects(
+        parsed as Record<string, unknown>,
+        depth + 1,
+      );
+      if (found) return found;
+    }
+
+    // Recurse into nested objects
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const found = findFirstArrayOfObjects(
+        value as Record<string, unknown>,
+        depth + 1,
+      );
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Try to extract explicit columns from content (e.g. manifest.schema.columns).
+ * Searches for any "columns" key up to 3 levels deep.
+ */
+function findExplicitColumns(
+  obj: Record<string, unknown>,
+  depth = 0,
+): Array<{ name: string; display_name?: string; type?: string }> | null {
+  if (depth > 3) return null;
+
+  for (const [key, value] of Object.entries(obj)) {
+    // Direct columns array with name property
+    if (
+      key === "columns" &&
+      Array.isArray(value) &&
+      value.length > 0 &&
+      typeof value[0] === "object" &&
+      value[0] !== null &&
+      "name" in value[0]
+    ) {
+      return value as Array<{
+        name: string;
+        display_name?: string;
+        type?: string;
+      }>;
+    }
+
+    // Parse JSON strings
+    const parsed = tryParseJson(value);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const found = findExplicitColumns(
+        parsed as Record<string, unknown>,
+        depth + 1,
+      );
+      if (found) return found;
+    }
+
+    // Recurse into nested objects
+    if (
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const found = findExplicitColumns(
+        value as Record<string, unknown>,
+        depth + 1,
+      );
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Dynamically extract tabular data from arbitrary content.
+ *
+ * Strategy (in order):
+ * 1. Contract format: columns/rows at top level or under sample
+ * 2. Parse stringified `result` field, then search for arrays of objects
+ * 3. Find first array of objects anywhere in the content tree
+ * 4. Flatten scalar object to key/value pairs as last resort
+ */
+function dynamicExtractTableData(
+  content: Record<string, unknown>,
+): ExtractedTableData | null {
+  const c = content as Record<string, unknown>;
+
+  // --- Strategy 1: Contract format (columns + rows / sample.columns + sample.rows) ---
+  const sample = c.sample as
+    | { columns?: unknown[]; rows?: unknown[] }
+    | undefined;
+  const contractCols = (sample?.columns || c.columns) as
+    | Array<{ name: string; display_name?: string; type?: string }>
+    | undefined;
+  const contractRows = (sample?.rows || c.rows) as
+    | Array<Record<string, unknown>>
+    | undefined;
+
+  if (contractCols && Array.isArray(contractCols) && contractRows && Array.isArray(contractRows)) {
+    return {
+      columns: contractCols,
+      rows: contractRows,
+      query: (c.query as string) || (c.queries as Array<{ statement: string }>)?.[0]?.statement,
+      row_count: c.row_count as number | undefined,
+      execution_time_ms: c.execution_time_ms as number | undefined,
+      query_name: c.query_name as string | undefined,
+    };
+  }
+
+  // --- Strategy 2 & 3: Find arrays of objects (including in parsed JSON strings) ---
+  const rows = findFirstArrayOfObjects(c);
+  if (rows) {
+    // Try to find explicit column definitions nearby
+    const explicitCols = findExplicitColumns(c);
+    const columns = explicitCols || inferColumnsFromRows(rows);
+
+    return {
+      columns,
+      rows,
+      query: (c.query as string) || (c.statement as string),
+      row_count: (c.row_count as number) ?? rows.length,
+      execution_time_ms: c.execution_time_ms as number | undefined,
+      query_name: c.query_name as string | undefined,
+    };
+  }
+
+  // --- Strategy 4: Flatten top-level scalars to key/value table ---
+  // Only if there are meaningful non-metadata fields
+  const flatEntries = Object.entries(c).filter(
+    ([key, value]) =>
+      !METADATA_KEYS.has(key) &&
+      value !== null &&
+      value !== undefined,
+  );
+
+  if (flatEntries.length > 0) {
+    // Check if every remaining value is a scalar or short string — build key/value
+    const allScalar = flatEntries.every(
+      ([, v]) => typeof v !== "object" || v === null,
+    );
+
+    if (allScalar) {
+      return {
+        columns: [
+          { name: "key", display_name: "Property" },
+          { name: "value", display_name: "Value" },
+        ],
+        rows: flatEntries.map(([key, value]) => ({
+          key: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          value: String(value ?? ""),
+        })),
+        query_name: c.query_name as string | undefined,
+      };
+    }
+
+    // If there are nested objects/arrays but we couldn't find a table,
+    // flatten everything to key/value with JSON stringification
+    return {
+      columns: [
+        { name: "key", display_name: "Property" },
+        { name: "value", display_name: "Value" },
+      ],
+      rows: Object.entries(c)
+        .filter(([, v]) => v !== null && v !== undefined)
+        .map(([key, value]) => ({
+          key: key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          value:
+            typeof value === "object"
+              ? JSON.stringify(value)
+              : String(value ?? ""),
+        })),
+      query_name: c.query_name as string | undefined,
+    };
+  }
+
+  return null;
+}
+
+// ============================================================================
+// Row Transformation
+// ============================================================================
 
 /**
  * Transform raw rows to display-friendly string/number values
@@ -160,12 +457,9 @@ export function applyDeepLinkTransform(columns: QueryColumn[]): QueryColumn[] {
 }
 
 /**
- * Human-readable tool name mapping
+ * Fallback display names for non-registry tools
  */
-const TOOL_NAME_MAP: Record<string, string> = {
-  execute_sql_query: "Query",
-  execute_salesforce_query: "Query",
-  salesforce_tooling_query: "Metadata Query",
+const FALLBACK_TOOL_NAMES: Record<string, string> = {
   execute_conversation_search: "Conversation Search",
   search_calls: "Call Search",
   search_emails: "Email Search",
@@ -175,10 +469,13 @@ const TOOL_NAME_MAP: Record<string, string> = {
 };
 
 /**
- * Get human-readable name for a tool
+ * Get human-readable name for a tool.
+ * Checks the warehouse tool registry first, then falls back to static map.
  */
 function getToolDisplayName(toolName: string): string {
-  return TOOL_NAME_MAP[toolName] || toolName.replace(/_/g, " ");
+  const config = getToolConfig(toolName);
+  if (config) return config.displayName;
+  return FALLBACK_TOOL_NAMES[toolName] || toolName.replace(/_/g, " ");
 }
 
 /**
@@ -217,48 +514,58 @@ function transformArtifactToQueryResult(
     };
   }
 
-  // Handle SQL and SOQL query artifacts
-  if (
-    tool_name === "execute_sql_query" ||
-    tool_name === "execute_salesforce_query"
-  ) {
+  // Handle all registered query tools (Salesforce, BigQuery, Databricks, Snowflake, etc.)
+  if (isQueryTool(tool_name)) {
     const sqlContent = content as unknown as SqlArtifactContent;
 
-    // Support both formats: nested under sample or at top level
-    const rawColumns = sqlContent.sample?.columns || sqlContent.columns;
-    const rawRows = sqlContent.sample?.rows || sqlContent.rows;
+    // Resolve config — if generic execute_sql_query has a source hint, use that
+    let config = getToolConfig(tool_name)!;
+    if (tool_name === "execute_sql_query" && sqlContent.source) {
+      const sourceConfig = getToolConfig(
+        `execute_${sqlContent.source}_query`,
+      );
+      if (sourceConfig) config = sourceConfig;
+    }
 
-    if (!rawColumns || !rawRows) {
+    // Try contract format first, then fall back to dynamic parsing
+    const extracted = dynamicExtractTableData(
+      content as Record<string, unknown>,
+    );
+    if (!extracted || extracted.rows.length === 0) {
       return null;
     }
 
     const columns: QueryColumn[] = applyDeepLinkTransform(
-      rawColumns.map((col) => ({
+      extracted.columns.map((col) => ({
         key: col.name,
         label: col.display_name || col.name,
         type: (col.type as QueryColumn["type"]) || "string",
       })),
     );
 
-    const rows = transformRowsForDisplay(rawRows);
+    const rows = transformRowsForDisplay(extracted.rows);
 
-    // Get query from either format: queries[0].statement or query
+    // Get query from extracted data or queries array
     const firstQuery = sqlContent.queries?.[0];
-    const queryStatement = firstQuery?.statement || sqlContent.query;
+    const queryStatement =
+      firstQuery?.statement || extracted.query || sqlContent.query;
 
-    // Use query_name if available, otherwise fall back to tool display name
-    const displayName = sqlContent.query_name || getToolDisplayName(tool_name);
+    // Use query_name if available, otherwise fall back to registry display name
+    const displayName =
+      extracted.query_name || sqlContent.query_name || config.displayName;
+    // Use backend-provided label, fall back to registry queryLabel
+    const queryLabel = firstQuery?.label || config.queryLabel;
 
     return {
       id: artifact_id,
       name: displayName,
-      description: `${sqlContent.row_count ?? rows.length} rows returned`,
+      description: `${extracted.row_count ?? rows.length} rows returned`,
       query: queryStatement,
-      queryLabel: firstQuery?.label,
+      queryLabel,
       columns,
       rows,
       executedAt: new Date(persisted_at),
-      duration: sqlContent.execution_time_ms,
+      duration: extracted.execution_time_ms ?? sqlContent.execution_time_ms,
     };
   }
 
@@ -269,60 +576,40 @@ function transformArtifactToQueryResult(
     return null;
   }
 
-  // Handle generic JSON/table artifacts
+  // Handle generic JSON/table artifacts using dynamic parsing
   if (artifact.artifact_type === "table" || artifact.artifact_type === "json") {
+    const extracted = dynamicExtractTableData(
+      content as Record<string, unknown>,
+    );
+    if (!extracted) return null;
+
     const genericContent = content as unknown as GenericArtifactContent;
+    const columns: QueryColumn[] = applyDeepLinkTransform(
+      extracted.columns.map((col) => ({
+        key: col.name,
+        label: col.display_name || col.name,
+        type: (col.type as QueryColumn["type"]) || "string",
+      })),
+    );
 
-    // Support both formats: nested under sample or at top level
-    const rawCols = genericContent.sample?.columns || genericContent.columns;
-    const rawRows = genericContent.sample?.rows || genericContent.rows;
+    const rows = transformRowsForDisplay(extracted.rows);
 
-    if (rawCols && rawRows) {
-      const columns: QueryColumn[] = applyDeepLinkTransform(
-        rawCols.map((col) => ({
-          key: col.name,
-          label: col.display_name || col.name,
-          type: "string" as const,
-        })),
-      );
+    const displayName =
+      extracted.query_name || getToolDisplayName(tool_name);
 
-      const rows = transformRowsForDisplay(rawRows);
-
-      const displayName =
-        genericContent.query_name || getToolDisplayName(tool_name);
-
-      const firstQuery = genericContent.queries?.[0];
-      const queryStatement = firstQuery?.statement || genericContent.query;
-
-      return {
-        id: artifact_id,
-        name: displayName,
-        columns,
-        rows,
-        query: queryStatement,
-        queryLabel: firstQuery?.label,
-        executedAt: new Date(persisted_at),
-      };
-    }
-
-    // For non-tabular JSON, create a single-row representation
-    const columns: QueryColumn[] = [
-      { key: "key", label: "Property", type: "string" },
-      { key: "value", label: "Value", type: "string" },
-    ];
-
-    const rows = Object.entries(content).map(([key, value]) => ({
-      key,
-      value:
-        typeof value === "object" ? JSON.stringify(value) : String(value ?? ""),
-    }));
+    const firstQuery = genericContent.queries?.[0];
+    const queryStatement =
+      firstQuery?.statement || extracted.query || genericContent.query;
 
     return {
       id: artifact_id,
-      name: getToolDisplayName(tool_name),
+      name: displayName,
       columns,
       rows,
+      query: queryStatement,
+      queryLabel: firstQuery?.label,
       executedAt: new Date(persisted_at),
+      duration: extracted.execution_time_ms,
     };
   }
 
