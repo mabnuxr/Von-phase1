@@ -40,6 +40,8 @@
   "overrides": {
     "rollup": "^4.59.0",
     "picomatch@^4": "^4.0.4",
-    "flatted": "^3.4.2"
+    "flatted": "^3.4.2",
+    "minimatch@^3": "^3.1.4",
+    "minimatch@^9": "^9.0.7"
   }
 }
