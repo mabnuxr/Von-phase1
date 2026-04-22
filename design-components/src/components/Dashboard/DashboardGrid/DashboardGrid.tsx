@@ -79,7 +79,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                 key={item.i}
                 className={`h-full ${
                   isEditMode
-                    ? 'rounded-[18px] border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
+                    ? 'border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
                     : ''
                 }`}
               >
