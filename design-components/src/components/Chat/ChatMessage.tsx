@@ -67,6 +67,8 @@ export interface ChatMessageProps {
   thinkingElapsedTime?: number;
   v2FinalResponse?: string;
   onFileClick?: (attachment: MessageFileAttachment) => void;
+  /** When true, file attachments and command data sources render with reduced opacity */
+  disableFileAttachments?: boolean;
   // File artifacts
   artifacts?: FileArtifact[];
   onFileArtifactClick?: (
@@ -86,11 +88,11 @@ export interface ChatMessageProps {
   renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
-  integrationBlock?: {
+  integrationBlocks?: Array<{
     blockCode?: string;
     message: string;
     integrationType: string;
-  };
+  }>;
   isIntegrationConnected?: (integrationType: string) => boolean;
   onIntegrate?: (integrationType: string) => void;
   getIntegrationMetadata?: (integrationType: string) => {
@@ -144,6 +146,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   thinkingElapsedTime,
   v2FinalResponse,
   onFileClick,
+  disableFileAttachments,
   artifacts,
   onFileArtifactClick,
   onArtifactDownload,
@@ -156,7 +159,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   renderGroupedEmailArtifacts,
   command,
   onRequestFilePreviewUrl,
-  integrationBlock,
+  integrationBlocks,
   isIntegrationConnected,
   onIntegrate,
   getIntegrationMetadata,
@@ -210,6 +213,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                   onFileClick={onFileClick}
                   onMentionClick={onMentionClick}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+                  disableFileAttachments={disableFileAttachments}
                   compact={compact}
                 />
               ) : (
@@ -325,15 +329,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                       />
                     )}
 
-                    {/* Integration write blocked card */}
-                    {integrationBlock && !isStreaming && (
-                      <IntegrationBlockSection
-                        integrationBlock={integrationBlock}
-                        isIntegrationConnected={isIntegrationConnected}
-                        onIntegrate={onIntegrate}
-                        getIntegrationMetadata={getIntegrationMetadata}
-                      />
-                    )}
+                    {/* Integration write blocked cards */}
+                    {integrationBlocks &&
+                      integrationBlocks.length > 0 &&
+                      !isStreaming &&
+                      integrationBlocks.map((block, index) => (
+                        <IntegrationBlockSection
+                          key={`${block.integrationType}-${index}`}
+                          integrationBlock={block}
+                          isIntegrationConnected={isIntegrationConnected}
+                          onIntegrate={onIntegrate}
+                          getIntegrationMetadata={getIntegrationMetadata}
+                        />
+                      ))}
 
                     {/* Status indicators (stopped, timeout, expired) */}
                     <MessageStatusIndicators

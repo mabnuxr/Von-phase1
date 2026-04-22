@@ -1,5 +1,5 @@
 import React from 'react';
-import { CopyIcon, TrashSimpleIcon } from '@phosphor-icons/react';
+import { ArrowSquareOutIcon, CopyIcon, TrashSimpleIcon } from '@phosphor-icons/react';
 
 // Inline Chip component (since design-components can't import from app)
 interface ChipProps {
@@ -135,6 +135,12 @@ export interface IntegrationCardProps {
    * Optional note displayed below the description (e.g., prerequisite info)
    */
   note?: string;
+
+  /**
+   * Show an external-link icon on the Connect button
+   * @default false
+   */
+  showConnectArrow?: boolean;
 }
 
 /**
@@ -171,6 +177,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   actionSlot,
   statusText,
   note,
+  showConnectArrow = false,
 }) => {
   const isLoading = !!loadingText;
 
@@ -256,9 +263,10 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           ) : onToggle && !disabled ? (
             <button
               onClick={() => onToggle(true)}
-              className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors hover:cursor-pointer"
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 hover:bg-gray-50 transition-colors hover:cursor-pointer flex items-center gap-1.5"
             >
               Connect
+              {showConnectArrow && <ArrowSquareOutIcon size={14} />}
             </button>
           ) : disabled ? (
             <span className="text-sm text-gray-400">Coming soon</span>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   GlobeSimpleIcon,
@@ -8,6 +8,7 @@ import {
   CheckIcon,
   CopyIcon,
   UsersIcon,
+  CaretUpIcon,
 } from '@phosphor-icons/react';
 import { RecipientPicker } from '../RecipientPicker';
 import type { Recipient } from '../RecipientPicker';
@@ -55,7 +56,7 @@ export interface ShareChatPopupProps {
   isOpen: boolean;
   conversationId: string;
   onClose: () => void;
-  onShareStatusChange?: (isShared: boolean) => void;
+  onShareStatusChange?: (isShared: boolean, accessType?: AccessType | null) => void;
 
   /** Fetch current share status */
   onGetShareStatus: (conversationId: string) => Promise<ShareStatus>;
@@ -77,6 +78,8 @@ export interface ShareChatPopupProps {
   onDeactivateShare: (conversationId: string) => Promise<void>;
   /** Fetch team members for user picker */
   onGetTeamMembers?: () => Promise<TeamMemberOption[]>;
+  /** Toast callback — fired after each share action completes */
+  onToast?: (message: string) => void;
 }
 
 // ============================================================================
@@ -93,16 +96,18 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   onUpdateShare,
   onDeactivateShare,
   onGetTeamMembers,
+  onToast,
 }) => {
   const [shareStatus, setShareStatus] = useState<ShareStatus | null>(null);
   const [selectedType, setSelectedType] = useState<AccessType | 'private'>('private');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [allowFileAttachments, setAllowFileAttachments] = useState(true);
+  const [allowFileAttachments, setAllowFileAttachments] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [caretOpen, setCaretOpen] = useState(false);
+  const splitButtonRef = useRef<HTMLDivElement>(null);
 
   // RecipientPicker expects Recipient[] — derive from team members list
   const availableRecipients = useMemo<Recipient[]>(
@@ -127,7 +132,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
     if (!isOpen) return;
 
     const load = async () => {
-      setLoading(true);
       try {
         const status = await onGetShareStatus(conversationId);
         setShareStatus(status);
@@ -139,7 +143,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         } else {
           setSelectedType('private');
           setSelectedUserIds([]);
-          setAllowFileAttachments(true);
+          setAllowFileAttachments(false);
         }
 
         if (onGetTeamMembers) {
@@ -148,13 +152,30 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         }
       } catch (error) {
         console.error('Failed to load share status:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
     load();
   }, [isOpen, conversationId, onGetShareStatus, onGetTeamMembers]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!caretOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (splitButtonRef.current && !splitButtonRef.current.contains(e.target as Node)) {
+        setCaretOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setCaretOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [caretOpen]);
 
   const handleCopyLink = useCallback(async () => {
     const url = shareStatus?.shareUrl;
@@ -172,12 +193,15 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
 
   const handleShare = async () => {
     setSaving(true);
+    const previousUserIds = shareStatus?.sharedWith?.map((r) => r.userId) ?? [];
+    const wasShared = shareStatus?.isShared ?? false;
     try {
       if (selectedType === 'private') {
         await onDeactivateShare(conversationId);
         setShareStatus({ isShared: false });
-        onShareStatusChange?.(false);
-      } else if (shareStatus?.isShared) {
+        onShareStatusChange?.(false, null);
+        onToast?.('Chat is now private');
+      } else if (wasShared) {
         const result = await onUpdateShare(
           conversationId,
           selectedType,
@@ -193,7 +217,36 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           sharedAt: result.sharedAt,
           allowFileAttachments: result.allowFileAttachments,
         });
-        onShareStatusChange?.(true);
+        onShareStatusChange?.(true, result.accessType);
+
+        // Compute toast based on what changed
+        const previousAccessType = shareStatus?.accessType;
+        const accessTypeChanged = previousAccessType !== selectedType;
+
+        if (selectedType === 'org_wide') {
+          onToast?.('Chat shared with your workspace');
+        } else if (accessTypeChanged) {
+          // Switched share type (e.g. org_wide → restricted) — not "adding more"
+          onToast?.(
+            `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}\nEmail sent`
+          );
+        } else {
+          const added = selectedUserIds.filter((id) => !previousUserIds.includes(id));
+          const removed = previousUserIds.filter((id) => !selectedUserIds.includes(id));
+          if (removed.length > 0 && added.length === 0) {
+            onToast?.(
+              `Access removed for ${removed.length} ${removed.length === 1 ? 'person' : 'people'}`
+            );
+          } else if (added.length > 0) {
+            onToast?.(
+              `Chat shared with ${added.length} more ${added.length === 1 ? 'person' : 'people'}\nEmail sent`
+            );
+          } else {
+            onToast?.(
+              `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}\nEmail sent`
+            );
+          }
+        }
       } else {
         const result = await onCreateShare(
           conversationId,
@@ -210,21 +263,36 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           sharedAt: result.sharedAt,
           allowFileAttachments: result.allowFileAttachments,
         });
-        onShareStatusChange?.(true);
+        onShareStatusChange?.(true, result.accessType);
+
+        if (selectedType === 'org_wide') {
+          onToast?.('Chat shared with your workspace');
+        } else {
+          onToast?.(
+            `Chat shared with ${selectedUserIds.length} ${selectedUserIds.length === 1 ? 'person' : 'people'}
+Email sent`
+          );
+        }
       }
     } catch (error) {
       console.error('Failed to share:', error);
     } finally {
       setSaving(false);
+      setCaretOpen(false);
     }
   };
 
   const handleClose = () => {
     onClose();
     setCopied(false);
+    setCaretOpen(false);
   };
 
   const isAlreadyShared = shareStatus?.isShared ?? false;
+  const isPrivate = selectedType === 'private';
+  const isShareDisabled = saving || (selectedType === 'restricted' && selectedUserIds.length === 0);
+
+  const shareLabel = saving ? 'Saving...' : isAlreadyShared ? 'Update' : 'Share';
 
   return (
     <AnimatePresence>
@@ -253,7 +321,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                     {isAlreadyShared ? 'Chat shared' : 'Share this chat'}
                   </h3>
                   <p className="text-xs text-gray-700 mt-0.5">
-                    Only messages up to this point will be shared.
+                    Share a read-only link with users in your Von workspace
                   </p>
                 </div>
                 <button
@@ -264,161 +332,116 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                 </button>
               </div>
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <SpinnerGapIcon size={20} className="animate-spin text-gray-400" />
-                </div>
-              ) : (
-                <>
-                  <div className="flex flex-col gap-1.5 mt-3">
-                    <button
-                      onClick={() => setSelectedType('private')}
-                      className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
-                        selectedType === 'private'
-                          ? 'border-gray-300 bg-gray-50'
-                          : 'border-gray-100 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <LockIcon
-                        size={16}
-                        className={`mt-1 ${selectedType === 'private' ? 'text-gray-900' : 'text-gray-400'}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">Keep private</span>
-                        <p className="text-xs text-gray-700 mt-0.5">
-                          Only you have access to this chat.
-                        </p>
-                      </div>
-                      {selectedType === 'private' && (
-                        <CheckIcon
-                          size={16}
-                          weight="bold"
-                          className="text-gray-900 mt-1 shrink-0"
-                        />
-                      )}
-                    </button>
+              <>
+                <div className="flex flex-col gap-1.5 mt-3">
+                  <button
+                    onClick={() => setSelectedType('private')}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
+                      selectedType === 'private'
+                        ? 'border-gray-300 bg-gray-50'
+                        : 'border-gray-100 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <LockIcon
+                      size={16}
+                      className={selectedType === 'private' ? 'text-gray-900' : 'text-gray-400'}
+                    />
+                    <span className="flex-1 min-w-0 text-sm font-medium text-gray-900">
+                      Keep private
+                    </span>
+                    {selectedType === 'private' && (
+                      <CheckIcon size={16} weight="bold" className="text-gray-900 shrink-0" />
+                    )}
+                  </button>
 
-                    <div
-                      className={`rounded-xl border transition-colors ${
-                        selectedType === 'restricted'
-                          ? 'border-gray-300 bg-gray-50'
-                          : 'border-gray-100 bg-white hover:bg-gray-50'
-                      }`}
+                  <div
+                    className={`rounded-xl border transition-colors ${
+                      selectedType === 'restricted'
+                        ? 'border-gray-300 bg-gray-50'
+                        : 'border-gray-100 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <button
+                      onClick={() => setSelectedType('restricted')}
+                      className="flex items-center gap-2.5 px-3 py-2 w-full cursor-pointer text-left"
                     >
-                      <button
-                        onClick={() => setSelectedType('restricted')}
-                        className="flex items-start gap-2.5 px-3 py-2 w-full cursor-pointer text-left"
-                      >
-                        <UsersIcon
-                          size={16}
-                          className={`mt-1 ${selectedType === 'restricted' ? 'text-gray-900' : 'text-gray-400'}`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-gray-900">
-                            Share with specific people
-                          </span>
-                          <p className="text-xs text-gray-700 mt-0.5">
-                            Only selected team members can open this chat.
-                          </p>
-                        </div>
-                        {selectedType === 'restricted' && (
-                          <CheckIcon
-                            size={16}
-                            weight="bold"
-                            className="text-gray-900 mt-1 shrink-0"
-                          />
-                        )}
-                      </button>
+                      <UsersIcon
+                        size={16}
+                        className={
+                          selectedType === 'restricted' ? 'text-gray-900' : 'text-gray-400'
+                        }
+                      />
+                      <span className="flex-1 min-w-0 text-sm font-medium text-gray-900">
+                        Share with specific people
+                      </span>
                       {selectedType === 'restricted' && (
-                        <div className="px-3 pb-2">
-                          <RecipientPicker
-                            recipients={selectedRecipients}
-                            onChange={handleRecipientsChange}
-                            availableRecipients={availableRecipients}
-                            label=""
-                            placeholder="Search team members..."
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => setSelectedType('org_wide')}
-                      className={`flex items-start gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
-                        selectedType === 'org_wide'
-                          ? 'border-gray-300 bg-gray-50'
-                          : 'border-gray-100 bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <GlobeSimpleIcon
-                        size={16}
-                        className={`mt-1 ${selectedType === 'org_wide' ? 'text-gray-900' : 'text-gray-400'}`}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">Share to org wide</span>
-                        <p className="text-xs text-gray-700 mt-0.5">
-                          Anyone at your company with this link can open and read this chat.
-                        </p>
-                      </div>
-                      {selectedType === 'org_wide' && (
-                        <CheckIcon
-                          size={16}
-                          weight="bold"
-                          className="text-gray-900 mt-1 shrink-0"
-                        />
+                        <CheckIcon size={16} weight="bold" className="text-gray-900 shrink-0" />
                       )}
                     </button>
+                    {selectedType === 'restricted' && (
+                      <div className="px-3 pb-2">
+                        <div className="border-t border-gray-200 mb-2" />
+                        <RecipientPicker
+                          recipients={selectedRecipients}
+                          onChange={handleRecipientsChange}
+                          availableRecipients={availableRecipients}
+                          label=""
+                          placeholder="Search team members..."
+                        />
+                      </div>
+                    )}
                   </div>
 
-                  {isAlreadyShared && selectedType !== 'private' && shareStatus?.shareUrl && (
-                    <button
-                      onClick={handleCopyLink}
-                      className="w-full flex items-center gap-2 mt-3 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer text-left"
-                    >
-                      <span className="flex-1 text-xs text-gray-700 truncate font-mono">
-                        {shareStatus.shareUrl}
-                      </span>
-                      {copied ? (
-                        <span className="text-[10px] text-gray-500 shrink-0">Copied!</span>
-                      ) : (
-                        <CopyIcon size={13} className="text-gray-700 shrink-0" />
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setSelectedType('org_wide')}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-colors cursor-pointer text-left ${
+                      selectedType === 'org_wide'
+                        ? 'border-gray-300 bg-gray-50'
+                        : 'border-gray-100 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <GlobeSimpleIcon
+                      size={16}
+                      className={selectedType === 'org_wide' ? 'text-gray-900' : 'text-gray-400'}
+                    />
+                    <span className="flex-1 min-w-0 text-sm font-medium text-gray-900">
+                      Share with workspace
+                    </span>
+                    {selectedType === 'org_wide' && (
+                      <CheckIcon size={16} weight="bold" className="text-gray-900 shrink-0" />
+                    )}
+                  </button>
+                </div>
 
-                  {/* File attachment toggle — only shown when sharing is active */}
-                  {selectedType !== 'private' && (
-                    <label className="flex items-start gap-2.5 mt-3 px-3 py-2 rounded-xl border border-gray-100 bg-white hover:bg-gray-50 transition-colors cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={allowFileAttachments}
-                        onChange={(e) => setAllowFileAttachments(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 cursor-pointer"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900">
-                          Allow file attachments to be shared
-                        </span>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          When disabled, only agent-generated artifacts and public command files
-                          will be visible.
-                        </p>
-                      </div>
-                    </label>
-                  )}
+                {isAlreadyShared && selectedType !== 'private' && shareStatus?.shareUrl && (
+                  <button
+                    onClick={handleCopyLink}
+                    className="w-full flex items-center gap-2 mt-3 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors cursor-pointer text-left"
+                  >
+                    <span className="flex-1 text-xs text-gray-700 truncate font-mono">
+                      {shareStatus.shareUrl}
+                    </span>
+                    {copied ? (
+                      <span className="text-[10px] text-gray-500 shrink-0">Copied!</span>
+                    ) : (
+                      <CopyIcon size={13} className="text-gray-700 shrink-0" />
+                    )}
+                  </button>
+                )}
 
-                  <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={handleClose}
-                      className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
+                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={handleClose}
+                    className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  {isPrivate ? (
+                    /* Single "Make private" button — no caret */
                     <button
                       onClick={handleShare}
-                      disabled={
-                        saving || (selectedType === 'restricted' && selectedUserIds.length === 0)
-                      }
+                      disabled={saving}
                       className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     >
                       {saving ? (
@@ -426,17 +449,86 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
                           <SpinnerGapIcon size={13} className="animate-spin" />
                           Saving...
                         </>
-                      ) : selectedType === 'private' ? (
-                        'Make private'
-                      ) : isAlreadyShared ? (
-                        'Update'
                       ) : (
-                        'Share'
+                        'Make private'
                       )}
                     </button>
-                  </div>
-                </>
-              )}
+                  ) : (
+                    /* Split button: Share/Update + caret dropdown */
+                    <div ref={splitButtonRef} className="relative flex-1">
+                      <div className="flex rounded-lg overflow-hidden">
+                        <button
+                          onClick={handleShare}
+                          disabled={isShareDisabled}
+                          className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                        >
+                          {saving ? (
+                            <>
+                              <SpinnerGapIcon size={13} className="animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            shareLabel
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setCaretOpen((v) => !v)}
+                          disabled={isShareDisabled}
+                          className="px-2 py-1.5 text-white bg-gray-900 border-l border-gray-700 hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                          <CaretUpIcon
+                            size={12}
+                            weight="bold"
+                            className={`transition-transform duration-200 ${caretOpen ? '' : 'rotate-180'}`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Attachment dropdown */}
+                      <AnimatePresence>
+                        {caretOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-10"
+                          >
+                            <button
+                              onClick={() => {
+                                setAllowFileAttachments(true);
+                                setCaretOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 cursor-pointer text-left"
+                            >
+                              <span className="w-4 shrink-0">
+                                {allowFileAttachments && (
+                                  <CheckIcon size={14} weight="bold" className="text-gray-900" />
+                                )}
+                              </span>
+                              Share with attachments
+                            </button>
+                            <button
+                              onClick={() => {
+                                setAllowFileAttachments(false);
+                                setCaretOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-900 hover:bg-gray-50 cursor-pointer text-left"
+                            >
+                              <span className="w-4 shrink-0">
+                                {!allowFileAttachments && (
+                                  <CheckIcon size={14} weight="bold" className="text-gray-900" />
+                                )}
+                              </span>
+                              Share without attachments
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+                </div>
+              </>
             </div>
           </motion.div>
         </>

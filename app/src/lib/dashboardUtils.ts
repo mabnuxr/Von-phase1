@@ -9,7 +9,7 @@ import type { ChatItem } from "@vonlabs/design-components";
 
 // App services
 import { conversationsService } from "../services/conversationsService";
-import { detectIntegrationBlock } from "../utils/integrationBlockDetector";
+import { detectIntegrationBlocks } from "../utils/integrationBlockDetector";
 
 // App types
 import type {
@@ -121,10 +121,10 @@ export function transformMessagesToChatFormat(
             })),
           }
         : undefined,
-      // Integration write block (detected from message content)
-      integrationBlock:
+      // Integration write blocks (detected from message content)
+      integrationBlocks:
         streamingMsg.role === "assistant"
-          ? detectIntegrationBlock(content)
+          ? detectIntegrationBlocks(content)
           : undefined,
     } as ChatMessage;
   });

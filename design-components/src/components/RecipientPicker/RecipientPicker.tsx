@@ -177,7 +177,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
         <div
           ref={inputRowRef}
           className={`flex flex-wrap items-center gap-1.5 border border-gray-100 rounded-xl px-2 py-1.5 transition-all focus-within:ring-1 focus-within:ring-gray-300 focus-within:border-gray-300 ${
-            readOnly ? 'bg-gray-50' : ''
+            readOnly ? 'bg-gray-50' : 'bg-white'
           }`}
         >
           <MagnifyingGlass size={13} className="text-gray-400 shrink-0" />

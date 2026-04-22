@@ -31,6 +31,7 @@ export function useIntegrations() {
   return useQuery({
     queryKey: ["integrations"],
     queryFn: () => integrationsService.getIntegrations(),
+    refetchOnWindowFocus: true,
   });
 }
 
