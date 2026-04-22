@@ -11,17 +11,21 @@ const variantStyles = {
 
 type VariantKey = keyof typeof variantStyles;
 
-const alignmentStyles: Record<string, string> = {
+const alignmentStyles = {
   left: 'text-left',
   center: 'text-center',
   right: 'text-right',
-};
+} as const;
+
+type AlignmentKey = keyof typeof alignmentStyles;
 
 const overflowStyles = {
   auto: 'overflow-auto',
   hidden: 'overflow-hidden',
   visible: 'overflow-visible',
 } as const;
+
+type OverflowKey = keyof typeof overflowStyles;
 
 /**
  * Text widget for headings, body text, captions, and rich markdown content.
@@ -38,17 +42,20 @@ const TextWidget: React.FC<TextWidgetProps> = ({ config, onAddToChat }) => {
   const knownVariant =
     typeof variant === 'string' && variant in variantStyles ? (variant as VariantKey) : null;
 
-  const overflowClass = overflowStyles[overflow];
+  const alignmentClass =
+    alignmentStyles[(alignment in alignmentStyles ? alignment : 'left') as AlignmentKey];
+  const overflowClass =
+    overflowStyles[(overflow in overflowStyles ? overflow : 'auto') as OverflowKey];
 
   const richBottomPadding = onAddToChat ? 'pb-14' : 'pb-3';
 
   const body = knownVariant ? (
-    <div className={`flex items-center h-full px-4 py-2 ${alignmentStyles[alignment]}`}>
+    <div className={`flex items-center h-full px-4 py-2 ${alignmentClass}`}>
       <p className={`${variantStyles[knownVariant]} w-full`}>{content}</p>
     </div>
   ) : (
     <div
-      className={`h-full ${overflowClass} [scrollbar-gutter:stable] pl-4 pt-3 ${richBottomPadding} ${alignmentStyles[alignment]}`}
+      className={`h-full ${overflowClass} [scrollbar-gutter:stable] pl-4 pr-4 pt-3 ${richBottomPadding} ${alignmentClass}`}
     >
       <TiptapViewer content={content} className="text-sm text-gray-700" />
     </div>
