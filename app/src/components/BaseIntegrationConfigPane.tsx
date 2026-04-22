@@ -389,9 +389,9 @@ export function BaseIntegrationConfigPane({
             (updateData as Record<string, unknown>).apiKey = snowflakeAccountId;
           }
         } else if (integrationId === "bigquery") {
-          if (bigqueryServiceAccountJson) {
+          if (bigqueryServiceAccountJson.trim()) {
             (updateData as Record<string, unknown>).serviceAccountJson =
-              bigqueryServiceAccountJson;
+              bigqueryServiceAccountJson.trim();
           }
         } else if (integrationId === "databricks") {
           if (databricksClientId) {
@@ -1312,6 +1312,14 @@ export function BaseIntegrationConfigPane({
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
+                              const MAX_SIZE = 1 * 1024 * 1024; // 1 MB
+                              if (file.size > MAX_SIZE) {
+                                setValidationErrors([
+                                  "Service account JSON file must be under 1 MB.",
+                                ]);
+                                e.target.value = "";
+                                return;
+                              }
                               const reader = new FileReader();
                               reader.onload = (ev) =>
                                 setBigqueryServiceAccountJson(
