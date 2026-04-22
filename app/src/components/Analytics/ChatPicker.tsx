@@ -132,8 +132,6 @@ export function ChatPicker({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const committedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeTitleRef = useRef(activeTitle);
-  activeTitleRef.current = activeTitle;
   const {
     unfiledConversations,
     isLoading: isLoadingFull,
@@ -169,6 +167,8 @@ export function ChatPicker({
     activeAssociated?.title?.trim() ||
     activeUnfiled?.title?.trim() ||
     (activeChatId ? "Chat" : "New chat");
+  const activeTitleRef = useRef(activeTitle);
+  activeTitleRef.current = activeTitle;
 
   // Use streaming animated title when available (same as left sidebar)
   const animatedTitle = activeChatId
