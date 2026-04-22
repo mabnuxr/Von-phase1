@@ -241,7 +241,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   snowflake: {
     id: "snowflake",
     name: "Snowflake",
-    description: "Connect to Snowflake data warehouse for advanced analytics",
+    description:
+      "Query usage, billing, and renewal signals from your Snowflake warehouse",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Snowflake.svg",
     category: "Data Warehouse",
@@ -249,9 +250,19 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   databricks: {
     id: "databricks",
     name: "Databricks",
-    description: "Integrate with Databricks for data lakehouse analytics",
+    description:
+      "Query usage metrics and custom lakehouse models from your Databricks lakehouse",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Databricks.svg",
+    category: "Data Warehouse",
+  },
+  bigquery: {
+    id: "bigquery",
+    name: "BigQuery",
+    description:
+      "Query product usage and customer health from your serverless BigQuery warehouse",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/BigQuery.svg",
     category: "Data Warehouse",
   },
   // Customer Support integrations
@@ -320,6 +331,7 @@ export function getIntegrationLogoPath(type: string): string {
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
+    BIGQUERY: "bigquery",
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
@@ -365,6 +377,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     salesloft_engagement: "SALESLOFT_ENGAGEMENT",
     snowflake: "SNOWFLAKE",
     databricks: "DATABRICKS",
+    bigquery: "BIGQUERY",
     zendesk: "ZENDESK",
     pylon: "PYLON",
     gmail: "GMAIL",
@@ -404,6 +417,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
+    BIGQUERY: "bigquery",
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
@@ -444,6 +458,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
     DATABRICKS: "databricks",
+    BIGQUERY: "bigquery",
     ZENDESK: "zendesk",
     PYLON: "pylon",
     GMAIL: "gmail",
@@ -495,6 +510,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   salesloft_engagement: ["tenant"],
   snowflake: ["tenant"],
   databricks: ["tenant"],
+  bigquery: ["tenant"],
   pylon: ["user"],
   granola: ["user"],
   notion: ["tenant"],
