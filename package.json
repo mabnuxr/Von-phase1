@@ -38,6 +38,7 @@
     "zustand": "^5.0.8"
   },
   "overrides": {
-    "rollup": "^4.59.0"
+    "rollup": "^4.59.0",
+    "picomatch@^4": "^4.0.4"
   }
 }
