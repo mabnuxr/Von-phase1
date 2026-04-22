@@ -243,7 +243,7 @@ const ChangesTable: React.FC<{
  * - Approve/Reject buttons
  * - Status feedback (approved/rejected state)
  *
- * Note: For bulk operations, use ApprovalCard wrapper which delegates to BulkApprovalCard
+ * Note: For bulk operations, use BulkApprovalCard.
  */
 export const CompactApprovalCard = React.memo<CompactApprovalCardProps>(
   ({
