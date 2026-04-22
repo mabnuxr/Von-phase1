@@ -241,7 +241,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   snowflake: {
     id: "snowflake",
     name: "Snowflake",
-    description: "Query usage, billing, and renewal signals from your Snowflake warehouse",
+    description:
+      "Query usage, billing, and renewal signals from your Snowflake warehouse",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Snowflake.svg",
     category: "Data Warehouse",
@@ -249,7 +250,8 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   databricks: {
     id: "databricks",
     name: "Databricks",
-    description: "Query usage metrics and custom lakehouse models from your Databricks lakehouse",
+    description:
+      "Query usage metrics and custom lakehouse models from your Databricks lakehouse",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Databricks.svg",
     category: "Data Warehouse",
