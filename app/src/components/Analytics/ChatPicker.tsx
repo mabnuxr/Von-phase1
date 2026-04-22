@@ -132,6 +132,8 @@ export function ChatPicker({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const committedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const activeTitleRef = useRef(activeTitle);
+  activeTitleRef.current = activeTitle;
   const {
     unfiledConversations,
     isLoading: isLoadingFull,
@@ -194,13 +196,16 @@ export function ChatPicker({
   useEffect(() => {
     if (isRenaming) {
       committedRef.current = false;
+      const currentTitle = activeTitleRef.current;
       const seed =
-        activeTitle === "Chat" || activeTitle === "New chat" ? "" : activeTitle;
+        currentTitle === "Chat" || currentTitle === "New chat"
+          ? ""
+          : currentTitle;
       setRenameValue(seed);
       closeDropdown();
       setTimeout(() => renameInputRef.current?.select(), 0);
     }
-  }, [isRenaming, activeTitle, closeDropdown]);
+  }, [isRenaming, closeDropdown]);
 
   const handleRenameSubmit = () => {
     if (committedRef.current) return;
