@@ -24,7 +24,6 @@ import {
   TextHTwo,
 } from "@phosphor-icons/react";
 import "./OrgContextEditor.css";
-import vonFilledLogo from "../assets/von-filled-logo.svg";
 
 interface OrgContextEditorProps {
   content: string;
@@ -32,9 +31,6 @@ interface OrgContextEditorProps {
   isEditing: boolean;
   placeholder?: string;
   contentKey?: string;
-  /** Optional handler for the "Edit with Von" toolbar CTA. When provided,
-   *  the button appears at the right edge of the toolbar. */
-  onEditWithVon?: () => void;
   /** Fires once a non-empty text selection inside the editor stabilizes
    *  (user stopped dragging). Used to feed a context chip into the chat pane. */
   onSelectionCapture?: (text: string) => void;
@@ -67,7 +63,6 @@ export function OrgContextEditor({
   isEditing,
   placeholder = "Start typing...",
   contentKey,
-  onEditWithVon,
   onSelectionCapture,
 }: OrgContextEditorProps) {
   // Keep a live ref to the latest capture handler so the editor's
@@ -307,23 +302,6 @@ export function OrgContextEditor({
             </button>
           </div>
 
-          {onEditWithVon && (
-            <button
-              type="button"
-              onClick={onEditWithVon}
-              title="Edit with Von"
-              className="tiptap-toolbar-von ml-auto flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-white text-xs whitespace-nowrap flex-shrink-0"
-            >
-              <img
-                src={vonFilledLogo}
-                alt=""
-                width={14}
-                height={14}
-                className="flex-shrink-0"
-              />
-              Edit
-            </button>
-          )}
         </div>
       )}
 

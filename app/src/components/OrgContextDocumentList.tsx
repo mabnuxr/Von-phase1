@@ -2,7 +2,7 @@ import {
   CaretLeft,
   CaretRight,
   LockKeyIcon,
-  SparkleIcon,
+  PlusCircleIcon,
 } from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
@@ -34,6 +34,10 @@ interface OrgContextDocumentListProps {
   selectedProposedNewId?: string | null;
   /** Fires when the user clicks a proposed-new section pill. */
   onSelectProposedNew?: (id: string) => void;
+  /** Force the skeleton treatment even when contexts have already loaded —
+   *  used during bulk-import processing so the whole card reads as "Von is
+   *  working" and the real memory rows are hidden behind placeholders. */
+  forceSkeletonState?: boolean;
 }
 
 // Skeleton pill — widths cycle so the list reads as real content.
@@ -53,7 +57,12 @@ export function OrgContextDocumentList({
   proposedNewSections = [],
   selectedProposedNewId = null,
   onSelectProposedNew,
+  forceSkeletonState = false,
 }: OrgContextDocumentListProps) {
+  // Collapse the initial-load skeleton and the bulk-import "reviewing"
+  // skeleton into a single flag so the list body has one loading branch.
+  const showSkeleton =
+    forceSkeletonState || (isLoading && contexts.length === 0);
   // Helper to render a memory item
   const renderMemoryItem = (ctx: MemoryContext) => {
     const isSelected = ctx.id === selectedContextId;
@@ -96,7 +105,7 @@ export function OrgContextDocumentList({
                 proposalCount === 1 ? "" : "s"
               }`}
             >
-              Update {proposalCount}
+              Update
             </span>
           )}
         </div>
@@ -124,7 +133,7 @@ export function OrgContextDocumentList({
         onClick={() => onSelectProposedNew?.(item.id)}
       >
         <div className="flex items-start gap-2 min-w-0">
-          <SparkleIcon
+          <PlusCircleIcon
             size={14}
             weight="regular"
             className="flex-shrink-0 mt-0.5 text-gray-500"
@@ -160,7 +169,27 @@ export function OrgContextDocumentList({
       {/* Memory list */}
       <div className="flex-1 min-h-0 overflow-y-auto settings-scrollbar">
         <div className="pl-1 py-1 pr-2">
-          {isLoading && contexts.length === 0 ? (
+          {/* Proposed new sections — pinned ABOVE the real memories so fresh
+              AI proposals get eye priority. Dashed separator BELOW the group
+              marks the boundary with the real list. Hidden during the
+              skeleton state so the card reads as a unified loading surface. */}
+          {!showSkeleton && proposedNewSections.length > 0 && (
+            <div className="pb-2 mb-2 border-b border-dashed border-gray-200">
+              <div className="px-2.5 pt-0.5 pb-1 flex items-center justify-between">
+                <span className="text-[10px] font-medium tracking-wider uppercase text-gray-500">
+                  Proposed New
+                </span>
+                <span className="inline-flex items-center h-[18px] min-w-[18px] px-1.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium leading-none">
+                  {proposedNewSections.length}
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {proposedNewSections.map((item) => renderProposedNewItem(item))}
+              </div>
+            </div>
+          )}
+
+          {showSkeleton ? (
             <div
               className="flex flex-col gap-0.5"
               aria-label="Loading memory list"
@@ -184,24 +213,6 @@ export function OrgContextDocumentList({
           ) : (
             <div className="px-3 py-8 text-sm text-gray-400 text-center">
               No organization memories yet
-            </div>
-          )}
-
-          {/* Proposed new sections — dashed separator above to set them apart
-              from the real memories without resorting to a heavy background. */}
-          {proposedNewSections.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-dashed border-gray-200">
-              <div className="px-2.5 pt-0.5 pb-1 flex items-center justify-between">
-                <span className="text-[10px] font-medium tracking-wider uppercase text-gray-500">
-                  Proposed New
-                </span>
-                <span className="inline-flex items-center h-[18px] min-w-[18px] px-1.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium leading-none">
-                  {proposedNewSections.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {proposedNewSections.map((item) => renderProposedNewItem(item))}
-              </div>
             </div>
           )}
         </div>

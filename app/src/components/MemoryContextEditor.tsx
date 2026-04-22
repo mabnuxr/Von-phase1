@@ -1,7 +1,14 @@
-import { useState, useId } from "react";
+import { useRef, useState, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SparkleIcon, CheckIcon } from "@phosphor-icons/react";
+import { SparkleIcon, PaperclipIcon } from "@phosphor-icons/react";
 import { Streamdown } from "streamdown";
+import {
+  FilePreview,
+  generateFileId,
+  getFileInfo,
+  getAcceptString,
+  type FileAttachment,
+} from "@vonlabs/design-components";
 import { OrgContextEditor } from "./OrgContextEditor";
 import type { MemoryContext } from "../types/memoryContext";
 import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
@@ -111,12 +118,10 @@ interface MemoryContextEditorProps {
     key: string;
     description: string;
     value: string;
+    attachments: FileAttachment[];
   }) => Promise<void>;
   onCancel: () => void;
   isSaving?: boolean;
-  /** Opens the Ask Von chat pane. Rendered as a CTA at the right edge of the
-   *  content editor toolbar when provided. */
-  onEditWithVon?: () => void;
   /** Forwarded to the TipTap editor — fires when a stable text selection is
    *  made inside Memory Content (used to build chat context chips). */
   onSelectionCapture?: (text: string) => void;
@@ -127,6 +132,12 @@ interface MemoryContextEditorProps {
   onProposalApplied?: () => void;
   /** Called when the user dismisses the proposal without applying it. */
   onProposalDismissed?: () => void;
+  /** Initial attachments associated with the memory — seeds the local edit
+   *  state so previously saved files stay visible in the editor. */
+  initialAttachments?: FileAttachment[];
+  /** Click a file chip to open a preview drawer. Owned by the parent so it
+   *  can pick the surface (SidePane, modal, etc). */
+  onPreviewAttachment?: (attachment: FileAttachment) => void;
 }
 
 /**
@@ -140,11 +151,12 @@ export function MemoryContextEditor({
   onSave,
   onCancel,
   isSaving = false,
-  onEditWithVon,
   onSelectionCapture,
   proposal = { kind: "idle" },
   onProposalApplied,
   onProposalDismissed,
+  initialAttachments = [],
+  onPreviewAttachment,
 }: MemoryContextEditorProps) {
   // `context` seeds initial values in BOTH modes — edit mode loads an existing
   // memory, create mode can pre-fill from a draft (e.g., a Von-proposed new
@@ -163,6 +175,39 @@ export function MemoryContextEditor({
   const instanceId = useId();
   const [contentVersion, setContentVersion] = useState(0);
   const contentKey = `${instanceId}-${contentVersion}`;
+
+  // Attachments are local to this edit session — seeded from the context
+  // via props so previously saved files stay visible, mutated via the
+  // Attach file button, and flushed to the parent through onSave.
+  const [attachments, setAttachments] =
+    useState<FileAttachment[]>(initialAttachments);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const next: FileAttachment[] = [];
+    Array.from(files).forEach((file) => {
+      const info = getFileInfo(file.type);
+      if (!info) return;
+      next.push({
+        id: generateFileId(),
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        extension: info.extension,
+        category: info.category,
+        status: "uploaded",
+      });
+    });
+    if (next.length > 0) {
+      setAttachments((prev) => [...prev, ...next]);
+    }
+  };
+
+  const handleRemoveAttachment = (id: string) => {
+    setAttachments((prev) => prev.filter((a) => a.id !== id));
+  };
 
   const isLoadingProposal = proposal.kind === "loading";
   const isProposed = proposal.kind === "proposed";
@@ -215,6 +260,7 @@ export function MemoryContextEditor({
       key: editingKey,
       description: editingDescription,
       value: editingContent,
+      attachments,
     });
   };
 
@@ -264,66 +310,69 @@ export function MemoryContextEditor({
         )}
       </AnimatePresence>
 
-      {/* Non-scrolling top section: title + description */}
-      {!isUserMemory && (
-        <div className="flex-shrink-0 px-4 pt-4 flex flex-col gap-4">
-          {/* Title */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs text-gray-800">
-                Title <span className="text-gray-600">*</span>
-                {isTitleReadOnly && (
-                  <span className="ml-2 text-xs text-gray-500">
-                    (Read-only)
-                  </span>
-                )}
-              </label>
-              <CharacterBudget
-                current={editingKey.length}
-                max={MEMORY_CONTEXT_LIMITS.key}
-              />
-            </div>
-            <input
-              type="text"
-              value={editingKey}
-              onChange={(e) => setEditingKey(e.target.value)}
-              disabled={isTitleReadOnly}
-              className={`w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-300 transition-all ${
-                isTitleReadOnly
-                  ? "opacity-60 cursor-not-allowed bg-gray-50"
-                  : ""
-              }`}
-              placeholder="e.g., Pricing Structure"
-            />
-            {isTitleReadOnly && (
-              <p className="mt-1.5 text-xs text-gray-500">
-                The title of the default context cannot be changed.
-              </p>
-            )}
-          </div>
-
-          {/* Description */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-xs text-gray-800">
-                When should the agent use this?{" "}
-                <span className="text-gray-600">*</span>
-              </label>
-              <CharacterBudget
-                current={editingDescription.length}
-                max={MEMORY_CONTEXT_LIMITS.description}
-              />
-            </div>
-            <textarea
-              value={editingDescription}
-              onChange={(e) => setEditingDescription(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-300 transition-all resize-none"
-              placeholder="e.g., When answering questions about pricing or discounts"
+      {/* Non-scrolling top section: title + description. User memory also
+          renders these fields — description is editable; title is read-only
+          because the backend rejects key updates for user-scoped memories. */}
+      <div className="flex-shrink-0 px-4 pt-4 flex flex-col gap-4">
+        {/* Title */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs text-gray-800">
+              Title <span className="text-gray-600">*</span>
+              {isTitleReadOnly && (
+                <span className="ml-2 text-xs text-gray-500">
+                  (Read-only)
+                </span>
+              )}
+            </label>
+            <CharacterBudget
+              current={editingKey.length}
+              max={MEMORY_CONTEXT_LIMITS.key}
             />
           </div>
+          <input
+            type="text"
+            value={editingKey}
+            onChange={(e) => setEditingKey(e.target.value)}
+            disabled={isTitleReadOnly}
+            className={`w-full px-3 py-2 text-sm text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all ${
+              isProposed
+                ? "border border-emerald-200 bg-emerald-50/40 focus:border-emerald-300"
+                : "border border-gray-200/80 bg-white focus:border-gray-300"
+            } ${
+              isTitleReadOnly
+                ? "opacity-60 cursor-not-allowed bg-gray-50"
+                : ""
+            }`}
+            placeholder="e.g., Pricing Structure"
+          />
         </div>
-      )}
+
+        {/* Description */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs text-gray-800">
+              When should the agent use this?
+              {!isUserMemory && <span className="text-gray-600"> *</span>}
+            </label>
+            <CharacterBudget
+              current={editingDescription.length}
+              max={MEMORY_CONTEXT_LIMITS.description}
+            />
+          </div>
+          <textarea
+            value={editingDescription}
+            onChange={(e) => setEditingDescription(e.target.value)}
+            rows={2}
+            className={`w-full px-3 py-2 text-sm text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all resize-none ${
+              isProposed
+                ? "border border-emerald-200 bg-emerald-50/40 focus:border-emerald-300"
+                : "border border-gray-200/80 bg-white focus:border-gray-300"
+            }`}
+            placeholder="e.g., When answering questions about pricing or discounts"
+          />
+        </div>
+      </div>
 
       {/* Memory Content — stretches to fill remaining space so the TipTap
           editor gets a concrete height to scroll within. */}
@@ -374,11 +423,53 @@ export function MemoryContextEditor({
               isEditing={true}
               placeholder="Add the memory content here..."
               contentKey={contentKey}
-              onEditWithVon={onEditWithVon}
               onSelectionCapture={onSelectionCapture}
             />
           </div>
         )}
+
+        {/* Attachments — chips stack in a horizontally scrollable row ABOVE
+            the Attach file button, so the growing set of files pushes the
+            content up rather than crowding the button row. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={getAcceptString()}
+          className="hidden"
+          onChange={(e) => {
+            handleFilesSelected(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        {attachments.length > 0 && (
+          <div className="flex-shrink-0 mt-2 flex items-center gap-1.5 overflow-x-auto settings-scrollbar pb-1 min-w-0">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                onClick={() => onPreviewAttachment?.(attachment)}
+                className="flex-shrink-0"
+              >
+                <FilePreview
+                  attachment={attachment}
+                  onRemove={handleRemoveAttachment}
+                  removable
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex-shrink-0 mt-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Attach file"
+          >
+            <PaperclipIcon size={14} weight="regular" />
+            Attach file
+          </button>
+        </div>
       </div>
 
       {/* Sticky footer */}

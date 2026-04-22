@@ -7,7 +7,12 @@ import {
   CheckIcon,
   DownloadSimpleIcon,
 } from "@phosphor-icons/react";
-import { DeleteConfirmationPopup } from "@vonlabs/design-components";
+import {
+  DeleteConfirmationPopup,
+  FilePreview,
+  SidePane,
+  type FileAttachment,
+} from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
   useMemoryContexts,
@@ -121,6 +126,35 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     string | null
   >(null);
 
+  // Flag set when the user enters edit mode from a bulk-imported proposal.
+  // Drives auto-open of the Edit-with-Von chat pane on entry and auto-close
+  // on save/cancel, so the pane only exists for this one focused edit.
+  const [autoCloseChatOnExit, setAutoCloseChatOnExit] = useState(false);
+
+  // Attachments persisted per memory context. Session-only for now (not
+  // round-tripped through the backend), so files survive preview ↔ edit
+  // navigation but are cleared on page reload. Keyed by the memory's id.
+  const [attachmentsByContextId, setAttachmentsByContextId] = useState<
+    Record<string, FileAttachment[]>
+  >({});
+
+  // Currently previewed attachment — null when the preview drawer is closed.
+  // Owned here so the same preview surface serves both the edit view and
+  // the read-only content view.
+  const [previewingAttachment, setPreviewingAttachment] =
+    useState<FileAttachment | null>(null);
+  // Object URL for the local File, lazily created on open so we don't leak
+  // URLs for attachments the user never previews. Revoked on close.
+  const previewObjectUrl = useMemo(() => {
+    if (!previewingAttachment) return null;
+    return URL.createObjectURL(previewingAttachment.file);
+  }, [previewingAttachment]);
+  useEffect(() => {
+    return () => {
+      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+    };
+  }, [previewObjectUrl]);
+
   // Clear any pending simulated transition if the component unmounts.
   useEffect(() => {
     return () => {
@@ -191,11 +225,58 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     [],
   );
 
-  // Bulk import submit handler — UI-only for now. Flips the card into a
-  // processing phase, then hydrates the proposed-new list after a fake
-  // delay. Backend integration replaces the timer with stream events.
-  const handleBulkImportSubmit = () => {
+  // Bulk import submit handler — branches on which surface is active. Org
+  // flow mocks a "Von reviews + proposes new sections" UX; user flow simply
+  // appends the import to the single personal memory and persists any
+  // attachments. Both are UI-only for now; backend wires later.
+  const handleBulkImportSubmit = async (
+    input: string,
+    files: FileAttachment[],
+  ) => {
     setIsBulkImportOpen(false);
+
+    // ---------- User memory branch ----------
+    if (showUser) {
+      if (!userMemory) return;
+      try {
+        // Append the dump to the existing value with a visible separator
+        // so prior content isn't clobbered by the import.
+        const existing = (userMemory.value ?? "").trim();
+        const nextValue = [
+          existing,
+          existing ? "\n\n---\n\n" : "",
+          input.trim(),
+        ]
+          .filter(Boolean)
+          .join("");
+
+        await updateMutation.mutateAsync({
+          id: userMemory.id,
+          data: {
+            description: userMemory.description,
+            value: nextValue,
+          },
+        });
+        if (files.length > 0) {
+          setAttachmentsByContextId((prev) => ({
+            ...prev,
+            [userMemory.id]: [...(prev[userMemory.id] ?? []), ...files],
+          }));
+        }
+        showToast({
+          message: "Memory imported successfully",
+          variant: "success",
+        });
+      } catch (error) {
+        console.error("Failed to import user memory:", error);
+        let errorMessage = "Failed to import memory. Please try again.";
+        if (error instanceof ApiError) errorMessage = error.message;
+        showToast({ message: errorMessage, variant: "error" });
+      }
+      return;
+    }
+
+    // ---------- Org memory branch (default) ----------
     setIsBulkImportProcessing(true);
     // Close the chat pane while Von "reviews" — the status banner lives in
     // the center pane, and the reviewing state shouldn't double-render.
@@ -219,6 +300,17 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
       bulkImportTimerRef.current = null;
     }, 3200);
   };
+
+  // Canned prompt users can copy into Claude/ChatGPT/Gemini to get an
+  // exportable memory dump they can paste back into the drawer's step 2.
+  const USER_MEMORY_EXPORT_PROMPT =
+    "Export all of my stored memories and any context you've learned about me from past conversations. " +
+    "Preserve my words verbatim where possible, especially for instructions and preferences.\n\n" +
+    "## Categories (output in this order):\n" +
+    "- Preferences\n" +
+    "- Instructions\n" +
+    "- Context about me\n" +
+    "- Projects and goals";
 
   // Clicking a proposed-new pill flips the right pane into its preview view.
   // Must clear the real-memory selection + any edit session so the preview
@@ -285,6 +377,12 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     setProposedNewSections((prev) =>
       prev.filter((p) => p.id !== section.id),
     );
+    // Auto-open the chat pane for this edit so the user can iterate on the
+    // Von-drafted section right there. Flagged for auto-close on save/cancel.
+    if (!isChatPanelOpen) {
+      openChatPanel();
+      setAutoCloseChatOnExit(true);
+    }
   };
 
   const handleSimulateProposal = () => {
@@ -588,10 +686,21 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     setPendingSwitchContextId(null);
   };
 
+  // Open the Ask Von chat pane for the current edit session and flag it for
+  // auto-teardown on save/cancel. Idempotent — if the user already has the
+  // pane open we don't re-set the flag so their manual pane survives a save.
+  const autoOpenChatForEdit = () => {
+    if (!isChatPanelOpen) {
+      openChatPanel();
+      setAutoCloseChatOnExit(true);
+    }
+  };
+
   // Handle create click - flips the right panel into create mode
   const handleCreateClick = () => {
     setEditingContext(null);
     setEditMode("create");
+    autoOpenChatForEdit();
   };
 
   // Handle edit click for org memory
@@ -599,6 +708,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     if (selectedOrgContext) {
       setEditingContext(selectedOrgContext);
       setEditMode("edit");
+      autoOpenChatForEdit();
     }
   };
 
@@ -607,13 +717,26 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     if (userMemory) {
       setEditingContext(userMemory);
       setEditMode("edit");
+      autoOpenChatForEdit();
     }
+  };
+
+  // Close the Edit-with-Von pane if this edit session opened it automatically
+  // (bulk-import proposed-new → Edit flow). Mirrors handleCloseChat's cleanup
+  // so leaving the edit doesn't leak selection chips or context flags.
+  const maybeCloseAutoOpenedChat = () => {
+    if (!autoCloseChatOnExit) return;
+    closeChatPanel();
+    setSelectionSnippets([]);
+    setMemoryContextDismissed(false);
+    setAutoCloseChatOnExit(false);
   };
 
   // Exit the inline editor without saving
   const handleCancelEdit = () => {
     setEditMode("none");
     setEditingContext(null);
+    maybeCloseAutoOpenedChat();
   };
 
   // Handle save from the inline editor
@@ -621,6 +744,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     key: string;
     description: string;
     value: string;
+    attachments: FileAttachment[];
   }) => {
     try {
       if (editMode === "create") {
@@ -633,6 +757,14 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         });
 
         setSelectedOrgContextId(newMemory.id);
+        // Persist attachments under the new id so they remain visible
+        // across edit ↔ preview navigation.
+        if (data.attachments.length > 0) {
+          setAttachmentsByContextId((prev) => ({
+            ...prev,
+            [newMemory.id]: data.attachments,
+          }));
+        }
         showToast({
           message: "Memory created successfully",
           variant: "success",
@@ -661,6 +793,13 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
           id: editingContext.id,
           data: updateData,
         });
+        // Update the in-memory attachments map for this context — we
+        // replace the entry outright (not merge) so remove-in-editor
+        // persists correctly.
+        setAttachmentsByContextId((prev) => ({
+          ...prev,
+          [editingContext.id]: data.attachments,
+        }));
         showToast({
           message: "Memory updated successfully",
           variant: "success",
@@ -669,6 +808,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
 
       setEditMode("none");
       setEditingContext(null);
+      maybeCloseAutoOpenedChat();
     } catch (error) {
       console.error("Failed to save memory:", error);
 
@@ -829,39 +969,48 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     );
   };
 
-  // Skeleton placeholder used while Von "reviews" a bulk import. Covers the
-  // full-width content area (chat pane is closed during processing) and
-  // anchors the status banner below the skeleton so the user reads the flow
-  // top-to-bottom.
+  // Skeleton placeholder used while Von "reviews" a bulk import. Subtle,
+  // gray, centered — the sidebar shows its own skeleton in parallel so the
+  // whole card reads as a unified loading surface. Classy over loud: just
+  // a pill with a sparkle glyph and three pulsing dots.
   const renderBulkImportSkeleton = () => (
     <div
-      className="flex flex-col w-full h-full overflow-hidden p-6"
+      className="flex flex-col h-full w-full overflow-hidden p-6"
       aria-label="Von is reviewing the import"
     >
-      <div className="h-16 w-full bg-gray-100 rounded-xl animate-pulse" />
-      <div className="mt-4 space-y-2">
+      <div className="space-y-3 opacity-60">
         <div className="h-3 w-1/3 bg-gray-100 rounded animate-pulse" />
         <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
         <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
         <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
         <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
-        <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
       </div>
-      <div className="mt-6 flex items-center gap-2 px-3 py-2.5 rounded-xl border border-indigo-200/60 bg-indigo-50/70 self-start">
-        <span className="inline-flex items-center gap-1" aria-hidden>
-          <span className="h-1.5 w-1.5 rounded-full bg-indigo-300 animate-pulse" />
-          <span
-            className="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse"
-            style={{ animationDelay: "120ms" }}
+
+      <div className="flex-1 flex items-center justify-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/80 bg-white shadow-xs">
+          <SparkleIcon
+            size={14}
+            weight="fill"
+            className="text-gray-500 memory-sparkle-pulse"
           />
+          <span className="text-sm text-gray-700">
+            Von is reviewing the import
+          </span>
           <span
-            className="h-1.5 w-1.5 rounded-full bg-indigo-500 animate-pulse"
-            style={{ animationDelay: "240ms" }}
-          />
-        </span>
-        <span className="text-sm font-medium text-indigo-700">
-          Von is reviewing the import against existing sections...
-        </span>
+            className="inline-flex items-center gap-1 ml-0.5"
+            aria-hidden
+          >
+            <span className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce" />
+            <span
+              className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <span
+              className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -882,6 +1031,8 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
       );
     }
 
+    const contextAttachments = attachmentsByContextId[context.id] ?? [];
+
     return (
       <div className="flex flex-col gap-3 w-full min-w-0 overflow-hidden">
         {/* Memory title — shown at the top of the preview */}
@@ -898,6 +1049,29 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
             {context.description || "—"}
           </p>
         </div>
+
+        {/* Attached files — rendered read-only between description and
+            content so they read as supporting material the agent can pull
+            from, not a footer afterthought. Clicking any chip opens the
+            shared preview drawer; remove is disabled (use Edit to mutate). */}
+        {contextAttachments.length > 0 && (
+          <div className="w-full min-w-0 px-4 pt-1 flex flex-col gap-1.5">
+            <label className="text-xs text-gray-800">Attachments</label>
+            <div className="flex flex-wrap gap-1.5">
+              {contextAttachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  onClick={() => setPreviewingAttachment(attachment)}
+                >
+                  <FilePreview
+                    attachment={attachment}
+                    removable={false}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Memory Content — no card wrapper, tight spacing below description */}
         <div className="w-full min-w-0 overflow-hidden px-4 pb-4 pt-2">
@@ -941,9 +1115,10 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
               : "Define context shared across all users in your organization"}
           </p>
         </div>
-        {showOrg && canCreateOrgMemory && (
+        {((showOrg && canCreateOrgMemory) ||
+          (showUser && isUserMemoryEnabled)) && (
           <div className="flex items-center gap-2 flex-shrink-0 pt-1">
-            {totalPendingUpdates > 0 && (
+            {showOrg && totalPendingUpdates > 0 && (
               <span
                 className="inline-flex items-center h-7 px-2.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-medium"
                 title={`${totalPendingUpdates} pending Von update${
@@ -960,7 +1135,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
               className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-gray-200/80 bg-white text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <DownloadSimpleIcon size={14} weight="regular" />
-              Bulk Import
+              {showUser ? "Import memory" : "Bulk Import"}
             </button>
           </div>
         )}
@@ -1003,6 +1178,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                     }))}
                     selectedProposedNewId={selectedProposedNewId}
                     onSelectProposedNew={handleSelectProposedNew}
+                    forceSkeletonState={isBulkImportProcessing}
                   />
                 </div>
 
@@ -1066,11 +1242,16 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                       context={editingContext}
                       onSave={handleSave}
                       onCancel={handleCancelEdit}
-                      onEditWithVon={openChatPanel}
                       onSelectionCapture={handleSelectionCapture}
                       proposal={proposal}
                       onProposalApplied={handleProposalApplied}
                       onProposalDismissed={handleProposalDismissed}
+                      initialAttachments={
+                        editingContext
+                          ? (attachmentsByContextId[editingContext.id] ?? [])
+                          : []
+                      }
+                      onPreviewAttachment={setPreviewingAttachment}
                       isSaving={
                         createMutation.isPending || updateMutation.isPending
                       }
@@ -1157,70 +1338,118 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
 
           {/* ===== USER MEMORY SECTION ===== */}
           {showUser && isUserMemoryEnabled && (
-            <div className="w-[75%]">
-              {/* User Memory Card - Fixed height with scroll */}
-              <div className="w-full bg-white/80 rounded-2xl shadow-xs border border-gray-200 overflow-hidden h-[calc(100vh-220px)] relative">
-                {isEditing && editingContext?.accessLevel === "user" ? (
-                  <MemoryContextEditor
-                    key={editingContext.id}
-                    mode="edit"
-                    context={editingContext}
-                    onSave={handleSave}
-                    onCancel={handleCancelEdit}
-                    onEditWithVon={openChatPanel}
-                    isSaving={
-                      createMutation.isPending || updateMutation.isPending
-                    }
-                  />
-                ) : isUserMemoryLoading || isCreatingUserMemory ? (
-                  <div
-                    className="h-full w-full overflow-hidden p-4 space-y-2"
-                    aria-label="Loading user memory"
-                  >
-                    <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
-                    <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                    <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
-                    <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
-                    <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-                  </div>
-                ) : userMemory ? (
-                  <div className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
-                    {/* Floating edit button - top right */}
-                    <button
-                      onClick={handleEditUserClick}
-                      className="absolute bottom-3 right-3 h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer z-10"
-                      title="Edit"
-                    >
-                      <PencilSimpleIcon
-                        size={14}
-                        weight="regular"
-                        className="text-gray-900"
+            <div className={isChatPanelOpen ? "w-[95%]" : "w-[75%]"}>
+              {/* User Memory Card — mirrors the org card's split-pane
+                  structure: content on the left, Edit-with-Von chat on the
+                  right when open. Single personal memory so no sidebar. */}
+              <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+                <div className="flex w-full h-[calc(100vh-220px)]">
+                  {/* Content area */}
+                  <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
+                    {/* Floating edit action — hidden during edit mode so it
+                        doesn't overlap the form. */}
+                    {!isEditing && userMemory && (
+                      <div className="absolute bottom-3 right-3 z-10">
+                        <button
+                          onClick={handleEditUserClick}
+                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                          title="Edit"
+                        >
+                          <PencilSimpleIcon
+                            size={14}
+                            weight="regular"
+                            className="text-gray-900"
+                          />
+                          Edit
+                        </button>
+                      </div>
+                    )}
+
+                    {isEditing && editingContext?.accessLevel === "user" ? (
+                      <MemoryContextEditor
+                        key={editingContext.id}
+                        mode="edit"
+                        context={editingContext}
+                        onSave={handleSave}
+                        onCancel={handleCancelEdit}
+                        onSelectionCapture={handleSelectionCapture}
+                        initialAttachments={
+                          attachmentsByContextId[editingContext.id] ?? []
+                        }
+                        onPreviewAttachment={setPreviewingAttachment}
+                        isSaving={
+                          createMutation.isPending || updateMutation.isPending
+                        }
                       />
-                      Edit
-                    </button>
-                    <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
-                      <Streamdown parseIncompleteMarkdown={false}>
-                        {userMemory.value || "No content yet"}
-                      </Streamdown>
-                    </div>
+                    ) : isUserMemoryLoading || isCreatingUserMemory ? (
+                      <div
+                        className="flex flex-col gap-4 w-full p-4"
+                        aria-label="Loading user memory"
+                      >
+                        <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
+                          <div className="h-3 w-44 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
+                        </div>
+                        <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
+                          <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
+                        </div>
+                      </div>
+                    ) : userMemory ? (
+                      <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                        {renderContentView(userMemory)}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
+                          <BrainIcon
+                            size={24}
+                            weight="duotone"
+                            className="text-violet-400"
+                          />
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-600 mb-1">
+                          No user memory yet
+                        </h4>
+                        <p className="text-xs text-gray-400 text-center">
+                          Your personal memory will appear here.
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
-                      <BrainIcon
-                        size={24}
-                        weight="duotone"
-                        className="text-violet-400"
+
+                  {/* Edit-with-Von chat pane. Scoped to the user's personal
+                      memory, same pattern as org memory. */}
+                  {isChatPanelOpen && (
+                    <div className="w-[360px] flex-shrink-0 border-l border-gray-100/80 h-full">
+                      <EditVonPane
+                        onClose={handleCloseChat}
+                        placeholder="Ask Von to help edit your memory..."
+                        memoryContext={
+                          memoryContextDismissed
+                            ? null
+                            : editingContext
+                              ? {
+                                  id: editingContext.id,
+                                  key: editingContext.key,
+                                }
+                              : userMemory
+                                ? {
+                                    id: userMemory.id,
+                                    key: userMemory.key,
+                                  }
+                                : null
+                        }
+                        selectionSnippets={selectionSnippets}
+                        onRemoveSnippet={handleRemoveSnippet}
+                        onRemoveMemoryContext={handleRemoveMemoryContext}
                       />
                     </div>
-                    <h4 className="text-sm font-medium text-gray-600 mb-1">
-                      No user memory yet
-                    </h4>
-                    <p className="text-xs text-gray-400 text-center">
-                      Your personal memory will appear here.
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1254,7 +1483,56 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         onClose={() => setIsBulkImportOpen(false)}
         existingSectionCount={contexts.length}
         onSubmit={handleBulkImportSubmit}
+        titleText={showUser ? "Import memory" : "Bulk Import"}
+        subtitleText={
+          showUser
+            ? "Paste an export from another AI below, or describe what to add"
+            : undefined
+        }
+        exportPrompt={showUser ? USER_MEMORY_EXPORT_PROMPT : undefined}
       />
+
+      {/* Shared attachment preview drawer. Renders an object URL of the
+          selected file — <iframe> handles PDFs + most text formats, <img>
+          handles images. Closes via the SidePane close button; the object
+          URL is revoked when the drawer unmounts. */}
+      <SidePane
+        isOpen={previewingAttachment !== null}
+        onClose={() => setPreviewingAttachment(null)}
+        title={
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-sm font-medium text-gray-900 truncate">
+              {previewingAttachment?.name ?? "Preview"}
+            </span>
+            <span className="text-xs text-gray-600">
+              {previewingAttachment?.extension ?? ""}
+            </span>
+          </div>
+        }
+        width="640px"
+        minWidth={440}
+        maxWidth="960px"
+        storageKey="memory-attachment-preview-width"
+        resizable
+      >
+        {previewingAttachment && previewObjectUrl && (
+          <div className="h-full w-full min-h-0 flex items-center justify-center">
+            {previewingAttachment.category === "image" ? (
+              <img
+                src={previewObjectUrl}
+                alt={previewingAttachment.name}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+            ) : (
+              <iframe
+                src={previewObjectUrl}
+                title={previewingAttachment.name}
+                className="w-full h-full border border-gray-200 rounded-lg bg-white"
+              />
+            )}
+          </div>
+        )}
+      </SidePane>
     </div>
   );
 }
