@@ -447,7 +447,6 @@ function ExistingChatInner(
     [
       activeDashboardId,
       props.compact,
-      dashboardPaneState.isOpen,
       navigate,
       conversationId,
       openDashboardPane,
