@@ -2,6 +2,7 @@
 import type {
   Message as ChatMessage,
   TimelineStep,
+  StepStatus,
   RunFinishedEvent,
   DashboardReadyEvent,
 } from "@vonlabs/design-components";
@@ -26,6 +27,7 @@ import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
   DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+  DEFAULT_SKIPPED_APPROVAL_MESSAGE,
   type ResearchResultsState,
 } from "../utils/transformAguiToTimelineSteps";
 
@@ -420,23 +422,27 @@ function transformMessagesForV2(
       const usableSteps = steps.filter((step) => step.category !== "e2b");
       const elapsed = getElapsedTimeFromEvents(msg.events);
 
-      // For persisted (non-streaming) messages, ensure any remaining in-progress
-      // steps are marked complete. This handles cases where events were persisted
-      // before a RUN_FINISHED event (e.g., stopped runs without a final event).
-      // Steps still in "awaiting-approval" were never resolved (the user sent a
-      // new message or the approval expired) — mark them as expired so the card
-      // does not misleadingly show "Approved".
+      // Awaiting-approval steps on a persisted message were never resolved.
+      // Distinguish TTL-expired from user-moved-on via the last-assistant
+      // heuristic: last assistant → nothing has happened since → expired;
+      // otherwise the user sent a new message without acting → skipped.
+      const unresolvedApprovalStatus: StepStatus = isLastAssistant
+        ? "expired"
+        : "skipped";
+      let expiredApprovalStep: TimelineStep | undefined;
+      let skippedApprovalStep: TimelineStep | undefined;
       for (const step of usableSteps) {
         if (step.status === "in-progress" || step.status === "pending") {
           step.status = "complete";
         } else if (step.status === "awaiting-approval") {
-          // A completed (non-streaming) message should never have actionable
-          // pending approvals.  If the step is still awaiting-approval the
-          // approval was never resolved — the user sent a new message, the
-          // page was refreshed, or the backend expired it without an explicit
-          // TOOL_CALL_RESULT.  Mark it expired unconditionally so approve/
-          // reject buttons don't reappear for a superseded run.
-          step.status = "expired";
+          step.status = unresolvedApprovalStatus;
+        }
+        if (step.approval) {
+          if (!expiredApprovalStep && step.status === "expired") {
+            expiredApprovalStep = step;
+          } else if (!skippedApprovalStep && step.status === "skipped") {
+            skippedApprovalStep = step;
+          }
         }
       }
 
@@ -481,6 +487,29 @@ function transformMessagesForV2(
         persistedResearchResults = researchResults;
       }
 
+      // Precedence: backend-reported expiry > expired step > skipped step > run error.
+      const terminalStatus: Pick<
+        ChatMessage,
+        "status" | "errorMessage"
+      > | null =
+        persistedIsExpiredApproval || expiredApprovalStep
+          ? {
+              status: "expired",
+              errorMessage:
+                expiredApprovalStep?.errorMessage ||
+                DEFAULT_EXPIRED_APPROVAL_MESSAGE,
+            }
+          : skippedApprovalStep
+            ? {
+                status: "skipped",
+                errorMessage:
+                  skippedApprovalStep.errorMessage ||
+                  DEFAULT_SKIPPED_APPROVAL_MESSAGE,
+              }
+            : persistedRunErrorMessage
+              ? { status: "failed", errorMessage: persistedRunErrorMessage }
+              : null;
+
       return {
         ...msg,
         isStreaming: false,
@@ -493,25 +522,7 @@ function transformMessagesForV2(
         executionId: persistedExecutionId,
         isDashboardBuilderMode: persistedIsDashboardBuilderMode,
         researchResults: researchResults ?? null,
-        // Propagate expired or error status.  Check both the transform flag
-        // (backend sent an explicit expired result) and the post-processed
-        // steps (awaiting-approval unconditionally marked expired above, e.g.
-        // when the user sent a new message and no expired TOOL_CALL_RESULT
-        // exists in the persisted events).
-        ...(persistedIsExpiredApproval ||
-        usableSteps.some((s) => s.status === "expired" && s.approval)
-          ? {
-              status: "expired" as const,
-              errorMessage:
-                steps.find((s) => s.status === "expired")?.errorMessage ||
-                DEFAULT_EXPIRED_APPROVAL_MESSAGE,
-            }
-          : persistedRunErrorMessage
-            ? {
-                status: "failed" as const,
-                errorMessage: persistedRunErrorMessage,
-              }
-            : {}),
+        ...(terminalStatus ?? {}),
       };
     }
 

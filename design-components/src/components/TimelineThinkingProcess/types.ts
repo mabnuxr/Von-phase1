@@ -28,7 +28,8 @@ export type StepStatus =
   | 'error'
   | 'awaiting-approval'
   | 'rejected'
-  | 'expired';
+  | 'expired'
+  | 'skipped';
 
 /**
  * Field type for approval changes - affects rendering
@@ -350,8 +351,10 @@ export interface CompactApprovalCardProps {
   onReject: () => void;
   isApproved?: boolean;
   isRejected?: boolean;
-  /** Whether the approval was invalidated (user sent new message without approving) */
+  /** Whether the approval TTL lapsed or the backend reported it as expired */
   isExpired?: boolean;
+  /** Whether the user moved on without acting (e.g. sent a new message while awaiting approval) */
+  isSkipped?: boolean;
   /** Whether the approval tool encountered a system/validation error (not a user rejection) */
   isError?: boolean;
   /** Callback when approval TTL expires */
