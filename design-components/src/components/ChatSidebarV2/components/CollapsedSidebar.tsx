@@ -11,6 +11,7 @@ import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
 import { FolderList } from './FolderList';
 import { ApprovalDot } from './ApprovalDot';
+import { ApprovalPill } from './ApprovalPill';
 import type {
   SidebarItem,
   Folder,
@@ -341,28 +342,19 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                         <div
                           key={item.id}
                           className={`
-                            relative px-3 py-2 rounded-xl text-sm
+                            flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm
                             transition-colors duration-150 cursor-pointer
                             ${
                               isSelected
                                 ? 'bg-gray-50 text-gray-900 font-medium'
-                                : rowApprovalState === 'expired'
-                                  ? 'bg-orange-50 text-gray-900 hover:bg-orange-100'
-                                  : rowApprovalState === 'pending'
-                                    ? 'bg-purple-50 text-gray-900 hover:bg-purple-100'
-                                    : 'text-gray-900 hover:bg-gray-50'
+                                : 'text-gray-900 hover:bg-gray-50'
                             }
                           `}
                           onClick={() => onItemClick?.(item.id)}
                           title={item.label}
                         >
-                          {rowApprovalState && (
-                            <ApprovalDot
-                              state={rowApprovalState}
-                              className="absolute top-0 left-0.5 z-10"
-                            />
-                          )}
-                          <span className="truncate block">{item.label}</span>
+                          <span className="flex-1 truncate">{item.label}</span>
+                          {rowApprovalState && <ApprovalPill state={rowApprovalState} />}
                         </div>
                       );
                     })}
