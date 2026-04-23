@@ -145,6 +145,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg",
     category: "Knowledge base",
   },
+  box: {
+    id: "box",
+    name: "Box",
+    description: "Search, read, and upload documents from your Box account",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Box.svg",
+    category: "Knowledge base",
+  },
   notion: {
     id: "notion",
     name: "Notion",
@@ -299,6 +307,7 @@ export function getIntegrationLogoPath(type: string): string {
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
     GOOGLE_DRIVE: "googledrive",
+    BOX: "box",
     OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
@@ -350,6 +359,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     zoom: "ZOOM",
     googlecalendar: "GOOGLE_CALENDAR",
     googledrive: "GOOGLE_DRIVE",
+    box: "BOX",
     outlookcalendar: "OUTLOOK_CALENDAR",
     chorus: "CHORUS",
     claricopilot: "CLARI_COPILOT",
@@ -389,6 +399,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     ZOOM: "zoom",
     GOOGLE_CALENDAR: "googlecalendar",
     GOOGLE_DRIVE: "googledrive",
+    BOX: "box",
     OUTLOOK_CALENDAR: "outlookcalendar",
     CHORUS: "chorus",
     CLARI_COPILOT: "claricopilot",
@@ -423,6 +434,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
   const typeMap: Record<string, string> = {
     GOOGLE_CALENDAR: "googlecalendar",
     GOOGLE_DRIVE: "googledrive",
+    BOX: "box",
     OUTLOOK_CALENDAR: "outlookcalendar",
     SALESFORCE: "salesforce",
     HUBSPOT: "hubspot",
@@ -485,6 +497,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   hubspot: ["user"],
   googlecalendar: ["user"],
   googledrive: ["user"],
+  box: ["user"],
   outlookcalendar: ["user"],
   highspot: ["user"],
   seismic: ["user"],
