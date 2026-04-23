@@ -552,9 +552,6 @@ export type {
 // ============================================================================
 // HOOKS (Reusable hooks for common UI patterns)
 // ============================================================================
-export { useAutoScroll } from '../hooks';
-export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';
-
 export { useIsTruncated } from '../hooks';
 export type { UseIsTruncatedReturn } from '../hooks';
 
