@@ -134,12 +134,7 @@ export function useTimelineState({
     localApprovalState,
   });
 
-  const scrollContainerRef = useTimelineAutoScroll({
-    isThinking,
-    awaitingApprovalStep,
-    isCollapsed,
-    visibleSteps,
-  });
+  const scrollContainerRef = useTimelineAutoScroll({ isCollapsed });
 
   return {
     isDrawerOpen,
