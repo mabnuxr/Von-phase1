@@ -1,9 +1,15 @@
-import { useRef, useEffect, useLayoutEffect } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { AUTO_SCROLL_THRESHOLD_PX } from '../constants';
 
 interface UseStickToBottomOptions {
   /** When true, the hook is inert — no snapping, no observers. */
   disabled?: boolean;
+}
+
+interface UseStickToBottomReturn {
+  ref: React.RefObject<HTMLDivElement | null>;
+  /** Clear the user-scrolled-up flag so auto-snap resumes. Call after a programmatic scroll to bottom. */
+  resetUserScroll: () => void;
 }
 
 /**
@@ -14,9 +20,13 @@ interface UseStickToBottomOptions {
  */
 export function useStickToBottom({
   disabled = false,
-}: UseStickToBottomOptions = {}): React.RefObject<HTMLDivElement | null> {
+}: UseStickToBottomOptions = {}): UseStickToBottomReturn {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userHasScrolledRef = useRef(false);
+
+  const resetUserScroll = useCallback(() => {
+    userHasScrolledRef.current = false;
+  }, []);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -84,6 +94,9 @@ export function useStickToBottom({
         for (const node of Array.from(m.addedNodes)) {
           if (node instanceof Element) resizeObserver.observe(node);
         }
+        for (const node of Array.from(m.removedNodes)) {
+          if (node instanceof Element) resizeObserver.unobserve(node);
+        }
       }
     });
     childListObserver.observe(container, { childList: true });
@@ -96,5 +109,5 @@ export function useStickToBottom({
     };
   }, [disabled]);
 
-  return scrollContainerRef;
+  return { ref: scrollContainerRef, resetUserScroll };
 }

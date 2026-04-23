@@ -8,7 +8,7 @@ interface UseAutoScrollOptions {
 }
 
 export function useAutoScroll({ messages }: UseAutoScrollOptions) {
-  const containerRef = useStickToBottom();
+  const { ref: containerRef, resetUserScroll } = useStickToBottom();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
@@ -17,16 +17,20 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
     [messages]
   );
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
-    const container = containerRef.current;
-    if (!container) return;
-    const target = container.scrollHeight - container.clientHeight;
-    if (behavior === 'smooth') {
-      container.scrollTo({ top: target, behavior: 'smooth' });
-    } else {
-      container.scrollTop = target;
-    }
-  }, [containerRef]);
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior = 'auto') => {
+      const container = containerRef.current;
+      if (!container) return;
+      resetUserScroll();
+      const target = container.scrollHeight - container.clientHeight;
+      if (behavior === 'smooth') {
+        container.scrollTo({ top: target, behavior: 'smooth' });
+      } else {
+        container.scrollTop = target;
+      }
+    },
+    [containerRef, resetUserScroll]
+  );
 
   useEffect(() => {
     const el = containerRef.current;
@@ -45,11 +49,12 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
   const prepareForNewMessage = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
+    resetUserScroll();
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     if (distanceFromBottom >= AUTO_SCROLL_THRESHOLD_PX) {
-      el.scrollTop = el.scrollHeight;
+      el.scrollTop = el.scrollHeight - el.clientHeight;
     }
-  }, [containerRef]);
+  }, [containerRef, resetUserScroll]);
 
   return {
     containerRef,

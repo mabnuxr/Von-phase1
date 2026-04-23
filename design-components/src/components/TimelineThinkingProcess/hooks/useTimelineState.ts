@@ -134,7 +134,7 @@ export function useTimelineState({
     localApprovalState,
   });
 
-  const scrollContainerRef = useStickToBottom({ disabled: isCollapsed });
+  const { ref: scrollContainerRef } = useStickToBottom({ disabled: isCollapsed });
 
   return {
     isDrawerOpen,
