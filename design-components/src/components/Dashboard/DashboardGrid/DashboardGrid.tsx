@@ -29,6 +29,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     widgetAppliedFilters,
     widgetFilterSlot,
     onAddToChat,
+    variablesByWidget,
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -79,7 +80,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                 key={item.i}
                 className={`h-full ${
                   isEditMode
-                    ? 'rounded-[18px] border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
+                    ? 'border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
                     : ''
                 }`}
               >
@@ -98,6 +99,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                       appliedFilters={widgetAppliedFilters?.[widget.id]}
                       filterSlot={widgetFilterSlot?.(widget.id)}
                       onAddToChat={onAddToChat}
+                      variables={variablesByWidget?.[widget.id]}
                     />
                   </WidgetErrorBoundary>
                 )}

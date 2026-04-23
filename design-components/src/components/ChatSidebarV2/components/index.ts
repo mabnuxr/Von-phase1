@@ -1,6 +1,9 @@
 export { ApprovalDot } from './ApprovalDot';
 export type { ApprovalDotProps } from './ApprovalDot';
 
+export { ApprovalPill } from './ApprovalPill';
+export type { ApprovalPillProps } from './ApprovalPill';
+
 export { ConversationItem } from './ConversationItem';
 export type { ConversationItemProps } from './ConversationItem';
 
