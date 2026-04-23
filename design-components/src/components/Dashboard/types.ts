@@ -130,8 +130,13 @@ export interface TextWidgetConfig {
   overflow?: 'auto' | 'hidden' | 'visible';
 }
 
+/** Flat key → value map fed to `{{key}}` mustache tokens at render time. */
+export type MustacheVariables = Record<string, string | number | null | undefined>;
+
 export interface TextWidgetProps {
   config: TextWidgetConfig;
+  /** Variables substituted into `{{key}}` tokens in `config.content`. */
+  variables?: MustacheVariables;
   onAddToChat?: () => void;
 }
 
@@ -224,6 +229,8 @@ export interface WidgetRendererProps {
   filterSlot?: React.ReactNode;
   /** Callback when the widget's "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
+  /** Variables for `{{key}}` mustache tokens inside a text widget's content. */
+  variables?: MustacheVariables;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -255,4 +262,6 @@ export interface DashboardGridProps {
   widgetFilterSlot?: (panelId: string) => React.ReactNode;
   /** Callback when a widget's "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
+  /** Per-widget variables map for `{{key}}` mustache tokens inside text widgets. */
+  variablesByWidget?: Record<string, MustacheVariables>;
 }

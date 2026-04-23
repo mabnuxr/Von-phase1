@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
@@ -36,6 +36,7 @@ import type {
 } from "../../../types/dashboard";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 import { EditModeBanner } from "../EditModeBanner";
+import { buildTextWidgetVariables } from "./buildTextWidgetVariables";
 import type {
   WidgetConfig,
   GridConfig,
@@ -264,6 +265,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     string,
     WidgetConfig
   >;
+
+  const variablesByWidget = useMemo(
+    () =>
+      buildTextWidgetVariables(
+        dashboard.widgets as unknown as Record<string, WidgetConfig>,
+        filterDefinitions,
+        filterState,
+      ),
+    [dashboard.widgets, filterDefinitions, filterState],
+  );
 
   // Widget-level filter UI hidden until panel-filter designs are ready.
   // widgetIds, widgetQueryRefMap, widgetAppliedFilters, and widgetFilterSlot
@@ -662,6 +673,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
+            variablesByWidget={variablesByWidget}
             // Widget-level filter UI hidden until panel-filter designs are ready
             // widgetAppliedFilters={widgetAppliedFilters}
             // widgetFilterSlot={widgetFilterSlot}

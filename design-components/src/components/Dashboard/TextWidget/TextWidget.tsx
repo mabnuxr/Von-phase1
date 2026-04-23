@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { TiptapViewer } from '../../TiptapEditor';
 import { AddToChatButton } from '../../VonIcon';
 import type { TextWidgetProps } from '../types';
+import { resolveMustache } from './resolveMustache';
 
 const variantStyles = {
   heading: 'text-xl font-bold text-gray-900',
@@ -37,8 +39,9 @@ type OverflowKey = keyof typeof overflowStyles;
  * Anything else (undefined, empty string, or an unknown value the backend
  * might pass through) falls to rich markdown via TiptapViewer.
  */
-const TextWidget: React.FC<TextWidgetProps> = ({ config, onAddToChat }) => {
+const TextWidget: React.FC<TextWidgetProps> = ({ config, variables, onAddToChat }) => {
   const { content, variant, alignment = 'left', overflow = 'auto' } = config;
+  const resolvedContent = useMemo(() => resolveMustache(content, variables), [content, variables]);
   const knownVariant =
     typeof variant === 'string' && variant in variantStyles ? (variant as VariantKey) : null;
 
@@ -51,13 +54,13 @@ const TextWidget: React.FC<TextWidgetProps> = ({ config, onAddToChat }) => {
 
   const body = knownVariant ? (
     <div className={`flex items-center h-full px-4 py-2 ${alignmentClass}`}>
-      <p className={`${variantStyles[knownVariant]} w-full`}>{content}</p>
+      <p className={`${variantStyles[knownVariant]} w-full`}>{resolvedContent}</p>
     </div>
   ) : (
     <div
       className={`h-full ${overflowClass} [scrollbar-gutter:stable] pl-4 pr-4 pt-3 ${richBottomPadding} ${alignmentClass}`}
     >
-      <TiptapViewer content={content} className="text-sm text-gray-700" />
+      <TiptapViewer content={resolvedContent} className="text-sm text-gray-700" />
     </div>
   );
 
