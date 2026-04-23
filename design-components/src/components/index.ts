@@ -616,6 +616,7 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
+  MustacheVariables,
   AppliedWidgetFilter,
   DataSourcesProps,
   DataSource,

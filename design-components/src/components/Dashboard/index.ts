@@ -23,6 +23,7 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
+  MustacheVariables,
   TableWidgetConfig,
   TablePaginationInfo,
   SortState,
