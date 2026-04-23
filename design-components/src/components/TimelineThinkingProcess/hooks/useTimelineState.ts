@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import type { ThinkingStepDetail } from '../../ThinkingDrawer';
 import type { TimelineStep } from '../types';
+import { useStickToBottom } from '../../../hooks/useStickToBottom';
 import { useApprovalState } from './useApprovalState';
 import { useStepDrawer } from './useStepDrawer';
 import { useCollapseState } from './useCollapseState';
 import { useStepExpansion } from './useStepExpansion';
-import { useTimelineAutoScroll } from './useTimelineAutoScroll';
 
 // ============================================================================
 // Types
@@ -134,7 +134,7 @@ export function useTimelineState({
     localApprovalState,
   });
 
-  const scrollContainerRef = useTimelineAutoScroll({ isCollapsed });
+  const scrollContainerRef = useStickToBottom({ disabled: isCollapsed });
 
   return {
     isDrawerOpen,

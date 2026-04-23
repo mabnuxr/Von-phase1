@@ -28,7 +28,6 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
     }
   }, [containerRef]);
 
-  // Keep the scroll-to-bottom button visibility in sync with scroll position.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -42,10 +41,7 @@ export function useAutoScroll({ messages }: UseAutoScrollOptions) {
     return () => el.removeEventListener('scroll', handleScroll);
   }, [containerRef]);
 
-  /**
-   * Call before dispatching a user message. Forces a snap even if the
-   * user was scrolled up, so their new message lands in view.
-   */
+  /** Call before dispatching a user message so their new message lands in view. */
   const prepareForNewMessage = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
