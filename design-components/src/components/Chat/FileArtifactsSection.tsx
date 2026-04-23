@@ -20,6 +20,11 @@ interface FileArtifactsSectionProps {
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
+  onBoxClick?: (fileId: string) => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  boxLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
   /** Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs) */
   renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
@@ -34,6 +39,11 @@ export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  onBoxClick,
+  isBoxEnabled,
+  isBoxConnected,
+  boxTooltip,
+  boxLoadingFileId,
   renderArtifactCard,
   renderGroupedEmailArtifacts,
 }) => {
@@ -85,6 +95,13 @@ export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
             isDriveConnected={isDriveConnected}
             driveTooltip={driveTooltip}
             isDriveLoading={driveLoadingFileId === artifact.fileId}
+            onBoxClick={
+              onBoxClick ? () => onBoxClick(artifact.fileId) : undefined
+            }
+            isBoxEnabled={isBoxEnabled}
+            isBoxConnected={isBoxConnected}
+            boxTooltip={boxTooltip}
+            isBoxLoading={boxLoadingFileId === artifact.fileId}
           />
         );
       })}

@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 import { Tooltip } from '../../Tooltip';
 import driveLogo from '../../../assets/drive-logo.svg';
+import boxLogo from '../../../assets/box-logo.svg';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 import type { FileArtifact } from './types';
 
@@ -57,6 +58,11 @@ export interface FileArtifactCardProps {
   isDriveConnected?: boolean;
   driveTooltip?: string;
   isDriveLoading?: boolean;
+  onBoxClick?: () => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  isBoxLoading?: boolean;
 }
 
 export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
@@ -69,9 +75,15 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
   isDriveConnected,
   driveTooltip,
   isDriveLoading,
+  onBoxClick,
+  isBoxEnabled,
+  isBoxConnected,
+  boxTooltip,
+  isBoxLoading,
 }) => {
   const config = FILE_ICON_CONFIG[artifact.artifactType] ?? DEFAULT_FILE_CONFIG;
   const [showDrivePopup, setShowDrivePopup] = useState(false);
+  const [showBoxPopup, setShowBoxPopup] = useState(false);
 
   return (
     <BaseArtifactCard
@@ -149,6 +161,78 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
                   <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
                 ) : (
                   <img src={driveLogo} alt="Google Drive" width={16} height={16} />
+                )}
+              </button>
+            </Tooltip>
+          )}
+        </div>
+
+        {/* Box */}
+        <div
+          className="relative"
+          onMouseEnter={() =>
+            isBoxEnabled && isBoxConnected === false && setShowBoxPopup(true)
+          }
+          onMouseLeave={() => setShowBoxPopup(false)}
+        >
+          {isBoxEnabled && isBoxConnected === false ? (
+            <>
+              <button
+                disabled={isBoxLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBoxClick?.();
+                }}
+                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
+                  isBoxLoading ? 'cursor-wait' : 'opacity-60 hover:bg-gray-50 cursor-pointer'
+                }`}
+              >
+                {isBoxLoading ? (
+                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
+                ) : (
+                  <img src={boxLogo} alt="Box" width={16} height={16} />
+                )}
+              </button>
+              {showBoxPopup && (
+                <div className="absolute right-0 top-full pt-1.5 z-10">
+                  <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 whitespace-nowrap">
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onBoxClick?.();
+                      }}
+                      className="flex items-center gap-1.5 text-sm text-von-purple hover:text-von-purple-dark hover:underline"
+                    >
+                      <img src={boxLogo} alt="" width={14} height={14} />
+                      Connect Box
+                      <ArrowSquareOutIcon size={13} weight="bold" />
+                    </a>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <Tooltip content={boxTooltip ?? 'Open in Box (Coming soon)'} placement="top">
+              <button
+                disabled={!isBoxEnabled || isBoxLoading}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onBoxClick?.();
+                }}
+                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
+                  isBoxLoading
+                    ? 'cursor-wait'
+                    : !isBoxEnabled
+                      ? 'opacity-40 cursor-not-allowed'
+                      : 'hover:bg-gray-50 cursor-pointer'
+                }`}
+              >
+                {isBoxLoading ? (
+                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
+                ) : (
+                  <img src={boxLogo} alt="Box" width={16} height={16} />
                 )}
               </button>
             </Tooltip>

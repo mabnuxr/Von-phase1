@@ -59,6 +59,11 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  onBoxClick,
+  isBoxEnabled,
+  isBoxConnected,
+  boxTooltip,
+  boxLoadingFileId,
   onFileClick,
   banner,
   isIntegrationConnected,
@@ -350,6 +355,11 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isDriveConnected={isDriveConnected}
                   driveTooltip={driveTooltip}
                   driveLoadingFileId={driveLoadingFileId}
+                  onBoxClick={showArtifacts ? onBoxClick : undefined}
+                  isBoxEnabled={isBoxEnabled}
+                  isBoxConnected={isBoxConnected}
+                  boxTooltip={boxTooltip}
+                  boxLoadingFileId={boxLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   disableFileAttachments={disableFileAttachments}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
