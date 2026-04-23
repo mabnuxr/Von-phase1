@@ -22,10 +22,6 @@ export const TOOL_DISPLAY_NAMES: Record<string, string> = {
   sql_analyze: 'Analyzed Data',
   search_documents: 'Searched Documents',
   calculate: 'Calculated',
-  // Data Warehouse Tools
-  execute_bigquery_query: 'Ran BigQuery Query',
-  databricks_execute_statement: 'Ran Databricks Query',
-  execute_snowflake_query: 'Ran Snowflake Query',
   // Google Calendar Tools
   googlecalendar_create_event: 'Created Calendar Event',
   googlecalendar_update_event: 'Updated Calendar Event',
@@ -46,10 +42,6 @@ export const TOOL_ICONS: Record<string, React.ComponentType<IconProps>> = {
   sql_analyze: TrendingUpIcon,
   search_documents: SearchIcon,
   calculate: CalculatorIcon,
-  // Data Warehouse Tools
-  execute_bigquery_query: BarChartIcon,
-  databricks_execute_statement: BarChartIcon,
-  execute_snowflake_query: BarChartIcon,
   // Google Calendar Tools
   googlecalendar_create_event: CalendarIcon,
   googlecalendar_update_event: CalendarIcon,
@@ -86,18 +78,15 @@ export function generateToolSummary(toolName: string, args: Record<string, any>)
       return 'Discovering column values';
 
     case 'sql_execute_query':
-    case 'execute_bigquery_query':
-    case 'databricks_execute_statement':
-    case 'execute_snowflake_query':
       // Try to extract table name from query
-      if (args.sql_query || args.query) {
-        const q = args.sql_query || args.query;
-        const tableMatch = q.match(/FROM\s+(?:[\w-]+\.)?(\w+)/i);
+      if (args.sql_query) {
+        const tableMatch = args.sql_query.match(/FROM\s+(?:(\w+)\.)?(\w+)/i);
         if (tableMatch) {
-          return `Querying ${tableMatch[1]}`;
+          const tableName = tableMatch[2];
+          return `Querying ${tableName}`;
         }
       }
-      return 'Running query';
+      return 'Running SQL query';
 
     case 'sql_analyze':
       return args.table_name ? `Analyzing ${args.table_name}` : 'Analyzing data';
