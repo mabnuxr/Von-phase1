@@ -3,9 +3,7 @@ import type {
   MustacheVariables,
   WidgetConfig,
 } from "@vonlabs/design-components";
-import type {
-  DashboardFilterDefinition,
-} from "../../../types/dashboard";
+import type { DashboardFilterDefinition } from "../../../types/dashboard";
 import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { renderFilterValue } from "../AnalyticsFilters/filterTranslation";
 
@@ -71,7 +69,8 @@ function buildCounterScalars(
     if (widget.type !== "counter") continue;
     const config = widget.config as CounterWidgetConfig;
     out[`${widgetId}.value`] = config.value;
-    if (config.comparison) out[`${widgetId}.comparison`] = config.comparison.value;
+    if (config.comparison)
+      out[`${widgetId}.comparison`] = config.comparison.value;
     if (config.target) out[`${widgetId}.target`] = config.target.value;
   }
   return out;
