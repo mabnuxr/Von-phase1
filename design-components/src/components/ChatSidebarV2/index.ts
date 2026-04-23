@@ -14,3 +14,5 @@ export type {
 } from './ChatSidebarV2';
 export { ApprovalDot } from './components';
 export type { ApprovalDotProps } from './components';
+export { ApprovalPill } from './components';
+export type { ApprovalPillProps } from './components';

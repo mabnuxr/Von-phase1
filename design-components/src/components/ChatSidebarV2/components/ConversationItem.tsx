@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { DotsThreeIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
-import { ApprovalDot } from './ApprovalDot';
+import { ApprovalPill } from './ApprovalPill';
 import type { SidebarItem } from '../ChatSidebarV2';
 
 export interface ConversationItemProps {
@@ -40,7 +40,6 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const showButton = !!onContextMenu && (isHovered || isMenuOpen) && !isEditing;
   const approvalState = !isSelected && !isEditing ? item.approvalState : undefined;
-  const showApprovalDot = !!approvalState;
 
   // Focus input when entering edit mode
   useEffect(() => {
@@ -89,11 +88,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     ? 'bg-gray-50'
     : isSelected
       ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100 cursor-pointer'
-      : approvalState === 'expired'
-        ? 'border border-transparent bg-orange-50 hover:bg-orange-100 cursor-pointer'
-        : approvalState === 'pending'
-          ? 'border border-transparent bg-purple-50 hover:bg-purple-100 cursor-pointer'
-          : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer';
+      : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer';
 
   const content = (
     <div
@@ -117,12 +112,15 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
         />
       ) : (
         <>
-          {showApprovalDot && approvalState && (
-            <ApprovalDot state={approvalState} className="absolute -top-0.5 left-0 z-10" />
-          )}
           <span className="flex-1 text-sm text-gray-900 truncate">{item.label}</span>
 
-          {/* More options button - shows on hover or when menu is open */}
+          {approvalState && (
+            <ApprovalPill
+              state={approvalState}
+              className={`transition-[margin] duration-150 ${showButton ? 'mr-7' : ''}`}
+            />
+          )}
+
           <PrimaryIconButton
             icon={<DotsThreeIcon size={16} weight="bold" />}
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => onContextMenu?.(e)}
