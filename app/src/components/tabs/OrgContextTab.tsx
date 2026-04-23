@@ -238,41 +238,59 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     // ---------- User memory branch ----------
     if (showUser) {
       if (!userMemory) return;
-      try {
-        // Append the dump to the existing value with a visible separator
-        // so prior content isn't clobbered by the import.
-        const existing = (userMemory.value ?? "").trim();
-        const nextValue = [
-          existing,
-          existing ? "\n\n---\n\n" : "",
-          input.trim(),
-        ]
-          .filter(Boolean)
-          .join("");
-
-        await updateMutation.mutateAsync({
-          id: userMemory.id,
-          data: {
-            description: userMemory.description,
-            value: nextValue,
-          },
-        });
-        if (files.length > 0) {
-          setAttachmentsByContextId((prev) => ({
-            ...prev,
-            [userMemory.id]: [...(prev[userMemory.id] ?? []), ...files],
-          }));
-        }
-        showToast({
-          message: "Memory imported successfully",
-          variant: "success",
-        });
-      } catch (error) {
-        console.error("Failed to import user memory:", error);
-        let errorMessage = "Failed to import memory. Please try again.";
-        if (error instanceof ApiError) errorMessage = error.message;
-        showToast({ message: errorMessage, variant: "error" });
+      // Flip into the same "Von is reviewing..." skeleton we use for org so
+      // bulk import feels consistent across surfaces. Persist runs after the
+      // fake delay resolves; backend wiring replaces the timer later.
+      setIsBulkImportProcessing(true);
+      setEditMode("none");
+      setEditingContext(null);
+      if (isChatPanelOpen) {
+        closeChatPanel();
+        setSelectionSnippets([]);
+        setMemoryContextDismissed(false);
       }
+
+      if (bulkImportTimerRef.current !== null) {
+        window.clearTimeout(bulkImportTimerRef.current);
+      }
+      bulkImportTimerRef.current = window.setTimeout(async () => {
+        try {
+          const existing = (userMemory.value ?? "").trim();
+          const nextValue = [
+            existing,
+            existing ? "\n\n---\n\n" : "",
+            input.trim(),
+          ]
+            .filter(Boolean)
+            .join("");
+
+          await updateMutation.mutateAsync({
+            id: userMemory.id,
+            data: {
+              description: userMemory.description,
+              value: nextValue,
+            },
+          });
+          if (files.length > 0) {
+            setAttachmentsByContextId((prev) => ({
+              ...prev,
+              [userMemory.id]: [...(prev[userMemory.id] ?? []), ...files],
+            }));
+          }
+          showToast({
+            message: "Memory imported successfully",
+            variant: "success",
+          });
+        } catch (error) {
+          console.error("Failed to import user memory:", error);
+          let errorMessage = "Failed to import memory. Please try again.";
+          if (error instanceof ApiError) errorMessage = error.message;
+          showToast({ message: errorMessage, variant: "error" });
+        } finally {
+          setIsBulkImportProcessing(false);
+          bulkImportTimerRef.current = null;
+        }
+      }, 2600);
       return;
     }
 
@@ -422,6 +440,10 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   const handleProposalApplied = () => setProposal({ kind: "idle" });
   const handleProposalDismissed = () => setProposal({ kind: "idle" });
 
+  // Track a one-shot "accept all" run so the header button can show a
+  // pending state without blocking the user from continuing to edit.
+  const [isAcceptingAll, setIsAcceptingAll] = useState(false);
+
   // Get permissions for org memory (tenant-level)
   const { data: orgMemoryPermissions } = usePermissions(
     Resource.MEMORY_CONTEXT,
@@ -456,6 +478,13 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   const contexts = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination;
 
+  // Mock proposal ids the user has already accepted/dismissed in this
+  // session — lets us filter out demo seeds after they've been handled so
+  // the sidebar badge and review card clear without a real backend.
+  const [dismissedMockContextIds, setDismissedMockContextIds] = useState<
+    Set<string>
+  >(new Set());
+
   // UI-only demo seeds — prebuilt "proposed" states for the 2nd and 3rd
   // memories so reviewers can click the "Update N" badge and actually see the
   // review card + Insert/Dismiss flow without first triggering a chat turn.
@@ -464,7 +493,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     const map: Record<string, ProposalState> = {};
     const second = contexts[1];
     const third = contexts[2];
-    if (second) {
+    if (second && !dismissedMockContextIds.has(second.id)) {
       const base = (second.value ?? "").trim();
       map[second.id] = {
         kind: "proposed",
@@ -477,7 +506,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         },
       };
     }
-    if (third) {
+    if (third && !dismissedMockContextIds.has(third.id)) {
       const base = (third.value ?? "").trim();
       map[third.id] = {
         kind: "proposed",
@@ -493,7 +522,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
       };
     }
     return map;
-  }, [contexts]);
+  }, [contexts, dismissedMockContextIds]);
 
   // Map of context id → number of pending Von updates, driving the sidebar
   // "Update N" badges. Combines the live proposal with the demo seeds above.
@@ -693,6 +722,111 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     if (!isChatPanelOpen) {
       openChatPanel();
       setAutoCloseChatOnExit(true);
+    }
+  };
+
+  // Accept ALL pending Von changes in one click — applies every mock
+  // proposal update, live proposal (if any), AND creates every proposed-new
+  // section as a real memory. Mutations run in parallel per bucket but we
+  // await the whole thing so we can clear local state + toast at the end.
+  const handleAcceptAllChanges = async () => {
+    if (isAcceptingAll) return;
+    setIsAcceptingAll(true);
+    try {
+      // 1. Apply all mock proposed updates.
+      const mockEntries = Object.entries(mockProposalsByContextId).filter(
+        ([, p]) => p.kind === "proposed",
+      );
+      await Promise.all(
+        mockEntries.map(([id, p]) => {
+          if (p.kind !== "proposed") return Promise.resolve();
+          const target = contexts.find((c) => c.id === id);
+          if (!target) return Promise.resolve();
+          const updateData: {
+            key?: string;
+            description: string;
+            value: string;
+          } = {
+            description:
+              p.changes.description ?? target.description ?? "",
+            value: p.changes.value ?? target.value ?? "",
+          };
+          if (
+            !target.isDefault &&
+            target.accessLevel !== "user" &&
+            p.changes.key !== undefined
+          ) {
+            updateData.key = p.changes.key;
+          }
+          return updateMutation.mutateAsync({ id, data: updateData });
+        }),
+      );
+
+      // 2. Apply the live proposal too if one is sitting in "proposed".
+      if (proposal.kind === "proposed") {
+        const target = contexts.find((c) => c.id === proposal.contextId);
+        if (target) {
+          const updateData: {
+            key?: string;
+            description: string;
+            value: string;
+          } = {
+            description:
+              proposal.changes.description ?? target.description ?? "",
+            value: proposal.changes.value ?? target.value ?? "",
+          };
+          if (
+            !target.isDefault &&
+            target.accessLevel !== "user" &&
+            proposal.changes.key !== undefined
+          ) {
+            updateData.key = proposal.changes.key;
+          }
+          await updateMutation.mutateAsync({
+            id: proposal.contextId,
+            data: updateData,
+          });
+        }
+      }
+
+      // 3. Promote every proposed-new section into a real memory.
+      await Promise.all(
+        proposedNewSections.map((section) =>
+          createMutation.mutateAsync({
+            key: section.key,
+            description: section.description,
+            value: section.value,
+            accessLevel: "tenant",
+          }),
+        ),
+      );
+
+      // Clear local state once everything landed.
+      const acceptedIds = new Set(mockEntries.map(([id]) => id));
+      setDismissedMockContextIds((prev) => {
+        const next = new Set(prev);
+        acceptedIds.forEach((id) => next.add(id));
+        return next;
+      });
+      setProposedNewSections([]);
+      setProposal({ kind: "idle" });
+      setSelectedProposedNewId(null);
+
+      const total =
+        mockEntries.length +
+        (proposal.kind === "proposed" ? 1 : 0) +
+        proposedNewSections.length;
+      showToast({
+        message: `Applied ${total} change${total === 1 ? "" : "s"}`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Failed to accept all changes:", error);
+      let errorMessage = "Failed to apply some changes. Please try again.";
+      if (error instanceof ApiError) errorMessage = error.message;
+      showToast({ message: errorMessage, variant: "error" });
+    } finally {
+      setIsAcceptingAll(false);
     }
   };
 
@@ -1115,19 +1249,29 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
               : "Define context shared across all users in your organization"}
           </p>
         </div>
-        {((showOrg && canCreateOrgMemory) ||
-          (showUser && isUserMemoryEnabled)) && (
+        {showOrg && canCreateOrgMemory && (
           <div className="flex items-center gap-2 flex-shrink-0 pt-1">
-            {showOrg && totalPendingUpdates > 0 && (
-              <span
-                className="inline-flex items-center h-7 px-2.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-medium"
-                title={`${totalPendingUpdates} pending Von update${
-                  totalPendingUpdates === 1 ? "" : "s"
-                }`}
-              >
-                {totalPendingUpdates} update
-                {totalPendingUpdates === 1 ? "" : "s"} pending
-              </span>
+            {totalPendingUpdates > 0 && (
+              <>
+                <span
+                  className="inline-flex items-center h-7 px-2.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-xs font-medium"
+                  title={`${totalPendingUpdates} pending Von update${
+                    totalPendingUpdates === 1 ? "" : "s"
+                  }`}
+                >
+                  {totalPendingUpdates} update
+                  {totalPendingUpdates === 1 ? "" : "s"} pending
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAcceptAllChanges}
+                  disabled={isAcceptingAll}
+                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-emerald-200/80 bg-emerald-600 text-sm text-white hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckIcon size={14} weight="bold" />
+                  {isAcceptingAll ? "Applying..." : "Accept all"}
+                </button>
+              </>
             )}
             <button
               type="button"
@@ -1135,7 +1279,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
               className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-gray-200/80 bg-white text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <DownloadSimpleIcon size={14} weight="regular" />
-              {showUser ? "Import memory" : "Bulk Import"}
+              Bulk Import
             </button>
           </div>
         )}
@@ -1153,7 +1297,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
 
           {/* ===== ORG MEMORY SECTION ===== */}
           {showOrg && (
-          <div className={isChatPanelOpen ? "w-[95%]" : "w-[75%]"}>
+          <div className={isChatPanelOpen ? "w-[85%]" : "w-[75%]"}>
             {/* Org Memory Card — list | editor | chat all live inside one card */}
             <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
               <div
@@ -1194,7 +1338,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                     contexts.length > 0 &&
                     (canUpdateOrgMemory ||
                       (canDeleteOrgMemory && !selectedOrgContext.isDefault)) && (
-                      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5">
+                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                         {canDeleteOrgMemory && !selectedOrgContext.isDefault && (
                           <button
                             onClick={handleDeleteClick}
@@ -1338,7 +1482,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
 
           {/* ===== USER MEMORY SECTION ===== */}
           {showUser && isUserMemoryEnabled && (
-            <div className={isChatPanelOpen ? "w-[95%]" : "w-[75%]"}>
+            <div className={isChatPanelOpen ? "w-[85%]" : "w-[75%]"}>
               {/* User Memory Card — mirrors the org card's split-pane
                   structure: content on the left, Edit-with-Von chat on the
                   right when open. Single personal memory so no sidebar. */}
@@ -1346,10 +1490,20 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                 <div className="flex w-full h-[calc(100vh-220px)]">
                   {/* Content area */}
                   <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
-                    {/* Floating edit action — hidden during edit mode so it
-                        doesn't overlap the form. */}
-                    {!isEditing && userMemory && (
-                      <div className="absolute bottom-3 right-3 z-10">
+                    {/* Top bar: Import memory + Edit actions pinned in the
+                        normal flow so they can't be obscured by scroll or
+                        stacking context. Only rendered in preview mode; edit
+                        mode and bulk-import processing take over the pane. */}
+                    {!isEditing && !isBulkImportProcessing && userMemory && (
+                      <div className="flex-shrink-0 flex items-center justify-end gap-1.5 px-4 pt-3 pb-0">
+                        <button
+                          onClick={() => setIsBulkImportOpen(true)}
+                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                          title="Import memory"
+                        >
+                          <DownloadSimpleIcon size={14} weight="regular" />
+                          Import memory
+                        </button>
                         <button
                           onClick={handleEditUserClick}
                           className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -1365,7 +1519,9 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                       </div>
                     )}
 
-                    {isEditing && editingContext?.accessLevel === "user" ? (
+                    {isBulkImportProcessing ? (
+                      renderBulkImportSkeleton()
+                    ) : isEditing && editingContext?.accessLevel === "user" ? (
                       <MemoryContextEditor
                         key={editingContext.id}
                         mode="edit"
@@ -1422,8 +1578,9 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                   </div>
 
                   {/* Edit-with-Von chat pane. Scoped to the user's personal
-                      memory, same pattern as org memory. */}
-                  {isChatPanelOpen && (
+                      memory, same pattern as org memory. Hidden during bulk
+                      import so the reviewing skeleton owns the full width. */}
+                  {isChatPanelOpen && !isBulkImportProcessing && (
                     <div className="w-[360px] flex-shrink-0 border-l border-gray-100/80 h-full">
                       <EditVonPane
                         onClose={handleCloseChat}

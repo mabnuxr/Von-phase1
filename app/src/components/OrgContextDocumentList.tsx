@@ -63,6 +63,13 @@ export function OrgContextDocumentList({
   // skeleton into a single flag so the list body has one loading branch.
   const showSkeleton =
     forceSkeletonState || (isLoading && contexts.length === 0);
+
+  // Split the contexts into defaults vs. custom so the sidebar can render
+  // them in three distinct groups: default → proposed-new → other. Default
+  // memories are system-owned seeds the user can't delete; keeping them
+  // pinned to the top gives them semantic priority.
+  const defaultContexts = contexts.filter((c) => c.isDefault);
+  const otherContexts = contexts.filter((c) => !c.isDefault);
   // Helper to render a memory item
   const renderMemoryItem = (ctx: MemoryContext) => {
     const isSelected = ctx.id === selectedContextId;
@@ -169,26 +176,6 @@ export function OrgContextDocumentList({
       {/* Memory list */}
       <div className="flex-1 min-h-0 overflow-y-auto settings-scrollbar">
         <div className="pl-1 py-1 pr-2">
-          {/* Proposed new sections — pinned ABOVE the real memories so fresh
-              AI proposals get eye priority. Dashed separator BELOW the group
-              marks the boundary with the real list. Hidden during the
-              skeleton state so the card reads as a unified loading surface. */}
-          {!showSkeleton && proposedNewSections.length > 0 && (
-            <div className="pb-2 mb-2 border-b border-dashed border-gray-200">
-              <div className="px-2.5 pt-0.5 pb-1 flex items-center justify-between">
-                <span className="text-[10px] font-medium tracking-wider uppercase text-gray-500">
-                  Proposed New
-                </span>
-                <span className="inline-flex items-center h-[18px] min-w-[18px] px-1.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium leading-none">
-                  {proposedNewSections.length}
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                {proposedNewSections.map((item) => renderProposedNewItem(item))}
-              </div>
-            </div>
-          )}
-
           {showSkeleton ? (
             <div
               className="flex flex-col gap-0.5"
@@ -206,14 +193,63 @@ export function OrgContextDocumentList({
                 </div>
               ))}
             </div>
-          ) : contexts.length > 0 ? (
-            <div className="flex flex-col gap-0.5">
-              {contexts.map((ctx) => renderMemoryItem(ctx))}
-            </div>
-          ) : (
+          ) : contexts.length === 0 && proposedNewSections.length === 0 ? (
             <div className="px-3 py-8 text-sm text-gray-400 text-center">
               No organization memories yet
             </div>
+          ) : (
+            <>
+              {/* Default memories first — system-owned seeds pinned to the
+                  top. No group header; they just read as the start of the
+                  list. */}
+              {defaultContexts.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                  {defaultContexts.map((ctx) => renderMemoryItem(ctx))}
+                </div>
+              )}
+
+              {/* Proposed new sections — middle group, between defaults and
+                  user-created memories. Dashed separator above marks the
+                  boundary when defaults exist. */}
+              {proposedNewSections.length > 0 && (
+                <div
+                  className={
+                    defaultContexts.length > 0
+                      ? "mt-2 pt-2 border-t border-dashed border-gray-200"
+                      : ""
+                  }
+                >
+                  <div className="px-2.5 pt-0.5 pb-1 flex items-center justify-between">
+                    <span className="text-[10px] font-medium tracking-wider uppercase text-gray-500">
+                      Proposed New
+                    </span>
+                    <span className="inline-flex items-center h-[18px] min-w-[18px] px-1.5 rounded-full bg-gray-100 text-gray-600 text-[10px] font-medium leading-none">
+                      {proposedNewSections.length}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {proposedNewSections.map((item) =>
+                      renderProposedNewItem(item),
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Other memories — user-created entries. Dashed separator
+                  above marks the boundary with whatever group precedes. */}
+              {otherContexts.length > 0 && (
+                <div
+                  className={
+                    defaultContexts.length > 0 ||
+                    proposedNewSections.length > 0
+                      ? "mt-2 pt-2 border-t border-dashed border-gray-200 flex flex-col gap-0.5"
+                      : "flex flex-col gap-0.5"
+                  }
+                >
+                  {otherContexts.map((ctx) => renderMemoryItem(ctx))}
+                </div>
+              )}
+            </>
           )}
         </div>
 

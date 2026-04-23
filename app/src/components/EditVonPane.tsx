@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { XIcon, SparkleIcon } from "@phosphor-icons/react";
 import type { MentionItem } from "@vonlabs/design-components";
 import { ChatSession } from "./chat/ChatSession";
 import { AppShellContext } from "../contexts/AppShellContext";
@@ -56,7 +55,10 @@ function EditVonEmptyState() {
  * ChatSession's existing-conversation path resolves outside AppShell.
  */
 export function EditVonPane({
-  onClose,
+  // onClose kept on the prop contract so callers can still drive close from
+  // outside the pane (e.g. auto-close after save), even though the header's
+  // X button was removed at the user's request.
+  onClose: _onClose,
   placeholder = "Ask Von to help...",
   title = "Edit with Von",
   memoryContext,
@@ -98,7 +100,10 @@ export function EditVonPane({
       list.push({
         id: `${SNIPPET_MENTION_PREFIX}${text}`,
         name: text,
-        type: "widget",
+        // Distinct type so MentionPreview renders a text-align icon rather
+        // than the widget chart glyph — snippets are quoted passages, not
+        // dashboard references.
+        type: "snippet",
         version: 0,
       });
     }
@@ -132,14 +137,6 @@ export function EditVonPane({
               Demo
             </button>
           )}
-          <button
-            onClick={onClose}
-            className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Close"
-            aria-label="Close chat"
-          >
-            <XIcon size={14} weight="regular" />
-          </button>
         </div>
       </div>
 

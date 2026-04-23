@@ -1,5 +1,10 @@
 import React from 'react';
-import { X, ChartBarIcon, ChartPieSliceIcon } from '@phosphor-icons/react';
+import {
+  X,
+  ChartBarIcon,
+  ChartPieSliceIcon,
+  TextAlignLeftIcon,
+} from '@phosphor-icons/react';
 import type { MentionItem } from '../../Mentions/types';
 import { MentionItemType } from '../../Mentions/constants';
 
@@ -21,9 +26,16 @@ export const MentionPreview: React.FC<MentionPreviewProps> = ({
   removable = true,
 }) => {
   const isWidget = mention.type === MentionItemType.Widget;
+  const isSnippet = mention.type === MentionItemType.Snippet;
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs flex-shrink-0">
-      {isWidget ? (
+      {isSnippet ? (
+        <TextAlignLeftIcon
+          size={14}
+          weight="regular"
+          className="text-gray-800 flex-shrink-0"
+        />
+      ) : isWidget ? (
         <ChartPieSliceIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />
       ) : (
         <ChartBarIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />

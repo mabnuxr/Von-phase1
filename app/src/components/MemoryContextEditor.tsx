@@ -1,7 +1,6 @@
 import { useRef, useState, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SparkleIcon, PaperclipIcon } from "@phosphor-icons/react";
-import { Streamdown } from "streamdown";
 import {
   FilePreview,
   generateFileId,
@@ -335,11 +334,7 @@ export function MemoryContextEditor({
             value={editingKey}
             onChange={(e) => setEditingKey(e.target.value)}
             disabled={isTitleReadOnly}
-            className={`w-full px-3 py-2 text-sm text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all ${
-              isProposed
-                ? "border border-emerald-200 bg-emerald-50/40 focus:border-emerald-300"
-                : "border border-gray-200/80 bg-white focus:border-gray-300"
-            } ${
+            className={`w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-300 transition-all ${
               isTitleReadOnly
                 ? "opacity-60 cursor-not-allowed bg-gray-50"
                 : ""
@@ -364,13 +359,54 @@ export function MemoryContextEditor({
             value={editingDescription}
             onChange={(e) => setEditingDescription(e.target.value)}
             rows={2}
-            className={`w-full px-3 py-2 text-sm text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 transition-all resize-none ${
-              isProposed
-                ? "border border-emerald-200 bg-emerald-50/40 focus:border-emerald-300"
-                : "border border-gray-200/80 bg-white focus:border-gray-300"
-            }`}
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-300 transition-all resize-none"
             placeholder="e.g., When answering questions about pricing or discounts"
           />
+        </div>
+      </div>
+
+      {/* Attachments block — pinned ABOVE Memory Content so supporting
+          material reads like source context the agent can pull from, not
+          a footer afterthought. Chips sit above the Attach file button. */}
+      <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={getAcceptString()}
+          className="hidden"
+          onChange={(e) => {
+            handleFilesSelected(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        {attachments.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto settings-scrollbar pb-1 min-w-0">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                onClick={() => onPreviewAttachment?.(attachment)}
+                className="flex-shrink-0"
+              >
+                <FilePreview
+                  attachment={attachment}
+                  onRemove={handleRemoveAttachment}
+                  removable
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+            title="Attach file"
+          >
+            <PaperclipIcon size={14} weight="regular" />
+            Attach file
+          </button>
         </div>
       </div>
 
@@ -400,21 +436,6 @@ export function MemoryContextEditor({
               />
             </div>
           </div>
-        ) : isProposed && proposalFields.has("content") ? (
-          /* Proposed treatment: replace the editor with a read-only preview
-             of the proposal. Accept/Dismiss in the review card drives the
-             transition back to the editor. */
-          <div className="flex-1 min-h-0 border border-emerald-200 bg-emerald-50/40 rounded-xl overflow-hidden">
-            <div className="h-full w-full overflow-y-auto settings-scrollbar p-4">
-              <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&_[data-streamdown]:first-child]:!mt-1 [&_pre]:overflow-x-auto [&_code]:break-all">
-                <Streamdown parseIncompleteMarkdown={false}>
-                  {proposal.kind === "proposed" && proposal.changes.value
-                    ? proposal.changes.value
-                    : editingContent}
-                </Streamdown>
-              </div>
-            </div>
-          </div>
         ) : (
           <div className="flex-1 min-h-0 border border-gray-200/80 rounded-xl overflow-hidden">
             <OrgContextEditor
@@ -427,49 +448,6 @@ export function MemoryContextEditor({
             />
           </div>
         )}
-
-        {/* Attachments — chips stack in a horizontally scrollable row ABOVE
-            the Attach file button, so the growing set of files pushes the
-            content up rather than crowding the button row. */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={getAcceptString()}
-          className="hidden"
-          onChange={(e) => {
-            handleFilesSelected(e.target.files);
-            e.target.value = "";
-          }}
-        />
-        {attachments.length > 0 && (
-          <div className="flex-shrink-0 mt-2 flex items-center gap-1.5 overflow-x-auto settings-scrollbar pb-1 min-w-0">
-            {attachments.map((attachment) => (
-              <div
-                key={attachment.id}
-                onClick={() => onPreviewAttachment?.(attachment)}
-                className="flex-shrink-0"
-              >
-                <FilePreview
-                  attachment={attachment}
-                  onRemove={handleRemoveAttachment}
-                  removable
-                />
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="flex-shrink-0 mt-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Attach file"
-          >
-            <PaperclipIcon size={14} weight="regular" />
-            Attach file
-          </button>
-        </div>
       </div>
 
       {/* Sticky footer */}
