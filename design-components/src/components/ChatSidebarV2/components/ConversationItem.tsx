@@ -39,8 +39,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
   const [editValue, setEditValue] = useState(item.label);
   const inputRef = useRef<HTMLInputElement>(null);
   const showButton = !!onContextMenu && (isHovered || isMenuOpen) && !isEditing;
-  const approvalState =
-    !isSelected && !isEditing ? item.approvalState : undefined;
+  const approvalState = !isSelected && !isEditing ? item.approvalState : undefined;
 
   // Focus input when entering edit mode
   useEffect(() => {
