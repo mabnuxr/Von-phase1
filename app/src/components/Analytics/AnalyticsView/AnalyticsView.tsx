@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowsOutSimpleIcon,
@@ -36,6 +36,7 @@ import type {
 } from "../../../types/dashboard";
 import type { MutationPhase } from "../../../hooks/useMutationPhase";
 import { EditModeBanner } from "../EditModeBanner";
+import { buildTextWidgetVariables } from "./buildTextWidgetVariables";
 import type {
   WidgetConfig,
   GridConfig,
@@ -201,6 +202,10 @@ interface AnalyticsViewProps {
   lockedPanelFilterState?: Record<string, Record<string, ActiveFilter>>;
 }
 
+// Rename input's horizontal padding (px-1.5 × 2 = 12px) + border (1px × 2 = 2px).
+// Added to the measured title width so the text inside the input aligns with the h1's.
+const RENAME_INPUT_CHROME_PX = 14;
+
 const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   dashboard,
   refreshInfo,
@@ -265,6 +270,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
+  const variablesByWidget = useMemo(
+    () =>
+      buildTextWidgetVariables(
+        dashboard.widgets as unknown as Record<string, WidgetConfig>,
+        filterDefinitions,
+        filterState,
+      ),
+    [dashboard.widgets, filterDefinitions, filterState],
+  );
+
   // Widget-level filter UI hidden until panel-filter designs are ready.
   // widgetIds, widgetQueryRefMap, widgetAppliedFilters, and widgetFilterSlot
   // memos removed — restore when re-enabling widget-level filters.
@@ -282,8 +297,18 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // ── Inline rename state ─────────────────────────────────────────
   const [isRenamingTitle, setIsRenamingTitle] = useState(false);
   const [editValue, setEditValue] = useState(dashboard.title);
+  const [renameWidth, setRenameWidth] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const committedRef = useRef(false);
+
+  const startRename = useCallback(() => {
+    const titleWidth = titleRef.current?.offsetWidth;
+    setRenameWidth(
+      titleWidth != null ? titleWidth + RENAME_INPUT_CHROME_PX : null,
+    );
+    setIsRenamingTitle(true);
+  }, []);
 
   useEffect(() => {
     if (!isRenamingTitle) setEditValue(dashboard.title);
@@ -358,20 +383,20 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       setIsRenamingTitle(false);
                     }
                   }}
-                  className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400 w-full max-w-md"
+                  style={
+                    renameWidth != null ? { width: renameWidth } : undefined
+                  }
+                  className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400"
                 />
               ) : (
                 <div className="flex items-center gap-1.5">
                   <h1
+                    ref={titleRef}
                     className={`text-base font-semibold text-gray-900 truncate ${
-                      dashboard.isOwner && onRename && isSaved
-                        ? "cursor-pointer"
-                        : ""
+                      dashboard.isOwner && onRename ? "cursor-pointer" : ""
                     }`}
                     onDoubleClick={
-                      dashboard.isOwner && onRename && isSaved
-                        ? () => setIsRenamingTitle(true)
-                        : undefined
+                      dashboard.isOwner && onRename ? startRename : undefined
                     }
                   >
                     {dashboard.title}
@@ -662,6 +687,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
+            variablesByWidget={variablesByWidget}
             // Widget-level filter UI hidden until panel-filter designs are ready
             // widgetAppliedFilters={widgetAppliedFilters}
             // widgetFilterSlot={widgetFilterSlot}

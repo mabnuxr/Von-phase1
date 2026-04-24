@@ -590,6 +590,7 @@ export function IntegrationsList({
     isJiminnyEnabled,
     isDatabricksEnabled,
     isBoxEnabled,
+    isBigQueryEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -608,6 +609,7 @@ export function IntegrationsList({
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
       if (app.id === "box" && !isBoxEnabled) return false;
+      if (app.id === "bigquery" && !isBigQueryEnabled) return false;
       return true;
     });
   }, [
@@ -623,6 +625,7 @@ export function IntegrationsList({
     isJiminnyEnabled,
     isDatabricksEnabled,
     isBoxEnabled,
+    isBigQueryEnabled,
   ]);
 
   // Merge available apps with connected integrations

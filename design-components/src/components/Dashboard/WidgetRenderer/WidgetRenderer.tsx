@@ -32,6 +32,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     appliedFilters,
     filterSlot,
     onAddToChat,
+    variables,
   }) => {
     const handleDrillDown = useCallback(() => {
       onDrillDown?.(widget.id);
@@ -112,9 +113,11 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       case 'text':
         return (
-          <WidgetShell title={widget.title} onAddToChat={addToChatHandler}>
-            <TextWidget config={widget.config as TextWidgetConfig} />
-          </WidgetShell>
+          <TextWidget
+            config={widget.config as TextWidgetConfig}
+            variables={variables}
+            onAddToChat={addToChatHandler}
+          />
         );
 
       case 'table':
