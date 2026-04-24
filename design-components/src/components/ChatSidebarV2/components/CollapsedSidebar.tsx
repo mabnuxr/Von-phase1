@@ -336,7 +336,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                   <div className="overflow-y-auto max-h-64 py-0.5">
                     {items.slice(0, 10).map((item) => {
                       const isSelected = item.id === selectedItemId;
-                      const rowApprovalState = !isSelected ? item.approvalState : undefined;
 
                       return (
                         <div
@@ -354,7 +353,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
                           title={item.label}
                         >
                           <span className="flex-1 truncate">{item.label}</span>
-                          {rowApprovalState && <ApprovalPill state={rowApprovalState} />}
+                          {item.approvalState && <ApprovalPill state={item.approvalState} />}
                         </div>
                       );
                     })}

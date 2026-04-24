@@ -152,7 +152,7 @@ export function ChatSidebarV2Container({
     userId: user?.id,
   });
 
-  const { approvalStates, markViewed } = useApprovalStates({
+  const { approvalStates } = useApprovalStates({
     sidebarConversations: unfiledConversations,
     folderConversations: folderConversationsMap,
     userChannel,
@@ -198,10 +198,9 @@ export function ChatSidebarV2Container({
 
   const handleChatClick = useCallback(
     (conversationId: string) => {
-      markViewed(conversationId);
       navigate(`/chat/${conversationId}`);
     },
-    [markViewed, navigate],
+    [navigate],
   );
 
   const handleDeleteItem = useCallback(
