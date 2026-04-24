@@ -12,6 +12,7 @@ import {
 } from "../services/conversationsService";
 import { setShareId } from "../services/apiClient";
 import { useToast } from "../hooks/useToast";
+import { SpinnerGapIcon } from "@phosphor-icons/react";
 
 /**
  * Read-only view of a shared conversation.
@@ -113,6 +114,9 @@ export default function SharedConversation() {
         message: "Couldn't summarize this chat. Please try again.",
         variant: "error",
       });
+    } finally {
+      // Guarantee the button resets even if navigation is blocked; on success
+      // the component unmounts so this setState is a harmless no-op in React 18+.
       setIsSummarizing(false);
     }
   };
@@ -220,26 +224,7 @@ export default function SharedConversation() {
       >
         {isSummarizing ? (
           <>
-            <svg
-              className="animate-spin h-4 w-4 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-              />
-            </svg>
+            <SpinnerGapIcon size={13} className="animate-spin" />
             Summarizing…
           </>
         ) : (
