@@ -31,6 +31,7 @@ import {
   transformIQArtifactToDataTable,
   applyDeepLinkTransform,
 } from "../utils/transformArtifactsToTransparency";
+import { isSelfDescribingArtifact } from "../types/artifacts";
 
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
@@ -222,6 +223,65 @@ function transformArtifactToDisplayFormat(
       return {
         viewMode: "calls",
         calls: [emailTranscript],
+      };
+    }
+  }
+
+  // Handle self-describing envelope format (new backend contract)
+  if (isSelfDescribingArtifact(content as Record<string, unknown>)) {
+    const envelope = content as {
+      kind: string;
+      metadata: {
+        display_name: string;
+        query_label?: string;
+        dialect?: string;
+        integration_id: string;
+      };
+      payload: {
+        query?: string;
+        query_name?: string;
+        columns?: Array<{ name: string; display_name?: string; type?: string }>;
+        rows?: Array<Record<string, unknown>>;
+        row_count?: number;
+        execution_time_ms?: number;
+      };
+    };
+
+    const { metadata, payload } = envelope;
+
+    if (
+      (envelope.kind === "query_result" || envelope.kind === "record_list") &&
+      payload.columns &&
+      payload.rows
+    ) {
+      const columns: QueryColumn[] = applyDeepLinkTransform(
+        payload.columns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: (col.type as QueryColumn["type"]) || "string",
+        })),
+      );
+
+      const rows = payload.rows.map((row) => {
+        const transformedRow: Record<string, string | number> = {};
+        for (const [key, value] of Object.entries(row)) {
+          if (value === null || value === undefined) {
+            transformedRow[key] = "";
+          } else if (typeof value === "object") {
+            transformedRow[key] = JSON.stringify(value);
+          } else {
+            transformedRow[key] = value as string | number;
+          }
+        }
+        return transformedRow;
+      });
+
+      return {
+        viewMode: "data",
+        query: envelope.kind === "query_result" ? payload.query : undefined,
+        columns,
+        rows,
+        duration: payload.execution_time_ms,
       };
     }
   }
@@ -461,8 +521,16 @@ export const SingleArtifactDrawerContainer: React.FC<
   // Extract query_name from artifact content if available
   const queryName = useMemo(() => {
     if (!artifact?.content) return undefined;
-    const content = artifact.content as { query_name?: string };
-    return content.query_name;
+    const content = artifact.content as Record<string, unknown>;
+    // Self-describing envelope: use payload.query_name or metadata.display_name
+    if (isSelfDescribingArtifact(content)) {
+      const envelope = content as {
+        metadata: { display_name: string };
+        payload: { query_name?: string };
+      };
+      return envelope.payload.query_name || envelope.metadata.display_name;
+    }
+    return (content as { query_name?: string }).query_name;
   }, [artifact]);
 
   // Determine error message: fetch error takes precedence, then artifact error

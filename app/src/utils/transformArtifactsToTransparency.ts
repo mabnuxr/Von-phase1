@@ -13,6 +13,10 @@ import type {
   QueryColumn,
   CallTranscript,
 } from "@vonlabs/design-components";
+import {
+  isSelfDescribingArtifact,
+  type SelfDescribingArtifact,
+} from "../types/artifacts";
 
 /**
  * RAG artifact content structure
@@ -181,6 +185,84 @@ function getToolDisplayName(toolName: string): string {
   return TOOL_NAME_MAP[toolName] || toolName.replace(/_/g, " ");
 }
 
+// ============================================================================
+// Self-describing envelope handler
+// ============================================================================
+
+/**
+ * Transform a self-describing artifact envelope into a QueryResult.
+ * The envelope carries its own metadata — no tool-name lookup needed.
+ *
+ * Adding a new `kind` to SelfDescribingArtifact without handling it here
+ * will cause a TypeScript error via the exhaustive switch.
+ */
+function transformSelfDescribingArtifact(
+  artifact: ArtifactResponse,
+  envelope: SelfDescribingArtifact,
+): TransparencyQueryResult | null {
+  const { metadata } = envelope;
+
+  switch (envelope.kind) {
+    case "query_result": {
+      const p = envelope.payload;
+      if (!p.columns || !p.rows) return null;
+
+      const columns: QueryColumn[] = applyDeepLinkTransform(
+        p.columns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: (col.type as QueryColumn["type"]) || "string",
+        })),
+      );
+      const rows = transformRowsForDisplay(p.rows);
+
+      return {
+        id: artifact.artifact_id,
+        name: p.query_name || metadata.display_name,
+        description: `${p.row_count ?? rows.length} rows returned`,
+        query: p.query,
+        queryLabel: metadata.query_label,
+        columns,
+        rows,
+        executedAt: new Date(artifact.persisted_at),
+        duration: p.execution_time_ms,
+      };
+    }
+
+    case "record_list": {
+      const p = envelope.payload;
+      if (!p.columns || !p.rows) return null;
+
+      const columns: QueryColumn[] = applyDeepLinkTransform(
+        p.columns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: (col.type as QueryColumn["type"]) || "string",
+        })),
+      );
+      const rows = transformRowsForDisplay(p.rows);
+
+      return {
+        id: artifact.artifact_id,
+        name: metadata.display_name,
+        description: `${p.row_count ?? rows.length} rows returned`,
+        columns,
+        rows,
+        executedAt: new Date(artifact.persisted_at),
+      };
+    }
+  }
+
+  // Exhaustive check: if a new kind is added to the union but not handled above,
+  // TypeScript will error here because `envelope` won't be `never`.
+  const _exhaustive: never = envelope;
+  return null;
+}
+
+// ============================================================================
+// Main transformer (envelope-first, then legacy fallback)
+// ============================================================================
+
 /**
  * Transform a single artifact into a QueryResult for the TransparencyDrawer
  */
@@ -188,6 +270,19 @@ function transformArtifactToQueryResult(
   artifact: ArtifactResponse,
 ): TransparencyQueryResult | null {
   const { artifact_id, tool_name, content, persisted_at } = artifact;
+
+  // --- Self-describing envelope (new format) ---
+  // If the backend sends kind/metadata/payload, use it directly.
+  // No tool-name lookup, no if/else chain.
+  if (isSelfDescribingArtifact(content as Record<string, unknown>)) {
+    return transformSelfDescribingArtifact(
+      artifact,
+      content as unknown as SelfDescribingArtifact,
+    );
+  }
+
+  // --- Legacy per-tool-name handling (existing Salesforce, SQL, etc.) ---
+  // Kept intact until backend migrates all tools to self-describing format.
 
   // Handle RAG/conversation search artifacts
   if (tool_name === "execute_conversation_search") {
@@ -424,6 +519,9 @@ export interface ArtifactSummary {
   row_count?: number;
   size_bytes: number;
   persisted_at: string;
+  /** Self-describing envelope fields (present when backend uses new format) */
+  kind?: string;
+  display_name?: string;
 }
 
 /**
@@ -454,7 +552,10 @@ export function transformSummariesToPlaceholders(
 ): TransparencyQueryResult[] {
   return summaries.map((summary) => ({
     id: summary.artifact_id,
-    name: summary.query_name || getToolDisplayName(summary.tool_name),
+    name:
+      summary.display_name ||
+      summary.query_name ||
+      getToolDisplayName(summary.tool_name),
     description: `Loading...`,
     columns: [],
     rows: [],
