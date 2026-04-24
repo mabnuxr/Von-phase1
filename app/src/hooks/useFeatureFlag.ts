@@ -181,9 +181,9 @@ export function useFeatureFlag() {
     isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
 
     /**
-     * Box integration — permanently enabled, no longer behind a feature flag
+     * Controls whether Box integration is visible
      */
-    isBoxEnabled: true,
+    isBoxEnabled: flags[FEATURE_FLAGS.BOX] === true,
 
     /**
      * Controls whether Outreach engagement integration is visible

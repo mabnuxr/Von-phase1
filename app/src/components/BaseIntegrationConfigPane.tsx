@@ -704,6 +704,7 @@ export function BaseIntegrationConfigPane({
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar" ||
                 integrationId === "googledrive" ||
+                integrationId === "box" ||
                 integrationId === "gmail" ||
                 integrationId === "granola" ||
                 integrationId === "notion" ||
