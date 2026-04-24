@@ -1143,6 +1143,14 @@ export interface ChatProps {
   onInputValueChange?: (value: string) => void;
 
   /**
+   * Initial value used to seed the empty-state input (read once on mount).
+   * `inputValue` only feeds the bottom input that renders after messages
+   * exist — use this when you need to pre-populate the first-message input
+   * (e.g. "Start new chat with context" from a shared conversation).
+   */
+  defaultInputValue?: string;
+
+  /**
    * Placeholder text for the input
    * @default 'Ask von anything'
    */
@@ -1482,6 +1490,7 @@ export interface ChatProps {
    * @default false
    */
   hideInput?: boolean;
+  hideScrollToBottom?: boolean;
 
   /**
    * When true, file attachment chips and command data source chips are

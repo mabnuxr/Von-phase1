@@ -13,7 +13,15 @@
  * This avoids orphaned conversations that have no user messages.
  */
 
-import { useCallback, useMemo, useState, Profiler } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  Profiler,
+} from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Chat } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
@@ -32,6 +40,23 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // One-shot prefill: if we arrived here with a `prompt` in router state
+  // (e.g. "Start New Chat with Context" from a shared conversation), capture
+  // it once on mount and clear the history state so a refresh doesn't re-seed.
+  const initialInputRef = useRef<string>(
+    (location.state as { prompt?: string } | null)?.prompt ?? "",
+  );
+  useEffect(() => {
+    const state = location.state as { prompt?: string } | null;
+    if (state?.prompt) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // Run once on mount — subsequent location changes are unrelated.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const {
     isSidebarV2,
     isAgentV2: isAgentV2Flag,
@@ -158,6 +183,7 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
+        defaultInputValue={initialInputRef.current}
         placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"

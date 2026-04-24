@@ -11,6 +11,7 @@ import {
   type SharedConversationValidationResponse,
 } from "../services/conversationsService";
 import { setShareId } from "../services/apiClient";
+import { useToast } from "../hooks/useToast";
 
 /**
  * Read-only view of a shared conversation.
@@ -35,11 +36,13 @@ import { setShareId } from "../services/apiClient";
 export default function SharedConversation() {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [validation, setValidation] =
     useState<SharedConversationValidationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   // Install the share ID on apiClient before any other request fires.
   useEffect(() => {
@@ -93,6 +96,25 @@ export default function SharedConversation() {
   const handleNewChat = () => {
     setShareId(null);
     navigate("/chat/new");
+  };
+
+  const handleStartWithContext = async () => {
+    if (!conversationId || isSummarizing) return;
+    setIsSummarizing(true);
+    try {
+      // Must call before clearing share ID — the X-Share-Id header is what
+      // elevates this request into the owner's context on the backend.
+      const result =
+        await conversationsService.summarizeConversation(conversationId);
+      setShareId(null);
+      navigate("/chat/new", { state: { prompt: result.summary } });
+    } catch {
+      showToast({
+        message: "Couldn't summarize this chat. Please try again.",
+        variant: "error",
+      });
+      setIsSummarizing(false);
+    }
   };
 
   if (loading) {
@@ -152,7 +174,7 @@ export default function SharedConversation() {
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none">
+    <div className="relative flex flex-col flex-1 w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none [&_.settings-scrollbar]:!pb-16">
       {/* Header — conversation name + read-only indicator + shared by */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -188,6 +210,42 @@ export default function SharedConversation() {
           />
         )}
       </div>
+
+      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one */}
+      <button
+        type="button"
+        onClick={handleStartWithContext}
+        disabled={isSummarizing || !conversationId}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed transition-colors cursor-pointer z-10"
+      >
+        {isSummarizing ? (
+          <>
+            <svg
+              className="animate-spin h-4 w-4 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+            Summarizing…
+          </>
+        ) : (
+          "Continue from summary"
+        )}
+      </button>
     </div>
   );
 }
