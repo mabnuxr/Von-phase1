@@ -52,25 +52,25 @@ export interface StorageExportLegacyProps {
 export function buildStorageServices(props: StorageExportLegacyProps): StorageService[] {
   const services: StorageService[] = [];
 
-  if (props.isDriveEnabled && props.onGoogleDriveClick) {
+  if (props.isDriveEnabled && props.isDriveConnected && props.onGoogleDriveClick) {
     services.push({
       id: 'drive',
       name: 'Google Drive',
       logo: driveLogo,
-      tooltip: props.isDriveConnected ? 'Open in Google Drive' : 'Connect Google Drive',
-      connected: props.isDriveConnected ?? false,
+      tooltip: 'Open in Google Drive',
+      connected: true,
       loading: props.isDriveLoading ?? false,
       onClick: props.onGoogleDriveClick,
     });
   }
 
-  if (props.isBoxEnabled && props.onBoxClick) {
+  if (props.isBoxEnabled && props.isBoxConnected && props.onBoxClick) {
     services.push({
       id: 'box',
       name: 'Box',
       logo: boxLogo,
-      tooltip: props.isBoxConnected ? 'Open in Box' : 'Connect Box',
-      connected: props.isBoxConnected ?? false,
+      tooltip: 'Open in Box',
+      connected: true,
       loading: props.isBoxLoading ?? false,
       onClick: props.onBoxClick,
     });
@@ -132,6 +132,9 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
     e.preventDefault();
     setActiveId(service.id);
     setIsOpen(false);
+    if (!service.loading) {
+      service.onClick();
+    }
   };
 
   // Single service — no chevron needed, just a standalone button
@@ -222,8 +225,8 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
                 <img
                   src={service.logo}
                   alt=""
-                  width={20}
-                  height={20}
+                  width={24}
+                  height={24}
                   className={`shrink-0 ${service.connected ? '' : 'opacity-60'}`}
                 />
               )}
