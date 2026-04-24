@@ -95,9 +95,7 @@ export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
             isDriveConnected={isDriveConnected}
             driveTooltip={driveTooltip}
             isDriveLoading={driveLoadingFileId === artifact.fileId}
-            onBoxClick={
-              onBoxClick ? () => onBoxClick(artifact.fileId) : undefined
-            }
+            onBoxClick={onBoxClick ? () => onBoxClick(artifact.fileId) : undefined}
             isBoxEnabled={isBoxEnabled}
             isBoxConnected={isBoxConnected}
             boxTooltip={boxTooltip}

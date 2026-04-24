@@ -696,10 +696,7 @@ function ExistingChatInner(
               }
               onBoxClick={
                 props.onBoxClick && chatV2.fileArtifactPanel.fileId
-                  ? () =>
-                      props.onBoxClick!(
-                        chatV2.fileArtifactPanel.fileId!,
-                      )
+                  ? () => props.onBoxClick!(chatV2.fileArtifactPanel.fileId!)
                   : undefined
               }
               isBoxEnabled={props.isBoxEnabled}

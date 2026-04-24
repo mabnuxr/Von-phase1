@@ -157,9 +157,7 @@ const Conversation = () => {
       ? "Connect Box"
       : "Open in Box";
 
-  const [boxLoadingFileId, setBoxLoadingFileId] = useState<string | null>(
-    null,
-  );
+  const [boxLoadingFileId, setBoxLoadingFileId] = useState<string | null>(null);
 
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
@@ -239,9 +237,7 @@ const Conversation = () => {
         window.open(result.url, "_blank");
       } catch (error) {
         const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to export to Box";
+          error instanceof Error ? error.message : "Failed to export to Box";
         showToast({ message, variant: "error" });
       } finally {
         setBoxLoadingFileId(null);
@@ -334,6 +330,11 @@ const Conversation = () => {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              onBoxClick={handleBoxClick}
+              isBoxEnabled={isBoxEnabled}
+              isBoxConnected={isBoxConnected}
+              boxTooltip={boxTooltip}
+              boxLoadingFileId={boxLoadingFileId}
               headerAction={
                 isChatSharingEnabled
                   ? (compact: boolean) => (

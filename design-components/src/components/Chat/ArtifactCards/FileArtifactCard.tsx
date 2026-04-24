@@ -1,23 +1,19 @@
 /**
  * FileArtifactCard — pre-composed card for file artifacts (document / slides / spreadsheet).
  *
- * Renders Google Drive, download, preview, and open actions.
+ * Renders a unified storage-export dropdown, download, preview, and open actions.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   DownloadSimpleIcon,
   FileDocIcon,
   PresentationChartIcon,
   TableIcon,
   ArrowRightIcon,
-  SpinnerGapIcon,
-  ArrowSquareOutIcon,
 } from '@phosphor-icons/react';
-import { Tooltip } from '../../Tooltip';
-import driveLogo from '../../../assets/drive-logo.svg';
-import boxLogo from '../../../assets/box-logo.svg';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
+import { StorageExportButton, buildStorageServices } from '../StorageExportButton';
 import type { FileArtifact } from './types';
 
 // ============================================================================
@@ -73,17 +69,24 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
   onGoogleDriveClick,
   isDriveEnabled,
   isDriveConnected,
-  driveTooltip,
   isDriveLoading,
   onBoxClick,
   isBoxEnabled,
   isBoxConnected,
-  boxTooltip,
   isBoxLoading,
 }) => {
   const config = FILE_ICON_CONFIG[artifact.artifactType] ?? DEFAULT_FILE_CONFIG;
-  const [showDrivePopup, setShowDrivePopup] = useState(false);
-  const [showBoxPopup, setShowBoxPopup] = useState(false);
+
+  const storageServices = buildStorageServices({
+    onGoogleDriveClick,
+    isDriveEnabled,
+    isDriveConnected,
+    isDriveLoading,
+    onBoxClick,
+    isBoxEnabled,
+    isBoxConnected,
+    isBoxLoading,
+  });
 
   return (
     <BaseArtifactCard
@@ -95,149 +98,8 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
       <BaseArtifactCard.Icon>{config.icon}</BaseArtifactCard.Icon>
 
       <BaseArtifactCard.Actions>
-        {/* Google Drive */}
-        <div
-          className="relative"
-          onMouseEnter={() =>
-            isDriveEnabled && isDriveConnected === false && setShowDrivePopup(true)
-          }
-          onMouseLeave={() => setShowDrivePopup(false)}
-        >
-          {isDriveEnabled && isDriveConnected === false ? (
-            <>
-              <button
-                disabled={isDriveLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onGoogleDriveClick?.();
-                }}
-                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
-                  isDriveLoading ? 'cursor-wait' : 'opacity-60 hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {isDriveLoading ? (
-                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
-                ) : (
-                  <img src={driveLogo} alt="Google Drive" width={16} height={16} />
-                )}
-              </button>
-              {showDrivePopup && (
-                <div className="absolute right-0 top-full pt-1.5 z-10">
-                  <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 whitespace-nowrap">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onGoogleDriveClick?.();
-                      }}
-                      className="flex items-center gap-1.5 text-sm text-von-purple hover:text-von-purple-dark hover:underline"
-                    >
-                      <img src={driveLogo} alt="" width={14} height={14} />
-                      Connect Google Drive
-                      <ArrowSquareOutIcon size={13} weight="bold" />
-                    </a>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <Tooltip content={driveTooltip ?? 'Open in Drive (Coming soon)'} placement="top">
-              <button
-                disabled={!isDriveEnabled || isDriveLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onGoogleDriveClick?.();
-                }}
-                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
-                  isDriveLoading
-                    ? 'cursor-wait'
-                    : !isDriveEnabled
-                      ? 'opacity-40 cursor-not-allowed'
-                      : 'hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {isDriveLoading ? (
-                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
-                ) : (
-                  <img src={driveLogo} alt="Google Drive" width={16} height={16} />
-                )}
-              </button>
-            </Tooltip>
-          )}
-        </div>
-
-        {/* Box */}
-        <div
-          className="relative"
-          onMouseEnter={() =>
-            isBoxEnabled && isBoxConnected === false && setShowBoxPopup(true)
-          }
-          onMouseLeave={() => setShowBoxPopup(false)}
-        >
-          {isBoxEnabled && isBoxConnected === false ? (
-            <>
-              <button
-                disabled={isBoxLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBoxClick?.();
-                }}
-                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
-                  isBoxLoading ? 'cursor-wait' : 'opacity-60 hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {isBoxLoading ? (
-                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
-                ) : (
-                  <img src={boxLogo} alt="Box" width={16} height={16} />
-                )}
-              </button>
-              {showBoxPopup && (
-                <div className="absolute right-0 top-full pt-1.5 z-10">
-                  <div className="bg-white border border-gray-200 rounded-lg shadow-md px-3 py-2 whitespace-nowrap">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onBoxClick?.();
-                      }}
-                      className="flex items-center gap-1.5 text-sm text-von-purple hover:text-von-purple-dark hover:underline"
-                    >
-                      <img src={boxLogo} alt="" width={14} height={14} />
-                      Connect Box
-                      <ArrowSquareOutIcon size={13} weight="bold" />
-                    </a>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <Tooltip content={boxTooltip ?? 'Open in Box (Coming soon)'} placement="top">
-              <button
-                disabled={!isBoxEnabled || isBoxLoading}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBoxClick?.();
-                }}
-                className={`w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center transition-colors ${
-                  isBoxLoading
-                    ? 'cursor-wait'
-                    : !isBoxEnabled
-                      ? 'opacity-40 cursor-not-allowed'
-                      : 'hover:bg-gray-50 cursor-pointer'
-                }`}
-              >
-                {isBoxLoading ? (
-                  <SpinnerGapIcon size={16} weight="bold" className="text-gray-600 animate-spin" />
-                ) : (
-                  <img src={boxLogo} alt="Box" width={16} height={16} />
-                )}
-              </button>
-            </Tooltip>
-          )}
-        </div>
+        {/* Storage export dropdown (Drive / Box) — only shows connected services */}
+        <StorageExportButton services={storageServices} stopPropagation />
 
         {/* Download */}
         {onDownload && (
