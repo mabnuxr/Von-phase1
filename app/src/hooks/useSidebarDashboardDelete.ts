@@ -28,6 +28,10 @@ export function useSidebarDashboardDelete(
       queryClient.invalidateQueries({
         queryKey: sidebarDashboardKeys.all,
       });
+      showToast({
+        message: "Dashboard deleted",
+        variant: "success",
+      });
       onSuccess?.(id);
     },
     onError: (error: unknown) => {

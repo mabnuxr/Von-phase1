@@ -17,33 +17,6 @@ import {
   getFolderContextMenuItems,
   getDashboardContextMenuItems,
 } from './utils';
-import { ensureUTC } from '../../utils/ensureUTC';
-
-/**
- * Convert an ISO timestamp (or any Date-parseable string) to a human-readable
- * relative time string like "5 min ago", "2 hours ago", "3 days ago".
- */
-function formatRelativeTime(dateStr: string | undefined): string {
-  if (!dateStr) return 'Just now';
-  const now = Date.now();
-  const then = new Date(ensureUTC(dateStr)).getTime();
-  if (Number.isNaN(then)) return 'Just now';
-  const diffMs = now - then;
-  if (diffMs < 0) return 'Just now';
-
-  const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 60) return 'Just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks < 4) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
-  const months = Math.floor(days / 30);
-  return `${months} month${months === 1 ? '' : 's'} ago`;
-}
 
 const VON_COMBINATION_MARK_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
@@ -388,17 +361,6 @@ const DashboardSection: React.FC<{
           }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
         }}
-        footer={
-          contextMenu.dashboard && (
-            <div className="text-xs text-gray-700 flex flex-col gap-0.5">
-              <span>
-                {contextMenu.dashboard.state === 'published' ? 'Published' : 'Draft'} · Edited{' '}
-                {formatRelativeTime(contextMenu.dashboard.lastEdited)}
-              </span>
-              <span>Saved · {formatRelativeTime(contextMenu.dashboard.lastSaved)}</span>
-            </div>
-          )
-        }
       />
 
       {/* Dashboard Delete Confirmation */}

@@ -137,7 +137,7 @@ export const DeleteConfirmationPopup: React.FC<DeleteConfirmationPopupProps> = (
               </p>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-2 pt-3 mt-3 border-t border-gray-100">
+              <div className="flex items-center gap-2 pt-3 mt-3">
                 <button
                   onClick={onCancel}
                   className="flex-1 px-3 py-1.5 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-lg hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
