@@ -25,6 +25,7 @@ import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
+import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -269,6 +270,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     string,
     WidgetConfig
   >;
+
+  const { handleLayoutChange } = useLayoutAutoSave(
+    dashboard.id,
+    dashboard.isEditable,
+  );
 
   const variablesByWidget = useMemo(
     () =>
@@ -688,6 +694,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             isEditMode={isEditMode}
             isLoading={isRefetchingData || isRefreshing}
             variablesByWidget={variablesByWidget}
+            onLayoutChange={handleLayoutChange}
             // Widget-level filter UI hidden until panel-filter designs are ready
             // widgetAppliedFilters={widgetAppliedFilters}
             // widgetFilterSlot={widgetFilterSlot}

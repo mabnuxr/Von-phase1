@@ -30,6 +30,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     widgetFilterSlot,
     onAddToChat,
     variablesByWidget,
+    onLayoutChange,
   }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -52,7 +53,11 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
       y: Number(item.y),
       w: Number(item.w),
       h: Number(item.h),
-      static: true,
+      // Allow drag/resize only in edit mode. Outside edit mode widgets stay
+      // pinned to their configured position.
+      static: !isEditMode,
+      minW: 2,
+      minH: 2,
     }));
 
     return (
@@ -68,9 +73,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
             containerPadding: gridConfig.containerPadding,
             maxRows: Infinity,
           }}
-          dragConfig={{ enabled: false }}
-          resizeConfig={{ enabled: false }}
+          dragConfig={{
+            enabled: !!isEditMode,
+            // Only drag when the user grabs the widget wrapper itself — lets
+            // users still click/sort/filter inside widget content without
+            // accidentally starting a drag.
+            handle: '.widget-drag-handle',
+          }}
+          resizeConfig={{ enabled: !!isEditMode }}
           compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
+          onLayoutChange={(next) => onLayoutChange?.(next)}
         >
           {gridLayout.map((item) => {
             const widget = widgets[item.i];
@@ -80,7 +92,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                 key={item.i}
                 className={`h-full ${
                   isEditMode
-                    ? 'border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
+                    ? 'widget-drag-handle cursor-move border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
                     : ''
                 }`}
               >

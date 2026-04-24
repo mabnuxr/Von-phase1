@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   ReportTable,
-  longTextExpandFormatter,
   handleLongTextHover,
   LongTextPopover,
 } from '../../ReportTable';
@@ -10,6 +9,7 @@ import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
 import { ServerPagination } from './ServerPagination';
+import { applyColumnRenderers } from './columnRenderers';
 import './table-widget.css';
 
 interface TableWidgetProps {
@@ -22,41 +22,6 @@ interface TableWidgetProps {
   sortState?: ServerSortState | null;
   /** Called when a table body cell is clicked for drilldown */
   onCellClick?: (columnId: string, cellValue: unknown) => void;
-}
-
-/** Identify text column ids by checking data values */
-function findTextColumnIds(options: GridOptions): Set<string> {
-  const ids = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const opts = options as any;
-  // Grid Lite supports both `data.columns` (new) and `dataTable.columns` (legacy)
-  const dataCols: Record<string, unknown[]> | undefined =
-    opts.data?.columns ?? opts.dataTable?.columns;
-  if (!dataCols) return ids;
-  for (const [colId, values] of Object.entries(dataCols)) {
-    if (colId.startsWith('_')) continue; // skip internal columns
-    if (!Array.isArray(values)) continue;
-    const first = values.find((v) => v != null);
-    if (typeof first === 'string') ids.add(colId);
-  }
-  return ids;
-}
-
-/** Override text column formatters with the longtext expand variant */
-function applyLongTextFormatters(options: GridOptions): GridOptions {
-  const textIds = findTextColumnIds(options);
-  if (textIds.size === 0) return options;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cols = options.columns as any[] | undefined;
-  if (!cols) return options;
-  return {
-    ...options,
-    columns: cols.map((col) =>
-      textIds.has(col.id) && !col.cells?.formatter
-        ? { ...col, cells: { ...col.cells, formatter: longTextExpandFormatter } }
-        : col
-    ),
-  };
 }
 
 const TableWidget: React.FC<TableWidgetProps> = ({
@@ -76,12 +41,14 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   // (which is exactly what we want — headers stay, shimmer covers rows).
   const lastOptionsRef = useRef<GridOptions | null>(null);
 
-  const base = config.gridOptions as GridOptions;
+  const base = config.gridOptions as GridOptions & { autoHeight?: boolean };
   // Only disable client-side pagination for server-paginated tables;
   // non-server-paginated tables keep their existing pagination config.
-  const options: GridOptions = applyLongTextFormatters(
-    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+  const applied = applyColumnRenderers(
+    hasServerPagination ? { ...base, pagination: { enabled: false } } : base,
   );
+  const options = applied.options;
+  const autoHeight = base.autoHeight === true || applied.hasWrapColumn;
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
@@ -115,30 +82,39 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const [tableHeight, setTableHeight] = useState(0);
   const [colWidths, setColWidths] = useState<number[]>([]);
 
-  // Measure the actual thead/table height and column widths once the grid renders.
-  // stableOptions is the dependency because a new grid (with potentially
-  // different header content) is created whenever options change.
+  const measure = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const thead = el.querySelector('.hcg-table thead');
+    if (thead) {
+      setTheadHeight(thead.getBoundingClientRect().height);
+    }
+    const table = el.querySelector('.hcg-table') as HTMLElement | null;
+    if (!table) return;
+    setTableHeight(table.offsetHeight);
+    const ths = table.querySelectorAll('thead th');
+    const widths: number[] = [];
+    ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
+    setColWidths(widths);
+  }, []);
+
+  // Container-size changes (viewport resize, widget drag/resize in edit
+  // mode, post-save re-renders) re-measure filler rows and header widths.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    // Grid Lite initializes asynchronously, so the thead may not exist yet.
-    // Use requestAnimationFrame to measure after the next paint.
-    const raf = requestAnimationFrame(() => {
-      const thead = el.querySelector('.hcg-table thead');
-      if (thead) {
-        setTheadHeight(thead.getBoundingClientRect().height);
-      }
-      const table = el.querySelector('.hcg-table') as HTMLElement | null;
-      if (table) {
-        setTableHeight(table.offsetHeight);
-        const ths = table.querySelectorAll('thead th');
-        const widths: number[] = [];
-        ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
-        setColWidths(widths);
-      }
-    });
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+
+  // Re-measure when Grid Lite swaps its internal table after a data change.
+  // stableOptions identity changes on every render of fresh data; the RAF
+  // defers the read until after Grid Lite has committed its DOM update.
+  useEffect(() => {
+    const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
-  }, [stableOptions]);
+  }, [stableOptions, measure]);
 
   // Derive column count from gridOptions so skeleton matches the real table
   const skeletonColCount = useMemo(() => {
@@ -148,7 +124,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   return (
     <div
-      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
+      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}${autoHeight ? ' auto-height' : ''}`}
     >
       <div
         ref={containerRef}
@@ -165,8 +141,10 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           disableTooltip
         />
 
-        {/* Empty filler rows below data — spreadsheet look */}
-        {tableHeight > 0 && !isLoading && (
+        {/* Empty filler rows below data — spreadsheet look. Skipped when
+            auto-height is on because variable row heights make fixed filler
+            rows misalign with the real grid. */}
+        {!autoHeight && tableHeight > 0 && !isLoading && (
           <table aria-hidden className="table-filler" style={{ top: tableHeight }}>
             {colWidths.length > 0 && (
               <colgroup>

@@ -13,17 +13,34 @@
 
 /* Fixed row heights so JS pageSize calculation is exact.
    Matches the drilldown table for visual consistency.
-   Header is a bit taller than body rows for visual hierarchy. */
+   Header is a bit taller than body rows for visual hierarchy.
+   When `autoHeight` is set (or any column has variant `text_wrap`), the
+   fixed tbody height is dropped so rows grow to fit wrapped content. */
 .table-widget-root .hcg-table thead th {
   height: 40px;
   max-height: 40px;
   box-sizing: border-box;
 }
 
-.table-widget-root .hcg-table tbody td {
+.table-widget-root:not(.auto-height) .hcg-table tbody td {
   height: 36px;
   max-height: 36px;
   box-sizing: border-box;
+}
+
+/* ─── Variant cell styles ──────────────────────────────────── */
+
+.table-widget-root .hcg-table td.tw-cell-text-wrap {
+  white-space: normal;
+  vertical-align: top;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.4;
+}
+
+.table-widget-root .hcg-table td.tw-cell-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Hide rows-per-page selector — page size is auto-calculated from widget height */

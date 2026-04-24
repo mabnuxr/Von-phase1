@@ -264,4 +264,10 @@ export interface DashboardGridProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Per-widget variables map for `{{key}}` mustache tokens inside text widgets. */
   variablesByWidget?: Record<string, MustacheVariables>;
+  /**
+   * Called with the new layout (array of {i,x,y,w,h}) whenever the user drags
+   * or resizes a widget in edit mode. Parent persists the layout; the grid
+   * itself is stateless with respect to positions.
+   */
+  onLayoutChange?: (layout: readonly LayoutItem[]) => void;
 }
