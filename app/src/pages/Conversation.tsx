@@ -60,6 +60,7 @@ const Conversation = () => {
     isFileUploadEnabled,
     isArtifactsEnabled,
     isGoogleDriveEnabled,
+    isBoxEnabled: isBoxFeatureEnabled,
     isScheduledCommandsEnabled,
     isChatSharingEnabled,
   } = useFeatureFlag();
@@ -138,6 +139,28 @@ const Conversation = () => {
     null,
   );
 
+  // --- Box (gated behind feature flag) ---
+  const isBoxConnected = useMemo(
+    () =>
+      isBoxFeatureEnabled
+        ? (integrationsData?.integrations.some(
+            (i) =>
+              i.type === IntegrationType.BOX &&
+              i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+          ) ?? false)
+        : false,
+    [integrationsData, isBoxFeatureEnabled],
+  );
+
+  const isBoxEnabled = isBoxFeatureEnabled;
+  const boxTooltip = !isBoxFeatureEnabled
+    ? "Open in Box (Coming Soon)"
+    : !isBoxConnected
+      ? "Connect Box"
+      : "Open in Box";
+
+  const [boxLoadingFileId, setBoxLoadingFileId] = useState<string | null>(null);
+
   // --- Agent Version & Mode ---
   const isAgentV2 = currentConversation?.agentVersion === "v2";
 
@@ -201,6 +224,30 @@ const Conversation = () => {
     [currentConversationId, isDriveConnected, navigate, showToast],
   );
 
+  // --- Box Export ---
+  const handleBoxClick = useCallback(
+    async (fileId: string) => {
+      if (!isBoxConnected) {
+        navigate("/settings?tab=integrations");
+        return;
+      }
+      if (!currentConversationId) return;
+      try {
+        setBoxLoadingFileId(fileId);
+        const { exportToBox } = await import("../services/box");
+        const result = await exportToBox(fileId, currentConversationId);
+        window.open(result.url, "_blank");
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to export to Box";
+        showToast({ message, variant: "error" });
+      } finally {
+        setBoxLoadingFileId(null);
+      }
+    },
+    [currentConversationId, isBoxConnected, navigate, showToast],
+  );
+
   // --- Banner ---
   const chatBanner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
@@ -242,6 +289,13 @@ const Conversation = () => {
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
+    ...(isBoxFeatureEnabled && {
+      onBoxClick: handleBoxClick,
+      isBoxEnabled,
+      isBoxConnected,
+      boxTooltip,
+      boxLoadingFileId,
+    }),
   };
 
   return (
@@ -280,6 +334,13 @@ const Conversation = () => {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
+              {...(isBoxFeatureEnabled && {
+                onBoxClick: handleBoxClick,
+                isBoxEnabled,
+                isBoxConnected,
+                boxTooltip,
+                boxLoadingFileId,
+              })}
               headerAction={
                 isChatSharingEnabled
                   ? (compact: boolean) => (

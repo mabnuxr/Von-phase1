@@ -33,6 +33,7 @@ export const FEATURE_FLAGS = {
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
   NOTION: "enableNotion",
+  BOX: "enableBox",
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
@@ -178,6 +179,11 @@ export function useFeatureFlag() {
      * Controls whether Notion integration is visible
      */
     isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
+
+    /**
+     * Controls whether Box integration is visible
+     */
+    isBoxEnabled: flags[FEATURE_FLAGS.BOX] === true,
 
     /**
      * Controls whether Outreach engagement integration is visible

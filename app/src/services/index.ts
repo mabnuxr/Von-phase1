@@ -66,3 +66,7 @@ export type {
 // GSuite Services
 export { exportToDrive } from "./gsuite";
 export type { ExportToDriveResponse } from "./gsuite";
+
+// Box Services
+export { exportToBox } from "./box";
+export type { ExportToBoxResponse } from "./box";

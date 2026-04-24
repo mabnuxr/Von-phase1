@@ -1273,6 +1273,32 @@ export interface ChatProps {
   driveLoadingFileId?: string | null;
 
   /**
+   * Callback when user clicks Box button on an artifact card
+   */
+  onBoxClick?: (fileId: string) => void;
+
+  /**
+   * Whether Box export is enabled (feature flag is on)
+   */
+  isBoxEnabled?: boolean;
+
+  /**
+   * Whether Box is connected (user has authenticated).
+   * When isBoxEnabled but not isBoxConnected, clicking navigates to settings.
+   */
+  isBoxConnected?: boolean;
+
+  /**
+   * Tooltip text for the Box button
+   */
+  boxTooltip?: string;
+
+  /**
+   * File ID of the artifact currently being exported to Box (shows spinner)
+   */
+  boxLoadingFileId?: string | null;
+
+  /**
    * Callback when a file attachment pill is clicked (for preview/download)
    */
   onFileClick?: (attachment: MessageFileAttachment) => void;
