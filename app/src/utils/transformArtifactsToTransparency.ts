@@ -254,8 +254,8 @@ function transformSelfDescribingArtifact(
   }
 
   // Exhaustive check: if a new kind is added to the union but not handled above,
-  // TypeScript will error here because `envelope` won't be `never`.
-  const _exhaustive: never = envelope;
+  // TypeScript will error here because `envelope` won't be assignable to `never`.
+  envelope satisfies never;
   return null;
 }
 
@@ -275,10 +275,11 @@ function transformArtifactToQueryResult(
   // If the backend sends kind/metadata/payload, use it directly.
   // No tool-name lookup, no if/else chain.
   if (isSelfDescribingArtifact(content as Record<string, unknown>)) {
-    return transformSelfDescribingArtifact(
+    const result = transformSelfDescribingArtifact(
       artifact,
       content as unknown as SelfDescribingArtifact,
     );
+    if (result) return result;
   }
 
   // --- Legacy per-tool-name handling (existing Salesforce, SQL, etc.) ---
