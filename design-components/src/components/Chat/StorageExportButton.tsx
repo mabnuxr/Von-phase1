@@ -12,8 +12,7 @@ import { CaretDownIcon, SpinnerGapIcon, CheckIcon } from '@phosphor-icons/react'
 import { Tooltip } from '../Tooltip';
 const driveLogo =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg';
-const boxLogo =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Box.svg';
+const boxLogo = 'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Box.svg';
 
 // ============================================================================
 // Types
