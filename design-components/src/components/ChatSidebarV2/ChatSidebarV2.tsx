@@ -164,6 +164,8 @@ export interface ChatSidebarProps {
   onDashboardClick?: (id: string) => void;
   /** Callback to rename a dashboard */
   onRenameDashboard?: (id: string, newName: string) => void;
+  /** Callback to delete a dashboard (only shown to owner) */
+  onDeleteDashboard?: (id: string) => void;
   /** Whether more dashboards are available to load */
   hasMoreDashboards?: boolean;
   /** Callback to load more dashboards */
@@ -308,6 +310,7 @@ const DashboardSection: React.FC<{
   selectedDashboardId?: string;
   onDashboardClick?: (id: string) => void;
   onRenameDashboard?: (id: string, newName: string) => void;
+  onDeleteDashboard?: (id: string) => void;
   hasMoreDashboards?: boolean;
   onLoadMoreDashboards?: () => void;
 }> = ({
@@ -315,6 +318,7 @@ const DashboardSection: React.FC<{
   selectedDashboardId,
   onDashboardClick,
   onRenameDashboard,
+  onDeleteDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
 }) => {
@@ -324,6 +328,10 @@ const DashboardSection: React.FC<{
     position: { top: 0, left: 0 },
     dashboard: null,
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    dashboard: DashboardSidebarItem | null;
+  }>({ isOpen: false, dashboard: null });
 
   const handleOpenContextMenu = (e: React.MouseEvent, dash: DashboardSidebarItem) => {
     e.preventDefault();
@@ -375,6 +383,8 @@ const DashboardSection: React.FC<{
           if (!dash) return;
           if (menuItem.id === 'rename' && dash.isOwner) {
             setEditingId(dash.id);
+          } else if (menuItem.id === 'delete' && dash.isOwner) {
+            setDeleteConfirmation({ isOpen: true, dashboard: dash });
           }
           setContextMenu((prev) => ({ ...prev, isOpen: false }));
         }}
@@ -389,6 +399,20 @@ const DashboardSection: React.FC<{
             </div>
           )
         }
+      />
+
+      {/* Dashboard Delete Confirmation */}
+      <DeleteConfirmationPopup
+        isOpen={deleteConfirmation.isOpen}
+        itemLabel={deleteConfirmation.dashboard?.label || ''}
+        itemType="dashboard"
+        onConfirm={() => {
+          if (deleteConfirmation.dashboard) {
+            onDeleteDashboard?.(deleteConfirmation.dashboard.id);
+          }
+          setDeleteConfirmation({ isOpen: false, dashboard: null });
+        }}
+        onCancel={() => setDeleteConfirmation({ isOpen: false, dashboard: null })}
       />
     </div>
   );
@@ -443,6 +467,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedDashboardId,
   onDashboardClick,
   onRenameDashboard,
+  onDeleteDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
 }) => {
@@ -720,6 +745,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         selectedDashboardId={selectedDashboardId}
                         onDashboardClick={onDashboardClick}
                         onRenameDashboard={onRenameDashboard}
+                        onDeleteDashboard={onDeleteDashboard}
                         hasMoreDashboards={hasMoreDashboards}
                         onLoadMoreDashboards={onLoadMoreDashboards}
                       />
