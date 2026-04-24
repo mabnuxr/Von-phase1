@@ -13,6 +13,7 @@ import {
 import { setShareId } from "../services/apiClient";
 import { useToast } from "../hooks/useToast";
 import { SpinnerGapIcon } from "@phosphor-icons/react";
+import { TextShimmer } from "@vonlabs/design-components";
 
 /**
  * Read-only view of a shared conversation.
@@ -220,15 +221,19 @@ export default function SharedConversation() {
         type="button"
         onClick={handleStartWithContext}
         disabled={isSummarizing || !conversationId}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed transition-colors cursor-pointer z-10"
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg disabled:cursor-not-allowed transition-colors cursor-pointer z-10 ${
+          isSummarizing
+            ? "bg-white text-gray-700 border border-gray-200"
+            : "bg-gray-900 text-white hover:bg-gray-800"
+        }`}
       >
         {isSummarizing ? (
           <>
-            <SpinnerGapIcon size={13} className="animate-spin" />
-            Summarizing…
+            <SpinnerGapIcon size={13} className="animate-spin text-gray-500" />
+            <TextShimmer>Summarizing…</TextShimmer>
           </>
         ) : (
-          "Continue from summary"
+          "Continue conversation"
         )}
       </button>
     </div>

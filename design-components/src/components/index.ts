@@ -391,6 +391,8 @@ export type { DashboardCanvasProps } from './DashboardCanvas';
 // THINKING PROCESS V2 (Timeline-based thinking visualization)
 // ============================================================================
 export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export { TextShimmer } from './TimelineThinkingProcess/components/TextShimmer';
+export type { TextShimmerProps } from './TimelineThinkingProcess/components/TextShimmer';
 export type {
   TimelineThinkingProcessProps,
   TimelineStep,

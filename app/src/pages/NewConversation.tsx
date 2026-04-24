@@ -44,7 +44,7 @@ const NewConversation = () => {
   const navigate = useNavigate();
 
   // One-shot prefill: if we arrived here with a `prompt` in router state
-  // (e.g. "Continue from summary" from a shared conversation), capture it
+  // (e.g. "Continue conversation" from a shared conversation), capture it
   // once on mount and clear the history state so a refresh doesn't re-seed.
   //
   // Layout (the chat input renders markdown live):
