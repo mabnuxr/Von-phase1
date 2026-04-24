@@ -139,15 +139,17 @@ const Conversation = () => {
     null,
   );
 
-  // --- Box ---
+  // --- Box (gated behind feature flag) ---
   const isBoxConnected = useMemo(
     () =>
-      integrationsData?.integrations.some(
-        (i) =>
-          i.type === IntegrationType.BOX &&
-          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
-      ) ?? false,
-    [integrationsData],
+      isBoxFeatureEnabled
+        ? (integrationsData?.integrations.some(
+            (i) =>
+              i.type === IntegrationType.BOX &&
+              i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+          ) ?? false)
+        : false,
+    [integrationsData, isBoxFeatureEnabled],
   );
 
   const isBoxEnabled = isBoxFeatureEnabled;
@@ -287,11 +289,13 @@ const Conversation = () => {
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
-    onBoxClick: handleBoxClick,
-    isBoxEnabled,
-    isBoxConnected,
-    boxTooltip,
-    boxLoadingFileId,
+    ...(isBoxFeatureEnabled && {
+      onBoxClick: handleBoxClick,
+      isBoxEnabled,
+      isBoxConnected,
+      boxTooltip,
+      boxLoadingFileId,
+    }),
   };
 
   return (
@@ -330,11 +334,13 @@ const Conversation = () => {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
-              onBoxClick={handleBoxClick}
-              isBoxEnabled={isBoxEnabled}
-              isBoxConnected={isBoxConnected}
-              boxTooltip={boxTooltip}
-              boxLoadingFileId={boxLoadingFileId}
+              {...(isBoxFeatureEnabled && {
+                onBoxClick: handleBoxClick,
+                isBoxEnabled,
+                isBoxConnected,
+                boxTooltip,
+                boxLoadingFileId,
+              })}
               headerAction={
                 isChatSharingEnabled
                   ? (compact: boolean) => (
