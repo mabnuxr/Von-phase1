@@ -247,7 +247,7 @@ function transformArtifactToDisplayFormat(
       };
     };
 
-    const { metadata, payload } = envelope;
+    const { payload } = envelope;
 
     if (
       (envelope.kind === "query_result" || envelope.kind === "record_list") &&

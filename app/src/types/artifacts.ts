@@ -81,14 +81,16 @@ export type ArtifactOfKind<K extends SelfDescribingArtifact["kind"]> = Extract<
 
 /** Check if artifact content uses the self-describing envelope format */
 export function isSelfDescribingArtifact(
-  content: Record<string, unknown>,
+  content: unknown,
 ): content is SelfDescribingArtifact {
+  if (typeof content !== "object" || content === null) return false;
+  const c = content as Record<string, unknown>;
   return (
-    typeof content.kind === "string" &&
-    typeof content.schema_version === "number" &&
-    content.metadata != null &&
-    typeof content.metadata === "object" &&
-    content.payload != null &&
-    typeof content.payload === "object"
+    typeof c.kind === "string" &&
+    typeof c.schema_version === "number" &&
+    c.metadata != null &&
+    typeof c.metadata === "object" &&
+    c.payload != null &&
+    typeof c.payload === "object"
   );
 }
