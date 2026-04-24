@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import {
-  ReportTable,
-  handleLongTextHover,
-  LongTextPopover,
-} from '../../ReportTable';
+import { ReportTable, handleLongTextHover, LongTextPopover } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
@@ -45,7 +41,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   // Only disable client-side pagination for server-paginated tables;
   // non-server-paginated tables keep their existing pagination config.
   const applied = applyColumnRenderers(
-    hasServerPagination ? { ...base, pagination: { enabled: false } } : base,
+    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
   );
   const options = applied.options;
   const autoHeight = base.autoHeight === true || applied.hasWrapColumn;

@@ -100,10 +100,7 @@ function detectLegacyLongtextIds(options: GridOptions): Set<string> {
  * - Else fall back to the legacy heuristic: string columns get `longtext_expand`,
  *   everything else gets `text`.
  */
-export function resolveVariant(
-  column: RawColumn,
-  legacyLongtextIds: Set<string>,
-): CellVariant {
+export function resolveVariant(column: RawColumn, legacyLongtextIds: Set<string>): CellVariant {
   const explicit = column.cells?.variant;
   if (explicit && CELL_VARIANTS.includes(explicit)) return explicit;
   return legacyLongtextIds.has(column.id) ? 'longtext_expand' : 'text';
