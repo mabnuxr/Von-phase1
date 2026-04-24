@@ -521,6 +521,7 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       hideInput={props.readOnly}
+      hideScrollToBottom={props.readOnly}
       disableFileAttachments={props.disableFileAttachments}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
