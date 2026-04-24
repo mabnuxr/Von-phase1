@@ -811,11 +811,18 @@ export function useV2EventProcessor(
     if (isPusherAlreadyTracking) {
       // Pusher is already tracking — update state and correct timer if needed.
       // On fresh mount, Pusher may misclassify a reconnect as a new run (because
-      // currentRunIdForHandlerRef is null), resetting the timer to 0. The event-
-      // derived elapsed covers first→last event; add the current timer value to
-      // account for the gap between the last event and now.
-      const eventElapsed = getElapsedTimeFromEvents(mergedEvents);
-      const correctedElapsed = eventElapsed + timerElapsedTimeRef.current;
+      // currentRunIdForHandlerRef is null), resetting the timer to 0. Compute
+      // the expected elapsed from the first event's server timestamp to now.
+      // Using Date.now() makes this idempotent — safe to re-run without
+      // compounding (the old formula added eventElapsed to the current timer
+      // value, which double-counted on subsequent effect re-runs).
+      const sortedForCorrection = [...mergedEvents].sort(
+        (a, b) => a.sequence - b.sequence,
+      );
+      const firstTs = new Date(sortedForCorrection[0].timestamp).getTime();
+      const correctedElapsed = !isNaN(firstTs)
+        ? Math.max(0, Math.floor((Date.now() - firstTs) / 1000))
+        : getElapsedTimeFromEvents(mergedEvents);
       if (correctedElapsed > timerElapsedTimeRef.current) {
         timerCorrectElapsed(runId, correctedElapsed);
       }
