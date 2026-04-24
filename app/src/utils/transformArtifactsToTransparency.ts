@@ -205,7 +205,7 @@ function transformSelfDescribingArtifact(
   switch (envelope.kind) {
     case "query_result": {
       const p = envelope.payload;
-      if (!p.columns || !p.rows) return null;
+      if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
 
       const columns: QueryColumn[] = applyDeepLinkTransform(
         p.columns.map((col) => ({
@@ -231,7 +231,7 @@ function transformSelfDescribingArtifact(
 
     case "record_list": {
       const p = envelope.payload;
-      if (!p.columns || !p.rows) return null;
+      if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
 
       const columns: QueryColumn[] = applyDeepLinkTransform(
         p.columns.map((col) => ({

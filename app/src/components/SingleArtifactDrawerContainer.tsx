@@ -251,8 +251,8 @@ function transformArtifactToDisplayFormat(
 
     if (
       (envelope.kind === "query_result" || envelope.kind === "record_list") &&
-      payload.columns &&
-      payload.rows
+      Array.isArray(payload.columns) &&
+      Array.isArray(payload.rows)
     ) {
       const columns: QueryColumn[] = applyDeepLinkTransform(
         payload.columns.map((col) => ({
