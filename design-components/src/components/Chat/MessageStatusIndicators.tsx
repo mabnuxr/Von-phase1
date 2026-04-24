@@ -40,16 +40,24 @@ export const MessageStatusIndicators: React.FC<MessageStatusIndicatorsProps> = (
         </div>
       )}
 
-      {(status === 'expired' || status === 'skipped') && (
+      {status === 'expired' && (
+        <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-amber-50/50 border border-amber-200 rounded-xl">
+          <div className="shrink-0 mt-0.5">
+            <InfoIcon size={20} className="text-amber-500" />
+          </div>
+          <span className="text-sm text-gray-800 leading-relaxed flex-1">
+            {errorMessage || DEFAULT_EXPIRED_APPROVAL_MESSAGE}
+          </span>
+        </div>
+      )}
+
+      {status === 'skipped' && (
         <div className="mt-2 max-w-fit flex items-start gap-2 py-2 px-2 bg-gray-50/50 border border-gray-200 rounded-xl">
           <div className="shrink-0 mt-0.5">
             <InfoIcon size={20} className="text-gray-500" />
           </div>
           <span className="text-sm text-gray-800 leading-relaxed flex-1">
-            {errorMessage ||
-              (status === 'expired'
-                ? DEFAULT_EXPIRED_APPROVAL_MESSAGE
-                : DEFAULT_SKIPPED_APPROVAL_MESSAGE)}
+            {errorMessage || DEFAULT_SKIPPED_APPROVAL_MESSAGE}
           </span>
         </div>
       )}
