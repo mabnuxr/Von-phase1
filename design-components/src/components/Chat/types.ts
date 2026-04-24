@@ -1143,6 +1143,14 @@ export interface ChatProps {
   onInputValueChange?: (value: string) => void;
 
   /**
+   * Initial value used to seed the empty-state input (read once on mount).
+   * `inputValue` only feeds the bottom input that renders after messages
+   * exist — use this when you need to pre-populate the first-message input
+   * (e.g. "Start new chat with context" from a shared conversation).
+   */
+  defaultInputValue?: string;
+
+  /**
    * Placeholder text for the input
    * @default 'Ask von anything'
    */
@@ -1263,6 +1271,32 @@ export interface ChatProps {
    * File ID of the artifact currently being exported to Drive (shows spinner)
    */
   driveLoadingFileId?: string | null;
+
+  /**
+   * Callback when user clicks Box button on an artifact card
+   */
+  onBoxClick?: (fileId: string) => void;
+
+  /**
+   * Whether Box export is enabled (feature flag is on)
+   */
+  isBoxEnabled?: boolean;
+
+  /**
+   * Whether Box is connected (user has authenticated).
+   * When isBoxEnabled but not isBoxConnected, clicking navigates to settings.
+   */
+  isBoxConnected?: boolean;
+
+  /**
+   * Tooltip text for the Box button
+   */
+  boxTooltip?: string;
+
+  /**
+   * File ID of the artifact currently being exported to Box (shows spinner)
+   */
+  boxLoadingFileId?: string | null;
 
   /**
    * Callback when a file attachment pill is clicked (for preview/download)
@@ -1482,6 +1516,7 @@ export interface ChatProps {
    * @default false
    */
   hideInput?: boolean;
+  hideScrollToBottom?: boolean;
 
   /**
    * When true, file attachment chips and command data source chips are

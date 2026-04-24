@@ -41,6 +41,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onStopStreaming,
   inputValue: externalInputValue,
   onInputValueChange,
+  defaultInputValue,
   placeholder = 'Ask von anything',
   isLoading: controlledIsLoading = false,
   height = '600px',
@@ -59,6 +60,11 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  onBoxClick,
+  isBoxEnabled,
+  isBoxConnected,
+  boxTooltip,
+  boxLoadingFileId,
   onFileClick,
   banner,
   isIntegrationConnected,
@@ -113,6 +119,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onDismissFileError,
   // Read-only mode (hides input, used for shared/archived views)
   hideInput = false,
+  hideScrollToBottom = false,
   disableFileAttachments = false,
   // Reference context
   // @ Mention props
@@ -250,6 +257,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
           ) : (
             <ChatEmptyState
               userName={userName}
+              defaultValue={defaultInputValue}
               placeholder={placeholder}
               onSendMessage={handleSendMessage}
               disabled={examplePromptsDisabled}
@@ -350,6 +358,11 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
                   isDriveConnected={isDriveConnected}
                   driveTooltip={driveTooltip}
                   driveLoadingFileId={driveLoadingFileId}
+                  onBoxClick={showArtifacts ? onBoxClick : undefined}
+                  isBoxEnabled={isBoxEnabled}
+                  isBoxConnected={isBoxConnected}
+                  boxTooltip={boxTooltip}
+                  boxLoadingFileId={boxLoadingFileId}
                   onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                   disableFileAttachments={disableFileAttachments}
                   renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
@@ -374,10 +387,12 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
         <div ref={messagesEndRef} className="h-px" />
 
         {/* Scroll to bottom button - inside scroll container with sticky positioning */}
-        <ScrollToBottomButton
-          visible={showScrollButton && messages.length > 0}
-          onClick={() => scrollToBottom('smooth')}
-        />
+        {!hideScrollToBottom && (
+          <ScrollToBottomButton
+            visible={showScrollButton && messages.length > 0}
+            onClick={() => scrollToBottom('smooth')}
+          />
+        )}
       </div>
 
       {/* Banner above input (if provided) - only show when there are messages */}

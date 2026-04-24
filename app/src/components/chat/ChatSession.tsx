@@ -153,6 +153,13 @@ export interface ChatSessionProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
 
+  // ── Box ────────────────────────────────────────
+  onBoxClick?: (fileId: string) => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  boxLoadingFileId?: string | null;
+
   /**
    * Read-only mode for shared-chat recipients.
    * Hides the input bar and disables actions that would mutate the
@@ -521,6 +528,7 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       hideInput={props.readOnly}
+      hideScrollToBottom={props.readOnly}
       disableFileAttachments={props.disableFileAttachments}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
@@ -598,6 +606,12 @@ function ExistingChatInner(
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
+      // Box
+      onBoxClick={props.onBoxClick}
+      isBoxEnabled={props.isBoxEnabled}
+      isBoxConnected={props.isBoxConnected}
+      boxTooltip={props.boxTooltip}
+      boxLoadingFileId={props.boxLoadingFileId}
       // Infinite scroll
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextMessagePage}
@@ -680,6 +694,17 @@ function ExistingChatInner(
               driveTooltip={props.driveTooltip}
               isDriveLoading={
                 props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
+              }
+              onBoxClick={
+                props.onBoxClick && chatV2.fileArtifactPanel.fileId
+                  ? () => props.onBoxClick!(chatV2.fileArtifactPanel.fileId!)
+                  : undefined
+              }
+              isBoxEnabled={props.isBoxEnabled}
+              isBoxConnected={props.isBoxConnected}
+              boxTooltip={props.boxTooltip}
+              isBoxLoading={
+                props.boxLoadingFileId === chatV2.fileArtifactPanel.fileId
               }
             />
           )}

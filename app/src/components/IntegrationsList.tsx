@@ -589,6 +589,7 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBoxEnabled,
     isBigQueryEnabled,
   } = useFeatureFlag();
 
@@ -607,6 +608,7 @@ export function IntegrationsList({
         return false;
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
+      if (app.id === "box" && !isBoxEnabled) return false;
       if (app.id === "bigquery" && !isBigQueryEnabled) return false;
       return true;
     });
@@ -622,6 +624,7 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBoxEnabled,
     isBigQueryEnabled,
   ]);
 

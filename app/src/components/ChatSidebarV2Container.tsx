@@ -13,6 +13,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useApprovalStates } from "../hooks/useApprovalStates";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
+import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
@@ -167,6 +168,30 @@ export function ChatSidebarV2Container({
 
   const renameDashboard = useSidebarDashboardRename();
 
+  const handleDeleteDashboard = useCallback(
+    (id: string) => {
+      // Only navigate if we're currently viewing the deleted dashboard
+      if (id === dashboardId) {
+        // Find the next available dashboard (excluding the one being deleted)
+        const nextDashboard = sidebarDashboards.find((d) => d.id !== id);
+        if (nextDashboard) {
+          navigate(`/dashboard/${nextDashboard.id}`);
+        } else {
+          // No dashboards left — go to the first available chat or /chat
+          const firstChat = items[0];
+          if (firstChat) {
+            navigate(`/chat/${firstChat.id}`);
+          } else {
+            navigate("/chat");
+          }
+        }
+      }
+    },
+    [dashboardId, sidebarDashboards, items, navigate],
+  );
+
+  const deleteDashboard = useSidebarDashboardDelete(handleDeleteDashboard);
+
   // Title animation (shared with V1)
   const { animatedTitles } = useTitleAnimation({ userChannel });
 
@@ -286,6 +311,7 @@ export function ChatSidebarV2Container({
       hasMoreDashboards={hasMoreDashboards}
       onLoadMoreDashboards={loadMoreDashboards}
       onRenameDashboard={renameDashboard}
+      onDeleteDashboard={deleteDashboard}
       onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
     />
   );

@@ -457,6 +457,10 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
 
       deleteConversationMutation(conversationId, {
         onSuccess: () => {
+          showToast({
+            message: "Chat deleted",
+            variant: "success",
+          });
           // Invalidate to refetch fresh data from server
           queryClient.invalidateQueries({
             queryKey: chatSidebarKeys.sidebar(),
@@ -494,7 +498,7 @@ export function useChatSidebarV2(): UseChatSidebarV2Return {
         },
       });
     },
-    [deleteConversationMutation, queryClient, folderIds],
+    [deleteConversationMutation, queryClient, folderIds, showToast],
   );
 
   // Stable callback for moving conversations to folders

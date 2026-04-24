@@ -70,7 +70,7 @@ export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}):
 }
 
 /**
- * Get context menu items for dashboards (rename only)
+ * Get context menu items for dashboards
  */
 export function getDashboardContextMenuItems(
   options: { isOwner?: boolean } = {}
@@ -80,6 +80,13 @@ export function getDashboardContextMenuItems(
       id: 'rename',
       label: 'Rename',
       icon: <PencilSimpleIcon size={14} />,
+      disabled: !options.isOwner,
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <TrashIcon size={14} />,
+      variant: 'danger' as const,
       disabled: !options.isOwner,
     },
   ];

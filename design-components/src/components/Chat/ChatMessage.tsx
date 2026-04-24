@@ -84,6 +84,11 @@ export interface ChatMessageProps {
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
+  onBoxClick?: (fileId: string) => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  boxLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
   renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
   command?: Command;
@@ -155,6 +160,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
+  onBoxClick,
+  isBoxEnabled,
+  isBoxConnected,
+  boxTooltip,
+  boxLoadingFileId,
   renderArtifactCard,
   renderGroupedEmailArtifacts,
   command,
@@ -325,6 +335,11 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         isDriveConnected={isDriveConnected}
                         driveTooltip={driveTooltip}
                         driveLoadingFileId={driveLoadingFileId}
+                        onBoxClick={onBoxClick}
+                        isBoxEnabled={isBoxEnabled}
+                        isBoxConnected={isBoxConnected}
+                        boxTooltip={boxTooltip}
+                        boxLoadingFileId={boxLoadingFileId}
                         renderArtifactCard={renderArtifactCard}
                         renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
                       />
