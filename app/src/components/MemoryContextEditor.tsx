@@ -1,6 +1,5 @@
 import { useRef, useState, useId } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { SparkleIcon, PaperclipIcon } from "@phosphor-icons/react";
+import { PaperclipIcon } from "@phosphor-icons/react";
 import {
   FilePreview,
   generateFileId,
@@ -11,35 +10,6 @@ import {
 import { OrgContextEditor } from "./OrgContextEditor";
 import type { MemoryContext } from "../types/memoryContext";
 import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
-
-/**
- * Which memory fields a Von proposal is touching. Only these fields get the
- * loading treatment; other fields stay live-editable during generation.
- */
-export type ProposalField = "title" | "description" | "content";
-
-/**
- * State machine for a Von-generated edit. Owned by the parent so both the
- * editor (renders visual treatment) and the chat pane (knows when to trigger)
- * see the same source of truth. The UI-only demo drives this through fake
- * timers; the backend integration will drive it from stream events.
- *
- * Loading + proposed states both carry the id of the memory the proposal
- * targets, so the badge in the sidebar can stay pinned to that specific memory
- * regardless of which pill the user is currently viewing.
- */
-export type ProposalState =
-  | { kind: "idle" }
-  | {
-      kind: "loading";
-      contextId: string;
-      fields: ReadonlySet<ProposalField>;
-    }
-  | {
-      kind: "proposed";
-      contextId: string;
-      changes: { key?: string; description?: string; value?: string };
-    };
 
 /**
  * Circular progress indicator for character budget. Only renders once usage
@@ -121,16 +91,6 @@ interface MemoryContextEditorProps {
   }) => Promise<void>;
   onCancel: () => void;
   isSaving?: boolean;
-  /** Forwarded to the TipTap editor — fires when a stable text selection is
-   *  made inside Memory Content (used to build chat context chips). */
-  onSelectionCapture?: (text: string) => void;
-  /** Active Von proposal state. Drives the review card + editor treatment. */
-  proposal?: ProposalState;
-  /** Called when the user accepts the proposal — after the editor has
-   *  applied the changes to its local form state. */
-  onProposalApplied?: () => void;
-  /** Called when the user dismisses the proposal without applying it. */
-  onProposalDismissed?: () => void;
   /** Initial attachments associated with the memory — seeds the local edit
    *  state so previously saved files stay visible in the editor. */
   initialAttachments?: FileAttachment[];
@@ -140,9 +100,9 @@ interface MemoryContextEditorProps {
 }
 
 /**
- * Inline memory context editor — mirrors the form that used to live in the
- * MemoryContextPane drawer. Callers should remount (via `key`) when switching
- * between contexts so the initial form values stay in sync.
+ * Inline memory context editor — title + description + content + attachments,
+ * with cancel/save in a sticky footer. Callers should remount (via `key`) when
+ * switching between contexts so the initial form values stay in sync.
  */
 export function MemoryContextEditor({
   mode,
@@ -150,16 +110,11 @@ export function MemoryContextEditor({
   onSave,
   onCancel,
   isSaving = false,
-  onSelectionCapture,
-  proposal = { kind: "idle" },
-  onProposalApplied,
-  onProposalDismissed,
   initialAttachments = [],
   onPreviewAttachment,
 }: MemoryContextEditorProps) {
   // `context` seeds initial values in BOTH modes — edit mode loads an existing
-  // memory, create mode can pre-fill from a draft (e.g., a Von-proposed new
-  // section the user chose to "Edit" before inserting).
+  // memory, create mode can pre-fill from a draft.
   const [editingKey, setEditingKey] = useState(context ? context.key : "");
   const [editingDescription, setEditingDescription] = useState(
     context ? context.description : "",
@@ -168,12 +123,9 @@ export function MemoryContextEditor({
     context ? (context.value ?? "") : "",
   );
 
-  // Stable per-instance key + a monotonic version bump we can nudge to force
-  // OrgContextEditor to re-parse the markdown when we programmatically swap
-  // the content (e.g. after the user accepts a Von proposal).
+  // Stable per-instance key for the TipTap editor.
   const instanceId = useId();
-  const [contentVersion, setContentVersion] = useState(0);
-  const contentKey = `${instanceId}-${contentVersion}`;
+  const contentKey = `${instanceId}-0`;
 
   // Attachments are local to this edit session — seeded from the context
   // via props so previously saved files stay visible, mutated via the
@@ -208,40 +160,6 @@ export function MemoryContextEditor({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
-  const isLoadingProposal = proposal.kind === "loading";
-  const isProposed = proposal.kind === "proposed";
-  const proposalFields = isLoadingProposal
-    ? proposal.fields
-    : isProposed
-      ? (new Set<ProposalField>([
-          ...(proposal.changes.key !== undefined ? ["title" as const] : []),
-          ...(proposal.changes.description !== undefined
-            ? ["description" as const]
-            : []),
-          ...(proposal.changes.value !== undefined
-            ? ["content" as const]
-            : []),
-        ]) as ReadonlySet<ProposalField>)
-      : (new Set<ProposalField>() as ReadonlySet<ProposalField>);
-
-  const handleApplyProposal = () => {
-    if (proposal.kind !== "proposed") return;
-    if (proposal.changes.key !== undefined) setEditingKey(proposal.changes.key);
-    if (proposal.changes.description !== undefined)
-      setEditingDescription(proposal.changes.description);
-    if (proposal.changes.value !== undefined) {
-      setEditingContent(proposal.changes.value);
-      // Bump the content key so the TipTap editor re-parses the new markdown
-      // instead of diffing it against its prior state.
-      setContentVersion((v) => v + 1);
-    }
-    onProposalApplied?.();
-  };
-
-  const handleDismissProposal = () => {
-    onProposalDismissed?.();
-  };
-
   const isDefault = mode === "edit" && context?.isDefault;
   const isUserMemory = mode === "edit" && context?.accessLevel === "user";
   const isTitleReadOnly = isDefault || isUserMemory;
@@ -265,53 +183,7 @@ export function MemoryContextEditor({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Von proposal review card — pinned above everything while proposed. */}
-      <AnimatePresence initial={false}>
-        {isProposed && (
-          <motion.div
-            key="proposal-review"
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex-shrink-0 mx-4 mt-4 flex items-start gap-3 px-3 py-2.5 rounded-xl border border-emerald-200/80 bg-emerald-50/70"
-          >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 text-sm font-medium text-emerald-800">
-                <SparkleIcon
-                  size={14}
-                  weight="fill"
-                  className="text-emerald-600"
-                />
-                Von proposed changes
-              </div>
-              <p className="text-xs text-emerald-900/70 mt-0.5 capitalize">
-                {[...proposalFields]
-                  .map((f) => (f === "title" ? "title" : f))
-                  .join(", ")}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <button
-                onClick={handleDismissProposal}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-gray-800 bg-white border border-gray-200/80 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                Dismiss
-              </button>
-              <button
-                onClick={handleApplyProposal}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs text-white bg-emerald-600 border border-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors cursor-pointer"
-              >
-                Insert
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Non-scrolling top section: title + description. User memory also
-          renders these fields — description is editable; title is read-only
-          because the backend rejects key updates for user-scoped memories. */}
+      {/* Non-scrolling top section: title + description. */}
       <div className="flex-shrink-0 px-4 pt-4 flex flex-col gap-4">
         {/* Title */}
         <div>
@@ -365,9 +237,9 @@ export function MemoryContextEditor({
         </div>
       </div>
 
-      {/* Attachments block — pinned ABOVE Memory Content so supporting
-          material reads like source context the agent can pull from, not
-          a footer afterthought. Chips sit above the Attach file button. */}
+      {/* Attachments — pinned ABOVE Memory Content so supporting material
+          reads like source context the agent can pull from. Chips above the
+          Attach file button. */}
       <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
         <input
           ref={fileInputRef}
@@ -420,34 +292,15 @@ export function MemoryContextEditor({
             max={MEMORY_CONTEXT_LIMITS.value}
           />
         </div>
-        {isLoadingProposal && proposalFields.has("content") ? (
-          /* Loading treatment: Von gradient ring around the editor + shimmer
-             overlay. Editor is locked so the user can't type over a mutation
-             in flight. */
-          <div className="flex-1 min-h-0 relative rounded-xl p-[1.5px] bg-[linear-gradient(130deg,#ff9042_0%,#854fff_100%)]">
-            <div className="h-full w-full bg-white rounded-[11px] overflow-hidden relative memory-shimmer-overlay">
-              <OrgContextEditor
-                content={editingContent}
-                onChange={setEditingContent}
-                isEditing={false}
-                placeholder="Add the memory content here..."
-                contentKey={contentKey}
-                onSelectionCapture={onSelectionCapture}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 min-h-0 border border-gray-200/80 rounded-xl overflow-hidden">
-            <OrgContextEditor
-              content={editingContent}
-              onChange={setEditingContent}
-              isEditing={true}
-              placeholder="Add the memory content here..."
-              contentKey={contentKey}
-              onSelectionCapture={onSelectionCapture}
-            />
-          </div>
-        )}
+        <div className="flex-1 min-h-0 border border-gray-200/80 rounded-xl overflow-hidden">
+          <OrgContextEditor
+            content={editingContent}
+            onChange={setEditingContent}
+            isEditing={true}
+            placeholder="Add the memory content here..."
+            contentKey={contentKey}
+          />
+        </div>
       </div>
 
       {/* Sticky footer */}
