@@ -223,7 +223,7 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
               <Tooltip
                 key={service.id}
                 content={service.tooltip}
-                placement="left"
+                placement="bottom"
                 enabled={!service.connected}
               >
                 <button
