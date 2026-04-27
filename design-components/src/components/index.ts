@@ -206,6 +206,7 @@ export type { ConfirmationModalProps } from './ConfirmationModal';
 export { Chat } from './Chat';
 export type {
   ChatProps,
+  ChatRef,
   Message,
   MessageFileAttachment,
   FixedPosition,

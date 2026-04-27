@@ -1,6 +1,7 @@
 export { Chat } from './Chat';
 export type {
   ChatProps,
+  ChatRef,
   Message,
   MessageStatus,
   MessageFileAttachment,

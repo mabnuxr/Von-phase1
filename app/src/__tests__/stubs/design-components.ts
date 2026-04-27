@@ -29,6 +29,7 @@ export {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
 } from "../../../../design-components/src/components/Chat/types";
+export { ensureUTC } from "../../../../design-components/src/utils/ensureUTC";
 
 // ReportTable types & utils
 export type { ReportColumn } from "../../../../design-components/src/components/ReportTable/ReportTable";
