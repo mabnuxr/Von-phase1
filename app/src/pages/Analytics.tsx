@@ -3,7 +3,6 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLineRightIcon,
-  ClockCounterClockwiseIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
@@ -21,7 +20,6 @@ import {
 import {
   Tooltip,
   useVisibilityToggle,
-  formatRelativeTime,
   type MentionItem,
   type WidgetAddToChatPayload,
 } from "@vonlabs/design-components";
@@ -385,12 +383,6 @@ const Analytics = () => {
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
 
-  const activeChatAssociation = conversationId
-    ? associatedChatsData?.conversations.find(
-        (c) => c.conversationId === conversationId,
-      )
-    : undefined;
-
   // Auto-select the most-recent associated chat when the panel is open and
   // nothing is selected (fresh open, or cleared by a dashboard switch).
   // Deep-link id is set by the effect above and takes precedence.
@@ -545,18 +537,6 @@ const Analytics = () => {
             </button>
           </Tooltip>
         </div>
-
-        {/* Dashboard-association context pill — visible only when the open
-            chat is in the by-dashboard response for the active dashboard. */}
-        {activeChatAssociation && (
-          <div className="flex-shrink-0 px-3 py-1.5 border-b border-gray-100">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[11px] font-medium">
-              <ClockCounterClockwiseIcon size={11} aria-hidden />
-              This dashboard was mentioned ·{" "}
-              {formatRelativeTime(activeChatAssociation.lastMentionedAt)}
-            </span>
-          </div>
-        )}
 
         {/* Chat content — always render ChatSession so it never unmounts on dashboard switch */}
         <div className="flex-1 min-h-0 overflow-hidden">
