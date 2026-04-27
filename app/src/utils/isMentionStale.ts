@@ -11,7 +11,9 @@ const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
  * Returns false for null/undefined/unparseable inputs — the caller treats those
  * the same as "no mention" rather than surfacing a misleading indicator.
  */
-export function isMentionStale(lastMentionedAt: string | null | undefined): boolean {
+export function isMentionStale(
+  lastMentionedAt: string | null | undefined,
+): boolean {
   if (!lastMentionedAt) return false;
   const parsed = new Date(ensureUTC(lastMentionedAt)).getTime();
   if (Number.isNaN(parsed)) return false;

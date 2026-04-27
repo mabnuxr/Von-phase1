@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLineRightIcon,
-  PlusIcon,
-} from "@phosphor-icons/react";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -29,7 +26,10 @@ import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
-import { ChatSession, type ChatSessionRef } from "../components/chat/ChatSession";
+import {
+  ChatSession,
+  type ChatSessionRef,
+} from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
