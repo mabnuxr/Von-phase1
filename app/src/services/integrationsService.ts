@@ -10,10 +10,12 @@ export const IntegrationType = {
   FATHOM: "FATHOM",
   GOOGLE_CALENDAR: "GOOGLE_CALENDAR",
   GOOGLE_DRIVE: "GOOGLE_DRIVE",
+  BOX: "BOX",
   GMAIL: "GMAIL",
   ZOOM: "ZOOM",
   SNOWFLAKE: "SNOWFLAKE",
   DATABRICKS: "DATABRICKS",
+  BIGQUERY: "BIGQUERY",
   NOTION: "NOTION",
   JIMINNY: "JIMINNY",
 } as const;
@@ -396,6 +398,8 @@ export class IntegrationsService {
     username?: string;
     password?: string;
     apiKey?: string;
+    // BigQuery service account JSON
+    serviceAccountJson?: string;
   }): Promise<Integration> {
     const response = await apiClient.post<IntegrationBackendResponse>(
       "/api/v1/integrations",
@@ -409,6 +413,7 @@ export class IntegrationsService {
         username: data.username,
         password: data.password,
         api_key: data.apiKey,
+        service_account_json: data.serviceAccountJson,
       },
     );
     return transformIntegration(response);
@@ -447,6 +452,8 @@ export class IntegrationsService {
       username?: string;
       password?: string;
       apiKey?: string;
+      // BigQuery service account JSON
+      serviceAccountJson?: string;
     },
   ): Promise<Integration> {
     const response = await apiClient.patch<IntegrationBackendResponse>(
@@ -460,6 +467,7 @@ export class IntegrationsService {
         username: data.username,
         password: data.password,
         api_key: data.apiKey,
+        service_account_json: data.serviceAccountJson,
       },
     );
     return transformIntegration(response);

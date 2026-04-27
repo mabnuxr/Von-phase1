@@ -13,6 +13,7 @@ import {
   UsersIcon,
   BrainIcon,
   ChartBarIcon,
+  LightbulbIcon,
 } from "@phosphor-icons/react";
 import { authService } from "../services";
 import { FieldsTab } from "../components/tabs/FieldsTab";
@@ -21,6 +22,8 @@ import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
+import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
+import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
@@ -33,8 +36,12 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { isEmailCategorizationEnabled, isUsageMetricsEnabled, isUserMemoryEnabled } =
-    useFeatureFlag();
+  const {
+    isEmailCategorizationEnabled,
+    isUsageMetricsEnabled,
+    isUserMemoryEnabled,
+    isVonAiFieldsEnabled,
+  } = useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations.
   // Old "memory" links land on the Org Memory sub-page so we don't break URLs.
@@ -167,6 +174,15 @@ const Settings = () => {
             : []),
         ],
       },
+      ...(isVonAiFieldsEnabled
+        ? [
+            {
+              id: "custom-iq",
+              label: "Von AI Fields",
+              icon: <LightbulbIcon size={20} weight="regular" />,
+            },
+          ]
+        : []),
       // Conditionally include Email tab based on feature flag
       ...(isEmailCategorizationEnabled
         ? [
@@ -212,6 +228,8 @@ const Settings = () => {
         return <OrgContextTab view="org" />;
       case "memory-user":
         return isUserMemoryEnabled ? <OrgContextTab view="user" /> : null;
+      case "custom-iq":
+        return isVonAiFieldsEnabled ? <VonAiFieldsTab /> : null;
       case "usage":
         return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:
@@ -224,6 +242,9 @@ const Settings = () => {
       <div className="h-screen bg-gray-100 flex flex-col items-center overflow-hidden">
         {/* Field Detail Pane - Global */}
         <FieldDetailPane />
+
+        {/* Von AI Field Detail Pane - Global */}
+        {isVonAiFieldsEnabled && <VonAiFieldDetailPane />}
 
         {/* Add Team Member Pane - Global */}
         <AddTeamMemberPane />

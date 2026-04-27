@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { ChatSidebarV2 } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
 import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
@@ -12,6 +13,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useApprovalStates } from "../hooks/useApprovalStates";
 import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
+import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
@@ -106,6 +108,23 @@ export function ChatSidebarV2Container({
   const { openShareModal } = useAppShell();
   const { isChatSharingEnabled } = useFeatureFlag();
 
+  // Track which conversation's context menu is open to fetch its share status
+  const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
+    null,
+  );
+  const handleContextMenuOpen = useCallback((itemId: string) => {
+    setContextMenuConvId(itemId);
+  }, []);
+  const { data: contextMenuShareStatus } = useShareStatus(
+    isChatSharingEnabled ? contextMenuConvId : null,
+  );
+  const contextMenuShareInfo = contextMenuConvId
+    ? {
+        isShared: contextMenuShareStatus?.isShared ?? false,
+        accessType: contextMenuShareStatus?.accessType,
+      }
+    : undefined;
+
   const {
     folders,
     items,
@@ -134,7 +153,7 @@ export function ChatSidebarV2Container({
     userId: user?.id,
   });
 
-  const { approvalStates, markViewed } = useApprovalStates({
+  const { approvalStates } = useApprovalStates({
     sidebarConversations: unfiledConversations,
     folderConversations: folderConversationsMap,
     userChannel,
@@ -148,6 +167,30 @@ export function ChatSidebarV2Container({
   } = useSidebarDashboards({ enabled: isDeepResearchEnabled });
 
   const renameDashboard = useSidebarDashboardRename();
+
+  const handleDeleteDashboard = useCallback(
+    (id: string) => {
+      // Only navigate if we're currently viewing the deleted dashboard
+      if (id === dashboardId) {
+        // Find the next available dashboard (excluding the one being deleted)
+        const nextDashboard = sidebarDashboards.find((d) => d.id !== id);
+        if (nextDashboard) {
+          navigate(`/dashboard/${nextDashboard.id}`);
+        } else {
+          // No dashboards left — go to the first available chat or /chat
+          const firstChat = items[0];
+          if (firstChat) {
+            navigate(`/chat/${firstChat.id}`);
+          } else {
+            navigate("/chat");
+          }
+        }
+      }
+    },
+    [dashboardId, sidebarDashboards, items, navigate],
+  );
+
+  const deleteDashboard = useSidebarDashboardDelete(handleDeleteDashboard);
 
   // Title animation (shared with V1)
   const { animatedTitles } = useTitleAnimation({ userChannel });
@@ -180,10 +223,9 @@ export function ChatSidebarV2Container({
 
   const handleChatClick = useCallback(
     (conversationId: string) => {
-      markViewed(conversationId);
       navigate(`/chat/${conversationId}`);
     },
-    [markViewed, navigate],
+    [navigate],
   );
 
   const handleDeleteItem = useCallback(
@@ -241,6 +283,10 @@ export function ChatSidebarV2Container({
       onNewChatFolderClick={createFolder}
       onRenameItem={renameConversation}
       onShareItem={isChatSharingEnabled ? openShareModal : undefined}
+      onContextMenuOpen={
+        isChatSharingEnabled ? handleContextMenuOpen : undefined
+      }
+      contextMenuShareInfo={contextMenuShareInfo}
       onDeleteItem={handleDeleteItem}
       onDeleteFolder={deleteFolder}
       onRenameFolder={renameFolder}
@@ -265,6 +311,7 @@ export function ChatSidebarV2Container({
       hasMoreDashboards={hasMoreDashboards}
       onLoadMoreDashboards={loadMoreDashboards}
       onRenameDashboard={renameDashboard}
+      onDeleteDashboard={deleteDashboard}
       onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
     />
   );

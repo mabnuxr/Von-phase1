@@ -180,6 +180,19 @@ class ConversationsService {
   }
 
   /**
+   * Generate a narrative summary of a conversation synchronously.
+   * Works in shared context when X-Share-Id is set on apiClient — the
+   * backend middleware elevates the request to the owner's identity.
+   */
+  async summarizeConversation(
+    conversationId: string,
+  ): Promise<ConversationSummaryResponse> {
+    return apiClient.post<ConversationSummaryResponse>(
+      `/api/v1/chat/conversations/${conversationId}/summarize`,
+    );
+  }
+
+  /**
    * Fetch artifact (tool call result) by ID
    * Used for lazy loading of large tool results stored separately
    */
@@ -284,7 +297,7 @@ class ConversationsService {
     limit: number = 50,
   ): Promise<DashboardAssociatedChatsResponse> {
     return apiClient.get<DashboardAssociatedChatsResponse>(
-      `/api/v1/chat/sidebar/by-dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
+      `/api/v1/chat/dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
     );
   }
 
@@ -497,6 +510,12 @@ export interface SharedConversationValidationResponse {
   sharedByName: string;
   sharedByEmail: string;
   sharedAt: string;
+  allowFileAttachments: boolean;
+}
+
+export interface ConversationSummaryResponse {
+  summary: string;
+  message_count: number;
 }
 
 // Singleton instance

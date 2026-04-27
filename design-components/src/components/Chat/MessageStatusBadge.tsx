@@ -30,7 +30,8 @@ export const MessageStatusBadge: React.FC<MessageStatusBadgeProps> = ({
     status === 'created' ||
     status === 'completed' ||
     status === 'timeout' ||
-    status === 'expired'
+    status === 'expired' ||
+    status === 'skipped'
   ) {
     return null;
   }

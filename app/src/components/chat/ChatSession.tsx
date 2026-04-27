@@ -14,12 +14,15 @@
 
 import {
   createContext,
+  forwardRef,
   useContext,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useGuardedNavigate } from "../../providers/NavigationGuard";
 import {
@@ -30,7 +33,11 @@ import {
   usePanelResize,
 } from "@vonlabs/design-components";
 import type { ConversationMode } from "@vonlabs/design-components";
-import type { FileArtifact, MentionItem } from "@vonlabs/design-components";
+import type {
+  ChatRef,
+  FileArtifact,
+  MentionItem,
+} from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
 import type {
@@ -104,6 +111,15 @@ function collectSlots(children: ReactNode): ChatSessionSlots {
 
 // ─── Props ──────────────────────────────────────────────────────────
 
+/**
+ * Imperative handle for `ChatSession`. Forwards `focus()` to the underlying
+ * `Chat` input. Used by parents that need to programmatically move focus
+ * into the chat (e.g. after `Add to Chat` routes a widget mention).
+ */
+export interface ChatSessionRef {
+  focus: () => void;
+}
+
 export interface ChatSessionProps {
   /** Conversation ID — omit/null for new conversation (create on first message) */
   conversationId?: string | null;
@@ -155,6 +171,13 @@ export interface ChatSessionProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
 
+  // ── Box ────────────────────────────────────────
+  onBoxClick?: (fileId: string) => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  boxLoadingFileId?: string | null;
+
   /**
    * Read-only mode for shared-chat recipients.
    * Hides the input bar and disables actions that would mutate the
@@ -164,6 +187,13 @@ export interface ChatSessionProps {
    */
   readOnly?: boolean;
 
+  /**
+   * When true, file attachment chips and command data source chips are
+   * visible but grayed out and non-clickable. Set when the share owner
+   * disabled file attachments.
+   */
+  disableFileAttachments?: boolean;
+
   /** Action element rendered in the chat pane header area (e.g. Share button) — scoped to chat only, won't cover artifact/dashboard panels. Receives `compact` when a side panel is open. */
   headerAction?: ReactNode | ((compact: boolean) => ReactNode);
 
@@ -172,30 +202,50 @@ export interface ChatSessionProps {
 
 // ─── Main component ─────────────────────────────────────────────────
 
-function ChatSessionRoot(props: ChatSessionProps) {
-  const slots = collectSlots(props.children);
+const ChatSessionRoot = forwardRef<ChatSessionRef, ChatSessionProps>(
+  function ChatSessionRoot(props, ref) {
+    const slots = collectSlots(props.children);
+    const chatRef = useRef<ChatRef | null>(null);
 
-  if (props.conversationId) {
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          chatRef.current?.focus();
+        },
+      }),
+      [],
+    );
+
+    if (props.conversationId) {
+      return (
+        <SlotsContext.Provider value={slots}>
+          <ExistingChatInner
+            {...props}
+            conversationId={props.conversationId}
+            chatRef={chatRef}
+          />
+        </SlotsContext.Provider>
+      );
+    }
+
     return (
       <SlotsContext.Provider value={slots}>
-        <ExistingChatInner {...props} conversationId={props.conversationId} />
+        <NewChatInner {...props} chatRef={chatRef} />
       </SlotsContext.Provider>
     );
-  }
-
-  return (
-    <SlotsContext.Provider value={slots}>
-      <NewChatInner {...props} />
-    </SlotsContext.Provider>
-  );
-}
+  },
+);
 
 // ─── Existing conversation inner ────────────────────────────────────
 
 function ExistingChatInner(
-  props: ChatSessionProps & { conversationId: string },
+  props: ChatSessionProps & {
+    conversationId: string;
+    chatRef: RefObject<ChatRef | null>;
+  },
 ) {
-  const { conversationId } = props;
+  const { conversationId, chatRef } = props;
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
   const navigate = useGuardedNavigate();
@@ -442,7 +492,6 @@ function ExistingChatInner(
     [
       activeDashboardId,
       props.compact,
-      dashboardPaneState.isOpen,
       navigate,
       conversationId,
       openDashboardPane,
@@ -498,6 +547,7 @@ function ExistingChatInner(
   // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
@@ -517,6 +567,8 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       hideInput={props.readOnly}
+      hideScrollToBottom={props.readOnly}
+      disableFileAttachments={props.disableFileAttachments}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       // Banner
@@ -594,6 +646,12 @@ function ExistingChatInner(
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
+      // Box
+      onBoxClick={props.onBoxClick}
+      isBoxEnabled={props.isBoxEnabled}
+      isBoxConnected={props.isBoxConnected}
+      boxTooltip={props.boxTooltip}
+      boxLoadingFileId={props.boxLoadingFileId}
       // Infinite scroll
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextMessagePage}
@@ -677,6 +735,17 @@ function ExistingChatInner(
               isDriveLoading={
                 props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
               }
+              onBoxClick={
+                props.onBoxClick && chatV2.fileArtifactPanel.fileId
+                  ? () => props.onBoxClick!(chatV2.fileArtifactPanel.fileId!)
+                  : undefined
+              }
+              isBoxEnabled={props.isBoxEnabled}
+              isBoxConnected={props.isBoxConnected}
+              boxTooltip={props.boxTooltip}
+              isBoxLoading={
+                props.boxLoadingFileId === chatV2.fileArtifactPanel.fileId
+              }
             />
           )}
       </div>
@@ -687,9 +756,12 @@ function ExistingChatInner(
 
 // ─── New conversation inner ─────────────────────────────────────────
 
-function NewChatInner(props: ChatSessionProps) {
+function NewChatInner(
+  props: ChatSessionProps & { chatRef: RefObject<ChatRef | null> },
+) {
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
+  const { chatRef } = props;
 
   // ── Mentions ──────────────────────────────────────────────────────
   const {
@@ -729,6 +801,7 @@ function NewChatInner(props: ChatSessionProps) {
 
   return (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}

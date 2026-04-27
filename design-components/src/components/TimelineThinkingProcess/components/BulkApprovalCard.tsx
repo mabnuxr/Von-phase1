@@ -9,6 +9,7 @@ import {
 import type { ApprovalData, BulkApprovalRecord } from '../types';
 import { CompactApprovalCard } from './CompactApprovalCard';
 import { useCountdown } from '../../../hooks/useCountdown';
+import { getUnresolvedApprovalVariant } from '../utils';
 
 // ============================================================================
 // Completed Bulk Card - Collapsed summary when approved/rejected
@@ -99,8 +100,10 @@ export interface BulkApprovalCardProps {
   isApproved?: boolean;
   /** Whether the entire bulk operation was rejected (from backend state on reload) */
   isRejected?: boolean;
-  /** Whether the approval was invalidated (user sent new message without approving) */
+  /** Whether the approval TTL lapsed or the backend reported it as expired */
   isExpired?: boolean;
+  /** Whether the user moved on without acting (e.g. sent a new message while awaiting approval) */
+  isSkipped?: boolean;
   /** Whether the approval tool encountered a system/validation error */
   isError?: boolean;
   /** Callback when approval TTL expires */
@@ -127,6 +130,7 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
     isApproved = false,
     isRejected = false,
     isExpired = false,
+    isSkipped = false,
     isError = false,
     onExpire,
   }) => {
@@ -152,23 +156,19 @@ export const BulkApprovalCard = React.memo<BulkApprovalCardProps>(
       onRejectAll();
     };
 
-    // Expired/error state — approval was never resolved
-    if (isExpired || isError) {
-      const borderColor = isError ? 'border-red-200' : 'border-amber-200';
-      const iconColor = isError ? 'text-red-400' : 'text-amber-500';
-      const labelColor = isError ? 'text-red-500' : 'text-amber-600';
-      const labelText = isError ? 'Failed' : 'Invalid';
+    if (isExpired || isSkipped || isError) {
+      const variant = getUnresolvedApprovalVariant({ isError, isSkipped });
 
       return (
         <div
-          className={`mt-2 bg-white rounded-xl border ${borderColor} shadow-xs overflow-hidden min-w-0`}
+          className={`mt-2 bg-white rounded-xl border ${variant.border} shadow-xs overflow-hidden min-w-0`}
         >
           <div className="w-full px-3 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <WarningCircleIcon size={14} weight="fill" className={`${iconColor} shrink-0`} />
+              <WarningCircleIcon size={14} weight="fill" className={`${variant.icon} shrink-0`} />
               <span className="text-sm text-gray-900 truncate">{approval.label}</span>
             </div>
-            <span className={`text-xs shrink-0 ml-2 ${labelColor}`}>{labelText}</span>
+            <span className={`text-xs shrink-0 ml-2 ${variant.label}`}>{variant.text}</span>
           </div>
         </div>
       );

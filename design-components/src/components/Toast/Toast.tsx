@@ -201,7 +201,14 @@ export const Toast: React.FC<ToastProps> = ({
       </div>
 
       {/* Message */}
-      <span className="text-sm text-gray-700 flex-1 line-clamp-2">{message}</span>
+      <span className="text-sm text-gray-700 flex-1">
+        {message.split('\n').map((line, i, arr) => (
+          <React.Fragment key={i}>
+            {line}
+            {i < arr.length - 1 && <br />}
+          </React.Fragment>
+        ))}
+      </span>
 
       {/* Action button */}
       {action && (

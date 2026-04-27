@@ -43,6 +43,7 @@ export const IntegrationBlockSection: React.FC<IntegrationBlockSectionProps> = (
         isAvailable={!isConnected}
         onToggle={onIntegrate ? () => onIntegrate(integrationBlock.integrationType) : undefined}
         chips={isConnected ? ['connected'] : undefined}
+        showConnectArrow
       />
     </div>
   );

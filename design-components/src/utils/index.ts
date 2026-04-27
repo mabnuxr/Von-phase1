@@ -1,6 +1,6 @@
 export { ensureUTC } from './ensureUTC';
 export { formatRelativeTime } from './formatRelativeTime';
-export { DEFAULT_EXPIRED_APPROVAL_MESSAGE } from './constants';
+export { DEFAULT_EXPIRED_APPROVAL_MESSAGE, DEFAULT_SKIPPED_APPROVAL_MESSAGE } from './constants';
 export {
   formatD3Pattern,
   formatKpiDisplay,

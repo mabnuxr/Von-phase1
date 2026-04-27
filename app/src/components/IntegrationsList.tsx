@@ -343,9 +343,11 @@ function IntegrationItem({
     if (canBeOrgLevel(item.id)) availableChips.push("workspace");
     if (canBeUserLevel(item.id)) availableChips.push("personal");
 
-    // Gong Engage shows "Available" status instead of a Connect button —
-    // connection is managed via the existing Gong CI credentials.
-    const isStaticAvailable = item.id === "gongengage";
+    // Gong Engage and Salesloft Recorder share credentials with their parent
+    // integrations (Gong, Salesloft), so they show "Available" instead of a
+    // Connect button — they are enabled automatically when the parent connects.
+    const isStaticAvailable =
+      item.id === "gongengage" || item.id === "salesloft_recorder";
 
     return (
       <IntegrationCard
@@ -587,6 +589,8 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBoxEnabled,
+    isBigQueryEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -604,6 +608,8 @@ export function IntegrationsList({
         return false;
       if (app.id === "jiminny" && !isJiminnyEnabled) return false;
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
+      if (app.id === "box" && !isBoxEnabled) return false;
+      if (app.id === "bigquery" && !isBigQueryEnabled) return false;
       return true;
     });
   }, [
@@ -618,6 +624,8 @@ export function IntegrationsList({
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
     isDatabricksEnabled,
+    isBoxEnabled,
+    isBigQueryEnabled,
   ]);
 
   // Merge available apps with connected integrations

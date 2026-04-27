@@ -11,6 +11,9 @@ import {
   type SharedConversationValidationResponse,
 } from "../services/conversationsService";
 import { setShareId } from "../services/apiClient";
+import { useToast } from "../hooks/useToast";
+import { SpinnerGapIcon } from "@phosphor-icons/react";
+import { TextShimmer } from "@vonlabs/design-components";
 
 /**
  * Read-only view of a shared conversation.
@@ -35,11 +38,13 @@ import { setShareId } from "../services/apiClient";
 export default function SharedConversation() {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [validation, setValidation] =
     useState<SharedConversationValidationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
 
   // Install the share ID on apiClient before any other request fires.
   useEffect(() => {
@@ -93,6 +98,28 @@ export default function SharedConversation() {
   const handleNewChat = () => {
     setShareId(null);
     navigate("/chat/new");
+  };
+
+  const handleStartWithContext = async () => {
+    if (!conversationId || isSummarizing) return;
+    setIsSummarizing(true);
+    try {
+      // Must call before clearing share ID — the X-Share-Id header is what
+      // elevates this request into the owner's context on the backend.
+      const result =
+        await conversationsService.summarizeConversation(conversationId);
+      setShareId(null);
+      navigate("/chat/new", { state: { prompt: result.summary } });
+    } catch {
+      showToast({
+        message: "Couldn't summarize this chat. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      // Guarantee the button resets even if navigation is blocked; on success
+      // the component unmounts so this setState is a harmless no-op in React 18+.
+      setIsSummarizing(false);
+    }
   };
 
   if (loading) {
@@ -152,7 +179,7 @@ export default function SharedConversation() {
   }
 
   return (
-    <div className="flex flex-col flex-1 w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none">
+    <div className="relative flex flex-col flex-1 w-full h-full bg-white rounded-xl border border-gray-200 overflow-hidden shadow-xs [&_.chat-container]:!border-0 [&_.chat-container]:!rounded-none [&_.chat-container]:!shadow-none [&_.settings-scrollbar]:!pb-16">
       {/* Header — conversation name + read-only indicator + shared by */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -161,7 +188,7 @@ export default function SharedConversation() {
               {currentConversation.title}
             </span>
           )}
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-600 shrink-0">
+          <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-xs font-medium text-gray-900 shrink-0">
             Read-only
           </span>
         </div>
@@ -184,56 +211,27 @@ export default function SharedConversation() {
             isFetchingNextMessagePage={isFetchingNextMessagePage}
             refetchMessages={refetchMessages as () => Promise<unknown>}
             readOnly
+            disableFileAttachments={!validation.allowFileAttachments}
           />
         )}
       </div>
 
-      {/* Bottom CTAs — rendered outside the scroll area so they never obscure messages */}
-      <div className="border-t border-gray-100 px-5 py-3 bg-white shrink-0">
-        <div className="flex items-center justify-center gap-2">
-          {/* "New chat with context" — not shipped yet. Kept as a
-              disabled placeholder so the slot is reserved in the UI. */}
-          <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            title="Coming soon"
-            className="relative inline-flex items-center gap-2 h-[36px] px-4 text-sm font-medium text-gray-400 bg-white rounded-xl cursor-not-allowed border border-gray-200"
-          >
-            <svg
-              width={18}
-              height={18}
-              viewBox="0 0 28 28"
-              fill="none"
-              className="flex-shrink-0 opacity-50"
-            >
-              <circle cx="14" cy="14" r="14" fill="#E5E7EB" />
-              <path
-                d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-                stroke="white"
-                strokeWidth="1.33"
-              />
-              <circle
-                cx="13.9932"
-                cy="14"
-                r="7.835"
-                stroke="white"
-                strokeWidth="1.33"
-              />
-            </svg>
-            <span>New chat with context</span>
-            <span className="ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500 bg-gray-100 rounded">
-              Coming soon
-            </span>
-          </button>
-          <button
-            onClick={handleNewChat}
-            className="inline-flex items-center gap-1.5 h-[36px] px-4 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            New chat
-          </button>
-        </div>
-      </div>
+      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one */}
+      <button
+        type="button"
+        onClick={handleStartWithContext}
+        disabled={isSummarizing || !conversationId}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed transition-colors cursor-pointer z-10"
+      >
+        {isSummarizing ? (
+          <>
+            <SpinnerGapIcon size={13} className="animate-spin" />
+            <TextShimmer variant="dark">Summarizing…</TextShimmer>
+          </>
+        ) : (
+          "Continue conversation"
+        )}
+      </button>
     </div>
   );
 }

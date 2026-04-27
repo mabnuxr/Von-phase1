@@ -30,12 +30,15 @@ export interface CommandPreviewProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** When false, the bottom divider is hidden. Defaults to true. */
   hasContentBelow?: boolean;
+  /** When true, the command preview is disabled and the command is not rendered. */
+  disableFileAttachments?: boolean;
 }
 
 export const CommandPreview: React.FC<CommandPreviewProps> = ({
   command,
   onRequestFilePreviewUrl,
   hasContentBelow = true,
+  disableFileAttachments = false,
 }) => {
   const { isVisible: isExpanded, toggleVisibility: onToggle } = useVisibilityToggle();
   const filesPanel = useVisibilityToggle();
@@ -85,8 +88,9 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
         <CommandChip command={command} onClick={onToggle} isExpanded={isExpanded} />
         {!isExpanded && attachmentCount > 0 && (
           <button
-            onClick={filesPanel.show}
-            className="cursor-pointer hover:opacity-75 transition-opacity shrink-0"
+            onClick={disableFileAttachments ? undefined : filesPanel.show}
+            className={`transition-opacity shrink-0 ${disableFileAttachments ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-75'}`}
+            disabled={disableFileAttachments}
           >
             <FileIconStack
               files={command.dataSources ?? []}
@@ -111,8 +115,9 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
 
             {attachmentCount > 0 && (
               <button
-                onClick={filesPanel.show}
-                className="mt-2 cursor-pointer hover:opacity-75 transition-opacity"
+                onClick={disableFileAttachments ? undefined : filesPanel.show}
+                className={`mt-2 transition-opacity ${disableFileAttachments ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-75'}`}
+                disabled={disableFileAttachments}
               >
                 <FileIconStack
                   files={command.dataSources ?? []}

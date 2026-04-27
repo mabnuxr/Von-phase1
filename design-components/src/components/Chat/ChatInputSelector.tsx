@@ -388,7 +388,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         onDroppedFilesProcessed={onDroppedFilesProcessed}
         autoFocus={autoFocus}
         contextBar={contextBar}
-        onCloseCommandsList={enableCommands ? handleCloseCommandsList : undefined}
+        onCloseCommandsList={
+          enableCommands && showCommandsList ? handleCloseCommandsList : undefined
+        }
       />
     );
 

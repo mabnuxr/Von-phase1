@@ -17,7 +17,8 @@ export type MessageStatus =
   | 'completed'
   | 'failed'
   | 'timeout'
-  | 'expired';
+  | 'expired'
+  | 'skipped';
 
 /**
  * Additional options passed with the send message callback
@@ -178,13 +179,13 @@ export interface Message {
   }>;
   /**
    * Integration write block metadata (persisted on assistant messages).
-   * When present, renders an integration card inline on the message.
+   * When present, renders integration cards inline on the message.
    */
-  integrationBlock?: {
+  integrationBlocks?: Array<{
     blockCode?: string;
     message: string;
     integrationType: string;
-  };
+  }>;
   /**
    * Whether the response was stopped by user
    */
@@ -1035,6 +1036,16 @@ export interface DeepResearchApprovalToolArgs {
   plan_id?: string;
 }
 
+/**
+ * Imperative handle exposed by `Chat` via `forwardRef`. Use this to programmatically
+ * move focus into the chat input from a parent component (e.g. after a side action
+ * like "Add to Chat" routes a mention into the conversation).
+ */
+export interface ChatRef {
+  /** Move focus into the chat input. No-op if the input is not currently rendered. */
+  focus: () => void;
+}
+
 export interface ChatProps {
   /**
    * Title displayed in the chat header
@@ -1140,6 +1151,14 @@ export interface ChatProps {
    * Callback when input value changes (for controlled mode)
    */
   onInputValueChange?: (value: string) => void;
+
+  /**
+   * Initial value used to seed the empty-state input (read once on mount).
+   * `inputValue` only feeds the bottom input that renders after messages
+   * exist — use this when you need to pre-populate the first-message input
+   * (e.g. "Start new chat with context" from a shared conversation).
+   */
+  defaultInputValue?: string;
 
   /**
    * Placeholder text for the input
@@ -1262,6 +1281,32 @@ export interface ChatProps {
    * File ID of the artifact currently being exported to Drive (shows spinner)
    */
   driveLoadingFileId?: string | null;
+
+  /**
+   * Callback when user clicks Box button on an artifact card
+   */
+  onBoxClick?: (fileId: string) => void;
+
+  /**
+   * Whether Box export is enabled (feature flag is on)
+   */
+  isBoxEnabled?: boolean;
+
+  /**
+   * Whether Box is connected (user has authenticated).
+   * When isBoxEnabled but not isBoxConnected, clicking navigates to settings.
+   */
+  isBoxConnected?: boolean;
+
+  /**
+   * Tooltip text for the Box button
+   */
+  boxTooltip?: string;
+
+  /**
+   * File ID of the artifact currently being exported to Box (shows spinner)
+   */
+  boxLoadingFileId?: string | null;
 
   /**
    * Callback when a file attachment pill is clicked (for preview/download)
@@ -1481,6 +1526,15 @@ export interface ChatProps {
    * @default false
    */
   hideInput?: boolean;
+  hideScrollToBottom?: boolean;
+
+  /**
+   * When true, file attachment chips and command data source chips are
+   * rendered with reduced opacity and non-clickable. Used in shared
+   * views where the owner disabled file sharing.
+   * @default false
+   */
+  disableFileAttachments?: boolean;
 
   /**
    * Hide the "Von AI may make mistakes" disclaimer below the input. Useful

@@ -210,6 +210,7 @@ export type { ConfirmationModalProps } from './ConfirmationModal';
 export { Chat } from './Chat';
 export type {
   ChatProps,
+  ChatRef,
   Message,
   MessageFileAttachment,
   FixedPosition,
@@ -285,6 +286,8 @@ export type {
 } from './ChatSidebarV2';
 export { ApprovalDot } from './ChatSidebarV2';
 export type { ApprovalDotProps } from './ChatSidebarV2';
+export { ApprovalPill } from './ChatSidebarV2';
+export type { ApprovalPillProps } from './ChatSidebarV2';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)
@@ -393,6 +396,8 @@ export type { DashboardCanvasProps } from './DashboardCanvas';
 // THINKING PROCESS V2 (Timeline-based thinking visualization)
 // ============================================================================
 export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export { TextShimmer } from './TimelineThinkingProcess/components/TextShimmer';
+export type { TextShimmerProps } from './TimelineThinkingProcess/components/TextShimmer';
 export type {
   TimelineThinkingProcessProps,
   TimelineStep,
@@ -562,9 +567,6 @@ export type {
 // ============================================================================
 // HOOKS (Reusable hooks for common UI patterns)
 // ============================================================================
-export { useAutoScroll } from '../hooks';
-export type { UseAutoScrollConfig, UseAutoScrollReturn } from '../hooks';
-
 export { useIsTruncated } from '../hooks';
 export type { UseIsTruncatedReturn } from '../hooks';
 
@@ -629,6 +631,7 @@ export type {
   ChartWidgetConfig,
   CounterWidgetConfig,
   TextWidgetConfig,
+  MustacheVariables,
   AppliedWidgetFilter,
   DataSourcesProps,
   DataSource,

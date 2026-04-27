@@ -327,6 +327,7 @@ export interface TextWidgetConfig {
   content: string;
   variant?: "heading" | "subheading" | "body" | "caption";
   alignment?: "left" | "center" | "right";
+  overflow?: "auto" | "hidden" | "visible";
 }
 
 // ─── Filters ─────────────────────────────────────────────────────

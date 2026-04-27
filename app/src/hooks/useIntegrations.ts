@@ -31,6 +31,7 @@ export function useIntegrations() {
   return useQuery({
     queryKey: ["integrations"],
     queryFn: () => integrationsService.getIntegrations(),
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -440,6 +441,8 @@ export function useCreateIntegration() {
       username?: string;
       password?: string;
       apiKey?: string;
+      // BigQuery service account JSON
+      serviceAccountJson?: string;
     }) => integrationsService.createIntegration(data),
     onSuccess: () => {
       // Invalidate integrations to refetch and show the new integration
@@ -475,6 +478,8 @@ export function useUpdateIntegration() {
         username?: string;
         password?: string;
         apiKey?: string;
+        // BigQuery service account JSON
+        serviceAccountJson?: string;
       };
     }) => integrationsService.updateIntegration(integrationId, data),
     onSuccess: () => {

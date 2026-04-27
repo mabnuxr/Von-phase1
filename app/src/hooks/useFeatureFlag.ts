@@ -33,15 +33,23 @@ export const FEATURE_FLAGS = {
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
   NOTION: "enableNotion",
+  BOX: "enableBox",
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
   JIMINNY: "enableJiminny",
   DATABRICKS: "enableDatabricks",
+  BIGQUERY: "enableGoogleBigquery",
+  // LaunchDarkly key: `enable-dashboard-filters-v2` (auto-camelCased by the
+  // React SDK for `useFlags()` access). Shared with the backend gate
+  // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
+  // so a single toggle in LaunchDarkly flips both sides in sync.
+  DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
   // Gates the "Share chat" entry points (header button + sidebar
   // context-menu item). The recipient `/shared/:token` route stays
   // reachable so already-generated links continue to work.
   CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
+  VON_AI_FIELDS: "enableVonAiFields",
 } as const;
 
 /**
@@ -173,6 +181,11 @@ export function useFeatureFlag() {
     isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
 
     /**
+     * Controls whether Box integration is visible
+     */
+    isBoxEnabled: flags[FEATURE_FLAGS.BOX] === true,
+
+    /**
      * Controls whether Outreach engagement integration is visible
      */
     isOutreachEngageEnabled: flags[FEATURE_FLAGS.OUTREACH_ENGAGE] === true,
@@ -195,6 +208,17 @@ export function useFeatureFlag() {
     isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
 
     /**
+     * Controls whether BigQuery integration is visible
+     */
+    isBigQueryEnabled: flags[FEATURE_FLAGS.BIGQUERY] === true,
+    /**
+     * Controls whether the v2 dashboard filter bar UI is enabled
+     * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
+     */
+    isDashboardFiltersV2Enabled:
+      flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
      * Controls whether the chat sharing feature is enabled
      */
     isChatSharingEnabled: flags[FEATURE_FLAGS.CHAT_SHARING] === true,
@@ -203,6 +227,11 @@ export function useFeatureFlag() {
      * Controls whether Usage tab is visible in Settings
      */
     isUsageMetricsEnabled: flags[FEATURE_FLAGS.USAGE_METRICS] === true,
+
+    /**
+     * Controls whether Von AI Fields tab is visible in Settings
+     */
+    isVonAiFieldsEnabled: flags[FEATURE_FLAGS.VON_AI_FIELDS] === true,
 
     /**
      * Raw flags object for advanced usage
