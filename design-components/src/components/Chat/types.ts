@@ -1036,6 +1036,16 @@ export interface DeepResearchApprovalToolArgs {
   plan_id?: string;
 }
 
+/**
+ * Imperative handle exposed by `Chat` via `forwardRef`. Use this to programmatically
+ * move focus into the chat input from a parent component (e.g. after a side action
+ * like "Add to Chat" routes a mention into the conversation).
+ */
+export interface ChatRef {
+  /** Move focus into the chat input. No-op if the input is not currently rendered. */
+  focus: () => void;
+}
+
 export interface ChatProps {
   /**
    * Title displayed in the chat header

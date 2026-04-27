@@ -147,7 +147,7 @@ export function useApprovalStates({
             next.delete(id);
             changed = true;
           }
-        } else if (apiValue === value) {
+        } else if (!apiValue || apiValue === value) {
           next.delete(id);
           changed = true;
         }
