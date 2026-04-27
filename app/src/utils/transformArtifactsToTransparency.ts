@@ -190,16 +190,31 @@ function getToolDisplayName(toolName: string): string {
 // ============================================================================
 
 /**
- * Transform a self-describing artifact envelope into a QueryResult.
- * The envelope carries its own metadata — no tool-name lookup needed.
- *
- * Adding a new `kind` to SelfDescribingArtifact without handling it here
- * will cause a TypeScript error via the exhaustive switch.
+ * Extracted tabular data from a self-describing envelope.
+ * Shared by both the transparency drawer and the single-artifact drawer.
  */
-function transformSelfDescribingArtifact(
-  artifact: ArtifactResponse,
-  envelope: SelfDescribingArtifact,
-): TransparencyQueryResult | null {
+export interface EnvelopeTableData {
+  columns: QueryColumn[];
+  rows: Record<string, string | number>[];
+  query?: string;
+  queryLabel?: string;
+  displayName: string;
+  rowCount: number;
+  executionTimeMs?: number;
+}
+
+/**
+ * Extract tabular data from a self-describing envelope.
+ * Single source of truth for both rendering paths.
+ *
+ * @returns Extracted data, or null if the envelope is malformed.
+ */
+export function extractEnvelopeTableData(
+  content: Record<string, unknown>,
+): EnvelopeTableData | null {
+  if (!isSelfDescribingArtifact(content)) return null;
+
+  const envelope = content as SelfDescribingArtifact;
   const { metadata } = envelope;
 
   switch (envelope.kind) {
@@ -207,7 +222,7 @@ function transformSelfDescribingArtifact(
       const p = envelope.payload;
       if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
 
-      const columns: QueryColumn[] = applyDeepLinkTransform(
+      const columns = applyDeepLinkTransform(
         p.columns.map((col) => ({
           key: col.name,
           label: col.display_name || col.name,
@@ -217,15 +232,13 @@ function transformSelfDescribingArtifact(
       const rows = transformRowsForDisplay(p.rows);
 
       return {
-        id: artifact.artifact_id,
-        name: p.query_name || metadata.display_name,
-        description: `${p.row_count ?? rows.length} rows returned`,
-        query: p.query,
-        queryLabel: metadata.query_label,
         columns,
         rows,
-        executedAt: new Date(artifact.persisted_at),
-        duration: p.execution_time_ms,
+        query: p.query,
+        queryLabel: metadata.query_label,
+        displayName: p.query_name || metadata.display_name,
+        rowCount: p.row_count ?? rows.length,
+        executionTimeMs: p.execution_time_ms,
       };
     }
 
@@ -233,7 +246,7 @@ function transformSelfDescribingArtifact(
       const p = envelope.payload;
       if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
 
-      const columns: QueryColumn[] = applyDeepLinkTransform(
+      const columns = applyDeepLinkTransform(
         p.columns.map((col) => ({
           key: col.name,
           label: col.display_name || col.name,
@@ -243,12 +256,10 @@ function transformSelfDescribingArtifact(
       const rows = transformRowsForDisplay(p.rows);
 
       return {
-        id: artifact.artifact_id,
-        name: metadata.display_name,
-        description: `${p.row_count ?? rows.length} rows returned`,
         columns,
         rows,
-        executedAt: new Date(artifact.persisted_at),
+        displayName: metadata.display_name,
+        rowCount: p.row_count ?? rows.length,
       };
     }
   }
@@ -257,6 +268,33 @@ function transformSelfDescribingArtifact(
   // TypeScript will error here because `envelope` won't be assignable to `never`.
   envelope satisfies never;
   return null;
+}
+
+/**
+ * Transform a self-describing artifact envelope into a QueryResult
+ * for the TransparencyDrawer. Uses extractEnvelopeTableData as the
+ * single source of truth for envelope parsing.
+ */
+function transformSelfDescribingArtifact(
+  artifact: ArtifactResponse,
+  envelope: SelfDescribingArtifact,
+): TransparencyQueryResult | null {
+  const data = extractEnvelopeTableData(
+    envelope as unknown as Record<string, unknown>,
+  );
+  if (!data) return null;
+
+  return {
+    id: artifact.artifact_id,
+    name: data.displayName,
+    description: `${data.rowCount} rows returned`,
+    query: data.query,
+    queryLabel: data.queryLabel,
+    columns: data.columns,
+    rows: data.rows,
+    executedAt: new Date(artifact.persisted_at),
+    duration: data.executionTimeMs,
+  };
 }
 
 // ============================================================================

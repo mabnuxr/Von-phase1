@@ -30,8 +30,8 @@ import {
 import {
   transformIQArtifactToDataTable,
   applyDeepLinkTransform,
+  extractEnvelopeTableData,
 } from "../utils/transformArtifactsToTransparency";
-import { isSelfDescribingArtifact } from "../types/artifacts";
 
 export interface SingleArtifactDrawerContainerProps {
   /** Conversation ID for fetching artifact */
@@ -228,62 +228,18 @@ function transformArtifactToDisplayFormat(
   }
 
   // Handle self-describing envelope format (new backend contract)
-  if (isSelfDescribingArtifact(content as Record<string, unknown>)) {
-    const envelope = content as {
-      kind: string;
-      metadata: {
-        display_name: string;
-        query_label?: string;
-        dialect?: string;
-        integration_id: string;
-      };
-      payload: {
-        query?: string;
-        query_name?: string;
-        columns?: Array<{ name: string; display_name?: string; type?: string }>;
-        rows?: Array<Record<string, unknown>>;
-        row_count?: number;
-        execution_time_ms?: number;
-      };
+  // Uses shared extractEnvelopeTableData — single source of truth for envelope parsing.
+  const envelopeData = extractEnvelopeTableData(
+    content as Record<string, unknown>,
+  );
+  if (envelopeData) {
+    return {
+      viewMode: "data",
+      query: envelopeData.query,
+      columns: envelopeData.columns,
+      rows: envelopeData.rows,
+      duration: envelopeData.executionTimeMs,
     };
-
-    const { payload } = envelope;
-
-    if (
-      (envelope.kind === "query_result" || envelope.kind === "record_list") &&
-      Array.isArray(payload.columns) &&
-      Array.isArray(payload.rows)
-    ) {
-      const columns: QueryColumn[] = applyDeepLinkTransform(
-        payload.columns.map((col) => ({
-          key: col.name,
-          label: col.display_name || col.name,
-          type: (col.type as QueryColumn["type"]) || "string",
-        })),
-      );
-
-      const rows = payload.rows.map((row) => {
-        const transformedRow: Record<string, string | number> = {};
-        for (const [key, value] of Object.entries(row)) {
-          if (value === null || value === undefined) {
-            transformedRow[key] = "";
-          } else if (typeof value === "object") {
-            transformedRow[key] = JSON.stringify(value);
-          } else {
-            transformedRow[key] = value as string | number;
-          }
-        }
-        return transformedRow;
-      });
-
-      return {
-        viewMode: "data",
-        query: envelope.kind === "query_result" ? payload.query : undefined,
-        columns,
-        rows,
-        duration: payload.execution_time_ms,
-      };
-    }
   }
 
   // Handle RAG/conversation search artifacts - render with calls + emails tabs
@@ -522,14 +478,9 @@ export const SingleArtifactDrawerContainer: React.FC<
   const queryName = useMemo(() => {
     if (!artifact?.content) return undefined;
     const content = artifact.content as Record<string, unknown>;
-    // Self-describing envelope: use payload.query_name or metadata.display_name
-    if (isSelfDescribingArtifact(content)) {
-      const envelope = content as {
-        metadata: { display_name: string };
-        payload: { query_name?: string };
-      };
-      return envelope.payload.query_name || envelope.metadata.display_name;
-    }
+    // Self-describing envelope: use shared extractor for display name
+    const envelope = extractEnvelopeTableData(content);
+    if (envelope) return envelope.displayName;
     return (content as { query_name?: string }).query_name;
   }, [artifact]);
 
