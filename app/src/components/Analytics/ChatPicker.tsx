@@ -14,6 +14,7 @@ import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
 import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
 import { useDashboardAssociatedChats } from "../../hooks/useDashboardAssociatedChats";
+import { isMentionStale } from "../../utils/isMentionStale";
 import type { SidebarConversation } from "../../types/chatSidebar";
 import type { DashboardAssociatedChat } from "../../types/dashboardAssociatedChats";
 
@@ -103,7 +104,7 @@ function AssociatedConvButton({
       >
         <ClockCounterClockwiseIcon
           size={14}
-          className="flex-shrink-0 text-violet-400"
+          className="flex-shrink-0 text-gray-400"
           aria-hidden
         />
         <span
@@ -160,6 +161,11 @@ export function ChatPicker({
   const activeAssociated = associatedData?.conversations.find(
     (c) => c.conversationId === activeChatId,
   );
+  const activeMentionedAt = activeAssociated?.lastMentionedAt;
+  const showTriggerMentionIcon = isMentionStale(activeMentionedAt);
+  const triggerMentionTooltip = activeMentionedAt
+    ? `This dashboard was mentioned · ${formatRelativeTime(activeMentionedAt)}`
+    : "";
   const activeUnfiled = unfiledConversations.find(
     (c) => c.conversationId === activeChatId,
   );
@@ -235,27 +241,38 @@ export function ChatPicker({
   // interactive so the user can still open the dropdown (New chat lives in
   // the adjacent "+" button). Gate on !isLoading to avoid a flash.
   const disableTrigger = !isLoading && isEmpty && !activeChatId;
-  const triggerTooltip = disableTrigger
-    ? "No chats for this dashboard yet"
-    : "Switch chat";
+  const triggerTooltip = "Switch chat";
+
+  const mentionIcon = showTriggerMentionIcon ? (
+    <Tooltip content={triggerMentionTooltip} placement="bottom">
+      <ClockCounterClockwiseIcon
+        size={13}
+        className="flex-shrink-0 text-gray-400"
+        aria-label={triggerMentionTooltip}
+      />
+    </Tooltip>
+  ) : null;
 
   const triggerButton = (
-    <button
-      onClick={toggleDropdown}
-      disabled={disableTrigger}
-      className={`inline-flex items-center gap-1.5 min-w-0 max-w-full px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
-        disableTrigger ? "cursor-default" : "hover:bg-gray-100"
-      }`}
-    >
-      <span className="truncate max-w-[140px]">{displayTitle}</span>
-      {!disableTrigger && (
-        <CaretUpDownIcon
-          size={13}
-          weight="bold"
-          className="flex-shrink-0 text-gray-400"
-        />
-      )}
-    </button>
+    <div className="inline-flex items-center gap-1.5 min-w-0 max-w-full">
+      {mentionIcon}
+      <button
+        onClick={toggleDropdown}
+        disabled={disableTrigger}
+        className={`inline-flex items-center gap-1.5 min-w-0 max-w-full px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
+          disableTrigger ? "cursor-default" : "hover:bg-gray-100"
+        }`}
+      >
+        <span className="truncate max-w-[140px]">{displayTitle}</span>
+        {!disableTrigger && (
+          <CaretUpDownIcon
+            size={13}
+            weight="bold"
+            className="flex-shrink-0 text-gray-400"
+          />
+        )}
+      </button>
+    </div>
   );
 
   return (
@@ -276,12 +293,12 @@ export function ChatPicker({
           onBlur={handleRenameSubmit}
           className="w-full min-w-0 max-w-[160px] px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
         />
+      ) : disableTrigger ? (
+        triggerButton
       ) : (
-        // Wrapper ensures the tooltip works even when the button is disabled
-        // (native `title` on disabled buttons is unreliable in Chrome/Safari).
         <Tooltip
           content={triggerTooltip}
-          placement="top"
+          placement="bottom"
           wrapperClassName="inline-flex max-w-full"
         >
           {triggerButton}
@@ -302,7 +319,7 @@ export function ChatPicker({
           ) : isEmpty ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
               {isDashboardMode
-                ? "No chats for this dashboard yet"
+                ? "new conversation with this Dashboard"
                 : "No chats yet"}
             </div>
           ) : isDashboardMode ? (
