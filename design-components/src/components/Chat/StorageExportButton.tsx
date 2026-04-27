@@ -10,6 +10,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { CaretDownIcon, SpinnerGapIcon, CheckIcon } from '@phosphor-icons/react';
 import { Tooltip } from '../Tooltip';
+
 const driveLogo =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg';
 const boxLogo = 'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Box.svg';
@@ -32,6 +33,10 @@ export interface StorageExportButtonProps {
   services: StorageService[];
   /** Whether to stop event propagation on clicks (needed inside clickable cards) */
   stopPropagation?: boolean;
+  /** Which side the dropdown opens towards. Defaults to 'left' (dropdown left-aligned). */
+  dropdownAlign?: 'left' | 'right';
+  /** Externally controlled active service ID (syncs selection across instances) */
+  activeServiceId?: string | null;
 }
 
 // ============================================================================
@@ -52,25 +57,25 @@ export interface StorageExportLegacyProps {
 export function buildStorageServices(props: StorageExportLegacyProps): StorageService[] {
   const services: StorageService[] = [];
 
-  if (props.isDriveEnabled && props.isDriveConnected && props.onGoogleDriveClick) {
+  if (props.isDriveEnabled && props.onGoogleDriveClick) {
     services.push({
       id: 'drive',
       name: 'Google Drive',
       logo: driveLogo,
-      tooltip: 'Open in Google Drive',
-      connected: true,
+      tooltip: props.isDriveConnected ? 'Open in Google Drive' : 'Connect Google Drive',
+      connected: props.isDriveConnected ?? false,
       loading: props.isDriveLoading ?? false,
       onClick: props.onGoogleDriveClick,
     });
   }
 
-  if (props.isBoxEnabled && props.isBoxConnected && props.onBoxClick) {
+  if (props.isBoxEnabled && props.onBoxClick) {
     services.push({
       id: 'box',
       name: 'Box',
       logo: boxLogo,
-      tooltip: 'Open in Box',
-      connected: true,
+      tooltip: props.isBoxConnected ? 'Open in Box' : 'Connect Box',
+      connected: props.isBoxConnected ?? false,
       loading: props.isBoxLoading ?? false,
       onClick: props.onBoxClick,
     });
@@ -86,15 +91,17 @@ export function buildStorageServices(props: StorageExportLegacyProps): StorageSe
 export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
   services,
   stopPropagation = false,
+  dropdownAlign = 'left',
+  activeServiceId: externalActiveId,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [localActiveId, setLocalActiveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const connectedServices = useMemo(() => services.filter((s) => s.connected), [services]);
 
-  // The "active" service is the one the primary button targets.
-  // Prefer the user's last pick, then the first connected service, then the first enabled service.
+  // Resolve active service: external prop > local state > first connected > first enabled
+  const activeId = externalActiveId ?? localActiveId;
   const resolvedActiveId = activeId ?? connectedServices[0]?.id ?? services[0]?.id ?? null;
   const activeService = services.find((s) => s.id === resolvedActiveId) ?? services[0];
 
@@ -115,6 +122,8 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
 
   const anyLoading = services.some((s) => s.loading);
 
+  const dropdownPositionClass = dropdownAlign === 'right' ? 'right-0' : 'left-0';
+
   const handlePrimaryClick = (e: React.MouseEvent) => {
     if (stopPropagation) e.stopPropagation();
     if (activeService && !activeService.loading) {
@@ -130,7 +139,7 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
   const handleServiceClick = (service: StorageService, e: React.MouseEvent) => {
     if (stopPropagation) e.stopPropagation();
     e.preventDefault();
-    setActiveId(service.id);
+    setLocalActiveId(service.id);
     setIsOpen(false);
     if (!service.loading) {
       service.onClick();
@@ -203,39 +212,49 @@ export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
         />
       </button>
 
-      {/* Dropdown menu — opens to the right */}
+      {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 z-20 min-w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg py-1">
-          {services.map((service) => (
-            <button
-              key={service.id}
-              disabled={service.loading}
-              onClick={(e) => handleServiceClick(service, e)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors cursor-pointer disabled:cursor-wait ${
-                service.connected ? 'text-gray-700' : 'text-gray-400'
-              }`}
-            >
-              {service.loading ? (
-                <SpinnerGapIcon
-                  size={16}
-                  weight="bold"
-                  className="text-gray-500 animate-spin shrink-0"
-                />
-              ) : (
-                <img
-                  src={service.logo}
-                  alt=""
-                  width={24}
-                  height={24}
-                  className={`shrink-0 ${service.connected ? '' : 'opacity-60'}`}
-                />
-              )}
-              <span className="flex-1 text-left">{service.name}</span>
-              {service.id === resolvedActiveId && (
-                <CheckIcon size={14} weight="bold" className="text-emerald-500 shrink-0" />
-              )}
-            </button>
-          ))}
+        <div
+          className={`absolute ${dropdownPositionClass} top-full mt-1 z-20 min-w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg py-1`}
+        >
+          {[...services]
+            .sort((a, b) => Number(b.connected) - Number(a.connected))
+            .map((service) => (
+              <Tooltip
+                key={service.id}
+                content={service.tooltip}
+                placement="bottom"
+                enabled={!service.connected}
+              >
+                <button
+                  disabled={service.loading}
+                  onClick={(e) => handleServiceClick(service, e)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 transition-colors cursor-pointer disabled:cursor-wait ${
+                    service.connected ? 'text-gray-700' : 'text-gray-400'
+                  }`}
+                >
+                  {service.loading ? (
+                    <SpinnerGapIcon
+                      size={16}
+                      weight="bold"
+                      className="text-gray-500 animate-spin shrink-0"
+                    />
+                  ) : (
+                    <img
+                      src={service.logo}
+                      alt=""
+                      width={24}
+                      height={24}
+                      className={`shrink-0 ${service.connected ? '' : 'opacity-60'}`}
+                    />
+                  )}
+                  <span className="flex-1 text-left whitespace-nowrap">{service.name}</span>
+                  {service.id === resolvedActiveId && (
+                    <CheckIcon size={14} weight="bold" className="text-emerald-500 shrink-0" />
+                  )}
+                </button>
+              </Tooltip>
+            ))}
         </div>
       )}
     </div>

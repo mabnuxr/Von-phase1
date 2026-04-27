@@ -21,6 +21,7 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -537,6 +538,27 @@ function ExistingChatInner(
     [props.banner, chatV2.writeBlocked, chatV2.dismissWriteBlocked],
   );
 
+  // ── Storage service tracking (syncs card ↔ panel selection) ────────
+  const [lastUsedServiceId, setLastUsedServiceId] = useState<string | null>(
+    null,
+  );
+
+  const wrappedDriveClick = useMemo(() => {
+    if (!props.onGoogleDriveClick) return undefined;
+    return (fileId: string) => {
+      setLastUsedServiceId("drive");
+      props.onGoogleDriveClick!(fileId);
+    };
+  }, [props.onGoogleDriveClick]);
+
+  const wrappedBoxClick = useMemo(() => {
+    if (!props.onBoxClick) return undefined;
+    return (fileId: string) => {
+      setLastUsedServiceId("box");
+      props.onBoxClick!(fileId);
+    };
+  }, [props.onBoxClick]);
+
   // ── Loading ───────────────────────────────────────────────────────
   if (!base.user || (isLoadingMessages && conversationMessages.length === 0)) {
     return <ChatSkeleton messageCount={4} />;
@@ -638,13 +660,13 @@ function ExistingChatInner(
       widgetMentions={widgetMentions}
       onWidgetMentionRemoved={handleWidgetMentionRemoved}
       // Google Drive
-      onGoogleDriveClick={props.onGoogleDriveClick}
+      onGoogleDriveClick={wrappedDriveClick}
       isDriveEnabled={props.isDriveEnabled}
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
       // Box
-      onBoxClick={props.onBoxClick}
+      onBoxClick={wrappedBoxClick}
       isBoxEnabled={props.isBoxEnabled}
       isBoxConnected={props.isBoxConnected}
       boxTooltip={props.boxTooltip}
@@ -719,11 +741,8 @@ function ExistingChatInner(
                   : undefined
               }
               onGoogleDriveClick={
-                props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
-                  ? () =>
-                      props.onGoogleDriveClick!(
-                        chatV2.fileArtifactPanel.fileId!,
-                      )
+                wrappedDriveClick && chatV2.fileArtifactPanel.fileId
+                  ? () => wrappedDriveClick(chatV2.fileArtifactPanel.fileId!)
                   : undefined
               }
               isDriveEnabled={props.isDriveEnabled}
@@ -733,8 +752,8 @@ function ExistingChatInner(
                 props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
               }
               onBoxClick={
-                props.onBoxClick && chatV2.fileArtifactPanel.fileId
-                  ? () => props.onBoxClick!(chatV2.fileArtifactPanel.fileId!)
+                wrappedBoxClick && chatV2.fileArtifactPanel.fileId
+                  ? () => wrappedBoxClick(chatV2.fileArtifactPanel.fileId!)
                   : undefined
               }
               isBoxEnabled={props.isBoxEnabled}
@@ -743,6 +762,7 @@ function ExistingChatInner(
               isBoxLoading={
                 props.boxLoadingFileId === chatV2.fileArtifactPanel.fileId
               }
+              activeServiceId={lastUsedServiceId}
             />
           )}
       </div>
