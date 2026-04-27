@@ -14,12 +14,15 @@
 
 import {
   createContext,
+  forwardRef,
   useContext,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useGuardedNavigate } from "../../providers/NavigationGuard";
 import {
@@ -30,7 +33,11 @@ import {
   usePanelResize,
 } from "@vonlabs/design-components";
 import type { ConversationMode } from "@vonlabs/design-components";
-import type { FileArtifact, MentionItem } from "@vonlabs/design-components";
+import type {
+  ChatRef,
+  FileArtifact,
+  MentionItem,
+} from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
 import type {
@@ -103,6 +110,15 @@ function collectSlots(children: ReactNode): ChatSessionSlots {
 }
 
 // ─── Props ──────────────────────────────────────────────────────────
+
+/**
+ * Imperative handle for `ChatSession`. Forwards `focus()` to the underlying
+ * `Chat` input. Used by parents that need to programmatically move focus
+ * into the chat (e.g. after `Add to Chat` routes a widget mention).
+ */
+export interface ChatSessionRef {
+  focus: () => void;
+}
 
 export interface ChatSessionProps {
   /** Conversation ID — omit/null for new conversation (create on first message) */
@@ -184,30 +200,50 @@ export interface ChatSessionProps {
 
 // ─── Main component ─────────────────────────────────────────────────
 
-function ChatSessionRoot(props: ChatSessionProps) {
-  const slots = collectSlots(props.children);
+const ChatSessionRoot = forwardRef<ChatSessionRef, ChatSessionProps>(
+  function ChatSessionRoot(props, ref) {
+    const slots = collectSlots(props.children);
+    const chatRef = useRef<ChatRef | null>(null);
 
-  if (props.conversationId) {
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          chatRef.current?.focus();
+        },
+      }),
+      [],
+    );
+
+    if (props.conversationId) {
+      return (
+        <SlotsContext.Provider value={slots}>
+          <ExistingChatInner
+            {...props}
+            conversationId={props.conversationId}
+            chatRef={chatRef}
+          />
+        </SlotsContext.Provider>
+      );
+    }
+
     return (
       <SlotsContext.Provider value={slots}>
-        <ExistingChatInner {...props} conversationId={props.conversationId} />
+        <NewChatInner {...props} chatRef={chatRef} />
       </SlotsContext.Provider>
     );
-  }
-
-  return (
-    <SlotsContext.Provider value={slots}>
-      <NewChatInner {...props} />
-    </SlotsContext.Provider>
-  );
-}
+  },
+);
 
 // ─── Existing conversation inner ────────────────────────────────────
 
 function ExistingChatInner(
-  props: ChatSessionProps & { conversationId: string },
+  props: ChatSessionProps & {
+    conversationId: string;
+    chatRef: RefObject<ChatRef | null>;
+  },
 ) {
-  const { conversationId } = props;
+  const { conversationId, chatRef } = props;
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
   const navigate = useGuardedNavigate();
@@ -509,6 +545,7 @@ function ExistingChatInner(
   // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
@@ -716,9 +753,12 @@ function ExistingChatInner(
 
 // ─── New conversation inner ─────────────────────────────────────────
 
-function NewChatInner(props: ChatSessionProps) {
+function NewChatInner(
+  props: ChatSessionProps & { chatRef: RefObject<ChatRef | null> },
+) {
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
+  const { chatRef } = props;
 
   // ── Mentions ──────────────────────────────────────────────────────
   const {
@@ -758,6 +798,7 @@ function NewChatInner(props: ChatSessionProps) {
 
   return (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
