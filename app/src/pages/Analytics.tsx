@@ -31,7 +31,7 @@ import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
-import { ChatSession } from "../components/chat/ChatSession";
+import { ChatSession, type ChatSessionRef } from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
@@ -318,6 +318,7 @@ const Analytics = () => {
   // an in-flight response from a previous dashboard doesn't overwrite state
   // after the user has navigated to a different dashboard.
   const activeDashboardIdRef = useRef(dashboardId);
+  const chatSessionRef = useRef<ChatSessionRef>(null);
 
   // Widget chips queued before a conversation exists (new-chat path).
   // Passed to ChatSession so NewChatInner can render them; flushed into the
@@ -451,6 +452,9 @@ const Analytics = () => {
           prev.some((m) => m.id === mention.id) ? prev : [...prev, mention],
         );
       }
+      requestAnimationFrame(() => {
+        chatSessionRef.current?.focus();
+      });
     },
     [
       data?.dashboard,
@@ -557,6 +561,7 @@ const Analytics = () => {
         {/* Chat content — always render ChatSession so it never unmounts on dashboard switch */}
         <div className="flex-1 min-h-0 overflow-hidden">
           <ChatSession
+            ref={chatSessionRef}
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
