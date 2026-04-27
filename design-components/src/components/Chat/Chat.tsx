@@ -1,15 +1,16 @@
-import React, { useCallback, useRef, useMemo } from 'react';
+import React, { useCallback, useRef, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from './ChatMessage';
 import { ChatEmptyState } from './ChatEmptyState';
 import { ChatTypingIndicator } from './ChatTypingIndicator';
 import { ScrollToBottomButton } from './ScrollToBottomButton';
 import { ChatInputSelector } from './ChatInputSelector';
+import type { ChatInputSelectorRef } from './ChatInputSelector';
 import { useEscapeToStopStreaming } from './hooks/useEscapeToStopStreaming';
 import { useAutoScroll } from './hooks/useAutoScroll';
 import { useChatInput } from './hooks/useChatInput';
 import { useVisibleMessages } from './hooks/useVisibleMessages';
-import type { ChatProps, SendMessageOptions } from './types';
+import type { ChatProps, SendMessageOptions, ChatRef } from './types';
 import { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
 
@@ -33,7 +34,7 @@ const EmptyStateSlot: React.FC<{ children: React.ReactNode }> = () => null;
  * Chat component - pure rendering component
  * Receives messages as props and handles UI interactions
  */
-export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } = ({
+const ChatBase = forwardRef<ChatRef, ChatProps>(({
   userName,
   userEmail,
   messages: controlledMessages,
@@ -133,7 +134,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   onWidgetMentionRemoved,
   children,
   compact = false,
-}) => {
+}, ref) => {
   // Extract custom empty state from Chat.EmptyState child (compound component pattern)
   let customEmptyState: React.ReactNode = null;
   React.Children.forEach(children, (child) => {
@@ -144,6 +145,13 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
   const hasCustomEmptyState = customEmptyState !== null;
 
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputSelectorRef = useRef<ChatInputSelectorRef | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputSelectorRef.current?.focus();
+    },
+  }), []);
 
   // Chat now always receives messages as prop (controlled mode only)
   const messages = useMemo(() => controlledMessages || [], [controlledMessages]);
@@ -403,6 +411,7 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
       {/* Only show bottom input when there are messages (not in empty state), or always when a custom empty state is provided */}
       {!hideInput && (messages.length > 0 || hasCustomEmptyState) && (
         <ChatInputSelector
+          ref={inputSelectorRef}
           useStandardInput={useStandardInput}
           enableCommands={enableCommands}
           commands={commands}
@@ -447,8 +456,10 @@ export const Chat: React.FC<ChatProps> & { EmptyState: typeof EmptyStateSlot } =
       )}
     </div>
   );
-};
+});
+ChatBase.displayName = 'Chat';
 
+export const Chat = ChatBase as typeof ChatBase & { EmptyState: typeof EmptyStateSlot };
 Chat.EmptyState = EmptyStateSlot;
 
 export default Chat;
