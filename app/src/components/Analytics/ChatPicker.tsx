@@ -241,15 +241,17 @@ export function ChatPicker({
   // interactive so the user can still open the dropdown (New chat lives in
   // the adjacent "+" button). Gate on !isLoading to avoid a flash.
   const disableTrigger = !isLoading && isEmpty && !activeChatId;
-  const triggerTooltip = showTriggerMentionIcon
-    ? triggerMentionTooltip
-    : "Switch chat";
+  const triggerTooltip = disableTrigger
+    ? "New conversation with this Dashboard"
+    : showTriggerMentionIcon
+      ? triggerMentionTooltip
+      : "Switch chat";
 
   const triggerButton = (
     <button
       onClick={toggleDropdown}
       disabled={disableTrigger}
-      className={`flex items-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
+      className={`flex items-center gap-1.5 w-full min-w-0 px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
         disableTrigger ? "cursor-default" : "hover:bg-gray-100 cursor-pointer"
       }`}
     >
@@ -289,13 +291,11 @@ export function ChatPicker({
           onBlur={handleRenameSubmit}
           className="w-full min-w-0 px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
         />
-      ) : disableTrigger ? (
-        triggerButton
       ) : (
         <Tooltip
           content={triggerTooltip}
           placement="bottom"
-          wrapperClassName="flex w-full min-w-0"
+          wrapperClassName="inline-flex max-w-full min-w-0"
         >
           {triggerButton}
         </Tooltip>
@@ -314,9 +314,7 @@ export function ChatPicker({
             </div>
           ) : isEmpty ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
-              {isDashboardMode
-                ? "new conversation with this Dashboard"
-                : "No chats yet"}
+              No chats yet
             </div>
           ) : isDashboardMode ? (
             <div>

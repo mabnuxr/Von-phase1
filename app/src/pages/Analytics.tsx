@@ -463,6 +463,13 @@ const Analytics = () => {
     [],
   );
 
+  const handleAskVonClick = useCallback(() => {
+    if (!isChatPanelOpen) openChatPanel();
+    requestAnimationFrame(() => {
+      chatSessionRef.current?.focus();
+    });
+  }, [isChatPanelOpen, openChatPanel]);
+
   const {
     widthCss: chatPaneWidth,
     isResizing,
@@ -478,7 +485,7 @@ const Analytics = () => {
         <DashboardCanvas
           key={dashboardId}
           dashboardId={dashboardId}
-          onChatClick={openChatPanel}
+          onChatClick={handleAskVonClick}
           isChatOpen={isChatPanelOpen}
           onAddWidgetToChat={handleAddWidgetToChat}
         />
