@@ -48,6 +48,7 @@ export interface ArtifactViewerPanelProps {
   isBoxConnected?: boolean;
   boxTooltip?: string;
   isBoxLoading?: boolean;
+  activeServiceId?: string | null;
 }
 
 // ============================================================================
@@ -94,6 +95,7 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   isBoxEnabled,
   isBoxConnected,
   isBoxLoading,
+  activeServiceId,
 }) => {
   const config = TYPE_CONFIG[artifactType] ?? DEFAULT_CONFIG;
   const content = useArtifactContent(downloadUrl, mimeType, pdfDownloadUrl);
@@ -140,7 +142,11 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Storage export dropdown (Drive / Box) — only shows connected services */}
-            <StorageExportButton services={storageServices} />
+            <StorageExportButton
+              services={storageServices}
+              dropdownAlign="right"
+              activeServiceId={activeServiceId}
+            />
             {onDownload && (
               <button
                 onClick={onDownload}
