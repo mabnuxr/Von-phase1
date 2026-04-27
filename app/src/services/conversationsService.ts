@@ -54,6 +54,9 @@ export interface ArtifactSummary {
   size_bytes: number;
   persisted_at: string;
   source_context?: string | null;
+  /** Self-describing envelope fields (present when backend uses new format) */
+  kind?: string;
+  display_name?: string;
 }
 
 /**
