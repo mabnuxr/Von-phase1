@@ -1354,7 +1354,7 @@ export function BaseIntegrationConfigPane({
                       value={databricksWorkspaceUrl}
                       onChange={(e) =>
                         setDatabricksWorkspaceUrl(
-                          e.target.value.replace(/^https?:\/\//, ""),
+                          e.target.value.replace(/^https?:\/\//i, ""),
                         )
                       }
                       placeholder={
