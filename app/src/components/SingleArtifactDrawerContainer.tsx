@@ -30,6 +30,7 @@ import {
 import {
   transformIQArtifactToDataTable,
   applyDeepLinkTransform,
+  extractEnvelopeTableData,
 } from "../utils/transformArtifactsToTransparency";
 
 export interface SingleArtifactDrawerContainerProps {
@@ -224,6 +225,21 @@ function transformArtifactToDisplayFormat(
         calls: [emailTranscript],
       };
     }
+  }
+
+  // Handle self-describing envelope format (new backend contract)
+  // Uses shared extractEnvelopeTableData — single source of truth for envelope parsing.
+  const envelopeData = extractEnvelopeTableData(
+    content as Record<string, unknown>,
+  );
+  if (envelopeData) {
+    return {
+      viewMode: "data",
+      query: envelopeData.query,
+      columns: envelopeData.columns,
+      rows: envelopeData.rows,
+      duration: envelopeData.executionTimeMs,
+    };
   }
 
   // Handle RAG/conversation search artifacts - render with calls + emails tabs
@@ -461,8 +477,11 @@ export const SingleArtifactDrawerContainer: React.FC<
   // Extract query_name from artifact content if available
   const queryName = useMemo(() => {
     if (!artifact?.content) return undefined;
-    const content = artifact.content as { query_name?: string };
-    return content.query_name;
+    const content = artifact.content as Record<string, unknown>;
+    // Self-describing envelope: use shared extractor for display name
+    const envelope = extractEnvelopeTableData(content);
+    if (envelope) return envelope.displayName;
+    return (content as { query_name?: string }).query_name;
   }, [artifact]);
 
   // Determine error message: fetch error takes precedence, then artifact error
