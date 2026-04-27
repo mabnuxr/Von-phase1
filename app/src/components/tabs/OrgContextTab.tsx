@@ -1,20 +1,28 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { PencilSimpleIcon, TrashIcon, BrainIcon } from "@phosphor-icons/react";
+import {
+  PencilSimpleIcon,
+  TrashIcon,
+  BrainIcon,
+  DownloadSimpleIcon,
+  SparkleIcon,
+} from "@phosphor-icons/react";
 import {
   DeleteConfirmationPopup,
-  FilePreview,
   SidePane,
   type FileAttachment,
 } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
   useMemoryContexts,
+  useInfiniteMemoryContexts,
   useUpdateMemoryContext,
   useDeleteMemoryContext,
   useCreateMemoryContext,
 } from "../../hooks/useMemoryContexts";
 import { OrgContextDocumentList } from "../OrgContextDocumentList";
 import { MemoryContextEditor } from "../MemoryContextEditor";
+import { MemoryFileChip } from "../MemoryFileChip";
+import { BulkImportPane } from "../BulkImportPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
@@ -63,6 +71,21 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   // Currently previewed attachment — null when the preview drawer is closed.
   const [previewingAttachment, setPreviewingAttachment] =
     useState<FileAttachment | null>(null);
+
+  // Bulk import drawer state + the post-submit "reviewing" phase. User
+  // memory only — org bulk import was descoped. While processing, the
+  // center pane shows a subtle reviewing pill so the user can see Von
+  // working before the memory updates.
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [isBulkImportProcessing, setIsBulkImportProcessing] = useState(false);
+  const bulkImportTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    return () => {
+      if (bulkImportTimerRef.current !== null) {
+        window.clearTimeout(bulkImportTimerRef.current);
+      }
+    };
+  }, []);
   // Object URL for the local File, lazily created on open so we don't leak
   // URLs for attachments the user never previews. Revoked on close.
   const previewObjectUrl = useMemo(() => {
@@ -81,17 +104,16 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     { access_level: "tenant" },
   );
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const prevPageRef = useRef(currentPage);
-
-  // Fetch org memory contexts with pagination (only when viewing org)
-  const { data, isLoading, error } = useMemoryContexts(
-    "tenant",
-    currentPage,
-    20,
-    { enabled: showOrg },
-  );
+  // Fetch org memory contexts with infinite scroll — pages get accumulated
+  // as the user scrolls past the sentinel in the sidebar list.
+  const {
+    data: orgInfiniteData,
+    isLoading,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteMemoryContexts("tenant", 20);
 
   // Fetch user memory (only when viewing user memory and feature flag is enabled)
   const {
@@ -105,9 +127,12 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
-  // Extract contexts and pagination info (memoized to prevent useEffect loop)
-  const contexts = useMemo(() => data?.data || [], [data?.data]);
-  const pagination = data?.pagination;
+  // Flatten the per-page arrays into a single list. Memoized so consumers
+  // don't see a new reference on every render.
+  const contexts = useMemo(
+    () => orgInfiniteData?.pages.flatMap((p) => p.data) ?? [],
+    [orgInfiniteData],
+  );
 
   // Extract user memory (single item or null)
   const userMemory = useMemo(
@@ -176,31 +201,12 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   // Combined loading state for org memory
   const isOrgLoading = isLoading;
 
-  // Auto-select first org memory context when data loads or page changes
+  // Auto-select first org memory context when data loads.
   useEffect(() => {
-    const pageChanged = prevPageRef.current !== currentPage;
-
-    if (!selectedOrgContextId || pageChanged) {
-      if (contexts.length > 0) {
-        setSelectedOrgContextId(contexts[0].id);
-      }
+    if (!selectedOrgContextId && contexts.length > 0) {
+      setSelectedOrgContextId(contexts[0].id);
     }
-
-    prevPageRef.current = currentPage;
-  }, [contexts, selectedOrgContextId, currentPage]);
-
-  // Auto-navigate to previous page if current page is empty and not the first page
-  useEffect(() => {
-    if (
-      !isLoading &&
-      contexts.length === 0 &&
-      currentPage > 1 &&
-      pagination?.totalPages !== undefined &&
-      currentPage > pagination.totalPages
-    ) {
-      setCurrentPage(currentPage - 1);
-    }
-  }, [contexts.length, currentPage, isLoading, pagination?.totalPages]);
+  }, [contexts, selectedOrgContextId]);
 
   // Get selected org context
   const selectedOrgContext = useMemo(() => {
@@ -253,6 +259,62 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
       setEditingContext(userMemory);
       setEditMode("edit");
     }
+  };
+
+  // Bulk import submit — appends the pasted content to the user's existing
+  // memory value and persists any uploaded attachments. UI-only: real
+  // ingestion would replace the timer with a stream-driven update.
+  const handleBulkImportSubmit = (
+    input: string,
+    files: FileAttachment[],
+  ) => {
+    if (!userMemory) return;
+    setIsBulkImportProcessing(true);
+    setEditMode("none");
+    setEditingContext(null);
+
+    if (bulkImportTimerRef.current !== null) {
+      window.clearTimeout(bulkImportTimerRef.current);
+    }
+    bulkImportTimerRef.current = window.setTimeout(async () => {
+      try {
+        const existing = (userMemory.value ?? "").trim();
+        const pasted = input.trim();
+        const nextValue = [
+          existing,
+          existing && pasted ? "\n\n---\n\n" : "",
+          pasted,
+        ]
+          .filter(Boolean)
+          .join("");
+
+        await updateMutation.mutateAsync({
+          id: userMemory.id,
+          data: {
+            description: userMemory.description,
+            value: nextValue,
+          },
+        });
+        if (files.length > 0) {
+          setAttachmentsByContextId((prev) => ({
+            ...prev,
+            [userMemory.id]: [...(prev[userMemory.id] ?? []), ...files],
+          }));
+        }
+        showToast({
+          message: "Memory imported successfully",
+          variant: "success",
+        });
+      } catch (error) {
+        console.error("Failed to import user memory:", error);
+        let errorMessage = "Failed to import memory. Please try again.";
+        if (error instanceof ApiError) errorMessage = error.message;
+        showToast({ message: errorMessage, variant: "error" });
+      } finally {
+        setIsBulkImportProcessing(false);
+        bulkImportTimerRef.current = null;
+      }
+    }, 2400);
   };
 
   // Exit the inline editor without saving
@@ -433,15 +495,12 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
             <label className="text-xs text-gray-800">Attachments</label>
             <div className="flex flex-wrap gap-1.5">
               {contextAttachments.map((attachment) => (
-                <div
+                <MemoryFileChip
                   key={attachment.id}
+                  attachment={attachment}
                   onClick={() => setPreviewingAttachment(attachment)}
-                >
-                  <FilePreview
-                    attachment={attachment}
-                    removable={false}
-                  />
-                </div>
+                  removable={false}
+                />
               ))}
             </div>
           </div>
@@ -488,7 +547,7 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
 
           {/* ===== ORG MEMORY SECTION ===== */}
           {showOrg && (
-            <div className="w-[75%]">
+            <div className="w-[60%]">
               {/* Org Memory Card — list | editor in a single card */}
               <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
                 <div className="flex w-full h-[calc(100vh-220px)]">
@@ -500,9 +559,9 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                       onSelectContext={handleSelectOrgContext}
                       onCreateClick={handleCreateClick}
                       isLoading={isOrgLoading}
-                      currentPage={pagination?.page || 1}
-                      totalPages={pagination?.totalPages || 1}
-                      onPageChange={setCurrentPage}
+                      hasNextPage={hasNextPage}
+                      onLoadMore={fetchNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
                       canCreateOrgMemory={canCreateOrgMemory}
                     />
                   </div>
@@ -630,25 +689,75 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
                 <div className="flex w-full h-[calc(100vh-300px)] min-h-[480px]">
                   {/* Content area */}
                   <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
-                    {/* Floating Edit action — top-right, mirrors the org
-                        memory pattern. Hidden in edit mode so it doesn't
-                        overlap the form. */}
-                    {!isEditing && userMemory && (
-                      <button
-                        onClick={handleEditUserClick}
-                        className="absolute top-3 right-3 z-10 h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-                        title="Edit"
-                      >
-                        <PencilSimpleIcon
-                          size={14}
-                          weight="regular"
-                          className="text-gray-900"
-                        />
-                        Edit
-                      </button>
+                    {/* Floating Import + Edit actions — top-right, mirrors
+                        org memory's pattern. Hidden during edit mode and
+                        bulk-import processing so they don't overlap the
+                        form or the reviewing skeleton. */}
+                    {!isEditing && !isBulkImportProcessing && userMemory && (
+                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+                        <button
+                          onClick={() => setIsBulkImportOpen(true)}
+                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                          title="Import memory"
+                        >
+                          <DownloadSimpleIcon size={14} weight="regular" />
+                          Import memory
+                        </button>
+                        <button
+                          onClick={handleEditUserClick}
+                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
+                          title="Edit"
+                        >
+                          <PencilSimpleIcon
+                            size={14}
+                            weight="regular"
+                            className="text-gray-900"
+                          />
+                          Edit
+                        </button>
+                      </div>
                     )}
 
-                    {isEditing && editingContext?.accessLevel === "user" ? (
+                    {isBulkImportProcessing ? (
+                      <div
+                        className="flex flex-col h-full w-full overflow-hidden p-6"
+                        aria-label="Von is reviewing the import"
+                      >
+                        <div className="space-y-3 opacity-60">
+                          <div className="h-3 w-1/3 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
+                        </div>
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/80 bg-white shadow-xs">
+                            <SparkleIcon
+                              size={14}
+                              weight="fill"
+                              className="text-gray-500 memory-sparkle-pulse"
+                            />
+                            <span className="text-sm text-gray-700">
+                              Von is reviewing the import
+                            </span>
+                            <span
+                              className="inline-flex items-center gap-1 ml-0.5"
+                              aria-hidden
+                            >
+                              <span className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce" />
+                              <span
+                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+                                style={{ animationDelay: "150ms" }}
+                              />
+                              <span
+                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+                                style={{ animationDelay: "300ms" }}
+                              />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : isEditing && editingContext?.accessLevel === "user" ? (
                       <MemoryContextEditor
                         key={editingContext.id}
                         mode="edit"
@@ -717,6 +826,16 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         onConfirm={confirmDelete}
         onCancel={() => setIsDeleteModalOpen(false)}
       />
+
+      {/* Bulk import drawer — user memory only. Submit appends the pasted
+          content to the user's existing memory and persists attachments. */}
+      {showUser && (
+        <BulkImportPane
+          isOpen={isBulkImportOpen}
+          onClose={() => setIsBulkImportOpen(false)}
+          onSubmit={handleBulkImportSubmit}
+        />
+      )}
 
       {/* Shared attachment preview drawer. Renders an object URL of the
           selected file — <iframe> handles PDFs + most text formats, <img>

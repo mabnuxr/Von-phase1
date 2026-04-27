@@ -1,4 +1,5 @@
-import { CaretLeft, CaretRight, LockKeyIcon } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
+import { LockKeyIcon } from "@phosphor-icons/react";
 import type { MemoryContext } from "../types/memoryContext";
 
 interface OrgContextDocumentListProps {
@@ -7,11 +8,16 @@ interface OrgContextDocumentListProps {
   onSelectContext: (id: string) => void;
   onCreateClick: () => void;
   isLoading?: boolean;
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
   /** Whether the current user can create org memory (controls visibility of "New Org Memory" button) */
   canCreateOrgMemory?: boolean;
+  /** True when more pages exist beyond what's currently loaded. Drives the
+   *  bottom sentinel that triggers fetchNextPage on intersection. */
+  hasNextPage?: boolean;
+  /** True while a follow-up page is in flight — used to render a small
+   *  "Loading more…" skeleton row at the bottom of the list. */
+  isFetchingNextPage?: boolean;
+  /** Fetches the next page when the bottom sentinel scrolls into view. */
+  onLoadMore?: () => void;
 }
 
 // Skeleton pill — widths cycle so the list reads as real content.
@@ -23,10 +29,10 @@ export function OrgContextDocumentList({
   onSelectContext,
   onCreateClick,
   isLoading,
-  currentPage,
-  totalPages,
-  onPageChange,
   canCreateOrgMemory = false,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  onLoadMore,
 }: OrgContextDocumentListProps) {
   // Helper to render a memory item
   const renderMemoryItem = (ctx: MemoryContext) => {
@@ -69,6 +75,27 @@ export function OrgContextDocumentList({
   const defaultContexts = contexts.filter((c) => c.isDefault);
   const otherContexts = contexts.filter((c) => !c.isDefault);
   const showSkeleton = isLoading && contexts.length === 0;
+
+  // Sentinel for IntersectionObserver — when this div scrolls into the
+  // viewport (inside the list scroll container), load the next page.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !hasNextPage || !onLoadMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+          onLoadMore();
+        }
+      },
+      // root: null defaults to the viewport — the closest scroll ancestor
+      // is the .overflow-y-auto container, but viewport is good enough since
+      // the sidebar list is always visible while scrolling.
+      { root: null, rootMargin: "120px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, onLoadMore]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -126,38 +153,35 @@ export function OrgContextDocumentList({
                   {otherContexts.map((ctx) => renderMemoryItem(ctx))}
                 </div>
               )}
+
+              {/* Loading-more skeleton — single shimmer row while the next
+                  page is in flight. Lightweight; the sentinel below drives
+                  the actual fetch trigger. */}
+              {isFetchingNextPage && (
+                <div className="flex flex-col gap-0.5 mt-1">
+                  {SKELETON_WIDTHS.slice(0, 2).map((width, i) => (
+                    <div
+                      key={i}
+                      className="px-2.5 py-1.5 rounded-xl border border-transparent"
+                    >
+                      <div
+                        className="h-4 bg-gray-100 rounded animate-pulse"
+                        style={{ width }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Bottom sentinel — observed via IntersectionObserver. 1px
+                  high so it doesn't affect layout. Only rendered when
+                  there's actually a next page to fetch. */}
+              {hasNextPage && (
+                <div ref={sentinelRef} className="h-px w-full" aria-hidden />
+              )}
             </>
           )}
         </div>
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="px-3 py-2 border-t border-gray-100/80">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Previous page"
-                >
-                  <CaretLeft size={16} weight="bold" />
-                </button>
-                <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage >= totalPages}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                  title="Next page"
-                >
-                  <CaretRight size={16} weight="bold" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

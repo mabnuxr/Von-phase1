@@ -1,13 +1,13 @@
-import { useRef, useState, useId } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useId } from "react";
 import { PaperclipIcon } from "@phosphor-icons/react";
 import {
-  FilePreview,
   generateFileId,
   getFileInfo,
   getAcceptString,
   type FileAttachment,
 } from "@vonlabs/design-components";
 import { OrgContextEditor } from "./OrgContextEditor";
+import { MemoryFileChip } from "./MemoryFileChip";
 import type { MemoryContext } from "../types/memoryContext";
 import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
 
@@ -160,6 +160,60 @@ export function MemoryContextEditor({
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
+  // Attach button + chips flow inline on a single row when they fit. Once
+  // any chip wraps, we flip into "stacked" mode: chips wrap freely on top,
+  // Attach button alone on the bottom row. Reset on count change so adding
+  // / removing files re-evaluates the layout from scratch.
+  const [attachmentsStacked, setAttachmentsStacked] = useState(false);
+  const inlineRowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setAttachmentsStacked(false);
+  }, [attachments.length]);
+  useLayoutEffect(() => {
+    const node = inlineRowRef.current;
+    if (!node) return;
+    const check = () => {
+      if (attachmentsStacked) return;
+      const children = Array.from(node.children) as HTMLElement[];
+      if (children.length <= 1) return;
+      const firstTop = children[0].offsetTop;
+      const wrapped = children.some(
+        (c) => Math.abs(c.offsetTop - firstTop) > 4,
+      );
+      if (wrapped) setAttachmentsStacked(true);
+    };
+    const ro = new ResizeObserver(check);
+    ro.observe(node);
+    check();
+    return () => ro.disconnect();
+  }, [attachmentsStacked, attachments.length]);
+
+  // Hidden file input + button shared between both layouts.
+  const hiddenFileInput = (
+    <input
+      ref={fileInputRef}
+      type="file"
+      multiple
+      accept={getAcceptString()}
+      className="hidden"
+      onChange={(e) => {
+        handleFilesSelected(e.target.files);
+        e.target.value = "";
+      }}
+    />
+  );
+  const attachButton = (
+    <button
+      type="button"
+      onClick={() => fileInputRef.current?.click()}
+      className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-gray-200/60 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0"
+      title="Attach file"
+    >
+      <PaperclipIcon size={14} weight="regular" />
+      Attach file
+    </button>
+  );
+
   const isDefault = mode === "edit" && context?.isDefault;
   const isUserMemory = mode === "edit" && context?.accessLevel === "user";
   const isTitleReadOnly = isDefault || isUserMemory;
@@ -237,49 +291,45 @@ export function MemoryContextEditor({
         </div>
       </div>
 
-      {/* Attachments — pinned ABOVE Memory Content so supporting material
-          reads like source context the agent can pull from. Chips above the
-          Attach file button. */}
+      {/* Attachments — pinned ABOVE Memory Content. Default flow: Attach
+          button + chips share a single row. When the row would wrap, we
+          flip into stacked mode: chips wrap freely above, Attach alone
+          below. Width transitions on the chip's hover X reveal are driven
+          by framer-motion's `layout` prop on each chip. */}
       <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={getAcceptString()}
-          className="hidden"
-          onChange={(e) => {
-            handleFilesSelected(e.target.files);
-            e.target.value = "";
-          }}
-        />
-        {attachments.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto settings-scrollbar pb-1 min-w-0">
-            {attachments.map((attachment) => (
-              <div
-                key={attachment.id}
-                onClick={() => onPreviewAttachment?.(attachment)}
-                className="flex-shrink-0"
-              >
-                <FilePreview
+        {hiddenFileInput}
+        {attachmentsStacked ? (
+          <>
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+              {attachments.map((attachment) => (
+                <MemoryFileChip
+                  key={attachment.id}
                   attachment={attachment}
                   onRemove={handleRemoveAttachment}
+                  onClick={() => onPreviewAttachment?.(attachment)}
                   removable
                 />
-              </div>
+              ))}
+            </div>
+            <div>{attachButton}</div>
+          </>
+        ) : (
+          <div
+            ref={inlineRowRef}
+            className="flex flex-wrap items-center gap-1.5 min-w-0"
+          >
+            {attachButton}
+            {attachments.map((attachment) => (
+              <MemoryFileChip
+                key={attachment.id}
+                attachment={attachment}
+                onRemove={handleRemoveAttachment}
+                onClick={() => onPreviewAttachment?.(attachment)}
+                removable
+              />
             ))}
           </div>
         )}
-        <div>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Attach file"
-          >
-            <PaperclipIcon size={14} weight="regular" />
-            Attach file
-          </button>
-        </div>
       </div>
 
       {/* Memory Content — stretches to fill remaining space so the TipTap
