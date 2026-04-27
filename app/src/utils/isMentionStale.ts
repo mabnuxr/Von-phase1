@@ -15,5 +15,6 @@ export function isMentionStale(lastMentionedAt: string | null | undefined): bool
   if (!lastMentionedAt) return false;
   const parsed = new Date(ensureUTC(lastMentionedAt)).getTime();
   if (Number.isNaN(parsed)) return false;
+  // Inclusive boundary: a mention exactly 24h old is treated as stale.
   return Date.now() - parsed >= TWENTY_FOUR_HOURS_MS;
 }
