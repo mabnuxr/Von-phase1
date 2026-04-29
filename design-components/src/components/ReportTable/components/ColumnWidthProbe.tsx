@@ -10,19 +10,22 @@ interface ColumnWidthProbeProps {
 }
 
 /**
- * Hidden, off-screen table whose only job is to expose Grid Lite-equivalent
- * styling for natural-width measurement. We render it ourselves (instead of
- * peeking at Grid Lite's DOM) so the measurement runs synchronously in
- * useLayoutEffect — no waiting on Grid Lite's async init.
+ * Hidden, off-screen table whose only job is to mirror Grid Lite's cell
+ * rendering for natural-width measurement. Each candidate is pre-rendered
+ * by `buildProbeColumns` through the column's own `cells.formatter` (or
+ * `cells.format` template) and injected here as innerHTML, so the probe TD
+ * has the same DOM as the eventual cell. Measurement therefore reflects
+ * the real visible pixel width — `<a href="...">Name</a>` measures the
+ * link text "Name", not the source string; markdown values measure the
+ * `dt-markdown-wrap` layout, not the raw value; and so on.
  *
- * One row per candidate-rank: the longest data value lives in row 0,
- * second-longest in row 1, etc. Columns with fewer candidates emit empty
- * <td>s for the missing rows. The measurement step takes the max
- * offsetWidth across all rows for each column.
+ * Done synchronously in useLayoutEffect so we don't have to wait on Grid
+ * Lite's async init. One row per candidate-rank (longest → shortest),
+ * empty TDs for columns with fewer candidates than the max.
  */
 export const ColumnWidthProbe = forwardRef<HTMLTableElement, ColumnWidthProbeProps>(
   function ColumnWidthProbe({ columns }, ref) {
-    const rowCount = Math.max(1, ...columns.map((c) => c.candidates.length));
+    const rowCount = Math.max(1, ...columns.map((c) => c.candidateHtml.length));
 
     return (
       <table
@@ -53,9 +56,11 @@ export const ColumnWidthProbe = forwardRef<HTMLTableElement, ColumnWidthProbePro
           {Array.from({ length: rowCount }).map((_, rowIdx) => (
             <tr key={rowIdx}>
               {columns.map((col) => (
-                <td key={col.id} style={{ whiteSpace: 'nowrap' }}>
-                  {col.candidates[rowIdx] ?? ''}
-                </td>
+                <td
+                  key={col.id}
+                  style={{ whiteSpace: 'nowrap' }}
+                  dangerouslySetInnerHTML={{ __html: col.candidateHtml[rowIdx] ?? '' }}
+                />
               ))}
             </tr>
           ))}

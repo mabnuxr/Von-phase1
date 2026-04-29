@@ -6,6 +6,7 @@ import {
   markdownCellFormatter,
   handleMarkdownCellHover,
   createMarkdownCellClickHandler,
+  escapeHtml,
 } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
@@ -99,7 +100,7 @@ function applyRowDataTemplates(options: GridOptions): GridOptions {
           const data = this.row?.data ?? {};
           return tmpl.replace(ROW_TEMPLATE_VAR, (_m: string, key: string) => {
             const v = key === 'value' ? value : data[key];
-            return v == null ? '' : String(v);
+            return v == null ? '' : escapeHtml(String(v));
           });
         },
       },
