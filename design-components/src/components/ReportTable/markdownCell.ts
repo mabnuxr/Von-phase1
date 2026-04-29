@@ -1,4 +1,4 @@
-import { renderMarkdownToSafeHtml } from '../TiptapEditor';
+import { renderMarkdownToSafeHtml, sanitizeHtml } from '../TiptapEditor';
 import type { ExpandPopoverState } from './LongTextPopover';
 
 // Render markdown headings as styled <div>s instead of real <h*> tags —
@@ -18,8 +18,9 @@ const EMPTY_PLACEHOLDER = '<span style="color:#9ca3af">—</span>';
 
 // Values whose entire content is a single HTML element (e.g. drilldown SQL
 // returning `<a href="...">name</a>` via CONCAT) — rendering these through
-// marked escapes the tags, so they show up as text. Pass them through to
-// Grid Lite's HTML_AST sanitizer instead, which allows safe tags like <a>.
+// marked escapes the tags, so they show up as text. Route them through
+// DOMPurify directly instead, which strips dangerous tags/attrs (<script>,
+// onerror, javascript: hrefs) while preserving the link.
 const HTML_ELEMENT_VALUE = /^\s*<([a-z][a-z0-9-]*)\b[^>]*>[\s\S]*<\/\1>\s*$/i;
 
 // Grid Lite re-runs the formatter for every cell on every grid render; cache
@@ -39,7 +40,7 @@ export function markdownCellFormatter(this: { value: unknown }): string {
   if (cached !== undefined) return cached;
 
   const inner = HTML_ELEMENT_VALUE.test(value)
-    ? value
+    ? sanitizeHtml(value)
     : demoteHeadings(renderMarkdownToSafeHtml(value));
   const html =
     '<div class="dt-markdown-wrap">' +

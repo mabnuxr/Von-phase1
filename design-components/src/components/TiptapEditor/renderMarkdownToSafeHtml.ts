@@ -55,6 +55,15 @@ function unescapeJsonStringLiterals(s: string): string {
 // values, not list intent. Marked + GFM would otherwise emit `<ul><li></li></ul>`.
 const BARE_LIST_MARKER = /^[\s]*[-*+](\s*$)|^[\s]*\d+\.\s*$/;
 
+/** Sanitize an HTML string with the same DOMPurify config used for markdown
+ *  output (forbid tags, force `target="_blank" rel="noopener"` on links).
+ *  Use this when the input is already HTML and shouldn't be parsed as
+ *  markdown — e.g. backend cells that bake `<a href="...">name</a>` into
+ *  the value, where running through marked would escape the tags. */
+export function sanitizeHtml(content: string): string {
+  return purify.sanitize(content, { FORBID_TAGS }) as string;
+}
+
 export function renderMarkdownToSafeHtml(content: string): string {
   if (!content) return '';
 
