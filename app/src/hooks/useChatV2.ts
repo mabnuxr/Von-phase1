@@ -138,26 +138,24 @@ export function useChatV2(props: UseChatV2Props) {
     }
 
     // Await the message refetch so assistantRunIds (derived from
-    // conversationMessages) includes the new runId before we invalidate its
-    // artifact query. Without this, the invalidation lands on a key with no
-    // active observer, no refetch fires, and the cache stays empty until a
-    // manual page refresh.
+    // conversationMessages) includes the new runId. Backend guarantees the
+    // assistant message is durable in Mongo BEFORE RUN_FINISHED fires, so
+    // this refetch is sufficient to register the per-run query subscription.
     try {
       await refetchMessages();
     } catch (err) {
       console.error("[handleV2RunComplete] refetchMessages failed:", err);
     }
 
-    // Safety net when the artifact_created Pusher event is missed (dropped
-    // or tab backgrounded). Skip if the cache already has data — refetching
-    // could race Mongo and downgrade completed rows to inflight placeholders.
+    // Invalidate the artifact query so the per-run subscription pulls fresh
+    // FileMetadata. Backend has already registered rows in `processing`, so
+    // this returns immediately with skeleton-eligible data; rows transition
+    // to `completed` via Pusher events or refetchInterval polling.
     const runId = processor?.currentRunId;
     if (runId) {
-      const queryKey = agentArtifactKeys.run(conversationId, runId);
-      const existing = queryClient.getQueryData<unknown[]>(queryKey);
-      if (!existing || existing.length === 0) {
-        queryClient.invalidateQueries({ queryKey });
-      }
+      queryClient.invalidateQueries({
+        queryKey: agentArtifactKeys.run(conversationId, runId),
+      });
     }
   }, [conversationId, refetchMessages, queryClient]);
 
