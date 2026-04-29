@@ -6,12 +6,7 @@ import { TrashIcon } from '@phosphor-icons/react';
 // Types
 // ============================================================================
 
-export type DeleteItemType =
-  | 'chat'
-  | 'dashboard'
-  | 'folder'
-  | 'report'
-  | 'memory';
+export type DeleteItemType = 'chat' | 'dashboard' | 'folder' | 'report' | 'memory';
 
 export interface DeleteConfirmationPopupProps {
   /**

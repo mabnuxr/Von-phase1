@@ -554,10 +554,7 @@ export type {
 } from './popups';
 
 export { DeleteConfirmationPopup } from './popups';
-export type {
-  DeleteConfirmationPopupProps,
-  DeleteItemType,
-} from './popups';
+export type { DeleteConfirmationPopupProps, DeleteItemType } from './popups';
 
 // ============================================================================
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)

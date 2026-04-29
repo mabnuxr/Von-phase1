@@ -1,15 +1,6 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { SidePane } from "@vonlabs/design-components";
 import {
-  SidePane,
-  FilePreview,
-  generateFileId,
-  getFileInfo,
-  getAcceptString,
-  formatFileSize,
-  type FileAttachment,
-} from "@vonlabs/design-components";
-import {
-  PaperclipIcon,
   SparkleIcon,
   DownloadSimpleIcon,
   CopyIcon,
@@ -20,9 +11,9 @@ import { OrgContextEditor } from "./OrgContextEditor";
 export interface BulkImportPaneProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Fires when the user submits — parent applies the input + files to the
-   *  user's personal memory. Pure UI shell here. */
-  onSubmit?: (input: string, files: FileAttachment[]) => void;
+  /** Fires when the user submits — parent kicks off the import-mode agent
+   *  with the pasted text. User memory is text-only (RFC 0003 §3). */
+  onSubmit?: (input: string) => void;
 }
 
 /** Canned prompt the user can copy into Claude/ChatGPT/Gemini to extract
@@ -37,12 +28,13 @@ const EXPORT_PROMPT =
   "- Projects and goals";
 
 /**
- * Side drawer for importing user memory. Shows a two-step flow:
+ * Side drawer for importing user memory. Two-step flow:
  *   1. Copy the export prompt into another AI provider to extract memories
- *   2. Paste the result back here, optionally attach supporting files
+ *   2. Paste the result back here
  *
- * Pure UI shell — submission is delegated to the parent which appends to
- * the user's existing memory and persists attachments locally.
+ * Pure UI shell — submission is delegated to the parent which kicks off the
+ * import-mode Deep Agent run. Per RFC 0003, user memory is text-only; this
+ * pane intentionally has no file-attachment UI.
  */
 export function BulkImportPane({
   isOpen,
@@ -50,19 +42,16 @@ export function BulkImportPane({
   onSubmit,
 }: BulkImportPaneProps) {
   const [input, setInput] = useState("");
-  const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [contentKey, setContentKey] = useState(0);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetForm = () => {
     setInput("");
-    setAttachments([]);
     setContentKey((v) => v + 1);
   };
 
   const handleSubmit = () => {
-    onSubmit?.(input, attachments);
+    onSubmit?.(input);
     resetForm();
     onClose();
   };
@@ -84,32 +73,6 @@ export function BulkImportPane({
     }
   };
 
-  const handleFilesSelected = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const next: FileAttachment[] = [];
-    Array.from(files).forEach((file) => {
-      const info = getFileInfo(file.type);
-      if (!info) return;
-      next.push({
-        id: generateFileId(),
-        file,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        extension: info.extension,
-        category: info.category,
-        status: "uploaded",
-      });
-    });
-    if (next.length > 0) {
-      setAttachments((prev) => [...prev, ...next]);
-    }
-  };
-
-  const handleRemoveAttachment = (id: string) => {
-    setAttachments((prev) => prev.filter((a) => a.id !== id));
-  };
-
   const title = (
     <div className="flex flex-col gap-0.5 min-w-0">
       <div className="flex items-center gap-2">
@@ -118,9 +81,7 @@ export function BulkImportPane({
           weight="regular"
           className="text-gray-700 flex-shrink-0"
         />
-        <span className="text-sm font-medium text-gray-900">
-          Import memory
-        </span>
+        <span className="text-sm font-medium text-gray-900">Import memory</span>
       </div>
       <span className="text-xs text-gray-600">
         Paste an export from another AI below, or describe what to add
@@ -128,37 +89,26 @@ export function BulkImportPane({
     </div>
   );
 
-  const totalSize = attachments.reduce((sum, a) => sum + a.size, 0);
-  const hasContent = input.trim().length > 0 || attachments.length > 0;
+  const hasContent = input.trim().length > 0;
 
   const footer = (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-end gap-2">
       <button
         type="button"
-        onClick={() => fileInputRef.current?.click()}
-        className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-gray-200/80 text-sm text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+        onClick={handleCancel}
+        className="px-2.5 py-1.5 text-sm text-gray-800 border border-gray-200/80 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
       >
-        <PaperclipIcon size={14} weight="regular" />
-        Attach file
+        Cancel
       </button>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="px-2.5 py-1.5 text-sm text-gray-800 border border-gray-200/80 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={!hasContent}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <SparkleIcon size={12} weight="fill" />
-          Update
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={!hasContent}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <SparkleIcon size={12} weight="fill" />
+        Update
+      </button>
     </div>
   );
 
@@ -174,18 +124,6 @@ export function BulkImportPane({
       footer={footer}
       resizable
     >
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept={getAcceptString()}
-        className="hidden"
-        onChange={(e) => {
-          handleFilesSelected(e.target.files);
-          e.target.value = "";
-        }}
-      />
-
       <div className="flex flex-col h-full min-h-0 gap-3 pt-2">
         {/* Step 1: copy the export prompt into another AI. */}
         <div className="flex-shrink-0 flex flex-col gap-1.5">
@@ -242,31 +180,6 @@ export function BulkImportPane({
             contentKey={`bulk-import-${contentKey}`}
           />
         </div>
-
-        {/* Attachment chips. */}
-        {attachments.length > 0 && (
-          <div className="flex-shrink-0 flex flex-col gap-1.5">
-            <div className="flex items-center justify-between px-0.5">
-              <span className="text-xs text-gray-600">
-                {attachments.length} file
-                {attachments.length === 1 ? "" : "s"} attached
-              </span>
-              <span className="text-xs text-gray-500">
-                {formatFileSize(totalSize)}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {attachments.map((attachment) => (
-                <FilePreview
-                  key={attachment.id}
-                  attachment={attachment}
-                  onRemove={handleRemoveAttachment}
-                  removable
-                />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </SidePane>
   );

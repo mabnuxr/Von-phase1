@@ -7,7 +7,7 @@ import {
   type FileAttachment,
 } from "@vonlabs/design-components";
 import { OrgContextEditor } from "./OrgContextEditor";
-import { MemoryFileChip } from "./MemoryFileChip";
+import { FileChip } from "@vonlabs/design-components";
 import type { MemoryContext } from "../types/memoryContext";
 import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
 
@@ -245,9 +245,7 @@ export function MemoryContextEditor({
             <label className="block text-xs text-gray-800">
               Title <span className="text-gray-600">*</span>
               {isTitleReadOnly && (
-                <span className="ml-2 text-xs text-gray-500">
-                  (Read-only)
-                </span>
+                <span className="ml-2 text-xs text-gray-500">(Read-only)</span>
               )}
             </label>
             <CharacterBudget
@@ -261,9 +259,7 @@ export function MemoryContextEditor({
             onChange={(e) => setEditingKey(e.target.value)}
             disabled={isTitleReadOnly}
             className={`w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-100 focus:border-gray-300 transition-all ${
-              isTitleReadOnly
-                ? "opacity-60 cursor-not-allowed bg-gray-50"
-                : ""
+              isTitleReadOnly ? "opacity-60 cursor-not-allowed bg-gray-50" : ""
             }`}
             placeholder="e.g., Pricing Structure"
           />
@@ -302,12 +298,11 @@ export function MemoryContextEditor({
           <>
             <div className="flex flex-wrap items-center gap-1.5 min-w-0">
               {attachments.map((attachment) => (
-                <MemoryFileChip
+                <FileChip
                   key={attachment.id}
-                  attachment={attachment}
+                  file={attachment}
                   onRemove={handleRemoveAttachment}
                   onClick={() => onPreviewAttachment?.(attachment)}
-                  removable
                 />
               ))}
             </div>
@@ -320,12 +315,11 @@ export function MemoryContextEditor({
           >
             {attachButton}
             {attachments.map((attachment) => (
-              <MemoryFileChip
+              <FileChip
                 key={attachment.id}
-                attachment={attachment}
+                file={attachment}
                 onRemove={handleRemoveAttachment}
                 onClick={() => onPreviewAttachment?.(attachment)}
-                removable
               />
             ))}
           </div>

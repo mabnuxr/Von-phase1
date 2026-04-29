@@ -161,8 +161,6 @@ export interface ChatSessionProps {
   onDisabledInteraction?: () => void;
   onCollapseSidebar?: () => void;
   salesforceInstanceUrl?: string;
-  /** Hide the "Von AI may make mistakes" disclaimer below the input. */
-  hideDisclaimer?: boolean;
 
   // ── Google Drive ────────────────────────────────
   onGoogleDriveClick?: (fileId: string) => void;
@@ -639,7 +637,6 @@ function ExistingChatInner(
       dashboardMention={dashboardMention}
       widgetMentions={widgetMentions}
       onWidgetMentionRemoved={handleWidgetMentionRemoved}
-      hideDisclaimer={props.hideDisclaimer}
       // Google Drive
       onGoogleDriveClick={props.onGoogleDriveClick}
       isDriveEnabled={props.isDriveEnabled}

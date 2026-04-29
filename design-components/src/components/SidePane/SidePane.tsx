@@ -192,9 +192,9 @@ export const SidePane: React.FC<SidePaneProps> = ({
         )}
 
         {/* Inner Container */}
-        <div className="h-full flex flex-col bg-white rounded-lg border border-gray-200 shadow-xs">
+        <div className="h-full flex flex-col bg-white rounded-xl border border-gray-200 shadow-xs">
           {/* Header */}
-          <div className="px-5 py-3 border-b border-gray-100 shrink-0">
+          <div className="px-5 py-3 border-b border-gray-200 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 {typeof title === 'string' ? (

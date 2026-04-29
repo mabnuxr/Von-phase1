@@ -8,7 +8,8 @@ import {
 } from "@phosphor-icons/react";
 import {
   DeleteConfirmationPopup,
-  SidePane,
+  FileChip,
+  FilesPreviewPanel,
   type FileAttachment,
 } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
@@ -21,7 +22,6 @@ import {
 } from "../../hooks/useMemoryContexts";
 import { OrgContextDocumentList } from "../OrgContextDocumentList";
 import { MemoryContextEditor } from "../MemoryContextEditor";
-import { MemoryFileChip } from "../MemoryFileChip";
 import { BulkImportPane } from "../BulkImportPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
@@ -262,12 +262,10 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   };
 
   // Bulk import submit — appends the pasted content to the user's existing
-  // memory value and persists any uploaded attachments. UI-only: real
-  // ingestion would replace the timer with a stream-driven update.
-  const handleBulkImportSubmit = (
-    input: string,
-    files: FileAttachment[],
-  ) => {
+  // memory value. User memory is text-only (RFC 0003 §3); no file attachments.
+  // UI-only: real ingestion would replace the timer with a stream-driven
+  // update from the import-mode Deep Agent run.
+  const handleBulkImportSubmit = (input: string) => {
     if (!userMemory) return;
     setIsBulkImportProcessing(true);
     setEditMode("none");
@@ -295,12 +293,6 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
             value: nextValue,
           },
         });
-        if (files.length > 0) {
-          setAttachmentsByContextId((prev) => ({
-            ...prev,
-            [userMemory.id]: [...(prev[userMemory.id] ?? []), ...files],
-          }));
-        }
         showToast({
           message: "Memory imported successfully",
           variant: "success",
@@ -495,11 +487,10 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
             <label className="text-xs text-gray-800">Attachments</label>
             <div className="flex flex-wrap gap-1.5">
               {contextAttachments.map((attachment) => (
-                <MemoryFileChip
+                <FileChip
                   key={attachment.id}
-                  attachment={attachment}
+                  file={attachment}
                   onClick={() => setPreviewingAttachment(attachment)}
-                  removable={false}
                 />
               ))}
             </div>
@@ -837,46 +828,24 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         />
       )}
 
-      {/* Shared attachment preview drawer. Renders an object URL of the
-          selected file — <iframe> handles PDFs + most text formats, <img>
-          handles images. */}
-      <SidePane
+      {/* Shared attachment preview drawer — generic panel from
+          design-components. Handles PDF / DOCX / XLSX / CSV / text / md /
+          images; same component the Commands drawer uses. */}
+      <FilesPreviewPanel
+        contextName={editingContext?.key || "Memory"}
+        files={
+          previewingAttachment && previewObjectUrl
+            ? [
+                {
+                  file: previewingAttachment,
+                  previewUrl: previewObjectUrl,
+                },
+              ]
+            : []
+        }
         isOpen={previewingAttachment !== null}
         onClose={() => setPreviewingAttachment(null)}
-        title={
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-sm font-medium text-gray-900 truncate">
-              {previewingAttachment?.name ?? "Preview"}
-            </span>
-            <span className="text-xs text-gray-600">
-              {previewingAttachment?.extension ?? ""}
-            </span>
-          </div>
-        }
-        width="640px"
-        minWidth={440}
-        maxWidth="960px"
-        storageKey="memory-attachment-preview-width"
-        resizable
-      >
-        {previewingAttachment && previewObjectUrl && (
-          <div className="h-full w-full min-h-0 flex items-center justify-center">
-            {previewingAttachment.category === "image" ? (
-              <img
-                src={previewObjectUrl}
-                alt={previewingAttachment.name}
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
-            ) : (
-              <iframe
-                src={previewObjectUrl}
-                title={previewingAttachment.name}
-                className="w-full h-full border border-gray-200 rounded-lg bg-white"
-              />
-            )}
-          </div>
-        )}
-      </SidePane>
+      />
     </div>
   );
 }

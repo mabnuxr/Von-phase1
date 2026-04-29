@@ -31,9 +31,6 @@ interface OrgContextEditorProps {
   isEditing: boolean;
   placeholder?: string;
   contentKey?: string;
-  /** Fires once a non-empty text selection inside the editor stabilizes
-   *  (user stopped dragging). Used to feed a context chip into the chat pane. */
-  onSelectionCapture?: (text: string) => void;
 }
 
 // Type extension for markdown storage
@@ -63,16 +60,7 @@ export function OrgContextEditor({
   isEditing,
   placeholder = "Start typing...",
   contentKey,
-  onSelectionCapture,
 }: OrgContextEditorProps) {
-  // Keep a live ref to the latest capture handler so the editor's
-  // selection listener (created once at mount) always calls the current fn.
-  const onSelectionCaptureRef = useRef(onSelectionCapture);
-  onSelectionCaptureRef.current = onSelectionCapture;
-  // Debounce timer + last-emitted tracker prevent spamming the parent with
-  // every micro-selection event while the user drags.
-  const selectionTimerRef = useRef<number | null>(null);
-  const lastEmittedRef = useRef<string>("");
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -108,24 +96,6 @@ export function OrgContextEditor({
       // Get markdown content from the editor
       const markdown = getMarkdown(editor);
       onChange(markdown);
-    },
-    onSelectionUpdate: ({ editor }) => {
-      if (!onSelectionCaptureRef.current) return;
-      const { from, to, empty } = editor.state.selection;
-      if (empty || from === to) return;
-      const text = editor.state.doc.textBetween(from, to, " ").trim();
-      if (!text) return;
-
-      if (selectionTimerRef.current !== null) {
-        window.clearTimeout(selectionTimerRef.current);
-      }
-      // Wait for the user to settle on a selection before promoting it to a
-      // chip. 350ms feels responsive without firing on every drag tick.
-      selectionTimerRef.current = window.setTimeout(() => {
-        if (text === lastEmittedRef.current) return;
-        lastEmittedRef.current = text;
-        onSelectionCaptureRef.current?.(text);
-      }, 350);
     },
     editorProps: {
       attributes: {
@@ -301,7 +271,6 @@ export function OrgContextEditor({
               <Minus size={16} weight="regular" />
             </button>
           </div>
-
         </div>
       )}
 
