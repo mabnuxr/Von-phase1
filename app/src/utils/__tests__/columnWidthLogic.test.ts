@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  pickColumnCandidates,
   computeColumnWidths,
   buildProbeColumns,
   humanizeColumnId,
-  PROBE_CANDIDATE_LIMIT,
   MAX_COL_WIDTH,
   MIN_COL_WIDTH,
   WIDTH_BUFFER,
@@ -28,83 +26,6 @@ describe("humanizeColumnId", () => {
 
   it("leaves already-humanized strings alone", () => {
     expect(humanizeColumnId("amount")).toBe("amount");
-  });
-});
-
-// ─── pickColumnCandidates ────────────────────────────────────────────────
-
-describe("pickColumnCandidates", () => {
-  it("returns an empty array for missing data", () => {
-    expect(pickColumnCandidates(undefined, undefined)).toEqual([]);
-  });
-
-  it("returns at most CANDIDATE_LIMIT longest unique values", () => {
-    const data = [
-      "ant",
-      "bear",
-      "cat",
-      "dolphin",
-      "elephant",
-      "fox",
-      "giraffe",
-      "horse",
-    ];
-    const result = pickColumnCandidates(data, undefined);
-    expect(result.length).toBe(PROBE_CANDIDATE_LIMIT);
-    // Sorted descending by length: elephant > dolphin > giraffe > horse > bear
-    expect(result).toEqual(["elephant", "dolphin", "giraffe", "horse", "bear"]);
-  });
-
-  it("dedupes repeated values", () => {
-    const data = ["alpha", "alpha", "beta", "beta", "gamma"];
-    const result = pickColumnCandidates(data, undefined);
-    expect(result).toEqual(["alpha", "gamma", "beta"]);
-  });
-
-  it("skips null and undefined", () => {
-    const data = [null, "foo", undefined, "bar", null];
-    const result = pickColumnCandidates(data, undefined);
-    expect(result).toEqual(["foo", "bar"]);
-  });
-
-  it("samples only the first 100 rows by default", () => {
-    const data = [
-      ...Array.from({ length: 100 }, (_, i) => `row${i}`),
-      "ABSENT_LATER_ROW_LONGER_THAN_ANY_OF_THE_FIRST_100",
-    ];
-    const result = pickColumnCandidates(data, undefined);
-    expect(result).not.toContain(
-      "ABSENT_LATER_ROW_LONGER_THAN_ANY_OF_THE_FIRST_100",
-    );
-  });
-
-  it("formats numeric values with d3 format when provided", () => {
-    const data = [1234.5, 0, 9876.1];
-    const result = pickColumnCandidates(data, "$,.2f");
-    // formatD3Pattern adds thousands separators and 2 decimals.
-    expect(result).toContain("$1,234.50");
-    expect(result).toContain("$9,876.10");
-  });
-
-  it("falls back to String() for non-numeric values when format is provided", () => {
-    const data = ["not-a-number"];
-    const result = pickColumnCandidates(data, "$,.2f");
-    expect(result).toEqual(["not-a-number"]);
-  });
-
-  it("respects a custom limit and sample size", () => {
-    const data = ["one", "two", "three", "four", "five", "six"];
-    const result = pickColumnCandidates(data, undefined, 2, 4);
-    // Only first 4 rows sampled: one, two, three, four — top 2 by length: three, four
-    expect(result).toEqual(["three", "four"]);
-  });
-
-  it("keeps insertion order for equal-length candidates", () => {
-    // Both 10 chars but different first-occurrence order.
-    const data = ["Electrical", "Mechanical", "Electronic"];
-    const result = pickColumnCandidates(data, undefined);
-    // sort is stable in V8 so insertion order is preserved among equal-length.
-    expect(result).toEqual(["Electrical", "Mechanical", "Electronic"]);
   });
 });
 
@@ -218,6 +139,8 @@ describe("buildProbeColumns", () => {
       format?: string;
       width?: number;
       enabled?: boolean;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cells?: any;
     }>,
     dataColumns: Record<string, unknown[]>,
   ): GridOptions {
@@ -260,14 +183,58 @@ describe("buildProbeColumns", () => {
     expect(probe[1].hasExplicitWidth).toBe(false);
   });
 
-  it("collects the candidate values per column", () => {
+  it("collects the candidate values per column as rendered HTML", () => {
     const opts = makeOptions([{ id: "type" }], {
       type: ["Electrical", "Mechanical", "Electronic", "Structural"],
     });
     const probe = buildProbeColumns(opts)!;
     // All 4 are 10 chars; all should make the candidate list (limit=5).
-    expect(probe[0].candidates).toHaveLength(4);
-    expect(probe[0].candidates).toContain("Mechanical");
+    // With no formatter, candidates pass through as the stringified value.
+    expect(probe[0].candidateHtml).toHaveLength(4);
+    expect(probe[0].candidateHtml).toContain("Mechanical");
+  });
+
+  it("renders candidates through the column's cells.formatter", () => {
+    const opts = makeOptions(
+      [
+        {
+          id: "name",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cells: {
+            formatter(this: { value: unknown }) {
+              return `<strong>${String(this.value)}</strong>`;
+            },
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+      ],
+      { name: ["Alice", "Bob"] },
+    );
+    const probe = buildProbeColumns(opts)!;
+    expect(probe[0].candidateHtml).toContain("<strong>Alice</strong>");
+    expect(probe[0].candidateHtml).toContain("<strong>Bob</strong>");
+  });
+
+  it("substitutes row-level placeholders in cells.format templates", () => {
+    const opts = makeOptions(
+      [
+        {
+          id: "name",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cells: { format: '<a href="{url}">{value}</a>' },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        { id: "url", enabled: false },
+      ],
+      {
+        name: ["Acme"],
+        url: ["https://example.com/acme"],
+      },
+    );
+    const probe = buildProbeColumns(opts)!;
+    expect(probe[0].candidateHtml[0]).toBe(
+      '<a href="https://example.com/acme">Acme</a>',
+    );
   });
 
   it("records originalIndex matching the column's slot in options.columns", () => {

@@ -156,26 +156,36 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     if (!opts.columns) return opts;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const gridCols = (opts.columns as any[]).map((col: any) => ({
-      ...col,
-      ...(textColIds.has(col.id)
-        ? { cells: { ...col.cells, formatter: markdownCellFormatter } }
-        : {}),
-      // Inject sort state
-      ...(sortState?.orderBy
-        ? {
-            sorting: {
-              ...(col.sorting ?? {}),
-              order:
-                col.id === sortState.orderBy
-                  ? sortState.orderByAsc
-                    ? ("asc" as const)
-                    : ("desc" as const)
-                  : undefined,
-            },
-          }
-        : {}),
-    }));
+    const gridCols = (opts.columns as any[]).map((col: any) => {
+      // Drilldown columns are built fresh from the row data via
+      // buildGridOptions, which always stamps a default text formatter and
+      // never a `cells.format` template. The TableWidget-style guard
+      // (skip-if-formatter-exists) is a no-op here — it would always skip,
+      // leaving raw HTML strings like `<a href...>` rendered as text. So we
+      // overwrite the default formatter for text columns unconditionally.
+      const shouldAssignMarkdown =
+        textColIds.has(col.id) && col.enabled !== false;
+      return {
+        ...col,
+        ...(shouldAssignMarkdown
+          ? { cells: { ...col.cells, formatter: markdownCellFormatter } }
+          : {}),
+        // Inject sort state
+        ...(sortState?.orderBy
+          ? {
+              sorting: {
+                ...(col.sorting ?? {}),
+                order:
+                  col.id === sortState.orderBy
+                    ? sortState.orderByAsc
+                      ? ("asc" as const)
+                      : ("desc" as const)
+                    : undefined,
+              },
+            }
+          : {}),
+      };
+    });
 
     return { ...opts, columns: gridCols };
   }, [columns, data, sortState, textColIds]);

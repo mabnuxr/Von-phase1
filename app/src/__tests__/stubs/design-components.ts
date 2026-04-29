@@ -41,7 +41,6 @@ export {
   formatValue,
 } from "../../../../design-components/src/components/ReportTable/reportTableUtils";
 export {
-  pickColumnCandidates,
   computeColumnWidths,
   buildProbeColumns,
   humanizeColumnId,

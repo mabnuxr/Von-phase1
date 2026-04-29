@@ -3,7 +3,6 @@
  * useColumnWidthMeasurement so it can be unit-tested in a Node environment.
  */
 import type { GridOptions } from '@highcharts/grid-lite-react';
-import { formatD3Pattern } from '../../utils/formatKpiValue';
 import { getDataTableColumns } from './reportTableUtils';
 
 /** How many longest-by-char-length sample values per column the probe renders.
@@ -31,8 +30,12 @@ export interface ProbeColumn {
   id: string;
   /** Header text for the probe TH (already humanized from the column id). */
   header: string;
-  /** Top-N longest unique data values for this column. */
-  candidates: string[];
+  /** Top-N longest unique data values for this column, pre-rendered to HTML
+   *  strings via the column's `cells.formatter` (or stringified if none).
+   *  The probe injects these via innerHTML so each TD has the same DOM
+   *  structure as the rendered cell — measurement reflects the visible
+   *  pixel width, not the raw value's character length. */
+  candidateHtml: string[];
   /** Column has an explicit backend-supplied `width` field — used as a floor. */
   hasExplicitWidth: boolean;
   /** Index of this column in the *original* options.columns array. The probe
@@ -51,57 +54,82 @@ export function humanizeColumnId(colId: string): string {
     .replace(/([a-z])([A-Z])/g, '$1 $2');
 }
 
-/** Format a single sample value the same way the cell would render it.
- *  d3-format columns are formatted with their pattern; non-numeric values
- *  fall back to String(). */
-function formatSampleValue(value: unknown, format?: string): string {
-  if (format && typeof format === 'string') {
-    const num = typeof value === 'number' ? value : Number(value);
-    if (!isNaN(num)) {
-      try {
-        return formatD3Pattern(num, format);
-      } catch {
-        // d3-format threw — fall through to String(value).
-      }
-    }
-  }
-  return String(value);
+/** A picked candidate, with the original row index so the probe can rebuild
+ *  the row's full data dict and pass it to per-column formatters that need
+ *  sibling columns (e.g. an `<a href="{account_link}">{value}</a>` template). */
+interface CandidatePick {
+  value: unknown;
+  rowIndex: number;
 }
 
-/** Pick the top-N longest *unique* sample values from a column's data.
- *  Stable & deterministic given identical input — sorting is by string
- *  length descending, so two equal-length values keep insertion order. */
-export function pickColumnCandidates(
+/** Pick the top-N longest *unique* sample values from a column's data,
+ *  ranked by their stringified length. Stable & deterministic given
+ *  identical input — sorting is length-desc, so two equal-length values
+ *  keep insertion order. The returned picks carry the row index so the
+ *  caller can render through a row-aware formatter. */
+function pickColumnCandidateValues(
   data: readonly unknown[] | undefined,
-  format: string | undefined,
   limit = PROBE_CANDIDATE_LIMIT,
   sampleSize = PROBE_SAMPLE_SIZE
-): string[] {
+): CandidatePick[] {
   if (!data || limit <= 0) return [];
 
-  const sample = data.length <= sampleSize ? data : data.slice(0, sampleSize);
+  const sampleLimit = Math.min(data.length, sampleSize);
   const seen = new Set<string>();
-  const candidates: string[] = [];
+  const picks: Array<CandidatePick & { length: number }> = [];
 
-  for (const val of sample) {
+  for (let i = 0; i < sampleLimit; i++) {
+    const val = data[i];
     if (val == null) continue;
-    const text = formatSampleValue(val, format);
+    const text = String(val);
     if (seen.has(text)) continue;
     seen.add(text);
 
-    if (candidates.length < limit) {
-      candidates.push(text);
-      candidates.sort((a, b) => b.length - a.length);
-    } else if (text.length > candidates[limit - 1].length) {
-      candidates[limit - 1] = text;
-      candidates.sort((a, b) => b.length - a.length);
+    const length = text.length;
+    if (picks.length < limit) {
+      picks.push({ value: val, rowIndex: i, length });
+      picks.sort((a, b) => b.length - a.length);
+    } else if (length > picks[limit - 1].length) {
+      picks[limit - 1] = { value: val, rowIndex: i, length };
+      picks.sort((a, b) => b.length - a.length);
     }
   }
 
-  return candidates;
+  return picks.map(({ value, rowIndex }) => ({ value, rowIndex }));
+}
+
+/** Render a candidate value the same way the cell will. If the column has a
+ *  `cells.formatter`, invoke it with `this.value` bound (Grid Lite's contract).
+ *  If only `cells.format` template is set, do a simple `{key}` substitution
+ *  against the row data when available, else fall back to the raw value.
+ *  Otherwise just escape the stringified value into a span. */
+function renderCandidateHtml(
+  value: unknown,
+  rowData: Record<string, unknown> | undefined,
+  cells: { formatter?: (this: unknown) => unknown; format?: string } | undefined
+): string {
+  if (cells?.formatter) {
+    const ctx = { value, row: rowData ? { data: rowData } : undefined };
+    try {
+      return String(cells.formatter.call(ctx));
+    } catch {
+      // Fall through to the plain-text rendering on formatter error.
+    }
+  }
+  if (typeof cells?.format === 'string') {
+    return cells.format.replace(/\{([a-zA-Z_][\w.]*)\}/g, (_m, key) => {
+      const v = key === 'value' ? value : rowData?.[key];
+      return v == null ? '' : String(v);
+    });
+  }
+  return String(value ?? '');
 }
 
 /** Build the array of probe-column descriptors the hidden table needs.
+ *  Each candidate is pre-rendered through the column's formatter so the
+ *  probe TD has the same DOM as the eventual cell — the probe measures
+ *  the actual rendered width, not the raw value's character length.
+ *
  *  Disabled columns (`enabled: false`) are filtered out — they don't render
  *  in Grid Lite and including them in the probe would waste width budget on
  *  invisible columns.
@@ -109,7 +137,14 @@ export function pickColumnCandidates(
  *  Returns null if the options don't carry columns or a data table. */
 export function buildProbeColumns(options: GridOptions): ProbeColumn[] | null {
   const cols = options.columns as
-    | Array<{ id: string; width?: number; format?: string; enabled?: boolean }>
+    | Array<{
+        id: string;
+        width?: number;
+        format?: string;
+        enabled?: boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        cells?: { formatter?: (this: any) => unknown; format?: string };
+      }>
     | undefined;
   if (!cols) return null;
 
@@ -119,15 +154,34 @@ export function buildProbeColumns(options: GridOptions): ProbeColumn[] | null {
   const probe: ProbeColumn[] = [];
   cols.forEach((col, originalIndex) => {
     if (col.enabled === false) return;
+    const rawCandidates = pickColumnCandidateValues(dtCols[col.id]);
+    const candidateHtml = rawCandidates.map(({ value, rowIndex }) =>
+      renderCandidateHtml(value, getRowData(dtCols, rowIndex), col.cells)
+    );
     probe.push({
       id: col.id,
       header: humanizeColumnId(col.id),
-      candidates: pickColumnCandidates(dtCols[col.id], col.format),
+      candidateHtml,
       hasExplicitWidth: !!col.width,
       originalIndex,
     });
   });
   return probe;
+}
+
+/** Reconstruct a row's data dictionary from Grid Lite's column-oriented
+ *  storage. Needed so per-cell formatters that resolve sibling columns
+ *  (e.g. `<a href="{account_link}">{value}</a>`) get the right row context
+ *  during measurement. */
+function getRowData(
+  dtCols: Record<string, readonly unknown[]>,
+  rowIndex: number
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const colId of Object.keys(dtCols)) {
+    out[colId] = dtCols[colId]?.[rowIndex];
+  }
+  return out;
 }
 
 /** Inputs the width-distribution algorithm needs about each column. */

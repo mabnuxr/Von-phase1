@@ -6,6 +6,7 @@ import {
   markdownCellFormatter,
   handleMarkdownCellHover,
   createMarkdownCellClickHandler,
+  escapeHtml,
 } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
@@ -66,6 +67,48 @@ function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
   };
 }
 
+// Grid Lite's built-in `cells.format` templating resolves `{key}` against the
+// cell only — `{value}` works, but `{account_link}` (or any other row-sibling
+// column) returns empty. When the empty value lands in `<a href="">`, AST
+// rejects the href and the link becomes unclickable. Replace such templates
+// with a formatter that substitutes from `cell.row.data`.
+const ROW_TEMPLATE_VAR = /\{([a-zA-Z_][\w.]*)\}/g;
+
+function applyRowDataTemplates(options: GridOptions): GridOptions {
+  const cols = options.columns;
+  if (!cols) return options;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapped = (cols as any[]).map((col: any) => {
+    const template: unknown = col.cells?.format;
+    if (typeof template !== 'string') return col;
+    if (col.cells?.formatter) return col;
+    // Skip if the template only references {value} (Grid Lite handles it natively).
+    let needsRowData = false;
+    template.replace(ROW_TEMPLATE_VAR, (_m, key) => {
+      if (key !== 'value') needsRowData = true;
+      return _m;
+    });
+    if (!needsRowData) return col;
+    const tmpl = template;
+    return {
+      ...col,
+      cells: {
+        ...col.cells,
+        format: undefined,
+        formatter(this: { value: unknown; row?: { data?: Record<string, unknown> } }) {
+          const value = this.value;
+          const data = this.row?.data ?? {};
+          return tmpl.replace(ROW_TEMPLATE_VAR, (_m: string, key: string) => {
+            const v = key === 'value' ? value : data[key];
+            return v == null ? '' : escapeHtml(String(v));
+          });
+        },
+      },
+    };
+  });
+  return { ...options, columns: mapped };
+}
+
 const TableWidget: React.FC<TableWidgetProps> = ({
   config,
   onPageChange,
@@ -89,7 +132,9 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const options = useMemo<GridOptions>(
     () =>
       applyMarkdownCellFormatters(
-        hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+        applyRowDataTemplates(
+          hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+        )
       ),
     [base, hasServerPagination]
   );
