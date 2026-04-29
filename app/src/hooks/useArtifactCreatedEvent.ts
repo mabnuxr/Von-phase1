@@ -60,7 +60,7 @@ export function useArtifactCreatedEvent(
 
       const queryKey = agentArtifactKeys.run(convId, parsed.runId);
       const incoming: FileMetadataResponse[] = fileArtifacts.map((a) => ({
-        id: a.id ?? a.file_name,
+        id: a.id,
         fileName: a.file_name,
         mimeType: a.mime_type ?? "",
         sizeBytes: 0,

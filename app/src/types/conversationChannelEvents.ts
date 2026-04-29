@@ -37,7 +37,7 @@ export interface ArtifactCreatedEventPayload {
   runId: string;
   conversationId: string;
   artifacts: Array<{
-    id?: string;
+    id: string;
     file_name: string;
     artifact_type?: string;
     mime_type?: string;
