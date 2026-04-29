@@ -516,4 +516,3 @@ export function buildGridOptions(
 
   return options;
 }
-

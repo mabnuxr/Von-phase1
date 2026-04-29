@@ -64,9 +64,7 @@ export function handleMarkdownCellHover(e: React.MouseEvent | MouseEvent): void 
 // Click handler for the expand button rendered by markdownCellFormatter.
 // Recovers the raw markdown source from Grid Lite's auto-set data-value attr
 // on the <td> and hands the popover anchor rect to the caller's setPopover.
-export function createMarkdownCellClickHandler(
-  setPopover: (state: ExpandPopoverState) => void
-) {
+export function createMarkdownCellClickHandler(setPopover: (state: ExpandPopoverState) => void) {
   return (e: React.MouseEvent | MouseEvent) => {
     const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement | null;
     if (!btn) return;
