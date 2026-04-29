@@ -89,9 +89,7 @@ export function useColumnWidthMeasurement(
         // Backend-explicit width acts as a floor. Read from the original
         // column slot via originalIndex so disabled-column filtering doesn't
         // misalign explicit-width lookups.
-        const explicitWidth = col.hasExplicitWidth
-          ? (cols[col.originalIndex]?.width ?? 0)
-          : 0;
+        const explicitWidth = col.hasExplicitWidth ? (cols[col.originalIndex]?.width ?? 0) : 0;
 
         return { probeTdWidth, probeThWidth, explicitWidth };
       });

@@ -271,21 +271,18 @@ describe("buildProbeColumns", () => {
   });
 
   it("records originalIndex matching the column's slot in options.columns", () => {
-    const opts = makeOptions(
-      [{ id: "a" }, { id: "b" }, { id: "c" }],
-      { a: ["x"], b: ["y"], c: ["z"] },
-    );
+    const opts = makeOptions([{ id: "a" }, { id: "b" }, { id: "c" }], {
+      a: ["x"],
+      b: ["y"],
+      c: ["z"],
+    });
     const probe = buildProbeColumns(opts)!;
     expect(probe.map((p) => p.originalIndex)).toEqual([0, 1, 2]);
   });
 
   it("filters out columns with enabled === false", () => {
     const opts = makeOptions(
-      [
-        { id: "name" },
-        { id: "accountid", enabled: false },
-        { id: "stage" },
-      ],
+      [{ id: "name" }, { id: "accountid", enabled: false }, { id: "stage" }],
       { name: ["Alice"], accountid: ["xyz"], stage: ["new"] },
     );
     const probe = buildProbeColumns(opts)!;
@@ -295,10 +292,10 @@ describe("buildProbeColumns", () => {
   });
 
   it("does not filter when enabled is true or omitted", () => {
-    const opts = makeOptions(
-      [{ id: "a", enabled: true }, { id: "b" }],
-      { a: ["x"], b: ["y"] },
-    );
+    const opts = makeOptions([{ id: "a", enabled: true }, { id: "b" }], {
+      a: ["x"],
+      b: ["y"],
+    });
     const probe = buildProbeColumns(opts)!;
     expect(probe).toHaveLength(2);
   });
