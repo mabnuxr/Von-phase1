@@ -213,7 +213,12 @@ describe("computeColumnWidths", () => {
 
 describe("buildProbeColumns", () => {
   function makeOptions(
-    columns: Array<{ id: string; format?: string; width?: number }>,
+    columns: Array<{
+      id: string;
+      format?: string;
+      width?: number;
+      enabled?: boolean;
+    }>,
     dataColumns: Record<string, unknown[]>,
   ): GridOptions {
     return {
@@ -263,5 +268,35 @@ describe("buildProbeColumns", () => {
     // All 4 are 10 chars; all should make the candidate list (limit=5).
     expect(probe[0].candidates).toHaveLength(4);
     expect(probe[0].candidates).toContain("Mechanical");
+  });
+
+  it("records originalIndex matching the column's slot in options.columns", () => {
+    const opts = makeOptions([{ id: "a" }, { id: "b" }, { id: "c" }], {
+      a: ["x"],
+      b: ["y"],
+      c: ["z"],
+    });
+    const probe = buildProbeColumns(opts)!;
+    expect(probe.map((p) => p.originalIndex)).toEqual([0, 1, 2]);
+  });
+
+  it("filters out columns with enabled === false", () => {
+    const opts = makeOptions(
+      [{ id: "name" }, { id: "accountid", enabled: false }, { id: "stage" }],
+      { name: ["Alice"], accountid: ["xyz"], stage: ["new"] },
+    );
+    const probe = buildProbeColumns(opts)!;
+    expect(probe.map((p) => p.id)).toEqual(["name", "stage"]);
+    // originalIndex skips the disabled slot — name=0, stage=2.
+    expect(probe.map((p) => p.originalIndex)).toEqual([0, 2]);
+  });
+
+  it("does not filter when enabled is true or omitted", () => {
+    const opts = makeOptions([{ id: "a", enabled: true }, { id: "b" }], {
+      a: ["x"],
+      b: ["y"],
+    });
+    const probe = buildProbeColumns(opts)!;
+    expect(probe).toHaveLength(2);
   });
 });
