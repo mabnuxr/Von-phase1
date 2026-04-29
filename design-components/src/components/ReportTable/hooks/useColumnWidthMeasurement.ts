@@ -72,21 +72,26 @@ export function useColumnWidthMeasurement(
       const probeThs = probeEl.querySelectorAll('thead th');
       if (probeRows.length === 0) return;
 
-      // For each column, take the widest TD across all candidate rows.
-      // Picking by char length alone misses proportional-font cases where
-      // two equal-length strings render at different pixel widths.
-      const inputs: ColumnWidthInputs[] = probeColumns.map((col, i) => {
+      // For each (enabled) column, take the widest TD across all candidate
+      // rows. Picking by char length alone misses proportional-font cases
+      // where two equal-length strings render at different pixel widths.
+      const cols = formattedOptions.columns as Array<{ width?: number }>;
+      const inputs: ColumnWidthInputs[] = probeColumns.map((col, probeIdx) => {
         let probeTdWidth = 0;
         for (const row of probeRows) {
-          const td = row.children[i] as HTMLElement | undefined;
+          const td = row.children[probeIdx] as HTMLElement | undefined;
           if (td && td.offsetWidth > probeTdWidth) probeTdWidth = td.offsetWidth;
         }
-        const probeThWidth = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 0;
+        const probeThWidth = probeThs[probeIdx]
+          ? (probeThs[probeIdx] as HTMLElement).offsetWidth
+          : 0;
 
-        // Backend-explicit width acts as a floor. Read the live value from
-        // formattedOptions so the latest backend column metadata is honored.
-        const cols = formattedOptions.columns as Array<{ width?: number }>;
-        const explicitWidth = col.hasExplicitWidth ? (cols[i]?.width ?? 0) : 0;
+        // Backend-explicit width acts as a floor. Read from the original
+        // column slot via originalIndex so disabled-column filtering doesn't
+        // misalign explicit-width lookups.
+        const explicitWidth = col.hasExplicitWidth
+          ? (cols[col.originalIndex]?.width ?? 0)
+          : 0;
 
         return { probeTdWidth, probeThWidth, explicitWidth };
       });
@@ -107,19 +112,28 @@ export function useColumnWidthMeasurement(
   // Apply measured widths to grid options. Always return a fresh options
   // reference (and a fresh columns array with fresh column objects) so
   // react-grid-lite's `useEffect([options])` fires when widths change.
+  // Widths are written back via probe.originalIndex so disabled-column
+  // filtering keeps the index mapping accurate.
   const sizedOptions = useMemo<GridOptions>(() => {
-    if (!measuredWidths) return formattedOptions;
+    if (!measuredWidths || !probeColumns) return formattedOptions;
 
     const cols = formattedOptions.columns as Array<{ id: string; width?: number }> | undefined;
     if (!cols) return formattedOptions;
 
+    const widthByOriginalIndex = new Map<number, number>();
+    probeColumns.forEach((col, probeIdx) => {
+      const w = measuredWidths[probeIdx];
+      if (typeof w === 'number') widthByOriginalIndex.set(col.originalIndex, w);
+    });
+
     return {
       ...formattedOptions,
-      columns: cols.map((col, i) =>
-        i < measuredWidths.length ? { ...col, width: measuredWidths[i] } : col
-      ),
+      columns: cols.map((col, i) => {
+        const w = widthByOriginalIndex.get(i);
+        return typeof w === 'number' ? { ...col, width: w } : col;
+      }),
     };
-  }, [formattedOptions, measuredWidths]);
+  }, [formattedOptions, measuredWidths, probeColumns]);
 
   return {
     probeRef,

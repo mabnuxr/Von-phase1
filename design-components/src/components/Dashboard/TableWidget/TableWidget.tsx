@@ -44,20 +44,25 @@ function findTextColumnIds(options: GridOptions): Set<string> {
 }
 
 // Auto-assign markdownCellFormatter to text columns. Existing per-column
-// formatters (backend- or config-supplied) win.
+// formatters or formats (backend- or config-supplied) win — Grid Lite
+// returns an empty cell when BOTH `cells.format` and `cells.formatter` are
+// non-default, so we must leave columns that already carry a `format`
+// template untouched. Disabled columns are also skipped since they don't
+// render at all.
 function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
   const textIds = findTextColumnIds(options);
   if (textIds.size === 0) return options;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cols = options.columns as any[] | undefined;
+  const cols = options.columns;
   if (!cols) return options;
   return {
     ...options,
-    columns: cols.map((col) =>
-      textIds.has(col.id) && !col.cells?.formatter
-        ? { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } }
-        : col
-    ),
+    columns: cols.map((col) => {
+      if (!textIds.has(col.id)) return col;
+      if (col.enabled === false) return col;
+      if (col.cells?.formatter) return col;
+      if (col.cells?.format) return col; // backend template (e.g. <a> link)
+      return { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } };
+    }),
   };
 }
 

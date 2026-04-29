@@ -35,6 +35,10 @@ export interface ProbeColumn {
   candidates: string[];
   /** Column has an explicit backend-supplied `width` field — used as a floor. */
   hasExplicitWidth: boolean;
+  /** Index of this column in the *original* options.columns array. The probe
+   *  may filter out disabled columns, so this index lets the caller write
+   *  measured widths back into the right column slot. */
+  originalIndex: number;
 }
 
 /** Convert a raw column id ("first_query_date" / "col_userId") into a
@@ -98,22 +102,32 @@ export function pickColumnCandidates(
 }
 
 /** Build the array of probe-column descriptors the hidden table needs.
+ *  Disabled columns (`enabled: false`) are filtered out — they don't render
+ *  in Grid Lite and including them in the probe would waste width budget on
+ *  invisible columns.
+ *
  *  Returns null if the options don't carry columns or a data table. */
 export function buildProbeColumns(options: GridOptions): ProbeColumn[] | null {
   const cols = options.columns as
-    | Array<{ id: string; width?: number; format?: string }>
+    | Array<{ id: string; width?: number; format?: string; enabled?: boolean }>
     | undefined;
   if (!cols) return null;
 
   const dtCols = getDataTableColumns(options);
   if (!dtCols) return null;
 
-  return cols.map((col) => ({
-    id: col.id,
-    header: humanizeColumnId(col.id),
-    candidates: pickColumnCandidates(dtCols[col.id], col.format),
-    hasExplicitWidth: !!col.width,
-  }));
+  const probe: ProbeColumn[] = [];
+  cols.forEach((col, originalIndex) => {
+    if (col.enabled === false) return;
+    probe.push({
+      id: col.id,
+      header: humanizeColumnId(col.id),
+      candidates: pickColumnCandidates(dtCols[col.id], col.format),
+      hasExplicitWidth: !!col.width,
+      originalIndex,
+    });
+  });
+  return probe;
 }
 
 /** Inputs the width-distribution algorithm needs about each column. */
