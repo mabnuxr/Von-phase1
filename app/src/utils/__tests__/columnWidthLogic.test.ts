@@ -73,7 +73,9 @@ describe("pickColumnCandidates", () => {
       "ABSENT_LATER_ROW_LONGER_THAN_ANY_OF_THE_FIRST_100",
     ];
     const result = pickColumnCandidates(data, undefined);
-    expect(result).not.toContain("ABSENT_LATER_ROW_LONGER_THAN_ANY_OF_THE_FIRST_100");
+    expect(result).not.toContain(
+      "ABSENT_LATER_ROW_LONGER_THAN_ANY_OF_THE_FIRST_100",
+    );
   });
 
   it("formats numeric values with d3 format when provided", () => {
@@ -221,7 +223,9 @@ describe("buildProbeColumns", () => {
   }
 
   it("returns null when columns are missing", () => {
-    expect(buildProbeColumns({ dataTable: { columns: {} } } as GridOptions)).toBeNull();
+    expect(
+      buildProbeColumns({ dataTable: { columns: {} } } as GridOptions),
+    ).toBeNull();
   });
 
   it("returns null when data table is missing", () => {
@@ -231,13 +235,10 @@ describe("buildProbeColumns", () => {
   });
 
   it("builds one ProbeColumn per data column with humanized headers", () => {
-    const opts = makeOptions(
-      [{ id: "first_query_date" }, { id: "userId" }],
-      {
-        first_query_date: ["2026-01-01", "2026-02-01"],
-        userId: ["abc", "xyz"],
-      },
-    );
+    const opts = makeOptions([{ id: "first_query_date" }, { id: "userId" }], {
+      first_query_date: ["2026-01-01", "2026-02-01"],
+      userId: ["abc", "xyz"],
+    });
     const probe = buildProbeColumns(opts);
     expect(probe).toHaveLength(2);
     expect(probe![0].header).toBe("first query date");
@@ -245,20 +246,19 @@ describe("buildProbeColumns", () => {
   });
 
   it("flags hasExplicitWidth when the column carries a width field", () => {
-    const opts = makeOptions(
-      [{ id: "a", width: 120 }, { id: "b" }],
-      { a: ["x"], b: ["y"] },
-    );
+    const opts = makeOptions([{ id: "a", width: 120 }, { id: "b" }], {
+      a: ["x"],
+      b: ["y"],
+    });
     const probe = buildProbeColumns(opts)!;
     expect(probe[0].hasExplicitWidth).toBe(true);
     expect(probe[1].hasExplicitWidth).toBe(false);
   });
 
   it("collects the candidate values per column", () => {
-    const opts = makeOptions(
-      [{ id: "type" }],
-      { type: ["Electrical", "Mechanical", "Electronic", "Structural"] },
-    );
+    const opts = makeOptions([{ id: "type" }], {
+      type: ["Electrical", "Mechanical", "Electronic", "Structural"],
+    });
     const probe = buildProbeColumns(opts)!;
     // All 4 are 10 chars; all should make the candidate list (limit=5).
     expect(probe[0].candidates).toHaveLength(4);

@@ -43,11 +43,7 @@ export const ColumnWidthProbe = forwardRef<HTMLTableElement, ColumnWidthProbePro
         <thead>
           <tr>
             {columns.map((col) => (
-              <th
-                key={col.id}
-                className="hcg-header-cell"
-                style={{ whiteSpace: 'nowrap' }}
-              >
+              <th key={col.id} className="hcg-header-cell" style={{ whiteSpace: 'nowrap' }}>
                 {col.header}
               </th>
             ))}
@@ -66,5 +62,5 @@ export const ColumnWidthProbe = forwardRef<HTMLTableElement, ColumnWidthProbePro
         </tbody>
       </table>
     );
-  },
+  }
 );

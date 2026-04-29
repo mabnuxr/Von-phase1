@@ -25,7 +25,7 @@ interface AfterSortEvent {
  * to memoize their callback to keep the listener stable.
  */
 export function useServerSortBridge(
-  onSortChange: ((columnId: string, order: 'asc' | 'desc' | null) => void) | undefined,
+  onSortChange: ((columnId: string, order: 'asc' | 'desc' | null) => void) | undefined
 ) {
   const onSortChangeRef = useRef(onSortChange);
   onSortChangeRef.current = onSortChange;
@@ -38,17 +38,13 @@ export function useServerSortBridge(
 
     if (!onSortChangeRef.current) return;
 
-    removeEventRef.current = addEvent(
-      grid,
-      'afterSort',
-      (e: AfterSortEvent) => {
-        const columnId = e?.target?.id;
-        const order = e?.order ?? null;
-        if (columnId) {
-          onSortChangeRef.current?.(columnId, order);
-        }
-      },
-    ) as RemoveEvent;
+    removeEventRef.current = addEvent(grid, 'afterSort', (e: AfterSortEvent) => {
+      const columnId = e?.target?.id;
+      const order = e?.order ?? null;
+      if (columnId) {
+        onSortChangeRef.current?.(columnId, order);
+      }
+    }) as RemoveEvent;
   }, []);
 
   // Cleanup on unmount.

@@ -21,13 +21,7 @@ export type ColumnType =
   | 'sentiment'
   | 'longText';
 
-export type DataSourceType =
-  | 'salesforce'
-  | 'gong'
-  | 'gmail'
-  | 'calendar'
-  | 'hubspot'
-  | 'mixed';
+export type DataSourceType = 'salesforce' | 'gong' | 'gmail' | 'calendar' | 'hubspot' | 'mixed';
 
 export interface SourceReference {
   type: DataSourceType;

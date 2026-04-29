@@ -57,7 +57,7 @@ export function ReportTable({
 
   const { probeRef, probeColumns, sizedOptions, isMeasured } = useColumnWidthMeasurement(
     options,
-    wrapperRef,
+    wrapperRef
   );
 
   const tooltip = useTruncationTooltip(wrapperRef, disableTooltip);

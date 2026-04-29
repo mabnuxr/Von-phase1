@@ -55,7 +55,7 @@ function findHostCell(target: HTMLElement): HTMLElement | null {
  */
 export function useTruncationTooltip(
   wrapperRef: RefObject<HTMLDivElement | null>,
-  disabled: boolean,
+  disabled: boolean
 ): UseTruncationTooltipResult {
   const [tooltip, setTooltip] = useState<TruncationTooltipState | null>(null);
   const lastHoveredCell = useRef<HTMLElement | null>(null);
@@ -88,7 +88,7 @@ export function useTruncationTooltip(
         width: rect.width,
       });
     },
-    [disabled],
+    [disabled]
   );
 
   const onMouseLeave = useCallback((e: React.MouseEvent) => {

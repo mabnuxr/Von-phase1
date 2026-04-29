@@ -11,10 +11,7 @@ export function LoadingSkeleton({ className = '' }: LoadingSkeletonProps) {
       <div className="animate-pulse">
         <div className="h-10 bg-gray-50 rounded-t-lg" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-12 border-b border-gray-100 flex items-center px-4"
-          >
+          <div key={i} className="h-12 border-b border-gray-100 flex items-center px-4">
             <div className="h-4 bg-gray-100 rounded w-full" />
           </div>
         ))}

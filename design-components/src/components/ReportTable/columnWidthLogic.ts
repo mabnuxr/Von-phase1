@@ -71,7 +71,7 @@ export function pickColumnCandidates(
   data: readonly unknown[] | undefined,
   format: string | undefined,
   limit = PROBE_CANDIDATE_LIMIT,
-  sampleSize = PROBE_SAMPLE_SIZE,
+  sampleSize = PROBE_SAMPLE_SIZE
 ): string[] {
   if (!data || limit <= 0) return [];
 
@@ -140,7 +140,7 @@ export interface ColumnWidthInputs {
 export function computeColumnWidths(
   inputs: readonly ColumnWidthInputs[],
   containerWidth: number,
-  opts: { maxColWidth?: number; minColWidth?: number; buffer?: number } = {},
+  opts: { maxColWidth?: number; minColWidth?: number; buffer?: number } = {}
 ): number[] {
   const maxColWidth = opts.maxColWidth ?? MAX_COL_WIDTH;
   const minColWidth = opts.minColWidth ?? MIN_COL_WIDTH;

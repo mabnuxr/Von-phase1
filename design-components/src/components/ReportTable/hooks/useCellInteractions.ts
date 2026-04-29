@@ -34,7 +34,7 @@ interface UseCellInteractionsResult {
  */
 export function useCellInteractions(
   options: GridOptions,
-  onCellClick: ((columnId: string, cellValue: unknown) => void) | undefined,
+  onCellClick: ((columnId: string, cellValue: unknown) => void) | undefined
 ): UseCellInteractionsResult {
   const [popover, setPopover] = useState<AIReasoningPopoverState | null>(null);
 
@@ -79,16 +79,13 @@ export function useCellInteractions(
       const columnId = cols?.[colIndex]?.id;
       if (!columnId) return;
 
-      const dataTable = options.dataTable as
-        | { columns?: Record<string, unknown[]> }
-        | undefined;
+      const dataTable = options.dataTable as { columns?: Record<string, unknown[]> } | undefined;
       const rowIndex = Array.from(tr.parentElement!.children).indexOf(tr);
-      const rawValue =
-        dataTable?.columns?.[columnId]?.[rowIndex] ?? td.textContent?.trim() ?? '';
+      const rawValue = dataTable?.columns?.[columnId]?.[rowIndex] ?? td.textContent?.trim() ?? '';
 
       onCellClick(columnId, rawValue);
     },
-    [onCellClick, options.dataTable, options.columns],
+    [onCellClick, options.dataTable, options.columns]
   );
 
   const closeAIReasoningPopover = useCallback(() => setPopover(null), []);

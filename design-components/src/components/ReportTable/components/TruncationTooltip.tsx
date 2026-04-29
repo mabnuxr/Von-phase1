@@ -32,6 +32,6 @@ export function TruncationTooltip({ state }: TruncationTooltipProps) {
     >
       {state.text}
     </div>,
-    document.body,
+    document.body
   );
 }

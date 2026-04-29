@@ -35,7 +35,7 @@ interface UseColumnWidthMeasurementResult {
  */
 export function useColumnWidthMeasurement(
   options: GridOptions,
-  wrapperRef: RefObject<HTMLDivElement | null>,
+  wrapperRef: RefObject<HTMLDivElement | null>
 ): UseColumnWidthMeasurementResult & {
   /** Internal — passed to <ColumnWidthProbe ref={...}> by the parent. */
   probeRef: RefObject<HTMLTableElement | null>;
@@ -47,7 +47,7 @@ export function useColumnWidthMeasurement(
   // a stable reference to depend on downstream.
   const formattedOptions = useMemo(
     () => autoSizeGridColumns(applyColumnFormats(options)),
-    [options],
+    [options]
   );
 
   const probeColumns = useMemo(() => buildProbeColumns(formattedOptions), [formattedOptions]);
@@ -116,7 +116,7 @@ export function useColumnWidthMeasurement(
     return {
       ...formattedOptions,
       columns: cols.map((col, i) =>
-        i < measuredWidths.length ? { ...col, width: measuredWidths[i] } : col,
+        i < measuredWidths.length ? { ...col, width: measuredWidths[i] } : col
       ),
     };
   }, [formattedOptions, measuredWidths]);
