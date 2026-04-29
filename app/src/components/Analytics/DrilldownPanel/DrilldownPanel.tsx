@@ -4,8 +4,9 @@ import { XIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import {
   ReportTable,
   buildGridOptions,
-  longTextExpandFormatter,
-  handleLongTextHover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
   LongTextPopover,
 } from "@vonlabs/design-components";
 import type {
@@ -144,8 +145,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     [columns],
   );
   // Build grid options, injecting server sort state so Grid Lite preserves
-  // its sort cycle correctly across data updates.
-  // Override text column formatters with the longtext expand-button variant.
+  // its sort cycle correctly across data updates. Text columns get the
+  // markdown cell formatter so links / lists / emphasis render in-cell.
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || data.length === 0) return null;
     const opts = buildGridOptions(columns, data, {
@@ -157,9 +158,8 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const gridCols = (opts.columns as any[]).map((col: any) => ({
       ...col,
-      // Override text columns with longtext expand formatter
       ...(textColIds.has(col.id)
-        ? { cells: { ...col.cells, formatter: longTextExpandFormatter } }
+        ? { cells: { ...col.cells, formatter: markdownCellFormatter } }
         : {}),
       // Inject sort state
       ...(sortState?.orderBy
@@ -180,24 +180,10 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
     return { ...opts, columns: gridCols };
   }, [columns, data, sortState, textColIds]);
 
-  /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback((e: React.MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest(
-      ".dt-expand-btn",
-    ) as HTMLElement;
-    if (!btn) return;
-
-    e.stopPropagation();
-
-    const td = btn.closest("td");
-    if (!td) return;
-
-    const span = td.querySelector(".dt-longtext-wrap > span");
-    const fullText = span?.textContent ?? "";
-    if (fullText) {
-      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-    }
-  }, []);
+  const handleGridClick = useMemo(
+    () => createMarkdownCellClickHandler(setPopover),
+    [],
+  );
 
   // ── Resize drag handlers ──────────────────────────────────────
 
@@ -323,7 +309,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
                   ref={gridWrapperRef}
                   className="h-full relative drilldown-grid"
                   onClick={handleGridClick}
-                  onMouseOver={handleLongTextHover}
+                  onMouseOver={handleMarkdownCellHover}
                 >
                   <ReportTable
                     options={gridOptions}
@@ -421,7 +407,7 @@ export const DrilldownPanel: React.FC<DrilldownPanelProps> = ({
             </div>
           </motion.div>
 
-          {/* LongText expand popover */}
+          {/* Markdown expand popover */}
           <AnimatePresence>
             {popover && (
               <LongTextPopover

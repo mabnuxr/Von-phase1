@@ -1,6 +1,7 @@
 export { TiptapEditor } from './TiptapEditor';
 export { TiptapViewer } from './TiptapViewer';
 export { EditorToolbar } from './EditorToolbar';
+export { renderMarkdownToSafeHtml } from './renderMarkdownToSafeHtml';
 export type { TiptapEditorProps, EditorToolbarProps } from './types';
 export type { TiptapViewerProps } from './TiptapViewer';
 

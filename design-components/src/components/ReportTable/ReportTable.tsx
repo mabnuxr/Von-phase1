@@ -7,6 +7,7 @@ import { formatD3Pattern } from '../../utils/formatKpiValue';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
+import './markdown-cell.css';
 
 // ============================================================================
 // Types (kept for backward compatibility - used by consumers & other components)
