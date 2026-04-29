@@ -48,7 +48,9 @@ export function markdownCellFormatter(this: { value: unknown }): string {
 }
 
 // Toggles `.is-truncated` based on actual overflow so the expand button only
-// appears (via CSS) when content is clipped.
+// appears (via CSS) when content is clipped. Plain-string cells truncate
+// horizontally via text-overflow:ellipsis; multi-line markdown truncates
+// vertically via -webkit-line-clamp. Both axes need to be checked.
 export function handleMarkdownCellHover(e: React.MouseEvent | MouseEvent): void {
   const td = (e.target as HTMLElement).closest('td');
   if (!td) return;
@@ -56,7 +58,9 @@ export function handleMarkdownCellHover(e: React.MouseEvent | MouseEvent): void 
   if (!wrap) return;
   const content = wrap.querySelector('.dt-markdown-content') as HTMLElement | null;
   if (!content) return;
-  const overflowing = content.scrollHeight > content.clientHeight + 1;
+  const overflowing =
+    content.scrollWidth > content.clientWidth + 1 ||
+    content.scrollHeight > content.clientHeight + 1;
   if (overflowing === wrap.classList.contains('is-truncated')) return;
   wrap.classList.toggle('is-truncated', overflowing);
 }

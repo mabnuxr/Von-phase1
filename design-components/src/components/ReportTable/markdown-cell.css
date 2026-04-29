@@ -11,8 +11,13 @@
   position: relative;
   display: block;
   width: 100%;
-  /* Reserve right-side space so the expand button never overlaps the
-     final character of content. 28px = 24px button + 4px gap. */
+}
+
+/* Reserve space for the expand button only when the cell is actually
+   truncated. Non-truncated cells use the full cell width — no wasted
+   space. The button is absolutely positioned so adding padding here just
+   shrinks the content area, not the wrapper. 28px = 24px button + 4px gap. */
+.dt-markdown-wrap.is-truncated {
   padding-right: 28px;
 }
 

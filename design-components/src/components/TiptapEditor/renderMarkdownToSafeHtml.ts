@@ -50,6 +50,11 @@ function unescapeJsonStringLiterals(s: string): string {
   return s.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\r/g, '\r').replace(/\\t/g, '\t');
 }
 
+// Single-line strings that look like an unordered-list marker (`-`, `*`, `+`)
+// or empty ordered-list marker (`1.`) — in tabular data these are placeholder
+// values, not list intent. Marked + GFM would otherwise emit `<ul><li></li></ul>`.
+const BARE_LIST_MARKER = /^[\s]*[-*+](\s*$)|^[\s]*\d+\.\s*$/;
+
 export function renderMarkdownToSafeHtml(content: string): string {
   if (!content) return '';
 
@@ -57,6 +62,14 @@ export function renderMarkdownToSafeHtml(content: string): string {
     content.includes('\\n') || content.includes('\\t') || content.includes('\\"')
       ? unescapeJsonStringLiterals(content)
       : content;
+
+  // Short-circuit values that consist of only a list marker — render as
+  // escaped plain text so a single "-" stays a literal dash, not a bullet.
+  if (!normalizedContent.includes('\n') && BARE_LIST_MARKER.test(normalizedContent)) {
+    return purify.sanitize(`<p>${escapeHtml(normalizedContent)}</p>`, {
+      FORBID_TAGS,
+    }) as string;
+  }
 
   try {
     const raw = markedInstance.parse(normalizedContent) as string;
