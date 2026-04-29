@@ -2,9 +2,14 @@
  * useAgentArtifacts - React Query hook for agent-generated file artifacts
  *
  * Fetches FileMetadata per runId using parallel queries (useQueries).
- * Each assistant message's runId gets its own cached query. Artifacts are
- * immutable once created, so staleTime is Infinity — only Pusher events
- * (via useArtifactCreatedEvent) trigger refetches for specific runs.
+ * Each assistant message's runId gets its own cached query.
+ *
+ * Backend pipeline guarantees that by the time RUN_FINISHED fires, every
+ * artifact this turn produced has a FileMetadata row in `processing` (or
+ * `completed`). The list endpoint returns those rows directly — no Redis
+ * fallback needed. Skeletons are rendered for `processing` rows and
+ * refetchInterval polls until they flip to `completed`. Pusher
+ * `artifact_created(completed)` events provide a low-latency override.
  */
 
 import { useMemo } from "react";
@@ -40,8 +45,6 @@ export function useAgentArtifacts(
       queryKey: agentArtifactKeys.run(conversationId ?? "", runId),
       queryFn: async (): Promise<FileMetadataResponse[]> => {
         if (!conversationId) return [];
-
-        // 1. MongoDB first (existing call, unchanged)
         const response = await fileUploadService.listFiles(
           conversationId,
           1,
@@ -49,31 +52,12 @@ export function useAgentArtifacts(
           "agent_generated",
           runId,
         );
-        if (response.data.length > 0) return response.data;
-
-        // 2. MongoDB empty → check Redis for in-flight artifacts
-        const inflight = await fileUploadService.getInflightArtifacts(
-          conversationId,
-          runId,
-        );
-        if (!inflight) return []; // no Redis key → genuinely no artifacts
-
-        // 3. Artifacts in flight → return placeholders
-        return inflight.artifacts.map((a) => ({
-          id: `pending:${runId}:${a.file_name}`,
-          fileName: a.file_name,
-          mimeType: "application/octet-stream",
-          sizeBytes: 0,
-          status: "processing",
-          source: "agent_generated",
-          createdAt: new Date().toISOString(),
-          artifactType: a.artifact_type ?? "document",
-          runId,
-          isPending: true,
-        }));
+        return response.data;
       },
       enabled: !!conversationId,
-      staleTime: Infinity,
+      // staleTime is short rather than Infinity because rows transition
+      // processing → completed asynchronously; refetches must be allowed.
+      staleTime: 0,
       refetchInterval: (query: {
         state: { data?: FileMetadataResponse[]; dataUpdateCount: number };
       }) => {

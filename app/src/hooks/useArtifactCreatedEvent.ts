@@ -1,12 +1,16 @@
 /**
  * useArtifactCreatedEvent - Pusher event handler for artifact_created
  *
- * Handles two phases:
- * 1. status="processing" — seeds React Query cache with placeholder records
- *    (isPending: true) so skeleton ArtifactCards render immediately when
- *    isStreaming flips false.
- * 2. status="completed" — invalidates cache to trigger a refetch that replaces
- *    skeletons with real artifact data.
+ * Backend now emits a single `completed` event per fulfilled artifact.
+ * Skeletons are rendered from FileMetadata rows that the workflow registers
+ * in `processing` state before RUN_FINISHED — no `processing` Pusher event
+ * is needed.
+ *
+ * The handler merges incoming completed artifacts into the existing cache
+ * by id (a single fulfill emits ≥1 artifact: the file plus optional
+ * slide_preview_pdf sibling). Merging is required because parallel fulfills
+ * for the same run land as separate events — a naive replace would clobber
+ * earlier completions.
  */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -44,59 +48,40 @@ export function useArtifactCreatedEvent(
       const convId = conversationIdRef.current;
       if (!convId || parsed.conversationId !== convId) return;
 
-      // Filter out command artifacts — they aren't file artifacts
+      // Backend only emits `completed` events now. Anything else is stale
+      // and should be ignored.
+      if (parsed.status !== "completed") return;
+
+      // Filter out command artifacts — they aren't file artifacts.
       const fileArtifacts = parsed.artifacts.filter(
         (a) => !a.artifact_type?.startsWith("command_"),
       );
       if (fileArtifacts.length === 0) return;
 
       const queryKey = agentArtifactKeys.run(convId, parsed.runId);
+      const incoming: FileMetadataResponse[] = fileArtifacts.map((a) => ({
+        id: a.id ?? a.file_name,
+        fileName: a.file_name,
+        mimeType: a.mime_type ?? "",
+        sizeBytes: 0,
+        status: "completed",
+        source: "agent_generated",
+        createdAt: parsed.updatedAt,
+        artifactType: a.artifact_type ?? "document",
+        runId: parsed.runId,
+      }));
 
-      if (parsed.status === "processing") {
-        // Seed skeletons, but never downgrade an already-populated cache
-        // (Pusher reorders can deliver `processing` after `completed`).
-        const existing =
-          queryClient.getQueryData<FileMetadataResponse[]>(queryKey);
-        if (!existing || existing.length === 0) {
-          const placeholders: FileMetadataResponse[] = fileArtifacts.map(
-            (a) => ({
-              id: a.file_name,
-              fileName: a.file_name,
-              mimeType: "",
-              sizeBytes: 0,
-              status: "processing",
-              source: "agent_generated",
-              createdAt: parsed.updatedAt,
-              artifactType: a.artifact_type,
-              runId: parsed.runId,
-              isPending: true,
-            }),
-          );
-          queryClient.setQueryData(queryKey, placeholders);
-        }
-        // Mark stale so remount refetches if completed event is missed,
-        // but don't trigger an immediate refetch while upload is still running
-        queryClient.invalidateQueries({ queryKey, refetchType: "inactive" });
-      } else {
-        // Immediately replace placeholders with event data (removes isPending)
-        const freshData: FileMetadataResponse[] = fileArtifacts.map((a) => ({
-          id: a.id ?? a.file_name,
-          fileName: a.file_name,
-          mimeType: a.mime_type ?? "",
-          sizeBytes: 0,
-          status: "completed",
-          source: "agent_generated",
-          createdAt: parsed.updatedAt,
-          artifactType: a.artifact_type ?? "document",
-          runId: parsed.runId,
-        }));
-        queryClient.setQueryData(queryKey, freshData);
-        // Mark stale for future mounts but skip the immediate refetch. The
-        // event payload already carries every record the card needs (pptx +
-        // its slide_preview_pdf sibling), and an immediate refetch can race
-        // MongoDB read-after-write and clobber the cache with [].
-        queryClient.invalidateQueries({ queryKey, refetchType: "none" });
-      }
+      // Merge by id so parallel fulfills don't clobber each other's rows.
+      // Incoming rows override existing rows with the same id (this is how
+      // a `processing` row gets upgraded to `completed`).
+      queryClient.setQueryData<FileMetadataResponse[]>(queryKey, (prev) => {
+        const existing = prev ?? [];
+        const incomingIds = new Set(incoming.map((r) => r.id));
+        return [...existing.filter((r) => !incomingIds.has(r.id)), ...incoming];
+      });
+      // Future mounts should refetch (cheap; gives definitive Mongo state)
+      // but skip immediate refetch to avoid racing the same event's payload.
+      queryClient.invalidateQueries({ queryKey, refetchType: "none" });
     },
     [queryClient],
   );
