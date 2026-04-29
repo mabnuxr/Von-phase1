@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { CopyIcon, CheckIcon, XIcon } from '@phosphor-icons/react';
 import { useCopyToClipboard } from '../../hooks';
+import { TiptapViewer } from '../TiptapEditor';
 
 export interface ExpandPopoverState {
   text: string;
@@ -42,9 +43,7 @@ export function LongTextPopover({ text, anchorRect, onClose }: LongTextPopoverPr
         className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden"
       >
         <div className="px-4 py-3 max-h-56 overflow-y-auto settings-scrollbar">
-          <p className="text-sm text-gray-900 leading-relaxed whitespace-pre-wrap break-words">
-            {text}
-          </p>
+          <TiptapViewer content={text} className="text-sm" />
         </div>
         <div className="flex items-center justify-end gap-0.5 px-2.5 py-1.5 border-t border-gray-100">
           <button

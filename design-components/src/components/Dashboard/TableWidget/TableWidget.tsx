@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   ReportTable,
-  longTextExpandFormatter,
-  handleLongTextHover,
   LongTextPopover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
 } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
@@ -42,8 +43,9 @@ function findTextColumnIds(options: GridOptions): Set<string> {
   return ids;
 }
 
-/** Override text column formatters with the longtext expand variant */
-function applyLongTextFormatters(options: GridOptions): GridOptions {
+// Auto-assign markdownCellFormatter to text columns. Existing per-column
+// formatters (backend- or config-supplied) win.
+function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
   const textIds = findTextColumnIds(options);
   if (textIds.size === 0) return options;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -53,7 +55,7 @@ function applyLongTextFormatters(options: GridOptions): GridOptions {
     ...options,
     columns: cols.map((col) =>
       textIds.has(col.id) && !col.cells?.formatter
-        ? { ...col, cells: { ...col.cells, formatter: longTextExpandFormatter } }
+        ? { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } }
         : col
     ),
   };
@@ -77,10 +79,14 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const lastOptionsRef = useRef<GridOptions | null>(null);
 
   const base = config.gridOptions as GridOptions;
-  // Only disable client-side pagination for server-paginated tables;
-  // non-server-paginated tables keep their existing pagination config.
-  const options: GridOptions = applyLongTextFormatters(
-    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+  // Memoized so popover open/close (setPopover → re-render) doesn't rebuild
+  // the columns array and force Grid Lite to re-run every markdown formatter.
+  const options = useMemo<GridOptions>(
+    () =>
+      applyMarkdownCellFormatters(
+        hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+      ),
+    [base, hasServerPagination]
   );
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
@@ -93,21 +99,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
 
-  /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback((e: React.MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
-    if (!btn) return;
-    e.stopPropagation();
-
-    const td = btn.closest('td');
-    if (!td) return;
-
-    const span = td.querySelector('.dt-longtext-wrap > span');
-    const fullText = span?.textContent ?? '';
-    if (fullText) {
-      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-    }
-  }, []);
+  const handleGridClick = useMemo(() => createMarkdownCellClickHandler(setPopover), []);
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -154,7 +146,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
         ref={containerRef}
         className="flex-1 min-h-0 overflow-hidden relative"
         onClick={handleGridClick}
-        onMouseOver={handleLongTextHover}
+        onMouseOver={handleMarkdownCellHover}
       >
         <ReportTable
           options={stableOptions}

@@ -7,6 +7,7 @@ import { formatD3Pattern } from '../../utils/formatKpiValue';
 import { SourcePopover } from './SourcePopover';
 import '@highcharts/grid-lite/css/grid-lite.css';
 import './report-grid-theme.css';
+import './markdown-cell.css';
 
 // ============================================================================
 // Types (kept for backward compatibility - used by consumers & other components)
@@ -180,42 +181,70 @@ export function ReportTable({
   // Grid only renders after widths are known, so user never sees unsized state.
   const [measuredWidths, setMeasuredWidths] = useState<number[] | null>(null);
 
+  // Re-runs on probeData change AND on container resize so the surplus
+  // distribution stays correct when the panel is hidden/animated/resized
+  // after first mount. The container-width check inside `measure` avoids
+  // recomputing on no-op observer firings.
   useLayoutEffect(() => {
     if (!probeRef.current || !probeData) return;
 
-    const MAX_COL_WIDTH = 500;
-    const probeTds = probeRef.current.querySelectorAll('tbody td');
-    const probeThs = probeRef.current.querySelectorAll('thead th');
-    if (probeTds.length === 0) return;
+    let lastContainerWidth = -1;
 
-    const containerWidth = wrapperRef.current?.clientWidth ?? 0;
-    const colWidths: number[] = [];
+    const measure = () => {
+      const probeEl = probeRef.current;
+      const wrapperEl = wrapperRef.current;
+      if (!probeEl || !wrapperEl) return;
 
-    const cols = formattedOptions.columns as Array<{ width?: number }>;
-    for (let i = 0; i < probeData.length; i++) {
-      const tdW = probeTds[i] ? (probeTds[i] as HTMLElement).offsetWidth : 60;
-      const thW = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 60;
-      // +8px buffer: covers cell border (1px) + proportional font variations
-      const measured = Math.min(Math.max(tdW, thW, 60) + 8, MAX_COL_WIDTH);
-      // Explicit backend width is a floor — probe can only widen, never shrink.
-      const explicit = probeData[i].hasExplicitWidth ? (cols[i]?.width ?? 60) : 0;
-      colWidths.push(Math.max(measured, explicit));
-    }
+      const containerWidth = wrapperEl.clientWidth;
+      if (containerWidth === lastContainerWidth) return;
+      lastContainerWidth = containerWidth;
 
-    // Distribute surplus proportionally so table fills container
-    const total = colWidths.reduce((s, w) => s + w, 0);
-    if (containerWidth > 0 && total < containerWidth) {
-      const surplus = containerWidth - total;
-      let distributed = 0;
-      for (let i = 0; i < colWidths.length - 1; i++) {
-        const extra = Math.round(surplus * (colWidths[i] / total));
-        colWidths[i] += extra;
-        distributed += extra;
+      const probeTds = probeEl.querySelectorAll('tbody td');
+      const probeThs = probeEl.querySelectorAll('thead th');
+      if (probeTds.length === 0) return;
+
+      // Each column gets its natural content width. No MAX_COL_WIDTH clamp —
+      // wide content (URLs, long names) is allowed to drive its column wide
+      // and let the table scroll horizontally rather than truncate.
+      const colWidths: number[] = [];
+      const cols = formattedOptions.columns as Array<{ width?: number }>;
+      for (let i = 0; i < probeData.length; i++) {
+        const tdW = probeTds[i] ? (probeTds[i] as HTMLElement).offsetWidth : 60;
+        const thW = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 60;
+        // +8px buffer: covers cell border (1px) + proportional font variations.
+        const measured = Math.max(tdW, thW, 60) + 8;
+        // Explicit backend width is a floor — probe can only widen, never shrink.
+        const explicit = probeData[i].hasExplicitWidth ? (cols[i]?.width ?? 60) : 0;
+        colWidths.push(Math.max(measured, explicit));
       }
-      colWidths[colWidths.length - 1] += surplus - distributed;
-    }
 
-    setMeasuredWidths(colWidths);
+      // If the natural total fits within the container, distribute the
+      // surplus equally across all columns so the table fills the space.
+      // If it doesn't fit, leave widths at their natural values and let the
+      // table scroll horizontally.
+      const total = colWidths.reduce((s, w) => s + w, 0);
+      if (containerWidth > 0 && total < containerWidth && colWidths.length > 0) {
+        const surplus = containerWidth - total;
+        const perCol = Math.floor(surplus / colWidths.length);
+        const remainder = surplus - perCol * colWidths.length;
+        for (let i = 0; i < colWidths.length; i++) {
+          colWidths[i] += perCol;
+        }
+        // Drop the leftover pixels onto the last column so the sum lands
+        // exactly on containerWidth.
+        colWidths[colWidths.length - 1] += remainder;
+      }
+
+      setMeasuredWidths(colWidths);
+    };
+
+    measure();
+
+    const wrapperEl = wrapperRef.current;
+    if (!wrapperEl || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrapperEl);
+    return () => ro.disconnect();
   }, [probeData, formattedOptions]);
 
   // Apply measured widths to grid options

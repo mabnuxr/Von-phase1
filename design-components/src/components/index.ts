@@ -456,8 +456,9 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
-  longTextExpandFormatter,
-  handleLongTextHover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
   escapeHtml,
   LongTextPopover,
 } from './ReportTable';
