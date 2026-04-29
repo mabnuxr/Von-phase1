@@ -16,6 +16,12 @@ export function demoteHeadings(html: string): string {
 
 const EMPTY_PLACEHOLDER = '<span style="color:#9ca3af">—</span>';
 
+// Values whose entire content is a single HTML element (e.g. drilldown SQL
+// returning `<a href="...">name</a>` via CONCAT) — rendering these through
+// marked escapes the tags, so they show up as text. Pass them through to
+// Grid Lite's HTML_AST sanitizer instead, which allows safe tags like <a>.
+const HTML_ELEMENT_VALUE = /^\s*<([a-z][a-z0-9-]*)\b[^>]*>[\s\S]*<\/\1>\s*$/i;
+
 // Grid Lite re-runs the formatter for every cell on every grid render; cache
 // rendered output by raw value so we don't re-parse markdown each time.
 const renderCache = new Map<string, string>();
@@ -32,12 +38,13 @@ export function markdownCellFormatter(this: { value: unknown }): string {
   const cached = renderCache.get(value);
   if (cached !== undefined) return cached;
 
-  const safeHtml = renderMarkdownToSafeHtml(value);
-  const demoted = demoteHeadings(safeHtml);
+  const inner = HTML_ELEMENT_VALUE.test(value)
+    ? value
+    : demoteHeadings(renderMarkdownToSafeHtml(value));
   const html =
     '<div class="dt-markdown-wrap">' +
     '<div class="tiptap-viewer tiptap-viewer-cell dt-markdown-content">' +
-    demoted +
+    inner +
     '</div>' +
     '<button type="button" class="dt-expand-btn" aria-label="Expand cell content"></button>' +
     '</div>';
