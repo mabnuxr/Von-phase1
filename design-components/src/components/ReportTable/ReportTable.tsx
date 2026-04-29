@@ -132,7 +132,11 @@ export function ReportTable({
     [options]
   );
 
-  // Extract column ids + widest data values for the probe table
+  // Extract column ids + candidate data values for the probe table.
+  // We keep the top-N *longest* values per column (by char count) and let
+  // the probe measure each — picking the widest by char count alone misses
+  // proportional-font cases where two equal-length strings render at very
+  // different pixel widths (e.g. "Mechanical" is wider than "Electrical").
   const probeData = useMemo(() => {
     const cols = formattedOptions.columns as
       | Array<{ id: string; width?: number; format?: string }>
@@ -141,6 +145,8 @@ export function ReportTable({
     const dtCols = getDataTableColumns(formattedOptions);
     if (!dtCols) return null;
 
+    const CANDIDATE_LIMIT = 5;
+
     return cols.map((col) => {
       // Header label (same logic as old autoSizeGridColumns)
       const header = col.id
@@ -148,11 +154,13 @@ export function ReportTable({
         .replace(/_/g, ' ')
         .replace(/([a-z])([A-Z])/g, '$1 $2');
 
-      // Find widest data value (sample first 100 rows)
+      // Pick the longest unique values from a sample of the column's data.
+      // The probe then renders all of them and measure() takes the max width.
+      const candidates: string[] = [];
       const data = dtCols[col.id];
-      let widest = '';
       if (data) {
         const sample = data.length <= 100 ? data : data.slice(0, 100);
+        const seen = new Set<string>();
         for (const val of sample) {
           if (val == null) continue;
           let text: string;
@@ -170,10 +178,19 @@ export function ReportTable({
           } else {
             text = String(val);
           }
-          if (text.length > widest.length) widest = text;
+          if (seen.has(text)) continue;
+          seen.add(text);
+          // Maintain descending-by-length list capped at CANDIDATE_LIMIT.
+          if (candidates.length < CANDIDATE_LIMIT) {
+            candidates.push(text);
+            candidates.sort((a, b) => b.length - a.length);
+          } else if (text.length > candidates[CANDIDATE_LIMIT - 1].length) {
+            candidates[CANDIDATE_LIMIT - 1] = text;
+            candidates.sort((a, b) => b.length - a.length);
+          }
         }
       }
-      return { id: col.id, header, widest, hasExplicitWidth: !!col.width };
+      return { id: col.id, header, candidates, hasExplicitWidth: !!col.width };
     });
   }, [formattedOptions]);
 
@@ -188,6 +205,11 @@ export function ReportTable({
   useLayoutEffect(() => {
     if (!probeRef.current || !probeData) return;
 
+    // Caps any single column at this width — past here a wide value (long
+    // bug report, URL, paragraph) would dominate the table and force every
+    // other column into a thin strip. The expand-button popover is the UX
+    // path for reading content that exceeds this cap.
+    const MAX_COL_WIDTH = 500;
     let lastContainerWidth = -1;
 
     const measure = () => {
@@ -199,40 +221,44 @@ export function ReportTable({
       if (containerWidth === lastContainerWidth) return;
       lastContainerWidth = containerWidth;
 
-      const probeTds = probeEl.querySelectorAll('tbody td');
+      const probeRows = probeEl.querySelectorAll('tbody tr');
       const probeThs = probeEl.querySelectorAll('thead th');
-      if (probeTds.length === 0) return;
+      if (probeRows.length === 0) return;
 
-      // Each column gets its natural content width. No MAX_COL_WIDTH clamp —
-      // wide content (URLs, long names) is allowed to drive its column wide
-      // and let the table scroll horizontally rather than truncate.
+      const colCount = probeData.length;
       const colWidths: number[] = [];
       const cols = formattedOptions.columns as Array<{ width?: number }>;
-      for (let i = 0; i < probeData.length; i++) {
-        const tdW = probeTds[i] ? (probeTds[i] as HTMLElement).offsetWidth : 60;
+      for (let i = 0; i < colCount; i++) {
+        // Walk each candidate row for this column and take the widest TD.
+        // Picking by char length alone misses proportional-font cases where
+        // two equal-length strings render at different pixel widths.
+        let tdW = 60;
+        for (const row of probeRows) {
+          const td = row.children[i] as HTMLElement | undefined;
+          if (td && td.offsetWidth > tdW) tdW = td.offsetWidth;
+        }
         const thW = probeThs[i] ? (probeThs[i] as HTMLElement).offsetWidth : 60;
         // +8px buffer: covers cell border (1px) + proportional font variations.
-        const measured = Math.max(tdW, thW, 60) + 8;
+        const measured = Math.min(Math.max(tdW, thW, 60) + 8, MAX_COL_WIDTH);
         // Explicit backend width is a floor — probe can only widen, never shrink.
         const explicit = probeData[i].hasExplicitWidth ? (cols[i]?.width ?? 60) : 0;
         colWidths.push(Math.max(measured, explicit));
       }
 
       // If the natural total fits within the container, distribute the
-      // surplus equally across all columns so the table fills the space.
-      // If it doesn't fit, leave widths at their natural values and let the
-      // table scroll horizontally.
+      // surplus proportionally so wider columns (e.g. Email, URLs) absorb
+      // more of the extra space than narrow ones. If it doesn't fit, leave
+      // widths at natural values and let the table scroll horizontally.
       const total = colWidths.reduce((s, w) => s + w, 0);
-      if (containerWidth > 0 && total < containerWidth && colWidths.length > 0) {
+      if (containerWidth > 0 && total < containerWidth) {
         const surplus = containerWidth - total;
-        const perCol = Math.floor(surplus / colWidths.length);
-        const remainder = surplus - perCol * colWidths.length;
-        for (let i = 0; i < colWidths.length; i++) {
-          colWidths[i] += perCol;
+        let distributed = 0;
+        for (let i = 0; i < colWidths.length - 1; i++) {
+          const extra = Math.round(surplus * (colWidths[i] / total));
+          colWidths[i] += extra;
+          distributed += extra;
         }
-        // Drop the leftover pixels onto the last column so the sum lands
-        // exactly on containerWidth.
-        colWidths[colWidths.length - 1] += remainder;
+        colWidths[colWidths.length - 1] += surplus - distributed;
       }
 
       setMeasuredWidths(colWidths);
@@ -247,7 +273,11 @@ export function ReportTable({
     return () => ro.disconnect();
   }, [probeData, formattedOptions]);
 
-  // Apply measured widths to grid options
+  // Apply measured widths to grid options. Always return a fresh options
+  // reference (and a fresh columns array with fresh column objects) so
+  // react-grid-lite's `useEffect([options])` actually fires when widths
+  // change — without new references the wrapper short-circuits the update
+  // and the grid stays at its first-measured widths.
   const sizedOptions = useMemo(() => {
     const opts = autoSizeGridColumns(formattedOptions);
     if (!measuredWidths) return opts;
@@ -255,10 +285,12 @@ export function ReportTable({
     const cols = opts.columns as Array<{ id: string; width?: number }> | undefined;
     if (!cols) return opts;
 
-    for (let i = 0; i < cols.length && i < measuredWidths.length; i++) {
-      cols[i].width = measuredWidths[i];
-    }
-    return opts;
+    return {
+      ...opts,
+      columns: cols.map((col, i) =>
+        i < measuredWidths.length ? { ...col, width: measuredWidths[i] } : col
+      ),
+    };
   }, [formattedOptions, measuredWidths]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -489,13 +521,21 @@ export function ReportTable({
             </tr>
           </thead>
           <tbody>
-            <tr>
-              {probeData.map((col) => (
-                <td key={col.id} style={{ whiteSpace: 'nowrap' }}>
-                  {col.widest}
-                </td>
-              ))}
-            </tr>
+            {/* One row per candidate-rank — the longest value lives in row 0,
+                second-longest in row 1, etc. Columns with fewer candidates
+                emit empty <td>s for the missing rows. The measurement step
+                takes the max offsetWidth across all rows for each column. */}
+            {Array.from({
+              length: Math.max(1, ...probeData.map((c) => c.candidates.length)),
+            }).map((_, rowIdx) => (
+              <tr key={rowIdx}>
+                {probeData.map((col) => (
+                  <td key={col.id} style={{ whiteSpace: 'nowrap' }}>
+                    {col.candidates[rowIdx] ?? ''}
+                  </td>
+                ))}
+              </tr>
+            ))}
           </tbody>
         </table>
       )}
