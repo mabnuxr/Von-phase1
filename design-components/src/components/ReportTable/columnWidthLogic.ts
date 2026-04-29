@@ -3,7 +3,7 @@
  * useColumnWidthMeasurement so it can be unit-tested in a Node environment.
  */
 import type { GridOptions } from '@highcharts/grid-lite-react';
-import { getDataTableColumns } from './reportTableUtils';
+import { escapeHtml, getDataTableColumns } from './reportTableUtils';
 
 /** How many longest-by-char-length sample values per column the probe renders.
  *  Multiple candidates are needed because two equal-length strings may render
@@ -119,10 +119,10 @@ function renderCandidateHtml(
   if (typeof cells?.format === 'string') {
     return cells.format.replace(/\{([a-zA-Z_][\w.]*)\}/g, (_m, key) => {
       const v = key === 'value' ? value : rowData?.[key];
-      return v == null ? '' : String(v);
+      return v == null ? '' : escapeHtml(String(v));
     });
   }
-  return String(value ?? '');
+  return escapeHtml(String(value ?? ''));
 }
 
 /** Build the array of probe-column descriptors the hidden table needs.
