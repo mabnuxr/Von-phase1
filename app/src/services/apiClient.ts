@@ -263,7 +263,11 @@ export class ApiClient {
    * NOT set Content-Type — fetch derives it from the FormData and includes
    * the boundary automatically.
    */
-  async postMultipart<T>(endpoint: string, body: FormData): Promise<T> {
+  async postMultipart<T>(
+    endpoint: string,
+    body: FormData,
+    _isRetry = false,
+  ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: Record<string, string> = { Accept: "application/json" };
     if (_shareId) {
@@ -304,6 +308,20 @@ export class ApiClient {
       );
 
       if (response.status === 401) {
+        const errorCode = getErrorCode(errorData);
+
+        // Token refresh in progress on the backend — wait and retry once.
+        // Mirrors the same handling in request() so multipart uploads don't
+        // force a logout during a benign refresh window.
+        if (errorCode === "refresh_in_progress" && !_isRetry) {
+          const retryAfter =
+            parseInt(response.headers.get("Retry-After") || "1", 10) || 1;
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryAfter * 1000),
+          );
+          return this.postMultipart<T>(endpoint, body, true);
+        }
+
         if (import.meta.env.DEV) {
           console.log("[API] 401 Unauthorized on multipart upload");
         }
