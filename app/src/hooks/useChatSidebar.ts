@@ -22,7 +22,7 @@ import type {
   Folder as UiFolder,
   SidebarItem,
 } from "@vonlabs/design-components";
-import { FOLDER_CONTENTS_LIMIT } from "./folders";
+import { FOLDER_CONTENTS_LIMIT, FOLDER_CONTENTS_FETCH_LIMIT } from "./folders";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Public type aliases for consumers (Container, ConversationMoreMenu, …)
@@ -97,6 +97,27 @@ function dashboardRowToFolderItem(
     folderId,
     isOwner: dash.is_owner,
   };
+}
+
+/**
+ * Newest-first sort by `updated_at` (with `created_at` fallback). Used to
+ * normalise folder contents so the recently-active items appear in the
+ * first FOLDER_CONTENTS_LIMIT slice surfaced by the sidebar — matches
+ * user expectation against the unfiled Chats list.
+ *
+ * Returns a new array; never mutates the input. Items with missing or
+ * unparseable timestamps sink to the bottom rather than swapping unstably.
+ */
+function sortByRecencyDesc<
+  T extends { updated_at?: string; created_at?: string },
+>(items: T[]): T[] {
+  const ts = (x: T): number => {
+    const raw = x.updated_at ?? x.created_at;
+    if (!raw) return 0;
+    const t = Date.parse(raw);
+    return Number.isFinite(t) ? t : 0;
+  };
+  return [...items].sort((a, b) => ts(b) - ts(a));
 }
 
 function apiFolderToUiFolder(folder: ApiFolder, isExpanded: boolean): UiFolder {
@@ -257,8 +278,8 @@ export function useChatSidebar(): UseChatSidebarReturn {
       queryFn: () =>
         foldersService.contents(folderId, {
           types: ["dashboard", "conversation"] as FolderItemType[],
-          dashboardsLimit: FOLDER_CONTENTS_LIMIT,
-          conversationsLimit: FOLDER_CONTENTS_LIMIT,
+          dashboardsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
+          conversationsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
         }),
       enabled: expandedFolderIds.has(folderId),
       staleTime: CONVERSATIONS_STALE_TIME,
@@ -313,8 +334,12 @@ export function useChatSidebar(): UseChatSidebarReturn {
       const query = folderContentsQueries[idx];
       const data = query?.data as FolderContentsResponse | undefined;
       loadingMap[folderId] = !!query?.isLoading;
-      const conversations = data?.conversations?.items ?? [];
-      const dashRows = data?.dashboards?.items ?? [];
+      // Sort newest-first by updated_at (falling back to created_at). The
+      // contents endpoint does not currently guarantee a recency sort, so we
+      // normalise here to ensure the most recently active items are visible
+      // within the first FOLDER_CONTENTS_LIMIT slice rendered by the sidebar.
+      const conversations = sortByRecencyDesc(data?.conversations?.items ?? []);
+      const dashRows = sortByRecencyDesc(data?.dashboards?.items ?? []);
       rawMap[folderId] = conversations;
       itemsMap[folderId] = conversations
         .filter((c) => c.title && c.title.trim() !== "")

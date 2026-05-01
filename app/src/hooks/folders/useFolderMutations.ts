@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQueryClient,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { foldersService } from "../../services";
 import { folderKeys } from "./folderKeys";
@@ -11,9 +7,6 @@ import { getFolderErrorToast } from "../../utils/folderErrors";
 import type {
   Folder,
   FolderItemType,
-  FolderItemsResponse,
-  FolderConversationRow,
-  FolderDashboardRow,
   CreateFolderRequest,
   UpdateFolderRequest,
 } from "../../types/chatSidebar";
@@ -49,10 +42,13 @@ interface PinFolderParams {
  * so consumers can pass them straight into props without churning React keys.
  *
  * Cache strategy:
- *   - Optimistic: remove from source unfiled-items list and folders-list
- *     (where applicable) so the UI feels instant.
- *   - On success: invalidate folders list + every contents/items/unfiled
- *     touchpoint so live counts and slices come back fresh.
+ *   - Optimistic: where applicable (folder-list reorders/renames) so the UI
+ *     feels instant. Item-membership mutations no longer remove the item
+ *     from the top-level "Chats" / "Dashboards" cache: that list now holds
+ *     EVERY item the user can see — filed or not — so a chat added to a
+ *     folder must remain visible at the top level too.
+ *   - On success: invalidate folders list + every contents/items touchpoint
+ *     so live counts and slices come back fresh.
  *   - On error: roll back the optimistic updates and surface a toast keyed
  *     off the standard APP_* error envelope.
  */
@@ -239,55 +235,16 @@ export function useFolderMutations() {
     [queryClient],
   );
 
-  const addItemMutation = useMutation<
-    void,
-    unknown,
-    AddItemParams,
-    {
-      previousUnfiled:
-        | InfiniteData<
-            FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-          >
-        | undefined;
-    }
-  >({
+  const addItemMutation = useMutation<void, unknown, AddItemParams>({
     mutationFn: async ({ folderId, itemType, itemId }) => {
       await foldersService.addItem(folderId, { itemType, itemId });
     },
-    onMutate: async ({ itemType, itemId }) => {
-      await queryClient.cancelQueries({
-        queryKey: folderKeys.unfiled(itemType),
-      });
-      const previousUnfiled = queryClient.getQueryData<
-        InfiniteData<
-          FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-        >
-      >(folderKeys.unfiled(itemType));
-
-      if (previousUnfiled) {
-        queryClient.setQueryData<
-          InfiniteData<
-            FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-          >
-        >(folderKeys.unfiled(itemType), {
-          ...previousUnfiled,
-          pages: previousUnfiled.pages.map((page) => ({
-            ...page,
-            items: page.items.filter(
-              (it) => readItemId(it, itemType) !== itemId,
-            ),
-          })),
-        });
-      }
-      return { previousUnfiled };
-    },
-    onError: (error, vars, ctx) => {
-      if (ctx?.previousUnfiled) {
-        queryClient.setQueryData(
-          folderKeys.unfiled(vars.itemType),
-          ctx.previousUnfiled,
-        );
-      }
+    // Note: we deliberately do NOT optimistically remove the item from the
+    // top-level "Chats" / "Dashboards" cache here. That list is the global
+    // list of items (filed + unfiled) — adding to a folder should leave the
+    // top-level row in place. See the docstring on this hook for the wider
+    // cache strategy.
+    onError: (error) => {
       reportError(error, "Couldn't add to folder.");
     },
     onSuccess: (_data, { folderId, itemType, sourceFolderId }) => {
@@ -361,13 +318,4 @@ export function useFolderMutations() {
 
     createFolderForItem,
   };
-}
-
-function readItemId(
-  item: FolderConversationRow | FolderDashboardRow,
-  itemType: FolderItemType,
-): string {
-  return itemType === "conversation"
-    ? (item as FolderConversationRow).conversation_id
-    : (item as FolderDashboardRow).dashboard_id;
 }
