@@ -49,8 +49,12 @@ export function ManageUsersTab() {
   // Update member permissions mutation
   const updatePermissionsMutation = useUpdateMemberPermissions(activeTenant);
 
-  // Access store to open add team member panel
-  const { setAddingTeamMember, setEditingTeamMemberId } = usePreferencesStore();
+  // Access store to open add team member panels
+  const {
+    setAddingTeamMember,
+    setAddingBulkTeamMembers,
+    setEditingTeamMemberId,
+  } = usePreferencesStore();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -89,6 +93,10 @@ export function ManageUsersTab() {
 
   const handleAddTeamMemberClick = () => {
     setAddingTeamMember(true);
+  };
+
+  const handleBulkAddClick = () => {
+    setAddingBulkTeamMembers(true);
   };
 
   const handleDeleteUser = (userId: string, userName: string) => {
@@ -184,12 +192,20 @@ export function ManageUsersTab() {
               />
             </div>
             {canCreateTeamMember && (
-              <button
-                onClick={handleAddTeamMemberClick}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm shrink-0"
-              >
-                Add Team Member
-              </button>
+              <>
+                <button
+                  onClick={handleBulkAddClick}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-800 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:cursor-pointer transition-colors duration-200 shadow-xs shrink-0"
+                >
+                  Bulk Add
+                </button>
+                <button
+                  onClick={handleAddTeamMemberClick}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm shrink-0"
+                >
+                  Add Team Member
+                </button>
+              </>
             )}
           </div>
 

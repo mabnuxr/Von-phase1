@@ -32,6 +32,10 @@ export const config = {
   oauthScope: "openid profile offline_access email",
   oauthCodeChallengeMethod: "S256",
   oauthGrantType: "authorization_code",
+
+  // Public asset URLs (hosted in vonlabs-public-assets S3 bucket)
+  teamMembersCsvTemplateUrl:
+    "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/templates/team-members-template.csv",
 };
 
 // Debug: Log config values on initialization
