@@ -251,9 +251,7 @@ export function useFolderMutations() {
       invalidateMembershipCaches({ folderId, itemType, sourceFolderId });
 
       const folders = queryClient.getQueryData<Folder[]>(folderKeys.list());
-      const folderName = folders?.find(
-        (f) => f.folderId === folderId,
-      )?.name;
+      const folderName = folders?.find((f) => f.folderId === folderId)?.name;
       const itemLabel = itemType === "dashboard" ? "Dashboard" : "Chat";
       showToast({
         message: folderName
