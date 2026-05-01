@@ -4,7 +4,10 @@ import { useAddTeamMember, useRoles } from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
 import type { TabContentProps } from "./types";
 
-export function IndividualAddTab({ onClose, onRegisterFooter }: TabContentProps) {
+export function IndividualAddTab({
+  onClose,
+  onRegisterFooter,
+}: TabContentProps) {
   const { user } = useUser();
 
   const addMutation = useAddTeamMember(user?.tenantId as string | undefined);

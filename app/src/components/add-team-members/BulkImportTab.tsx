@@ -320,9 +320,7 @@ export function BulkImportTab({
       {isUploading && (
         <div className="space-y-4">
           <div className="text-sm text-gray-700">
-            {total > 0
-              ? `Processing ${completed} of ${total}…`
-              : "Uploading…"}
+            {total > 0 ? `Processing ${completed} of ${total}…` : "Uploading…"}
           </div>
           <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -344,8 +342,7 @@ export function BulkImportTab({
               Import complete.{" "}
               <span className="text-gray-600">
                 {summary.created} created · {summary.skipped} skipped ·{" "}
-                {summary.errors}{" "}
-                {summary.errors === 1 ? "error" : "errors"}
+                {summary.errors} {summary.errors === 1 ? "error" : "errors"}
               </span>
             </div>
           </div>
