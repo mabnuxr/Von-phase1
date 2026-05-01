@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import { IndividualAddTab } from "./add-team-members/IndividualAddTab";
 import { BulkImportTab } from "./add-team-members/BulkImportTab";
@@ -47,7 +53,10 @@ export function AddTeamMembersPane() {
     e.stopPropagation();
   };
 
-  const tabButtonClass = (tab: AddTeamMembersTab, isUploadingDisabled = false) =>
+  const tabButtonClass = (
+    tab: AddTeamMembersTab,
+    isUploadingDisabled = false,
+  ) =>
     `pb-2 -mb-px text-sm font-medium transition-colors cursor-pointer border-b-2 ${
       activeTab === tab
         ? "text-gray-900 border-gray-900"
