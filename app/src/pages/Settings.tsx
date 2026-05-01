@@ -25,6 +25,7 @@ import { FieldDetailPane } from "../components/FieldDetailPane";
 import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
 import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
 import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
+import { BulkAddTeamMembersPane } from "../components/BulkAddTeamMembersPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
@@ -235,6 +236,9 @@ const Settings = () => {
 
         {/* Add Team Member Pane - Global */}
         <AddTeamMemberPane />
+
+        {/* Bulk Add Team Members Pane - Global */}
+        <BulkAddTeamMembersPane />
 
         {/* Edit Team Member Pane - Global */}
         <EditTeamMemberPane />

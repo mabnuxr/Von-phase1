@@ -16,6 +16,7 @@ export const UserChannelEvents = {
   CONVERSATION_APPROVAL_EXPIRED: "conversation_approval_expired",
   DASHBOARD_REFRESH_STARTED: "dashboard_refresh_started",
   DASHBOARD_REFRESH_COMPLETED: "dashboard_refresh_completed",
+  BULK_IMPORT_PROGRESS: "bulk_import_progress",
   // Future events:
   // ORG_MEMORY_UPDATED: "org_memory_updated",
   // NOTIFICATION: "notification",
@@ -93,4 +94,45 @@ export interface NotificationEvent {
     label: string;
     url: string;
   };
+}
+
+/**
+ * Per-row outcome from a bulk team-member import.
+ * Mirrors the backend BulkImportRowResult schema.
+ */
+export interface BulkImportRowInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
+export interface BulkImportRowResult {
+  row: number;
+  input: BulkImportRowInput;
+  status: "created" | "skipped" | "error";
+  reason?: string | null;
+  member?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    joinedDate: string | null;
+    isActive: boolean;
+    usage: { total: number; last_week: number; last_month: number };
+  } | null;
+}
+
+/**
+ * Sent on the user channel as each row of a bulk team-member import finishes.
+ * The HTTP response is the canonical source of truth — these events drive the
+ * live progress bar and per-row table; if any are dropped, the response still
+ * has every row classified.
+ */
+export interface BulkImportProgressEvent {
+  jobId: string;
+  completed: number;
+  total: number;
+  result: BulkImportRowResult;
 }
