@@ -1,27 +1,23 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChatSidebarV2 } from "@vonlabs/design-components";
+import { ChatSidebar } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useShareStatus } from "../hooks/useShareStatus";
-import { useChatSidebarV2 } from "../hooks/useChatSidebarV2";
-import type { FolderItemsMap } from "../hooks/useChatSidebarV2";
+import { useChatSidebar } from "../hooks/useChatSidebar";
+import type { FolderItemsMap } from "../hooks/useChatSidebar";
 import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { useTitleAnimation } from "../hooks/useTitleAnimation";
 import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useApprovalStates } from "../hooks/useApprovalStates";
-import { useSidebarDashboards } from "../hooks/useSidebarDashboards";
 import { useSidebarDashboardRename } from "../hooks/useSidebarDashboardRename";
 import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
 
-/**
- * Overlay animated titles onto sidebar items.
- * When a title is animating, replace the item label with the partial string.
- */
+/** Overlay animated titles onto sidebar items. */
 function applyAnimatedTitles(
   items: SidebarItem[],
   animatedTitles: Map<string, string>,
@@ -45,11 +41,7 @@ function applyAnimatedTitlesToFolderItems(
   return result;
 }
 
-/**
- * Stamp `approvalState` onto each item based on the live state map.
- * Keeps the Pusher-driven source of truth in one place (the map) and avoids
- * threading the state through every transform step.
- */
+/** Stamp `approvalState` onto each item from the live state map. */
 function applyApprovalStates(
   items: SidebarItem[],
   approvalStates: Map<string, ApprovalState>,
@@ -79,7 +71,7 @@ function applyApprovalStatesToFolderItems(
   return result;
 }
 
-interface ChatSidebarV2ContainerProps {
+interface ChatSidebarContainerProps {
   currentConversationId: string | null;
   user: User | null;
   onNewChatClick: () => void;
@@ -89,7 +81,7 @@ interface ChatSidebarV2ContainerProps {
   onLogoutClick: () => void;
 }
 
-export function ChatSidebarV2Container({
+export function ChatSidebarContainer({
   currentConversationId,
   user,
   onNewChatClick,
@@ -97,14 +89,9 @@ export function ChatSidebarV2Container({
   onToggleCollapse,
   onSettingsClick,
   onLogoutClick,
-}: ChatSidebarV2ContainerProps) {
+}: ChatSidebarContainerProps) {
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
-  const { isDeepResearchEnabled } = useFeatureFlag();
-  // Share action is shell-scoped — pull directly from context instead of
-  // drilling it through AppShell as a prop. Gated by the chat-sharing
-  // feature flag so tenants without the feature don't see the "Share"
-  // context-menu entry at all.
   const { openShareModal } = useAppShell();
   const { isChatSharingEnabled } = useFeatureFlag();
 
@@ -128,13 +115,19 @@ export function ChatSidebarV2Container({
   const {
     folders,
     items,
+    dashboards,
     folderItems,
+    folderDashboards,
     folderConversationsMap,
     folderLoadingMap,
     isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
+    hasNextDashboardPage,
+    fetchNextDashboardPage,
+    sectionShowMore,
+    toggleSectionShowMore,
     createFolder,
     deleteFolder,
     renameFolder,
@@ -146,7 +139,7 @@ export function ChatSidebarV2Container({
     createFolderForItem,
     removeItemFromFolder,
     unfiledConversations,
-  } = useChatSidebarV2();
+  } = useChatSidebar();
 
   const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
@@ -154,45 +147,30 @@ export function ChatSidebarV2Container({
   });
 
   const { approvalStates } = useApprovalStates({
-    sidebarConversations: unfiledConversations,
+    unfiledConversations,
     folderConversations: folderConversationsMap,
     userChannel,
   });
-
-  // Dashboard data for sidebar (skip query entirely when flag is off)
-  const {
-    dashboards: sidebarDashboards,
-    hasNextPage: hasMoreDashboards,
-    loadMore: loadMoreDashboards,
-  } = useSidebarDashboards({ enabled: isDeepResearchEnabled });
 
   const renameDashboard = useSidebarDashboardRename();
 
   const handleDeleteDashboard = useCallback(
     (id: string) => {
       // Only navigate if we're currently viewing the deleted dashboard
-      if (id === dashboardId) {
-        // Find the next available dashboard (excluding the one being deleted)
-        const nextDashboard = sidebarDashboards.find((d) => d.id !== id);
-        if (nextDashboard) {
-          navigate(`/dashboard/${nextDashboard.id}`);
-        } else {
-          // No dashboards left — go to the first available chat or /chat
-          const firstChat = items[0];
-          if (firstChat) {
-            navigate(`/chat/${firstChat.id}`);
-          } else {
-            navigate("/chat");
-          }
-        }
+      if (id !== dashboardId) return;
+      const nextDashboard = dashboards.find((d) => d.id !== id);
+      if (nextDashboard) {
+        navigate(`/dashboard/${nextDashboard.id}`);
+        return;
       }
+      const firstChat = items[0];
+      navigate(firstChat ? `/chat/${firstChat.id}` : "/chat");
     },
-    [dashboardId, sidebarDashboards, items, navigate],
+    [dashboardId, dashboards, items, navigate],
   );
 
   const deleteDashboard = useSidebarDashboardDelete(handleDeleteDashboard);
 
-  // Title animation (shared with V1)
   const { animatedTitles } = useTitleAnimation({ userChannel });
 
   // Apply animated titles then approval badges. Order matters only in that
@@ -214,7 +192,7 @@ export function ChatSidebarV2Container({
     [animatedFolderItems, approvalStates],
   );
 
-  // Infinite scroll for unfiled conversations
+  // Infinite scroll for the top-level Chats section (unfiled conversations).
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextPage,
     hasMore: hasNextPage,
@@ -238,6 +216,21 @@ export function ChatSidebarV2Container({
     [deleteConversation, currentConversationId, navigate],
   );
 
+  const handleMoveDashboardToFolder = useCallback(
+    (id: string, folderId: string) =>
+      moveItemToFolder(id, folderId, "dashboard"),
+    [moveItemToFolder],
+  );
+  const handleCreateFolderAndMoveDashboard = useCallback(
+    (id: string, folderName: string) =>
+      createFolderForItem(id, folderName, "dashboard"),
+    [createFolderForItem],
+  );
+  const handleRemoveDashboardFromFolder = useCallback(
+    (id: string) => removeItemFromFolder(id, "dashboard"),
+    [removeItemFromFolder],
+  );
+
   // Avatar props
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
   const avatarSrc =
@@ -246,35 +239,29 @@ export function ChatSidebarV2Container({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  // Show "New Chat" button in active state when the current conversation
-  // is definitively an untitled chat (exists in raw data with empty title).
-  // We cannot assume "not found" means "new" because items/folderItems only
-  // cover fetched pages and expanded folders — a conversation in a collapsed
-  // folder or unfetched page would be absent without being untitled.
+  // "New Chat" lights up only for a definitively-untitled chat — not just
+  // "current id not in cache", since the chat could live in a collapsed
+  // folder or unfetched page.
   const isNewChatActive = useMemo(() => {
     if (!currentConversationId) return false;
-    // Already visible in the sidebar — not a new/untitled chat
     if (items.some((item) => item.id === currentConversationId)) return false;
     for (const folderItemList of Object.values(folderItems)) {
       if (folderItemList.some((item) => item.id === currentConversationId))
         return false;
     }
-    // Definitive check: the conversation exists in raw unfiled data with an
-    // empty title (these are filtered out of `items` but still present in the
-    // pre-filter list). If the conversation isn't in raw data at all, it could
-    // live in a collapsed folder or unfetched page — default to false.
     return unfiledConversations.some(
       (conv) =>
-        conv.conversationId === currentConversationId &&
+        conv.conversation_id === currentConversationId &&
         (!conv.title || conv.title.trim() === ""),
     );
   }, [currentConversationId, items, folderItems, unfiledConversations]);
 
   return (
-    <ChatSidebarV2
+    <ChatSidebar
       items={decoratedItems}
       folders={folders}
       folderItems={decoratedFolderItems}
+      folderDashboards={folderDashboards}
       folderLoadingMap={folderLoadingMap}
       isLoading={isLoading}
       selectedItemId={currentConversationId || undefined}
@@ -295,6 +282,8 @@ export function ChatSidebarV2Container({
       onMoveItemToFolder={moveItemToFolder}
       onCreateFolderAndMoveItem={createFolderForItem}
       onRemoveItemFromFolder={removeItemFromFolder}
+      sectionShowMore={sectionShowMore}
+      onToggleSectionShowMore={toggleSectionShowMore}
       isCollapsed={isCollapsed}
       onToggleCollapse={onToggleCollapse}
       loadMoreRef={loadMoreRef}
@@ -306,12 +295,15 @@ export function ChatSidebarV2Container({
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
-      dashboards={isDeepResearchEnabled ? sidebarDashboards : undefined}
+      dashboards={dashboards}
       selectedDashboardId={dashboardId}
-      hasMoreDashboards={hasMoreDashboards}
-      onLoadMoreDashboards={loadMoreDashboards}
+      hasMoreDashboards={hasNextDashboardPage}
+      onLoadMoreDashboards={fetchNextDashboardPage}
       onRenameDashboard={renameDashboard}
       onDeleteDashboard={deleteDashboard}
+      onMoveDashboardToFolder={handleMoveDashboardToFolder}
+      onCreateFolderAndMoveDashboard={handleCreateFolderAndMoveDashboard}
+      onRemoveDashboardFromFolder={handleRemoveDashboardFromFolder}
       onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
     />
   );

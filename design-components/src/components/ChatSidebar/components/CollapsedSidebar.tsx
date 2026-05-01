@@ -19,7 +19,7 @@ import type {
   FolderLoadingMap,
   DashboardSidebarItem,
   ApprovalState,
-} from '../ChatSidebarV2';
+} from '../ChatSidebar';
 import type { PopoverPosition } from '../hooks';
 
 export interface CollapsedSidebarProps {

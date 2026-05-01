@@ -2,16 +2,28 @@ import React from 'react';
 import { FolderPlusIcon, FolderSimpleIcon } from '@phosphor-icons/react';
 import { FolderRow } from './FolderRow';
 import { FolderContents } from './FolderContents';
-import type { SidebarItem, Folder, FolderLoadingMap } from '../ChatSidebarV2';
+import type {
+  SidebarItem,
+  Folder,
+  FolderLoadingMap,
+  FolderItemsMap,
+  FolderDashboardsMap,
+  FolderItemType,
+  SectionShowMoreMap,
+} from '../ChatSidebar';
 import type { ContextMenuState, FolderContextMenuState } from '../hooks';
 
 export interface FolderListProps {
   sortedFolders: Folder[];
-  itemsByFolder: Record<string, SidebarItem[]>;
+  itemsByFolder: FolderItemsMap;
+  dashboardsByFolder?: FolderDashboardsMap;
   folderLoadingMap?: FolderLoadingMap;
   selectedItemId?: string;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
+  /** Click handler for chat items — receives the conversation id. */
   onItemClick?: (id: string) => void;
+  /** Click handler for dashboard items — receives the dashboard id. */
+  onDashboardClick?: (id: string) => void;
 
   /**
    * When true, renders a read-only view (no creation, editing, context menus).
@@ -21,6 +33,10 @@ export interface FolderListProps {
 
   /** Show "No folders" empty state when there are no folders */
   showEmptyState?: boolean;
+
+  // --- Per-section show-more state (per-folder + per-type) ---
+  sectionShowMore?: SectionShowMoreMap;
+  onToggleSectionShowMore?: (folderId: string, itemType: FolderItemType) => void;
 
   // --- Full-mode props (ignored when minimal=true) ---
 
@@ -51,24 +67,23 @@ export interface FolderListProps {
 }
 
 /**
- * FolderList - Shared folder list content used in both expanded and collapsed sidebar.
- *
- * Renders:
- * - "New folder" button with inline creation input (full mode only)
- * - Folder rows (FolderRow + FolderContents) for each folder
- * - Optional empty state
- *
- * Use `minimal` prop for the collapsed sidebar's read-only popover.
+ * FolderList — renders one row per folder with the A2 nested body inside
+ * each expanded folder. Both chats and dashboards inside a folder render
+ * through the shared `ConversationItem` row, so the visual is identical.
  */
 export const FolderList: React.FC<FolderListProps> = ({
   sortedFolders,
   itemsByFolder,
+  dashboardsByFolder = {},
   folderLoadingMap = {},
   selectedItemId,
   onFolderToggle,
   onItemClick,
+  onDashboardClick,
   minimal = false,
   showEmptyState = false,
+  sectionShowMore,
+  onToggleSectionShowMore,
   isCreatingFolder,
   newFolderName,
   onNewFolderNameChange,
@@ -129,7 +144,8 @@ export const FolderList: React.FC<FolderListProps> = ({
 
       {/* Folder rows */}
       {sortedFolders.map((folder) => {
-        const folderItemsList = itemsByFolder[folder.id] || [];
+        const folderConversations = itemsByFolder[folder.id] || [];
+        const folderDashes = dashboardsByFolder[folder.id] || [];
         const isFolderLoading = folderLoadingMap[folder.id] || false;
         return (
           <div key={folder.id}>
@@ -148,15 +164,21 @@ export const FolderList: React.FC<FolderListProps> = ({
               onCancelEdit={minimal ? undefined : onCancelFolderRename}
             />
             <FolderContents
+              folderId={folder.id}
               isExpanded={folder.isExpanded ?? false}
               isLoading={isFolderLoading}
-              items={folderItemsList}
+              conversations={folderConversations}
+              dashboards={folderDashes}
               selectedItemId={selectedItemId}
               menuOpenItemId={!minimal && contextMenu?.isOpen ? contextMenu.item?.id : null}
               editingItemId={
                 !minimal && editingItemFolderId === folder.id ? (editingItemId ?? null) : null
               }
-              onItemClick={(id) => onItemClick?.(id)}
+              sectionShowMore={sectionShowMore}
+              onToggleSectionShowMore={onToggleSectionShowMore}
+              onItemClick={(item) =>
+                item.type === 'dashboard' ? onDashboardClick?.(item.id) : onItemClick?.(item.id)
+              }
               onItemContextMenu={minimal ? undefined : onItemContextMenu}
               onSaveEdit={minimal ? undefined : onSaveRename}
               onCancelEdit={minimal ? undefined : onCancelRename}

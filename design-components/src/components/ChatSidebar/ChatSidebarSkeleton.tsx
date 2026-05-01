@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * Loading skeleton for ChatSidebarV2
+ * Loading skeleton for ChatSidebar
  * Mirrors the real sidebar layout: Folders section + Chats section
  */
 export const ChatSidebarSkeleton: React.FC = () => {

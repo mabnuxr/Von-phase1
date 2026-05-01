@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { ApprovalState } from '../ChatSidebarV2';
+import type { ApprovalState } from '../ChatSidebar';
 
 export interface ApprovalDotProps {
   state: ApprovalState;

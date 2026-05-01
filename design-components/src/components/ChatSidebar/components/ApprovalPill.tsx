@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ApprovalState } from '../ChatSidebarV2';
+import type { ApprovalState } from '../ChatSidebar';
 
 export interface ApprovalPillProps {
   state: ApprovalState;

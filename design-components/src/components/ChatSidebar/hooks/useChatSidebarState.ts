@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebarV2';
+import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebar';
 import type { MoveToFolderConfig } from '../../popups';
 
 // ============================================================================
@@ -54,6 +54,14 @@ export interface UseChatSidebarStateOptions {
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
   onRemoveItemFromFolder?: (itemId: string) => void;
+  // Dashboard parallels — dispatched when the in-folder context menu acts
+  // on a SidebarItem whose `type` is 'dashboard'. Falls back to the chat
+  // callbacks if not provided so existing chat-only callers keep working.
+  onRenameDashboard?: (id: string, newName: string) => void;
+  onDeleteDashboard?: (id: string) => void;
+  onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
+  onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
+  onRemoveDashboardFromFolder?: (dashboardId: string) => void;
 }
 
 // ============================================================================
@@ -73,6 +81,11 @@ export function useChatSidebarState({
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
+  onRenameDashboard,
+  onDeleteDashboard,
+  onMoveDashboardToFolder,
+  onCreateFolderAndMoveDashboard,
+  onRemoveDashboardFromFolder,
 }: UseChatSidebarStateOptions) {
   // ============================================================================
   // State
@@ -239,11 +252,15 @@ export function useChatSidebarState({
 
   const handleSaveRename = useCallback(
     (item: SidebarItem, newName: string) => {
-      onRenameItem?.(item.id, newName);
+      if (item.type === 'dashboard') {
+        onRenameDashboard?.(item.id, newName);
+      } else {
+        onRenameItem?.(item.id, newName);
+      }
       setEditingItemId(null);
       setEditingItemFolderId(null);
     },
-    [onRenameItem]
+    [onRenameItem, onRenameDashboard]
   );
 
   const handleCancelRename = useCallback(() => {
@@ -256,11 +273,16 @@ export function useChatSidebarState({
   }, []);
 
   const handleConfirmDelete = useCallback(() => {
-    if (deleteConfirmation.item) {
-      onDeleteItem?.(deleteConfirmation.item.id);
+    const target = deleteConfirmation.item;
+    if (target) {
+      if (target.type === 'dashboard') {
+        onDeleteDashboard?.(target.id);
+      } else {
+        onDeleteItem?.(target.id);
+      }
     }
     setDeleteConfirmation({ isOpen: false, item: null });
-  }, [deleteConfirmation.item, onDeleteItem]);
+  }, [deleteConfirmation.item, onDeleteItem, onDeleteDashboard]);
 
   const handleCancelDelete = useCallback(() => {
     setDeleteConfirmation({ isOpen: false, item: null });
@@ -333,16 +355,31 @@ export function useChatSidebarState({
 
   const handleConfirmMoveToFolder = useCallback(
     (config: MoveToFolderConfig) => {
-      if (!moveToFolderModal.item) return;
+      const target = moveToFolderModal.item;
+      if (!target) return;
 
       if (config.isNewFolder && config.newFolderName) {
-        onCreateFolderAndMoveItem?.(moveToFolderModal.item.id, config.newFolderName);
+        if (target.type === 'dashboard') {
+          onCreateFolderAndMoveDashboard?.(target.id, config.newFolderName);
+        } else {
+          onCreateFolderAndMoveItem?.(target.id, config.newFolderName);
+        }
       } else {
-        onMoveItemToFolder?.(moveToFolderModal.item.id, config.folderId);
+        if (target.type === 'dashboard') {
+          onMoveDashboardToFolder?.(target.id, config.folderId);
+        } else {
+          onMoveItemToFolder?.(target.id, config.folderId);
+        }
       }
       setMoveToFolderModal({ isOpen: false, item: null });
     },
-    [moveToFolderModal.item, onCreateFolderAndMoveItem, onMoveItemToFolder]
+    [
+      moveToFolderModal.item,
+      onCreateFolderAndMoveItem,
+      onMoveItemToFolder,
+      onCreateFolderAndMoveDashboard,
+      onMoveDashboardToFolder,
+    ]
   );
 
   const handleCancelMoveToFolder = useCallback(() => {
@@ -351,9 +388,13 @@ export function useChatSidebarState({
 
   const handleRemoveFromFolder = useCallback(
     (item: SidebarItem) => {
-      onRemoveItemFromFolder?.(item.id);
+      if (item.type === 'dashboard') {
+        onRemoveDashboardFromFolder?.(item.id);
+      } else {
+        onRemoveItemFromFolder?.(item.id);
+      }
     },
-    [onRemoveItemFromFolder]
+    [onRemoveItemFromFolder, onRemoveDashboardFromFolder]
   );
 
   // ============================================================================

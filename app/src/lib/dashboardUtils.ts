@@ -6,7 +6,6 @@ import type {
   RunFinishedEvent,
   DashboardReadyEvent,
 } from "@vonlabs/design-components";
-import type { ChatItem } from "@vonlabs/design-components";
 
 // App services
 import { conversationsService } from "../services/conversationsService";
@@ -15,14 +14,12 @@ import { detectIntegrationBlocks } from "../utils/integrationBlockDetector";
 // App types
 import type {
   MessageWithStreaming,
-  Conversation,
   DashboardMetadata,
 } from "../types/conversation";
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { findLast } from "../utils/findLast";
-import { getDisplayTitle } from "./conversationUtils";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
@@ -130,30 +127,6 @@ export function transformMessagesToChatFormat(
           : undefined,
     } as ChatMessage;
   });
-}
-
-/**
- * Transform Conversation entities to ChatSidebar items
- * Filters out empty titles and applies animated titles
- */
-export function transformConversationsToChatItems(
-  conversations: Conversation[],
-  animatedTitles: Map<string, string>,
-): ChatItem[] {
-  return conversations
-    .filter((conv) => conv.title && conv.title.trim() !== "")
-    .map((conv) => {
-      // Check if this conversation has an animated title in progress
-      const animatedTitle = animatedTitles.get(conv.conversationId);
-      const displayTitle = animatedTitle || getDisplayTitle(conv.title);
-
-      return {
-        id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
-        label: displayTitle, // Use animated title if available, otherwise use regular title
-        timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
-        href: `/chat/${conv.conversationId}`, // Add href for proper link behavior
-      };
-    });
 }
 
 /**

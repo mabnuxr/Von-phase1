@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { DotsThreeIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
 import { ApprovalPill } from './ApprovalPill';
-import type { SidebarItem } from '../ChatSidebarV2';
+import type { SidebarItem } from '../ChatSidebar';
 
 export interface ConversationItemProps {
   item: SidebarItem;

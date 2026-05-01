@@ -5,7 +5,7 @@ import {
   TrashIcon,
   ArrowBendUpRightIcon,
 } from "@phosphor-icons/react";
-import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
+import { useChatSidebar } from "../../hooks/useChatSidebar";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { MoveToFolderModal } from "./MoveToFolderModal";
 
@@ -32,10 +32,10 @@ export function ConversationMoreMenu({
     deleteConversation,
     moveItemToFolder,
     createFolderForItem,
-  } = useChatSidebarV2();
+  } = useChatSidebar();
 
   const conversation = unfiledConversations.find(
-    (c) => c.conversationId === conversationId,
+    (c) => c.conversation_id === conversationId,
   );
   const conversationTitle = conversation?.title?.trim() ?? "this chat";
 

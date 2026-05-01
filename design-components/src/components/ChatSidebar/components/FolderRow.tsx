@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FolderSimpleIcon, DotsThreeIcon, PushPinIcon } from '@phosphor-icons/react';
 import { PrimaryIconButton } from '../../forms/buttons';
-import type { Folder } from '../ChatSidebarV2';
+import type { Folder } from '../ChatSidebar';
 
 export interface FolderRowProps {
   folder: Folder;

@@ -4,28 +4,31 @@ import {
   type InfiniteData,
 } from "@tanstack/react-query";
 import { conversationsService } from "../services";
-import { chatSidebarKeys } from "./useChatSidebar";
+import { folderKeys } from "./folders";
 import { conversationKeys } from "./useConversations";
-import { folderConversationsKeys } from "./useFolderConversations";
 import { dashboardAssociatedChatsKeys } from "./useDashboardAssociatedChats";
 import type { Conversation } from "../types/conversation";
 import type {
-  ChatSidebarResponse,
-  FolderConversationsResponse,
+  FolderContentsResponse,
+  FolderConversationRow,
+  FolderItemsResponse,
 } from "../types/chatSidebar";
 import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 
-/**
- * Parameters for renaming a conversation
- */
+/** Parameters for renaming a conversation */
 export interface RenameConversationParams {
   conversationId: string;
   title: string;
 }
 
+type UnfiledChatsCache = InfiniteData<
+  FolderItemsResponse<FolderConversationRow>
+>;
+
 /**
- * Rename a conversation
- * Uses optimistic updates for instant UI feedback
+ * Rename a conversation. Optimistically updates every place the conversation
+ * could appear in cache: top-level unfiled chats, every expanded folder's
+ * contents, and every cached "associated chats" list (used by the chat picker).
  */
 export function useRenameConversation() {
   const queryClient = useQueryClient();
@@ -35,84 +38,75 @@ export function useRenameConversation() {
     Error,
     RenameConversationParams,
     {
-      previousSidebarData: InfiniteData<ChatSidebarResponse> | undefined;
-      previousFolderSnapshots: Array<
-        [readonly unknown[], FolderConversationsResponse | undefined]
+      previousUnfiled: UnfiledChatsCache | undefined;
+      previousFolderContents: Array<
+        [readonly unknown[], FolderContentsResponse | undefined]
       >;
-      previousAssociatedSnapshots: Array<
+      previousAssociated: Array<
         [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
       >;
     }
   >({
-    mutationFn: ({ conversationId, title }: RenameConversationParams) =>
+    mutationFn: ({ conversationId, title }) =>
       conversationsService.renameConversation(conversationId, title),
     onMutate: async ({ conversationId, title }) => {
-      // Cancel any outgoing refetches to prevent overwriting optimistic update
-      await queryClient.cancelQueries({ queryKey: chatSidebarKeys.sidebar() });
       await queryClient.cancelQueries({
-        queryKey: folderConversationsKeys.all,
+        queryKey: folderKeys.unfiled("conversation"),
       });
+      await queryClient.cancelQueries({ queryKey: folderKeys.all });
       await queryClient.cancelQueries({
         queryKey: dashboardAssociatedChatsKeys.all,
       });
 
-      // Snapshot previous value (InfiniteData shape from useInfiniteQuery)
-      const previousSidebarData = queryClient.getQueryData<
-        InfiniteData<ChatSidebarResponse>
-      >(chatSidebarKeys.sidebar());
-
-      // Optimistically update the conversation title in unfiled conversations
-      if (previousSidebarData) {
-        queryClient.setQueryData<InfiniteData<ChatSidebarResponse>>(
-          chatSidebarKeys.sidebar(),
+      // Top-level unfiled chats — InfiniteData of FolderItemsResponse
+      const previousUnfiled = queryClient.getQueryData<UnfiledChatsCache>(
+        folderKeys.unfiled("conversation"),
+      );
+      if (previousUnfiled) {
+        queryClient.setQueryData<UnfiledChatsCache>(
+          folderKeys.unfiled("conversation"),
           {
-            ...previousSidebarData,
-            pages: previousSidebarData.pages.map((page) => ({
+            ...previousUnfiled,
+            pages: previousUnfiled.pages.map((page) => ({
               ...page,
-              unfiled: {
-                ...page.unfiled,
-                conversations: page.unfiled.conversations.map((conv) =>
-                  conv.conversationId === conversationId
-                    ? { ...conv, title }
-                    : conv,
-                ),
-              },
+              items: page.items.map((row) =>
+                row.conversation_id === conversationId
+                  ? { ...row, title }
+                  : row,
+              ),
             })),
           },
         );
       }
 
-      // Snapshot + optimistic update for every cached folder-conversations list.
-      const previousFolderSnapshots: Array<
-        [readonly unknown[], FolderConversationsResponse | undefined]
+      // Per-folder contents — FolderContentsResponse with conversations.items
+      const previousFolderContents: Array<
+        [readonly unknown[], FolderContentsResponse | undefined]
       > = [];
       queryClient
-        .getQueriesData<FolderConversationsResponse>({
-          queryKey: folderConversationsKeys.all,
+        .getQueriesData<FolderContentsResponse>({
+          queryKey: [...folderKeys.all, "contents"],
         })
         .forEach(([queryKey, data]) => {
-          previousFolderSnapshots.push([queryKey, data]);
-          if (!data) return;
-          const hasConv = data.conversations.some(
-            (c) => c.conversationId === conversationId,
+          previousFolderContents.push([queryKey, data]);
+          if (!data?.conversations) return;
+          const hasConv = data.conversations.items.some(
+            (c) => c.conversation_id === conversationId,
           );
-          if (hasConv) {
-            queryClient.setQueryData<FolderConversationsResponse>(queryKey, {
-              ...data,
-              conversations: data.conversations.map((conv) =>
-                conv.conversationId === conversationId
-                  ? { ...conv, title }
-                  : conv,
+          if (!hasConv) return;
+          queryClient.setQueryData<FolderContentsResponse>(queryKey, {
+            ...data,
+            conversations: {
+              ...data.conversations,
+              items: data.conversations.items.map((c) =>
+                c.conversation_id === conversationId ? { ...c, title } : c,
               ),
-            });
-          }
+            },
+          });
         });
 
-      // Snapshot + optimistic update for every cached by-dashboard list.
-      // The ChatPicker reads title from this cache first in dashboard mode,
-      // so without this the rename appears to revert until the cache
-      // naturally refreshes.
-      const previousAssociatedSnapshots: Array<
+      // By-dashboard associated chats — read by ChatPicker in dashboard mode
+      const previousAssociated: Array<
         [readonly unknown[], DashboardAssociatedChatsResponse | undefined]
       > = [];
       queryClient
@@ -120,67 +114,39 @@ export function useRenameConversation() {
           queryKey: dashboardAssociatedChatsKeys.all,
         })
         .forEach(([queryKey, data]) => {
-          previousAssociatedSnapshots.push([queryKey, data]);
+          previousAssociated.push([queryKey, data]);
           if (!data) return;
           const hasConv = data.conversations.some(
             (c) => c.conversationId === conversationId,
           );
-          if (hasConv) {
-            queryClient.setQueryData<DashboardAssociatedChatsResponse>(
-              queryKey,
-              {
-                ...data,
-                conversations: data.conversations.map((c) =>
-                  c.conversationId === conversationId ? { ...c, title } : c,
-                ),
-              },
-            );
-          }
+          if (!hasConv) return;
+          queryClient.setQueryData<DashboardAssociatedChatsResponse>(queryKey, {
+            ...data,
+            conversations: data.conversations.map((c) =>
+              c.conversationId === conversationId ? { ...c, title } : c,
+            ),
+          });
         });
 
-      return {
-        previousSidebarData,
-        previousFolderSnapshots,
-        previousAssociatedSnapshots,
-      };
+      return { previousUnfiled, previousFolderContents, previousAssociated };
     },
-    onSuccess: (_, { conversationId, title }) => {
-      if (import.meta.env.DEV) {
-        console.log(
-          "[useRenameConversation] Renamed conversation:",
-          conversationId,
-          "to:",
-          title,
-        );
-      }
-      // Invalidate conversation list queries so V1 sidebar and currentConversationTitle stay in sync
-      queryClient.invalidateQueries({
-        queryKey: conversationKeys.lists(),
-      });
-      // Reconcile by-dashboard caches with the server (the optimistic patch
-      // above keeps the UI instant; this catches any server-side changes
-      // like lastMessageAt nudges that affect ordering).
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
       queryClient.invalidateQueries({
         queryKey: dashboardAssociatedChatsKeys.all,
       });
     },
-    onError: (error, _, context) => {
-      if (import.meta.env.DEV) {
-        console.error("[useRenameConversation] Error:", error);
-      }
-      // Rollback sidebar data
-      if (context?.previousSidebarData) {
+    onError: (_error, _vars, context) => {
+      if (context?.previousUnfiled) {
         queryClient.setQueryData(
-          chatSidebarKeys.sidebar(),
-          context.previousSidebarData,
+          folderKeys.unfiled("conversation"),
+          context.previousUnfiled,
         );
       }
-      // Rollback folder conversations
-      context?.previousFolderSnapshots.forEach(([queryKey, data]) => {
+      context?.previousFolderContents.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
-      // Rollback by-dashboard associated-chats caches
-      context?.previousAssociatedSnapshots.forEach(([queryKey, data]) => {
+      context?.previousAssociated.forEach(([queryKey, data]) => {
         queryClient.setQueryData(queryKey, data);
       });
     },

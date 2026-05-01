@@ -1,7 +1,7 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
-import { ChatSidebar } from '../../../components/ChatSidebarV2';
-import type { SidebarItem, Folder, FolderItemsMap } from '../../../components/ChatSidebarV2';
+import { ChatSidebar } from '../../../components/ChatSidebar';
+import type { SidebarItem, Folder, FolderItemsMap } from '../../../components/ChatSidebar';
 
 // ============================================================================
 // Decorator
@@ -29,7 +29,7 @@ const SidebarDecorator: Decorator = (Story) => (
 // ============================================================================
 
 const meta = {
-  title: 'Components/ChatSidebarV2',
+  title: 'Components/ChatSidebar',
   component: ChatSidebar,
   decorators: [SidebarDecorator],
   parameters: {

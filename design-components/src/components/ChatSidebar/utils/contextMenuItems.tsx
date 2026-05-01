@@ -12,18 +12,27 @@ import {
 import type { ContextMenuItem } from '../../popups';
 
 /**
- * Get context menu items for conversation items.
+ * Get context menu items for any sidebar item (chat or dashboard).
  *
- * `enableShare` controls whether the "Share" item appears.
- * `shareInfo` drives the icon/label when the conversation is already shared.
+ * Same shape across both item types — the only differences are:
+ *   - "Share" only appears for chats when `enableShare` is on.
+ *   - Rename / Delete are owner-gated (chats are always owned by the
+ *     current user; dashboards reflect API truth via `isOwner`).
+ *   - "Remove from Folder" only appears when `isInFolder` is true.
  */
 export function getContextMenuItems(
   options: {
+    itemType?: 'chat' | 'dashboard';
+    isOwner?: boolean;
     isInFolder?: boolean;
     enableShare?: boolean;
     shareInfo?: { isShared: boolean; accessType?: string | null };
   } = {}
 ): ContextMenuItem[] {
+  const itemType = options.itemType ?? 'chat';
+  // Chats: every viewer is the owner. Dashboards: respect API.
+  const isOwner = itemType === 'chat' ? true : !!options.isOwner;
+
   const isShared = options.shareInfo?.isShared ?? false;
   const shareIcon = isShared ? (
     options.shareInfo?.accessType === 'restricted' ? (
@@ -36,9 +45,14 @@ export function getContextMenuItems(
   );
 
   return [
-    { id: 'rename', label: 'Rename', icon: <PencilSimpleIcon size={14} /> },
+    {
+      id: 'rename',
+      label: 'Rename',
+      icon: <PencilSimpleIcon size={14} />,
+      disabled: !isOwner,
+    },
     { id: 'move', label: 'Add to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
-    ...(options.enableShare
+    ...(options.enableShare && itemType === 'chat'
       ? [{ id: 'share', label: isShared ? 'Shared' : 'Share', icon: shareIcon }]
       : []),
     ...(options.isInFolder
@@ -50,7 +64,13 @@ export function getContextMenuItems(
           },
         ]
       : []),
-    { id: 'delete', label: 'Delete', icon: <TrashIcon size={14} />, variant: 'danger' as const },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: <TrashIcon size={14} />,
+      variant: 'danger' as const,
+      disabled: !isOwner,
+    },
   ];
 }
 
@@ -69,25 +89,6 @@ export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}):
   ];
 }
 
-/**
- * Get context menu items for dashboards
- */
-export function getDashboardContextMenuItems(
-  options: { isOwner?: boolean } = {}
-): ContextMenuItem[] {
-  return [
-    {
-      id: 'rename',
-      label: 'Rename',
-      icon: <PencilSimpleIcon size={14} />,
-      disabled: !options.isOwner,
-    },
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <TrashIcon size={14} />,
-      variant: 'danger' as const,
-      disabled: !options.isOwner,
-    },
-  ];
-}
+// `getDashboardContextMenuItems` was removed — use `getContextMenuItems`
+// with `{ itemType: 'dashboard', isOwner, isInFolder }` instead. Same shape,
+// no duplicate definition.
