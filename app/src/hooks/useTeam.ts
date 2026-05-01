@@ -60,6 +60,7 @@ export function useRoles(tenantId: string | undefined) {
  */
 export function useAddTeamMember(tenantId: string | undefined) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationFn: (data: AddTeamMemberRequest) => teamService.addTeamMember(data),
@@ -131,6 +132,8 @@ export function useAddTeamMember(tenantId: string | undefined) {
         // Invalidate to refetch if cache is stale
         queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
       }
+
+      showToast({ message: "Team member added", variant: "success" });
     },
   });
 }
@@ -148,6 +151,7 @@ export function useAddTeamMember(tenantId: string | undefined) {
  */
 export function useBulkImportTeamMembers(tenantId: string | undefined) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation<BulkImportResponse, Error, { file: File; jobId: string }>({
     mutationFn: ({ file, jobId }) =>
@@ -159,6 +163,22 @@ export function useBulkImportTeamMembers(tenantId: string | undefined) {
       // error rows leave the table unchanged.
       if (response.summary.created > 0) {
         queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      }
+
+      const { created, skipped, errors } = response.summary;
+      if (errors === 0) {
+        showToast({
+          message:
+            created === 1
+              ? "Imported 1 team member"
+              : `Imported ${created} team members`,
+          variant: "success",
+        });
+      } else {
+        showToast({
+          message: `Imported ${created}, ${skipped} skipped, ${errors} failed`,
+          variant: created === 0 ? "error" : "warning",
+        });
       }
     },
 

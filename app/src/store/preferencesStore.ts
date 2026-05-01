@@ -2124,8 +2124,6 @@ interface PreferencesState {
   // Team management UI state
   addingTeamMember: boolean;
   setAddingTeamMember: (adding: boolean) => void;
-  addingBulkTeamMembers: boolean;
-  setAddingBulkTeamMembers: (adding: boolean) => void;
   editingTeamMemberId: string | null;
   setEditingTeamMemberId: (id: string | null) => void;
 }
@@ -2493,8 +2491,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   // Team management UI state
   addingTeamMember: false,
   setAddingTeamMember: (adding) => set({ addingTeamMember: adding }),
-  addingBulkTeamMembers: false,
-  setAddingBulkTeamMembers: (adding) => set({ addingBulkTeamMembers: adding }),
   editingTeamMemberId: null,
   setEditingTeamMemberId: (id) => set({ editingTeamMemberId: id }),
 }));
