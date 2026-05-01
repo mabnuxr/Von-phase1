@@ -318,6 +318,16 @@ export function useFolderMutations() {
     },
     onSuccess: (_data, { folderId, itemType, sourceFolderId }) => {
       invalidateMembershipCaches({ folderId, itemType, sourceFolderId });
+
+      const folders = queryClient.getQueryData<Folder[]>(folderKeys.list());
+      const folderName = folders?.find((f) => f.folderId === folderId)?.name;
+      const itemLabel = itemType === "dashboard" ? "Dashboard" : "Chat";
+      showToast({
+        message: folderName
+          ? `${itemLabel} moved to "${folderName}"`
+          : `${itemLabel} moved to folder`,
+        variant: "success",
+      });
     },
   });
 
