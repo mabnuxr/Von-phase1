@@ -120,14 +120,17 @@ export function ChatSidebarContainer({
     folderDashboards,
     folderConversationsMap,
     folderLoadingMap,
+    folderSectionTotals,
     isLoading,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     hasNextDashboardPage,
+    isFetchingNextDashboardPage,
     fetchNextDashboardPage,
     sectionShowMore,
-    toggleSectionShowMore,
+    revealMoreInSection,
+    collapseSection,
     createFolder,
     deleteFolder,
     renameFolder,
@@ -262,6 +265,7 @@ export function ChatSidebarContainer({
       folders={folders}
       folderItems={decoratedFolderItems}
       folderDashboards={folderDashboards}
+      folderSectionTotals={folderSectionTotals}
       folderLoadingMap={folderLoadingMap}
       isLoading={isLoading}
       selectedItemId={currentConversationId || undefined}
@@ -283,11 +287,14 @@ export function ChatSidebarContainer({
       onCreateFolderAndMoveItem={createFolderForItem}
       onRemoveItemFromFolder={removeItemFromFolder}
       sectionShowMore={sectionShowMore}
-      onToggleSectionShowMore={toggleSectionShowMore}
+      onRevealMoreInSection={revealMoreInSection}
+      onCollapseSection={collapseSection}
       isCollapsed={isCollapsed}
       onToggleCollapse={onToggleCollapse}
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextPage}
+      hasMoreChats={hasNextPage}
+      onLoadMoreChats={fetchNextPage}
       avatarSrc={avatarSrc}
       avatarLabel={avatarLabel}
       userName={displayName}
@@ -299,6 +306,7 @@ export function ChatSidebarContainer({
       selectedDashboardId={dashboardId}
       hasMoreDashboards={hasNextDashboardPage}
       onLoadMoreDashboards={fetchNextDashboardPage}
+      isLoadingMoreDashboards={isFetchingNextDashboardPage}
       onRenameDashboard={renameDashboard}
       onDeleteDashboard={deleteDashboard}
       onMoveDashboardToFolder={handleMoveDashboardToFolder}

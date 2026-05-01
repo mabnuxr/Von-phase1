@@ -22,7 +22,7 @@ import type {
   Folder as UiFolder,
   SidebarItem,
 } from "@vonlabs/design-components";
-import { FOLDER_CONTENTS_LIMIT, FOLDER_CONTENTS_FETCH_LIMIT } from "./folders";
+import { FOLDER_CONTENTS_LIMIT } from "./folders";
 
 // ──────────────────────────────────────────────────────────────────────────
 // Public type aliases for consumers (Container, ConversationMoreMenu, …)
@@ -38,11 +38,24 @@ export type FolderConversationsMap = Record<string, FolderConversationRow[]>;
 export type FolderLoadingMap = Record<string, boolean>;
 
 /**
- * Per-section "Show all" state. When `true`, the section is rendered from
- * the paginated `useFolderItems` infinite query; otherwise the first
- * `FOLDER_CONTENTS_LIMIT` items from `useFolderContents` drive the UI.
+ * Per-folder, per-type totals from `/contents` — drives the "Show 5 more"
+ * expander's visibility (the button hides when `visible.length >= total`).
  */
-export type SectionShowMoreMap = Record<string, boolean>;
+export type FolderSectionTotalsMap = Record<
+  string,
+  { conversation: number; dashboard: number }
+>;
+
+/**
+ * Per-section pagination state. Keyed by `sectionKey(folderId, itemType)`.
+ * Value is the count of *additional* pages fetched beyond page 1 (which
+ * comes from `/contents`). Each "Show 5 more" click increments; "Show less"
+ * resets to 0.
+ */
+export type SectionShowMoreMap = Record<string, number>;
+
+const sectionKey = (folderId: string, itemType: FolderItemType) =>
+  `${folderId}:${itemType}`;
 
 // ──────────────────────────────────────────────────────────────────────────
 // Adapters: API rows (snake_case) → design-components UI types (camelCase)
@@ -99,27 +112,6 @@ function dashboardRowToFolderItem(
   };
 }
 
-/**
- * Newest-first sort by `updated_at` (with `created_at` fallback). Used to
- * normalise folder contents so the recently-active items appear in the
- * first FOLDER_CONTENTS_LIMIT slice surfaced by the sidebar — matches
- * user expectation against the unfiled Chats list.
- *
- * Returns a new array; never mutates the input. Items with missing or
- * unparseable timestamps sink to the bottom rather than swapping unstably.
- */
-function sortByRecencyDesc<
-  T extends { updated_at?: string; created_at?: string },
->(items: T[]): T[] {
-  const ts = (x: T): number => {
-    const raw = x.updated_at ?? x.created_at;
-    if (!raw) return 0;
-    const t = Date.parse(raw);
-    return Number.isFinite(t) ? t : 0;
-  };
-  return [...items].sort((a, b) => ts(b) - ts(a));
-}
-
 function apiFolderToUiFolder(folder: ApiFolder, isExpanded: boolean): UiFolder {
   return {
     id: folder.folderId,
@@ -149,6 +141,9 @@ export interface UseChatSidebarReturn {
   folderConversationsMap: FolderConversationsMap;
   /** Per-folder loading flag (true while contents are being fetched). */
   folderLoadingMap: FolderLoadingMap;
+  /** Per-folder totals per item type, from `/contents` — used by the
+   *  in-folder "Show 5 more" expander to decide when to hide itself. */
+  folderSectionTotals: FolderSectionTotalsMap;
   /** Raw unfiled conversation rows (snake_case). */
   unfiledConversations: FolderConversationRow[];
 
@@ -169,9 +164,10 @@ export interface UseChatSidebarReturn {
   expandedFolderIds: Set<string>;
   toggleFolderExpanded: (folderId: string) => void;
 
-  // Per-section "Show more" state
+  // Per-section pagination state.
   sectionShowMore: SectionShowMoreMap;
-  toggleSectionShowMore: (folderId: string, itemType: FolderItemType) => void;
+  revealMoreInSection: (folderId: string, itemType: FolderItemType) => void;
+  collapseSection: (folderId: string, itemType: FolderItemType) => void;
 
   // Folder mutations
   createFolder: (name: string) => void;
@@ -254,14 +250,27 @@ export function useChatSidebar(): UseChatSidebarReturn {
     });
   }, []);
 
-  // ── Per-section show-more state ────────────────────────────────────────
+  // ── Per-section pagination state ───────────────────────────────────────
   const [sectionShowMore, setSectionShowMore] = useState<SectionShowMoreMap>(
     {},
   );
-  const toggleSectionShowMore = useCallback(
+  const revealMoreInSection = useCallback(
     (folderId: string, itemType: FolderItemType) => {
-      const key = `${folderId}:${itemType}`;
-      setSectionShowMore((prev) => ({ ...prev, [key]: !prev[key] }));
+      const key = sectionKey(folderId, itemType);
+      setSectionShowMore((prev) => ({
+        ...prev,
+        [key]: (prev[key] ?? 0) + 1,
+      }));
+    },
+    [],
+  );
+  const collapseSection = useCallback(
+    (folderId: string, itemType: FolderItemType) => {
+      const key = sectionKey(folderId, itemType);
+      setSectionShowMore((prev) => {
+        if (!prev[key]) return prev;
+        return { ...prev, [key]: 0 };
+      });
     },
     [],
   );
@@ -278,8 +287,8 @@ export function useChatSidebar(): UseChatSidebarReturn {
       queryFn: () =>
         foldersService.contents(folderId, {
           types: ["dashboard", "conversation"] as FolderItemType[],
-          dashboardsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
-          conversationsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
+          dashboardsLimit: FOLDER_CONTENTS_LIMIT,
+          conversationsLimit: FOLDER_CONTENTS_LIMIT,
         }),
       enabled: expandedFolderIds.has(folderId),
       staleTime: CONVERSATIONS_STALE_TIME,
@@ -288,6 +297,76 @@ export function useChatSidebar(): UseChatSidebarReturn {
       refetchOnMount: false,
     })),
   });
+
+  // ── Per-section pagination queries ─────────────────────────────────────
+  // One /items?page=N query per "Show 5 more" click. Page 1 comes from
+  // /contents; pages 2..(extraPages + 1) come from /items.
+  const pageSlots = useMemo(() => {
+    const slots: Array<{
+      folderId: string;
+      itemType: FolderItemType;
+      page: number;
+    }> = [];
+    for (const folderId of folderIds) {
+      if (!expandedFolderIds.has(folderId)) continue;
+      for (const itemType of [
+        "conversation",
+        "dashboard",
+      ] as FolderItemType[]) {
+        const extraPages = sectionShowMore[sectionKey(folderId, itemType)] ?? 0;
+        for (let i = 0; i < extraPages; i++) {
+          slots.push({ folderId, itemType, page: 2 + i });
+        }
+      }
+    }
+    return slots;
+  }, [folderIds, expandedFolderIds, sectionShowMore]);
+
+  const pageQueries = useQueries({
+    queries: pageSlots.map(({ folderId, itemType, page }) => ({
+      queryKey: folderKeys.itemsPage(folderId, itemType, page),
+      queryFn: () =>
+        foldersService.items<FolderConversationRow | FolderDashboardRow>(
+          folderId,
+          { itemType, page, limit: FOLDER_CONTENTS_LIMIT },
+        ),
+      staleTime: CONVERSATIONS_STALE_TIME,
+      gcTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+    })),
+  });
+
+  // `useQueries` returns a fresh outer array each render. We need the memo
+  // to recompute when any individual slot's data settles, but a spread
+  // dep array (`[...pageDataRefs]`) violates the constant-length rule and
+  // breaks under rapid expand/collapse. Instead, fold all slot identities
+  // and their resolved page numbers into a single deterministic signature
+  // so the dep array stays a fixed shape.
+  const pageQueriesSignature = pageSlots
+    .map((slot, idx) => {
+      const data = pageQueries[idx]?.data;
+      return `${slot.folderId}:${slot.itemType}:${slot.page}:${
+        data ? data.items.length : "pending"
+      }`;
+    })
+    .join("|");
+  const sectionExtraRows = useMemo(() => {
+    const map: Record<
+      string,
+      Array<FolderConversationRow | FolderDashboardRow>
+    > = {};
+    pageSlots.forEach((slot, idx) => {
+      const key = sectionKey(slot.folderId, slot.itemType);
+      const rows = pageQueries[idx]?.data?.items ?? [];
+      if (!map[key]) map[key] = [];
+      map[key].push(...rows);
+    });
+    return map;
+    // pageQueriesSignature already encodes pageSlots identity + each slot's
+    // settled state, so re-running the memo when it changes is sufficient.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageQueriesSignature]);
 
   // ── Derived UI shapes ──────────────────────────────────────────────────
 
@@ -325,21 +404,38 @@ export function useChatSidebar(): UseChatSidebarReturn {
     folderDashboards,
     folderConversationsMap,
     folderLoadingMap,
+    folderSectionTotals,
   } = useMemo(() => {
     const itemsMap: FolderItemsMap = {};
     const dashMap: FolderDashboardsMap = {};
     const rawMap: FolderConversationsMap = {};
     const loadingMap: FolderLoadingMap = {};
+    const totals: FolderSectionTotalsMap = {};
     folderIds.forEach((folderId, idx) => {
       const query = folderContentsQueries[idx];
       const data = query?.data as FolderContentsResponse | undefined;
       loadingMap[folderId] = !!query?.isLoading;
-      // Sort newest-first by updated_at (falling back to created_at). The
-      // contents endpoint does not currently guarantee a recency sort, so we
-      // normalise here to ensure the most recently active items are visible
-      // within the first FOLDER_CONTENTS_LIMIT slice rendered by the sidebar.
-      const conversations = sortByRecencyDesc(data?.conversations?.items ?? []);
-      const dashRows = sortByRecencyDesc(data?.dashboards?.items ?? []);
+
+      const baseConvs = data?.conversations?.items ?? [];
+      const baseDashs = data?.dashboards?.items ?? [];
+      const extraConvs = (sectionExtraRows[
+        sectionKey(folderId, "conversation")
+      ] ?? []) as FolderConversationRow[];
+      const extraDashs = (sectionExtraRows[sectionKey(folderId, "dashboard")] ??
+        []) as FolderDashboardRow[];
+      const convsTotal = data?.conversations?.total;
+      const dashsTotal = data?.dashboards?.total;
+      // Server total can be smaller than what we hold from earlier pages
+      // (e.g. items deleted server-side); never render past it.
+      const conversations = [...baseConvs, ...extraConvs].slice(
+        0,
+        convsTotal ?? Infinity,
+      );
+      const dashRows = [...baseDashs, ...extraDashs].slice(
+        0,
+        dashsTotal ?? Infinity,
+      );
+
       rawMap[folderId] = conversations;
       itemsMap[folderId] = conversations
         .filter((c) => c.title && c.title.trim() !== "")
@@ -347,14 +443,20 @@ export function useChatSidebar(): UseChatSidebarReturn {
       dashMap[folderId] = dashRows.map((d) =>
         dashboardRowToFolderItem(d, folderId),
       );
+
+      totals[folderId] = {
+        conversation: convsTotal ?? conversations.length,
+        dashboard: dashsTotal ?? dashRows.length,
+      };
     });
     return {
       folderItems: itemsMap,
       folderDashboards: dashMap,
       folderConversationsMap: rawMap,
       folderLoadingMap: loadingMap,
+      folderSectionTotals: totals,
     };
-  }, [folderIds, folderContentsQueries]);
+  }, [folderIds, folderContentsQueries, sectionExtraRows]);
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const {
@@ -473,6 +575,7 @@ export function useChatSidebar(): UseChatSidebarReturn {
     folderDashboards,
     folderConversationsMap,
     folderLoadingMap,
+    folderSectionTotals,
     unfiledConversations: allUnfiledConversations,
 
     hasNextPage: !!hasNextChatPage,
@@ -497,7 +600,8 @@ export function useChatSidebar(): UseChatSidebarReturn {
     toggleFolderExpanded,
 
     sectionShowMore,
-    toggleSectionShowMore,
+    revealMoreInSection,
+    collapseSection,
 
     createFolder: (name: string) => createFolderRaw({ name }),
     isCreatingFolder,

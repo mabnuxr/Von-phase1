@@ -4,19 +4,8 @@ import { CONVERSATIONS_STALE_TIME } from "../../config/constants";
 import { folderKeys } from "./folderKeys";
 import type { FolderContentsResponse } from "../../types/chatSidebar";
 
-/**
- * Default visible cap per section before the inline "Show N more" expander.
- * Mirrors the design-components' FOLDER_SECTION_LIMIT.
- */
+/** Per-section cap that drives the inline "Show N more" expander. */
 export const FOLDER_CONTENTS_LIMIT = 5;
-
-/**
- * Max items fetched per type from the contents endpoint. We over-fetch
- * relative to FOLDER_CONTENTS_LIMIT so that "Show N more" reveals the
- * full set without an extra round trip. Keep in sync with the largest
- * folder we expect to render eagerly in the sidebar.
- */
-export const FOLDER_CONTENTS_FETCH_LIMIT = 50;
 
 interface UseFolderContentsParams {
   folderId: string;
@@ -38,8 +27,8 @@ export function useFolderContents({
     queryFn: () =>
       foldersService.contents(folderId, {
         types: ["dashboard", "conversation"],
-        dashboardsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
-        conversationsLimit: FOLDER_CONTENTS_FETCH_LIMIT,
+        dashboardsLimit: FOLDER_CONTENTS_LIMIT,
+        conversationsLimit: FOLDER_CONTENTS_LIMIT,
       }),
     enabled,
     staleTime: CONVERSATIONS_STALE_TIME,

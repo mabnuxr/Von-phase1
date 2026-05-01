@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CaretDownIcon } from '@phosphor-icons/react';
 import { ConversationItem } from './ConversationItem';
+import { RowShimmers } from './Shimmers';
 import type { SidebarItem, FolderItemType, SectionShowMoreMap } from '../ChatSidebar';
 
 /**
@@ -26,7 +27,8 @@ export interface FolderContentsProps {
   menuOpenItemId?: string | null;
   editingItemId?: string | null;
   sectionShowMore?: SectionShowMoreMap;
-  onToggleSectionShowMore?: (folderId: string, itemType: FolderItemType) => void;
+  onRevealMoreInSection?: (folderId: string, itemType: FolderItemType) => void;
+  onCollapseSection?: (folderId: string, itemType: FolderItemType) => void;
   onItemClick?: (item: SidebarItem) => void;
   onItemContextMenu?: (e: React.MouseEvent, item: SidebarItem) => void;
   onSaveEdit?: (item: SidebarItem, newName: string) => void;
@@ -51,23 +53,77 @@ const EmptyHint: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const ShowMoreRow: React.FC<{
-  expanded: boolean;
-  remaining: number;
+  label: string;
+  rotated?: boolean;
   onClick: () => void;
-}> = ({ expanded, remaining, onClick }) => (
+}> = ({ label, rotated = false, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className="flex items-center gap-1 px-2 py-1 text-[11.5px] font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap"
+    className="flex items-center gap-1 px-2 py-1 text-[11.5px] font-medium text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap cursor-pointer"
   >
-    <span>{expanded ? 'Show less' : `Show ${remaining} more`}</span>
+    <span>{label}</span>
     <CaretDownIcon
       size={10}
       weight="bold"
-      className={`flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
+      className={`flex-shrink-0 transition-transform ${rotated ? 'rotate-180' : ''}`}
     />
   </button>
 );
+
+function computeFooterCounts({
+  visibleCount,
+  total,
+  intent,
+}: {
+  visibleCount: number;
+  total: number;
+  intent: number;
+}): { shimmerCount: number; hiddenCount: number; canCollapse: boolean } {
+  const hiddenCount = Math.max(0, total - visibleCount);
+  const resolvedExtraPages = Math.ceil(
+    Math.max(0, visibleCount - FOLDER_SECTION_LIMIT) / FOLDER_SECTION_LIMIT
+  );
+  const shimmerCount = Math.min(
+    hiddenCount,
+    Math.max(0, intent - resolvedExtraPages) * FOLDER_SECTION_LIMIT
+  );
+  return {
+    shimmerCount,
+    hiddenCount,
+    canCollapse: visibleCount > FOLDER_SECTION_LIMIT,
+  };
+}
+
+interface SectionFooterProps {
+  shimmerCount: number;
+  hiddenCount: number;
+  canCollapse: boolean;
+  onReveal: () => void;
+  onCollapse: () => void;
+}
+
+const SectionFooter: React.FC<SectionFooterProps> = ({
+  shimmerCount,
+  hiddenCount,
+  canCollapse,
+  onReveal,
+  onCollapse,
+}) => {
+  if (shimmerCount > 0) return <RowShimmers count={shimmerCount} />;
+  if (hiddenCount > 0) {
+    return (
+      <ShowMoreRow
+        label={`Show ${Math.min(FOLDER_SECTION_LIMIT, hiddenCount)} more`}
+        onClick={onReveal}
+      />
+    );
+  }
+  if (canCollapse) {
+    return <ShowMoreRow label="Show less" rotated onClick={onCollapse} />;
+  }
+  return null;
+};
 
 interface ItemListProps {
   items: SidebarItem[];
@@ -133,29 +189,26 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
   menuOpenItemId,
   editingItemId,
   sectionShowMore = {},
-  onToggleSectionShowMore,
+  onRevealMoreInSection,
+  onCollapseSection,
   onItemClick,
   onItemContextMenu,
   onSaveEdit,
   onCancelEdit,
 }) => {
-  const dashShowAll = !!sectionShowMore[`${folderId}:dashboard`];
-  const chatShowAll = !!sectionShowMore[`${folderId}:conversation`];
-
   const dashTotal = dashboardsTotal ?? dashboards.length;
   const chatTotal = conversationsTotal ?? conversations.length;
 
-  const visibleDashboards =
-    dashShowAll || dashboards.length <= FOLDER_SECTION_LIMIT
-      ? dashboards
-      : dashboards.slice(0, FOLDER_SECTION_LIMIT);
-  const visibleConversations =
-    chatShowAll || conversations.length <= FOLDER_SECTION_LIMIT
-      ? conversations
-      : conversations.slice(0, FOLDER_SECTION_LIMIT);
-
-  const dashRemaining = Math.max(0, dashTotal - FOLDER_SECTION_LIMIT);
-  const chatRemaining = Math.max(0, chatTotal - FOLDER_SECTION_LIMIT);
+  const dashFooter = computeFooterCounts({
+    visibleCount: dashboards.length,
+    total: dashTotal,
+    intent: sectionShowMore[`${folderId}:dashboard`] ?? 0,
+  });
+  const chatFooter = computeFooterCounts({
+    visibleCount: conversations.length,
+    total: chatTotal,
+    intent: sectionShowMore[`${folderId}:conversation`] ?? 0,
+  });
 
   const isFullyEmpty = !isLoading && dashTotal === 0 && chatTotal === 0;
 
@@ -198,7 +251,6 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
             </EmptyHint>
           ) : (
             <>
-              {/* Dashboards subsection */}
               <Subhead>Dashboards</Subhead>
               {dashTotal === 0 ? (
                 <EmptyHint>
@@ -207,18 +259,15 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
                 </EmptyHint>
               ) : (
                 <>
-                  <ItemList items={visibleDashboards} {...sharedListProps} />
-                  {dashRemaining > 0 && (
-                    <ShowMoreRow
-                      expanded={dashShowAll}
-                      remaining={dashRemaining}
-                      onClick={() => onToggleSectionShowMore?.(folderId, 'dashboard')}
-                    />
-                  )}
+                  <ItemList items={dashboards} {...sharedListProps} />
+                  <SectionFooter
+                    {...dashFooter}
+                    onReveal={() => onRevealMoreInSection?.(folderId, 'dashboard')}
+                    onCollapse={() => onCollapseSection?.(folderId, 'dashboard')}
+                  />
                 </>
               )}
 
-              {/* Chats subsection */}
               <Subhead>Chats</Subhead>
               {chatTotal === 0 ? (
                 <EmptyHint>
@@ -227,14 +276,12 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
                 </EmptyHint>
               ) : (
                 <>
-                  <ItemList items={visibleConversations} {...sharedListProps} />
-                  {chatRemaining > 0 && (
-                    <ShowMoreRow
-                      expanded={chatShowAll}
-                      remaining={chatRemaining}
-                      onClick={() => onToggleSectionShowMore?.(folderId, 'conversation')}
-                    />
-                  )}
+                  <ItemList items={conversations} {...sharedListProps} />
+                  <SectionFooter
+                    {...chatFooter}
+                    onReveal={() => onRevealMoreInSection?.(folderId, 'conversation')}
+                    onCollapse={() => onCollapseSection?.(folderId, 'conversation')}
+                  />
                 </>
               )}
             </>

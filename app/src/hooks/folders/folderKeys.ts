@@ -11,8 +11,14 @@ export const folderKeys = {
     [...folderKeys.all, "detail", folderId] as const,
   contents: (folderId: string) =>
     [...folderKeys.all, "contents", folderId] as const,
+  /** All cached `/items` pages for a (folder, type) — useful as a broad
+   *  invalidation target when memberships change. */
   items: (folderId: string, itemType: FolderItemType) =>
     [...folderKeys.all, "items", folderId, itemType] as const,
+  /** A single page within `/items` — drives per-page caches for the
+   *  "Show 5 more" expander (page 2, 3, …). Page 1 is served by `/contents`. */
+  itemsPage: (folderId: string, itemType: FolderItemType, page: number) =>
+    [...folderKeys.all, "items", folderId, itemType, "page", page] as const,
   unfiled: (itemType: FolderItemType) =>
     [...folderKeys.all, "unfiled", itemType] as const,
 };

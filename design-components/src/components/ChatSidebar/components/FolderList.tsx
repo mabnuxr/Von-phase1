@@ -9,6 +9,7 @@ import type {
   FolderItemsMap,
   FolderDashboardsMap,
   FolderItemType,
+  FolderSectionTotalsMap,
   SectionShowMoreMap,
 } from '../ChatSidebar';
 import type { ContextMenuState, FolderContextMenuState } from '../hooks';
@@ -17,6 +18,7 @@ export interface FolderListProps {
   sortedFolders: Folder[];
   itemsByFolder: FolderItemsMap;
   dashboardsByFolder?: FolderDashboardsMap;
+  folderSectionTotals?: FolderSectionTotalsMap;
   folderLoadingMap?: FolderLoadingMap;
   selectedItemId?: string;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
@@ -36,7 +38,8 @@ export interface FolderListProps {
 
   // --- Per-section show-more state (per-folder + per-type) ---
   sectionShowMore?: SectionShowMoreMap;
-  onToggleSectionShowMore?: (folderId: string, itemType: FolderItemType) => void;
+  onRevealMoreInSection?: (folderId: string, itemType: FolderItemType) => void;
+  onCollapseSection?: (folderId: string, itemType: FolderItemType) => void;
 
   // --- Full-mode props (ignored when minimal=true) ---
 
@@ -75,6 +78,7 @@ export const FolderList: React.FC<FolderListProps> = ({
   sortedFolders,
   itemsByFolder,
   dashboardsByFolder = {},
+  folderSectionTotals = {},
   folderLoadingMap = {},
   selectedItemId,
   onFolderToggle,
@@ -83,7 +87,8 @@ export const FolderList: React.FC<FolderListProps> = ({
   minimal = false,
   showEmptyState = false,
   sectionShowMore,
-  onToggleSectionShowMore,
+  onRevealMoreInSection,
+  onCollapseSection,
   isCreatingFolder,
   newFolderName,
   onNewFolderNameChange,
@@ -169,13 +174,16 @@ export const FolderList: React.FC<FolderListProps> = ({
               isLoading={isFolderLoading}
               conversations={folderConversations}
               dashboards={folderDashes}
+              conversationsTotal={folderSectionTotals[folder.id]?.conversation}
+              dashboardsTotal={folderSectionTotals[folder.id]?.dashboard}
               selectedItemId={selectedItemId}
               menuOpenItemId={!minimal && contextMenu?.isOpen ? contextMenu.item?.id : null}
               editingItemId={
                 !minimal && editingItemFolderId === folder.id ? (editingItemId ?? null) : null
               }
               sectionShowMore={sectionShowMore}
-              onToggleSectionShowMore={onToggleSectionShowMore}
+              onRevealMoreInSection={onRevealMoreInSection}
+              onCollapseSection={onCollapseSection}
               onItemClick={(item) =>
                 item.type === 'dashboard' ? onDashboardClick?.(item.id) : onItemClick?.(item.id)
               }

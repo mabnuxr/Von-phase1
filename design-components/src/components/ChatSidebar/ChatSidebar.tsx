@@ -10,7 +10,9 @@ import {
   SectionHeader,
   CollapsedSidebar,
   ProfileSection,
+  RowShimmers,
 } from './components';
+import { FOLDER_SECTION_LIMIT } from './components/FolderContents';
 import { useChatSidebarState } from './hooks';
 import { getContextMenuItems, getFolderContextMenuItems } from './utils';
 
@@ -95,14 +97,22 @@ export type FolderDashboardsMap = Record<string, SidebarItem[]>;
  */
 export type FolderLoadingMap = Record<string, boolean>;
 
+/**
+ * Per-folder, per-type totals from the data layer. The "Show 5 more"
+ * expander is hidden when the visible item count reaches the type's total.
+ */
+export type FolderSectionTotalsMap = Record<string, { conversation: number; dashboard: number }>;
+
 /** Item types that can be filed inside a folder. */
 export type FolderItemType = 'conversation' | 'dashboard';
 
 /**
- * Per-section "Show all" toggle map. Keyed by `${folderId}:${itemType}` so
- * each section's expand state is independent.
+ * Per-section pagination state. Keyed by `${folderId}:${itemType}`; the
+ * value is the number of *additional* pages fetched beyond the first
+ * (page 1 = first 5 from `/contents`). Absent keys default to 0. Each
+ * "Show 5 more" click bumps the count by 1; "Show less" resets to 0.
  */
-export type SectionShowMoreMap = Record<string, boolean>;
+export type SectionShowMoreMap = Record<string, number>;
 
 export interface ChatSidebarProps {
   items?: SidebarItem[];
@@ -110,6 +120,8 @@ export interface ChatSidebarProps {
   folderItems?: FolderItemsMap;
   /** Dashboards filed inside each folder (keyed by folderId) */
   folderDashboards?: FolderDashboardsMap;
+  /** Per-folder, per-type totals — drives "Show 5 more" visibility. */
+  folderSectionTotals?: FolderSectionTotalsMap;
   folderLoadingMap?: FolderLoadingMap;
   isLoading?: boolean;
   selectedItemId?: string;
@@ -126,10 +138,12 @@ export interface ChatSidebarProps {
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
   onRemoveItemFromFolder?: (itemId: string) => void;
-  /** Per-section "Show all" map keyed by `${folderId}:${itemType}`. */
+  /** Per-section reveal-count map keyed by `${folderId}:${itemType}`. */
   sectionShowMore?: SectionShowMoreMap;
-  /** Toggle a folder's per-type "Show N more / Show less" expander. */
-  onToggleSectionShowMore?: (folderId: string, itemType: FolderItemType) => void;
+  /** Reveal the next page of items in a section ("Show 5 more"). */
+  onRevealMoreInSection?: (folderId: string, itemType: FolderItemType) => void;
+  /** Collapse a section back to the default reveal count ("Show less"). */
+  onCollapseSection?: (folderId: string, itemType: FolderItemType) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
@@ -138,6 +152,11 @@ export interface ChatSidebarProps {
   onToggleCollapse?: () => void;
   loadMoreRef?: React.Ref<HTMLDivElement | null>;
   isFetchingMore?: boolean;
+  /** Whether more unfiled chats are available — drives the click-driven
+   *  "Show 5 more" button below the top-level Chats list. */
+  hasMoreChats?: boolean;
+  /** Callback invoked when the user clicks "Show 5 more" under Chats. */
+  onLoadMoreChats?: () => void;
   onLogoClick?: () => void;
   userName?: string;
   userEmail?: string;
@@ -164,6 +183,9 @@ export interface ChatSidebarProps {
   hasMoreDashboards?: boolean;
   /** Callback to load more dashboards */
   onLoadMoreDashboards?: () => void;
+  /** True while the next page of dashboards is in flight. Drives shimmer
+   *  placeholders below the dashboards list. */
+  isLoadingMoreDashboards?: boolean;
   /** File a dashboard into an existing folder */
   onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
   /** Create a new folder and file the dashboard into it */
@@ -319,6 +341,7 @@ interface DashboardSectionProps {
   onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
   hasMoreDashboards?: boolean;
   onLoadMoreDashboards?: () => void;
+  isLoadingMoreDashboards?: boolean;
 }
 
 const DashboardSection: React.FC<DashboardSectionProps> = ({
@@ -332,6 +355,7 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
   onCreateFolderAndMoveDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
+  isLoadingMoreDashboards = false,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<DashboardContextMenuState>({
@@ -381,14 +405,16 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
             onCancelEdit={() => setEditingId(null)}
           />
         ))}
-        {hasMoreDashboards && (
+        {isLoadingMoreDashboards ? (
+          <RowShimmers count={FOLDER_SECTION_LIMIT} />
+        ) : hasMoreDashboards ? (
           <button
             onClick={onLoadMoreDashboards}
             className="w-full px-2 py-1 text-sm text-gray-800 hover:text-gray-900 transition-colors text-left cursor-pointer"
           >
             Show more
           </button>
-        )}
+        ) : null}
       </div>
 
       {/* Dashboard Context Menu — same shape as the chat context menu;
@@ -468,6 +494,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   folders = [],
   folderItems = {},
   folderDashboards = {},
+  folderSectionTotals = {},
   folderLoadingMap = {},
   isLoading = false,
   selectedItemId,
@@ -483,7 +510,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
   sectionShowMore,
-  onToggleSectionShowMore,
+  onRevealMoreInSection,
+  onCollapseSection,
   onFolderToggle,
   onRenameFolder,
   onDeleteFolder,
@@ -492,6 +520,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onToggleCollapse,
   loadMoreRef,
   isFetchingMore = false,
+  hasMoreChats,
+  onLoadMoreChats,
   onLogoClick,
   userName,
   userEmail,
@@ -507,6 +537,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onDeleteDashboard,
   hasMoreDashboards,
   onLoadMoreDashboards,
+  isLoadingMoreDashboards,
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
   onRemoveDashboardFromFolder,
@@ -746,6 +777,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         sortedFolders={visibleFolders}
                         itemsByFolder={itemsByFolder}
                         dashboardsByFolder={folderDashboards}
+                        folderSectionTotals={folderSectionTotals}
                         folderLoadingMap={folderLoadingMap}
                         selectedItemId={selectedItemId ?? selectedDashboardId}
                         isCreatingFolder={isCreatingFolder}
@@ -771,7 +803,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onSaveRename={handleSaveRename}
                         onCancelRename={handleCancelRename}
                         sectionShowMore={sectionShowMore}
-                        onToggleSectionShowMore={onToggleSectionShowMore}
+                        onRevealMoreInSection={onRevealMoreInSection}
+                        onCollapseSection={onCollapseSection}
                       />
                       {hasMoreFolders && (
                         <button
@@ -800,6 +833,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onCreateFolderAndMoveDashboard={onCreateFolderAndMoveDashboard}
                         hasMoreDashboards={hasMoreDashboards}
                         onLoadMoreDashboards={onLoadMoreDashboards}
+                        isLoadingMoreDashboards={isLoadingMoreDashboards}
                       />
                     ) : (
                       <div className="mb-3">
@@ -829,6 +863,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             onCancelEdit={handleCancelRename}
                           />
                         ))}
+                        {isFetchingMore ? (
+                          <RowShimmers count={FOLDER_SECTION_LIMIT} />
+                        ) : hasMoreChats ? (
+                          <button
+                            onClick={onLoadMoreChats}
+                            className="w-full px-2 py-1 text-sm text-gray-800 hover:text-gray-900 transition-colors text-left cursor-pointer"
+                          >
+                            Show more
+                          </button>
+                        ) : null}
                       </div>
                     ) : (
                       <SectionEmptyState message="No conversations yet. Start a new chat to get going." />

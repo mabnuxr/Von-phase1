@@ -24,3 +24,5 @@ export type { CollapsedSidebarProps } from './CollapsedSidebar';
 
 export { ProfileSection } from './ProfileSection';
 export type { ProfileSectionProps } from './ProfileSection';
+
+export { RowShimmer, RowShimmers } from './Shimmers';

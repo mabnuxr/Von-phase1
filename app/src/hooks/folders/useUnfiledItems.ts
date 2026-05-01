@@ -9,8 +9,12 @@ import type {
   FolderItemsResponse,
 } from "../../types/chatSidebar";
 
-/** Default page size for the top-level Chats / Dashboards lists. */
-export const UNFILED_ITEMS_PAGE_SIZE = 20;
+/**
+ * Default page size for the top-level Chats / Dashboards lists. Each click
+ * of the inline "Show 5 more" expander fires `fetchNextPage`, surfacing
+ * exactly this many additional rows.
+ */
+export const UNFILED_ITEMS_PAGE_SIZE = 5;
 
 interface UseUnfiledItemsParams {
   itemType: FolderItemType;

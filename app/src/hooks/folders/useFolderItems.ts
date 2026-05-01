@@ -9,8 +9,12 @@ import type {
   FolderItemsResponse,
 } from "../../types/chatSidebar";
 
-/** Page size used by the per-section "Show more" expander. */
-export const FOLDER_ITEMS_PAGE_SIZE = 20;
+/**
+ * Page size used by the per-section "Show 5 more" expander. Each click of
+ * the inline expander fires `fetchNextPage` and surfaces exactly this many
+ * additional rows.
+ */
+export const FOLDER_ITEMS_PAGE_SIZE = 5;
 
 interface UseFolderItemsParams {
   folderId: string;
