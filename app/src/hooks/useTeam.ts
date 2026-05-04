@@ -7,6 +7,7 @@ import type {
   UpdateMemberRequest,
   UpdateMemberPermissionsRequest,
 } from "../services/teamService";
+import type { BulkImportResponse } from "../services/teamService";
 
 /**
  * Query keys for team - scoped by tenant
@@ -59,6 +60,7 @@ export function useRoles(tenantId: string | undefined) {
  */
 export function useAddTeamMember(tenantId: string | undefined) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationFn: (data: AddTeamMemberRequest) => teamService.addTeamMember(data),
@@ -130,6 +132,58 @@ export function useAddTeamMember(tenantId: string | undefined) {
         // Invalidate to refetch if cache is stale
         queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
       }
+
+      showToast({ message: "Team member added", variant: "success" });
+    },
+  });
+}
+
+/**
+ * Bulk-import team members from a CSV file.
+ *
+ * The mutation kicks off the upload + server-side processing. Live per-row
+ * progress flows in via Pusher (handled by useBulkImportProgress, not this
+ * hook), and the resolved BulkImportResponse is the source of truth for the
+ * final results table. We invalidate the members list on success so the
+ * existing tab re-fetches with the newly created users.
+ *
+ * @param tenantId - Current tenant ID from user context
+ */
+export function useBulkImportTeamMembers(tenantId: string | undefined) {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  return useMutation<BulkImportResponse, Error, { file: File; jobId: string }>({
+    mutationFn: ({ file, jobId }) =>
+      teamService.bulkImportTeamMembers(file, jobId),
+
+    onSuccess: (response) => {
+      if (!tenantId) return;
+      // Refetch the members list whenever any rows were created — skipped /
+      // error rows leave the table unchanged.
+      if (response.summary.created > 0) {
+        queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      }
+
+      const { created, skipped, errors } = response.summary;
+      if (errors === 0) {
+        showToast({
+          message:
+            created === 1
+              ? "Imported 1 team member"
+              : `Imported ${created} team members`,
+          variant: "success",
+        });
+      } else {
+        showToast({
+          message: `Imported ${created}, ${skipped} skipped, ${errors} failed`,
+          variant: created === 0 ? "error" : "warning",
+        });
+      }
+    },
+
+    onError: (err) => {
+      console.error("[useBulkImportTeamMembers] Bulk import failed:", err);
     },
   });
 }

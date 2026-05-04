@@ -13,6 +13,10 @@ import type {
   QueryColumn,
   CallTranscript,
 } from "@vonlabs/design-components";
+import {
+  isSelfDescribingArtifact,
+  type SelfDescribingArtifact,
+} from "../types/artifacts";
 
 /**
  * RAG artifact content structure
@@ -181,6 +185,122 @@ function getToolDisplayName(toolName: string): string {
   return TOOL_NAME_MAP[toolName] || toolName.replace(/_/g, " ");
 }
 
+// ============================================================================
+// Self-describing envelope handler
+// ============================================================================
+
+/**
+ * Extracted tabular data from a self-describing envelope.
+ * Shared by both the transparency drawer and the single-artifact drawer.
+ */
+export interface EnvelopeTableData {
+  columns: QueryColumn[];
+  rows: Record<string, string | number>[];
+  query?: string;
+  queryLabel?: string;
+  displayName: string;
+  rowCount: number;
+  executionTimeMs?: number;
+}
+
+/**
+ * Extract tabular data from a self-describing envelope.
+ * Single source of truth for both rendering paths.
+ *
+ * @returns Extracted data, or null if the envelope is malformed.
+ */
+export function extractEnvelopeTableData(
+  content: Record<string, unknown>,
+): EnvelopeTableData | null {
+  if (!isSelfDescribingArtifact(content)) return null;
+
+  const envelope = content as SelfDescribingArtifact;
+  const { metadata } = envelope;
+
+  switch (envelope.kind) {
+    case "query_result": {
+      const p = envelope.payload;
+      if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
+
+      const columns = applyDeepLinkTransform(
+        p.columns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: (col.type as QueryColumn["type"]) || "string",
+        })),
+      );
+      const rows = transformRowsForDisplay(p.rows);
+
+      return {
+        columns,
+        rows,
+        query: p.query,
+        queryLabel: metadata.query_label,
+        displayName: p.query_name || metadata.display_name,
+        rowCount: p.row_count ?? rows.length,
+        executionTimeMs: p.execution_time_ms,
+      };
+    }
+
+    case "record_list": {
+      const p = envelope.payload;
+      if (!Array.isArray(p.columns) || !Array.isArray(p.rows)) return null;
+
+      const columns = applyDeepLinkTransform(
+        p.columns.map((col) => ({
+          key: col.name,
+          label: col.display_name || col.name,
+          type: (col.type as QueryColumn["type"]) || "string",
+        })),
+      );
+      const rows = transformRowsForDisplay(p.rows);
+
+      return {
+        columns,
+        rows,
+        displayName: metadata.display_name,
+        rowCount: p.row_count ?? rows.length,
+      };
+    }
+  }
+
+  // Exhaustive check: if a new kind is added to the union but not handled above,
+  // TypeScript will error here because `envelope` won't be assignable to `never`.
+  envelope satisfies never;
+  return null;
+}
+
+/**
+ * Transform a self-describing artifact envelope into a QueryResult
+ * for the TransparencyDrawer. Uses extractEnvelopeTableData as the
+ * single source of truth for envelope parsing.
+ */
+function transformSelfDescribingArtifact(
+  artifact: ArtifactResponse,
+  envelope: SelfDescribingArtifact,
+): TransparencyQueryResult | null {
+  const data = extractEnvelopeTableData(
+    envelope as unknown as Record<string, unknown>,
+  );
+  if (!data) return null;
+
+  return {
+    id: artifact.artifact_id,
+    name: data.displayName,
+    description: `${data.rowCount} rows returned`,
+    query: data.query,
+    queryLabel: data.queryLabel,
+    columns: data.columns,
+    rows: data.rows,
+    executedAt: new Date(artifact.persisted_at),
+    duration: data.executionTimeMs,
+  };
+}
+
+// ============================================================================
+// Main transformer (envelope-first, then legacy fallback)
+// ============================================================================
+
 /**
  * Transform a single artifact into a QueryResult for the TransparencyDrawer
  */
@@ -188,6 +308,20 @@ function transformArtifactToQueryResult(
   artifact: ArtifactResponse,
 ): TransparencyQueryResult | null {
   const { artifact_id, tool_name, content, persisted_at } = artifact;
+
+  // --- Self-describing envelope (new format) ---
+  // If the backend sends kind/metadata/payload, use it directly.
+  // No tool-name lookup, no if/else chain.
+  if (isSelfDescribingArtifact(content as Record<string, unknown>)) {
+    const result = transformSelfDescribingArtifact(
+      artifact,
+      content as unknown as SelfDescribingArtifact,
+    );
+    if (result) return result;
+  }
+
+  // --- Legacy per-tool-name handling (existing Salesforce, SQL, etc.) ---
+  // Kept intact until backend migrates all tools to self-describing format.
 
   // Handle RAG/conversation search artifacts
   if (tool_name === "execute_conversation_search") {
@@ -424,6 +558,9 @@ export interface ArtifactSummary {
   row_count?: number;
   size_bytes: number;
   persisted_at: string;
+  /** Self-describing envelope fields (present when backend uses new format) */
+  kind?: string;
+  display_name?: string;
 }
 
 /**
@@ -454,7 +591,10 @@ export function transformSummariesToPlaceholders(
 ): TransparencyQueryResult[] {
   return summaries.map((summary) => ({
     id: summary.artifact_id,
-    name: summary.query_name || getToolDisplayName(summary.tool_name),
+    name:
+      summary.display_name ||
+      summary.query_name ||
+      getToolDisplayName(summary.tool_name),
     description: `Loading...`,
     columns: [],
     rows: [],

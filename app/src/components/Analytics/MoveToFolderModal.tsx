@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FolderSimpleIcon, PlusIcon } from "@phosphor-icons/react";
+import type { FolderItemType } from "../../types/chatSidebar";
 
 interface FolderOption {
   id: string;
@@ -10,6 +11,8 @@ interface FolderOption {
 interface MoveToFolderModalProps {
   isOpen: boolean;
   itemName: string;
+  /** Canonical item type from the Folders v2 API. */
+  itemType?: FolderItemType;
   folders: FolderOption[];
   onConfirm: (config: {
     folderId: string;
@@ -21,6 +24,13 @@ interface MoveToFolderModalProps {
 
 const CREATE_NEW = "__create_new__";
 
+/** API-level item type → user-facing noun (kept separate so the type stays
+ *  the canonical Folders v2 enum and the copy stays human). */
+const ITEM_TYPE_LABEL: Record<FolderItemType, string> = {
+  conversation: "chat",
+  dashboard: "dashboard",
+};
+
 /**
  * Matches MoveToFolderModal from design-components exactly.
  * Replicated here because it isn't exported from @vonlabs/design-components.
@@ -28,6 +38,7 @@ const CREATE_NEW = "__create_new__";
 export function MoveToFolderModal({
   isOpen,
   itemName,
+  itemType = "conversation",
   folders,
   onConfirm,
   onCancel,
@@ -110,7 +121,7 @@ export function MoveToFolderModal({
               <p className="text-sm text-gray-600 mb-4">
                 Adding{" "}
                 <span className="font-medium text-gray-900">"{itemName}"</span>{" "}
-                (chat) to a folder
+                ({ITEM_TYPE_LABEL[itemType]}) to a folder
               </p>
 
               {/* Folder selection */}

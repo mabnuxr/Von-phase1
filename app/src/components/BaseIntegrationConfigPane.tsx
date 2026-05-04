@@ -1353,7 +1353,9 @@ export function BaseIntegrationConfigPane({
                       label="Workspace URL"
                       value={databricksWorkspaceUrl}
                       onChange={(e) =>
-                        setDatabricksWorkspaceUrl(e.target.value)
+                        setDatabricksWorkspaceUrl(
+                          e.target.value.replace(/^https?:\/\//i, ""),
+                        )
                       }
                       placeholder={
                         hasExistingCredentials

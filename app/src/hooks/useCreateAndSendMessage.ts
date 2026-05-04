@@ -20,7 +20,7 @@ import type {
 } from "@vonlabs/design-components";
 
 import { useCreateConversation, conversationKeys } from "./useConversations";
-import { chatSidebarKeys } from "./useChatSidebar";
+import { folderKeys } from "./folders";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { useSendMessage } from "./useSendMessage";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
@@ -70,12 +70,6 @@ export interface UseCreateAndSendMessageOptions {
    * Defaults to false.
    */
   navigateOnCreate?: boolean;
-
-  /**
-   * Required when navigateOnCreate=true.
-   * Used to select the correct sidebar refetch key.
-   */
-  isSidebarV2?: boolean;
 }
 
 export function useCreateAndSendMessage({
@@ -85,7 +79,6 @@ export function useCreateAndSendMessage({
   references,
   onCreated,
   navigateOnCreate = false,
-  isSidebarV2 = true,
 }: UseCreateAndSendMessageOptions = {}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -305,11 +298,9 @@ export function useCreateAndSendMessage({
         succeeded = true;
 
         if (navigateOnCreate) {
-          // 7a. Refresh sidebar (fire-and-forget)
+          // 7a. Refresh sidebar (fire-and-forget) — top-level unfiled chats list
           queryClient.refetchQueries({
-            queryKey: isSidebarV2
-              ? chatSidebarKeys.sidebar()
-              : conversationKeys.lists(),
+            queryKey: folderKeys.unfiled("conversation"),
           });
 
           // 7b. Navigate — replace so back button skips /chat/new.
@@ -353,7 +344,6 @@ export function useCreateAndSendMessage({
       agentVersion,
       clearFiles,
       createConversation,
-      isSidebarV2,
       navigate,
       navigateOnCreate,
       onCreated,

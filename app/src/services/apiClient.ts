@@ -255,6 +255,90 @@ export class ApiClient {
   }
 
   /**
+   * Make a POST request with a multipart/form-data body.
+   *
+   * Bypasses `request()` because that method always sets
+   * `Content-Type: application/json` from defaults, which would strip the
+   * multipart boundary the browser needs to insert. Here, we deliberately do
+   * NOT set Content-Type — fetch derives it from the FormData and includes
+   * the boundary automatically.
+   */
+  async postMultipart<T>(
+    endpoint: string,
+    body: FormData,
+    _isRetry = false,
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (_shareId) {
+      headers["X-Share-Id"] = _shareId;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log(`[API] POST (multipart) ${url}`);
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers,
+        body,
+        credentials: "include",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      throw new ApiError(message, 0);
+    }
+
+    if (!response.ok) {
+      let errorData: unknown;
+      try {
+        const text = await response.text();
+        if (text) errorData = JSON.parse(text);
+      } catch {
+        // body unreadable or not JSON
+      }
+
+      const errorMessage = extractErrorMessage(
+        errorData,
+        response.status,
+        response.statusText,
+      );
+
+      if (response.status === 401) {
+        const errorCode = getErrorCode(errorData);
+
+        // Token refresh in progress on the backend — wait and retry once.
+        // Mirrors the same handling in request() so multipart uploads don't
+        // force a logout during a benign refresh window.
+        if (errorCode === "refresh_in_progress" && !_isRetry) {
+          const retryAfter =
+            parseInt(response.headers.get("Retry-After") || "1", 10) || 1;
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryAfter * 1000),
+          );
+          return this.postMultipart<T>(endpoint, body, true);
+        }
+
+        if (import.meta.env.DEV) {
+          console.log("[API] 401 Unauthorized on multipart upload");
+        }
+        clearAllAuth();
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 100);
+      }
+
+      throw new ApiError(errorMessage, response.status, errorData);
+    }
+
+    if (response.status === 204) return undefined as T;
+    return (await response.json()) as T;
+  }
+
+  /**
    * Make a PUT request
    */
   async put<T>(

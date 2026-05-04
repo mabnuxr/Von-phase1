@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { ChatSidebar } from '../../../components/ChatSidebarV2';
-import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
+import { ChatSidebar } from '../../../components/ChatSidebar';
+import type { SidebarItem, Folder } from '../../../components/ChatSidebar';
 
 // ============================================================================
 // Types

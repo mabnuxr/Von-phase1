@@ -139,7 +139,6 @@ const NewConversation = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const {
-    isSidebarV2,
     isAgentV2: isAgentV2Flag,
     isTenantDisabled,
     isSlashCommandsEnabled,
@@ -170,7 +169,6 @@ const NewConversation = () => {
     isAgentV2: isAgentV2Flag,
     title: "",
     navigateOnCreate: true,
-    isSidebarV2,
   });
 
   const {

@@ -221,26 +221,36 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     name: "Outreach Engage",
     description:
       "Manage sequences, log calls, and create tasks in Outreach Engage",
+    note: "If you have an Outreach Kaia license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
     category: "Sales Engagement",
+  },
+  outreach_kaia: {
+    id: "outreach_kaia",
+    name: "Outreach Kaia",
+    description: "Import call recordings and transcripts from Outreach Kaia",
+    note: "Set up your Outreach connection to start using Outreach Kaia",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
+    category: "Call Recorder",
   },
   salesloft_engagement: {
     id: "salesloft_engagement",
     name: "Salesloft",
     description: "Manage cadences, log calls, and create tasks in Salesloft",
     personalDescription: "Connect your Salesloft account for sales engagement",
-    note: "If you have a Salesloft Recorder license, it will be automatically enabled with this connection",
+    note: "If you have a Salesloft Conversation license, it will be automatically enabled with this connection",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
     category: "Sales Engagement",
   },
   salesloft_recorder: {
     id: "salesloft_recorder",
-    name: "Salesloft Recorder",
+    name: "Salesloft Conversation",
     description:
-      "Import call recordings and transcripts from Salesloft Recorder",
-    note: "Set up your Salesloft connection to start using Salesloft Recorder",
+      "Import call recordings and transcripts from Salesloft Conversation",
+    note: "Set up your Salesloft connection to start using Salesloft Conversation",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
     category: "Call Recorder",
@@ -336,6 +346,7 @@ export function getIntegrationLogoPath(type: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
+    OUTREACH_KAIA: "outreach_kaia",
     SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -383,6 +394,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     guru: "GURU",
     intercom: "INTERCOM",
     outreachengage: "OUTREACH_ENGAGE",
+    outreach_kaia: "OUTREACH_KAIA",
     salesloft_recorder: "SALESLOFT",
     salesloft_engagement: "SALESLOFT_ENGAGEMENT",
     snowflake: "SNOWFLAKE",
@@ -424,6 +436,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
+    OUTREACH_KAIA: "outreach_kaia",
     SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -466,6 +479,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     GURU: "guru",
     INTERCOM: "intercom",
     OUTREACH_ENGAGE: "outreachengage",
+    OUTREACH_KAIA: "outreach_kaia",
     SALESLOFT: "salesloft_recorder",
     SALESLOFT_ENGAGEMENT: "salesloft_engagement",
     SNOWFLAKE: "snowflake",
@@ -507,6 +521,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   jiminny: ["tenant"],
   zendesk: ["tenant"],
   outreachengage: ["tenant"],
+  outreach_kaia: ["tenant"],
 
   // Personal integrations - user-level only
   hubspot: ["user"],

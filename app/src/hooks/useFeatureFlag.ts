@@ -13,7 +13,6 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   /** @deprecated permanently enabled — kept for reference only */
   DEEP_LINKS: "enableDeepLinks",
-  SIDE_BAR_V2: "sidebarV2",
   AGENT_V2: "agentsV2",
   /** @deprecated permanently enabled — kept for reference only */
   USER_MEMORY: "enableUserMemory",
@@ -109,13 +108,8 @@ export function useFeatureFlag() {
     isDeepLinksEnabled: true,
 
     /**
-     * Controls if we need to show new sidebar UI experience
-     */
-    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
-
-    /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
-     * instead of the legacy ThinkingBlock component
+     * instead of the legacy ThinkingBlock component. Permanently enabled.
      */
     isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
 

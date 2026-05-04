@@ -5,7 +5,7 @@ import {
 } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
 import { dashboardListKeys } from "./useDashboardList";
-import { sidebarDashboardKeys } from "./useSidebarDashboards";
+import { folderKeys } from "./folders";
 import { useToast } from "./useToast";
 import { useDebouncedFn } from "./useDebouncedFn";
 
@@ -25,13 +25,16 @@ export function useDashboardUpdate(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
-      // Invalidate sidebar/list caches when the name changes
+      // Invalidate sidebar/list caches when the name changes — both the
+      // top-level unfiled list and any folder contents that may hold this
+      // dashboard need to repaint with the new name.
       if (variables.dashboard_name) {
+        queryClient.invalidateQueries({ queryKey: dashboardListKeys.all });
         queryClient.invalidateQueries({
-          queryKey: dashboardListKeys.all,
+          queryKey: folderKeys.unfiled("dashboard"),
         });
         queryClient.invalidateQueries({
-          queryKey: sidebarDashboardKeys.all,
+          queryKey: [...folderKeys.all, "contents"],
         });
       }
     },
