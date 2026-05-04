@@ -50,6 +50,10 @@ export const FEATURE_FLAGS = {
   CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
   VON_AI_FIELDS: "enableVonAiFields",
+  // Gates the redesigned memory pages (org/user split tabs, inline editor,
+  // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
+  // returns the legacy single-pane memory tab.
+  MEMORY_V2: "enableMemoryV2",
 } as const;
 
 /**
@@ -119,6 +123,13 @@ export function useFeatureFlag() {
      * User memory — permanently enabled, no longer behind a feature flag
      */
     isUserMemoryEnabled: true,
+
+    /**
+     * Memory V2 — gates the redesigned memory pages (split Org/User tabs,
+     * inline editor, pick-time S3 uploads, bulk-import side pane). Off
+     * shows the legacy single-pane memory tab.
+     */
+    isMemoryV2Enabled: flags[FEATURE_FLAGS.MEMORY_V2] === true,
 
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled

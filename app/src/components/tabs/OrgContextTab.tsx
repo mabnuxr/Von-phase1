@@ -1,59 +1,34 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import {
-  PencilSimpleIcon,
-  TrashIcon,
-  BrainIcon,
-  DownloadSimpleIcon,
-  SparkleIcon,
-} from "@phosphor-icons/react";
-import {
-  DeleteConfirmationPopup,
-  FileChip,
-  FilesPreviewPanel,
-  type FileAttachment,
-} from "@vonlabs/design-components";
+import { PencilSimpleIcon, BrainIcon } from "@phosphor-icons/react";
+import { ConfirmationModal } from "@vonlabs/design-components";
 import { Streamdown } from "streamdown";
 import {
   useMemoryContexts,
-  useInfiniteMemoryContexts,
   useUpdateMemoryContext,
   useDeleteMemoryContext,
   useCreateMemoryContext,
 } from "../../hooks/useMemoryContexts";
 import { OrgContextDocumentList } from "../OrgContextDocumentList";
-import { MemoryContextEditor } from "../MemoryContextEditor";
-import { BulkImportPane } from "../BulkImportPane";
+import { MemoryContextPane } from "../MemoryContextPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 
-export interface OrgContextTabProps {
-  /**
-   * Which memory surface to render. "org" shows the tenant-level memory list
-   * and editor; "user" shows the single per-user memory card.
-   */
-  view: "org" | "user";
-}
-
-export function OrgContextTab({ view }: OrgContextTabProps) {
-  const showOrg = view === "org";
-  const showUser = view === "user";
-
+export function OrgContextTab() {
   // Selection state for org memory
   const [selectedOrgContextId, setSelectedOrgContextId] = useState<
     string | null
   >(null);
 
-  // Inline editor state — replaces the old side-pane drawer. The right content
-  // panel flips into this mode when the user clicks edit or create.
-  const [editMode, setEditMode] = useState<"none" | "create" | "edit">("none");
+  // Pane state
+  const [isPaneOpen, setIsPaneOpen] = useState(false);
+  const [paneMode, setPaneMode] = useState<"create" | "edit">("create");
   const [editingContext, setEditingContext] = useState<MemoryContext | null>(
     null,
   );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const isEditing = editMode !== "none";
 
   // Toast notifications
   const { showToast } = useToast();
@@ -61,78 +36,36 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   // Feature flags
   const { isUserMemoryEnabled } = useFeatureFlag();
 
-  // Attachments persisted per memory context. Session-only for now (not
-  // round-tripped through the backend), so files survive preview ↔ edit
-  // navigation but are cleared on page reload. Keyed by the memory's id.
-  const [attachmentsByContextId, setAttachmentsByContextId] = useState<
-    Record<string, FileAttachment[]>
-  >({});
-
-  // Currently previewed attachment — null when the preview drawer is closed.
-  const [previewingAttachment, setPreviewingAttachment] =
-    useState<FileAttachment | null>(null);
-
-  // Bulk import drawer state + the post-submit "reviewing" phase. User
-  // memory only — org bulk import was descoped. While processing, the
-  // center pane shows a subtle reviewing pill so the user can see Von
-  // working before the memory updates.
-  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
-  const [isBulkImportProcessing, setIsBulkImportProcessing] = useState(false);
-  const bulkImportTimerRef = useRef<number | null>(null);
-  useEffect(() => {
-    return () => {
-      if (bulkImportTimerRef.current !== null) {
-        window.clearTimeout(bulkImportTimerRef.current);
-      }
-    };
-  }, []);
-  // Object URL for the local File, lazily created on open so we don't leak
-  // URLs for attachments the user never previews. Revoked on close.
-  const previewObjectUrl = useMemo(() => {
-    if (!previewingAttachment) return null;
-    return URL.createObjectURL(previewingAttachment.file);
-  }, [previewingAttachment]);
-  useEffect(() => {
-    return () => {
-      if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
-    };
-  }, [previewObjectUrl]);
-
   // Get permissions for org memory (tenant-level)
   const { data: orgMemoryPermissions } = usePermissions(
     Resource.MEMORY_CONTEXT,
     { access_level: "tenant" },
   );
 
-  // Fetch org memory contexts with infinite scroll — pages get accumulated
-  // as the user scrolls past the sentinel in the sidebar list.
-  const {
-    data: orgInfiniteData,
-    isLoading,
-    error,
-    hasNextPage,
-    fetchNextPage,
-    isFetchingNextPage,
-  } = useInfiniteMemoryContexts("tenant", 20);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const prevPageRef = useRef(currentPage);
 
-  // Fetch user memory (only when viewing user memory and feature flag is enabled)
+  // Fetch org memory contexts with pagination
+  const { data, isLoading, error } = useMemoryContexts(
+    "tenant",
+    currentPage,
+    20,
+  );
+
+  // Fetch user memory (only when feature flag is enabled)
   const {
     data: userMemoryData,
     isLoading: isUserMemoryLoading,
     refetch: refetchUserMemory,
-  } = useMemoryContexts("user", 1, 1, {
-    enabled: showUser && isUserMemoryEnabled,
-  });
+  } = useMemoryContexts("user", 1, 1, { enabled: isUserMemoryEnabled });
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
   const createMutation = useCreateMemoryContext();
 
-  // Flatten the per-page arrays into a single list. Memoized so consumers
-  // don't see a new reference on every render.
-  const contexts = useMemo(
-    () => orgInfiniteData?.pages.flatMap((p) => p.data) ?? [],
-    [orgInfiniteData],
-  );
+  // Extract contexts and pagination info (memoized to prevent useEffect loop)
+  const contexts = useMemo(() => data?.data || [], [data?.data]);
+  const pagination = data?.pagination;
 
   // Extract user memory (single item or null)
   const userMemory = useMemo(
@@ -201,12 +134,31 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   // Combined loading state for org memory
   const isOrgLoading = isLoading;
 
-  // Auto-select first org memory context when data loads.
+  // Auto-select first org memory context when data loads or page changes
   useEffect(() => {
-    if (!selectedOrgContextId && contexts.length > 0) {
-      setSelectedOrgContextId(contexts[0].id);
+    const pageChanged = prevPageRef.current !== currentPage;
+
+    if (!selectedOrgContextId || pageChanged) {
+      if (contexts.length > 0) {
+        setSelectedOrgContextId(contexts[0].id);
+      }
     }
-  }, [contexts, selectedOrgContextId]);
+
+    prevPageRef.current = currentPage;
+  }, [contexts, selectedOrgContextId, currentPage]);
+
+  // Auto-navigate to previous page if current page is empty and not the first page
+  useEffect(() => {
+    if (
+      !isLoading &&
+      contexts.length === 0 &&
+      currentPage > 1 &&
+      pagination?.totalPages !== undefined &&
+      currentPage > pagination.totalPages
+    ) {
+      setCurrentPage(currentPage - 1);
+    }
+  }, [contexts.length, currentPage, isLoading, pagination?.totalPages]);
 
   // Get selected org context
   const selectedOrgContext = useMemo(() => {
@@ -215,115 +167,55 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
     );
   }, [selectedOrgContextId, contexts]);
 
-  // Permission flags derived from org memory permissions.
-  // Dev-only override: in a non-prod build, setting
-  // localStorage.__devAdminMemory = "1" forces the edit UI on. The backend
-  // still enforces permissions, so saves will 403 unless the server also
-  // grants access.
-  const devAdminOverride =
-    import.meta.env.DEV &&
-    typeof window !== "undefined" &&
-    window.localStorage.getItem("__devAdminMemory") === "1";
-  const canCreateOrgMemory =
-    devAdminOverride || (orgMemoryPermissions?.create ?? false);
-  const canUpdateOrgMemory =
-    devAdminOverride || (orgMemoryPermissions?.update ?? false);
-  const canDeleteOrgMemory =
-    devAdminOverride || (orgMemoryPermissions?.delete ?? false);
+  // Permission flags derived from org memory permissions
+  const canCreateOrgMemory = orgMemoryPermissions?.create ?? false;
+  const canUpdateOrgMemory = orgMemoryPermissions?.update ?? false;
+  const canDeleteOrgMemory = orgMemoryPermissions?.delete ?? false;
 
-  // Selecting a different context just swaps it. Save/cancel discard any
-  // pending edits explicitly via Cancel.
+  // Handle org context selection
   const handleSelectOrgContext = (id: string) => {
     setSelectedOrgContextId(id);
-    setEditMode("none");
-    setEditingContext(null);
   };
 
-  // Handle create click - flips the right panel into create mode
+  // Handle create click - open create pane for org memory
   const handleCreateClick = () => {
+    setPaneMode("create");
     setEditingContext(null);
-    setEditMode("create");
+    setIsPaneOpen(true);
   };
 
   // Handle edit click for org memory
   const handleEditOrgClick = () => {
     if (selectedOrgContext) {
+      setPaneMode("edit");
       setEditingContext(selectedOrgContext);
-      setEditMode("edit");
+      setIsPaneOpen(true);
     }
   };
 
   // Handle edit click for user memory
   const handleEditUserClick = () => {
     if (userMemory) {
+      setPaneMode("edit");
       setEditingContext(userMemory);
-      setEditMode("edit");
+      setIsPaneOpen(true);
     }
   };
 
-  // Bulk import submit — appends the pasted content to the user's existing
-  // memory value. User memory is text-only (RFC 0003 §3); no file attachments.
-  // UI-only: real ingestion would replace the timer with a stream-driven
-  // update from the import-mode Deep Agent run.
-  const handleBulkImportSubmit = (input: string) => {
-    if (!userMemory) return;
-    setIsBulkImportProcessing(true);
-    setEditMode("none");
-    setEditingContext(null);
-
-    if (bulkImportTimerRef.current !== null) {
-      window.clearTimeout(bulkImportTimerRef.current);
-    }
-    bulkImportTimerRef.current = window.setTimeout(async () => {
-      try {
-        const existing = (userMemory.value ?? "").trim();
-        const pasted = input.trim();
-        const nextValue = [
-          existing,
-          existing && pasted ? "\n\n---\n\n" : "",
-          pasted,
-        ]
-          .filter(Boolean)
-          .join("");
-
-        await updateMutation.mutateAsync({
-          id: userMemory.id,
-          data: {
-            description: userMemory.description,
-            value: nextValue,
-          },
-        });
-        showToast({
-          message: "Memory imported successfully",
-          variant: "success",
-        });
-      } catch (error) {
-        console.error("Failed to import user memory:", error);
-        let errorMessage = "Failed to import memory. Please try again.";
-        if (error instanceof ApiError) errorMessage = error.message;
-        showToast({ message: errorMessage, variant: "error" });
-      } finally {
-        setIsBulkImportProcessing(false);
-        bulkImportTimerRef.current = null;
-      }
-    }, 2400);
-  };
-
-  // Exit the inline editor without saving
-  const handleCancelEdit = () => {
-    setEditMode("none");
+  // Handle pane close
+  const handlePaneClose = () => {
+    setIsPaneOpen(false);
     setEditingContext(null);
   };
 
-  // Handle save from the inline editor
+  // Handle save from pane
   const handleSave = async (data: {
     key: string;
     description: string;
     value: string;
-    attachments: FileAttachment[];
   }) => {
     try {
-      if (editMode === "create") {
+      if (paneMode === "create") {
         // Create new memory with all fields including value in ONE call
         const newMemory = await createMutation.mutateAsync({
           key: data.key,
@@ -333,12 +225,6 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
         });
 
         setSelectedOrgContextId(newMemory.id);
-        if (data.attachments.length > 0) {
-          setAttachmentsByContextId((prev) => ({
-            ...prev,
-            [newMemory.id]: data.attachments,
-          }));
-        }
         showToast({
           message: "Memory created successfully",
           variant: "success",
@@ -367,17 +253,13 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
           id: editingContext.id,
           data: updateData,
         });
-        setAttachmentsByContextId((prev) => ({
-          ...prev,
-          [editingContext.id]: data.attachments,
-        }));
         showToast({
           message: "Memory updated successfully",
           variant: "success",
         });
       }
 
-      setEditMode("none");
+      setIsPaneOpen(false);
       setEditingContext(null);
     } catch (error) {
       console.error("Failed to save memory:", error);
@@ -461,48 +343,24 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
       );
     }
 
-    const contextAttachments = attachmentsByContextId[context.id] ?? [];
-
     return (
-      <div className="flex flex-col gap-3 w-full min-w-0 overflow-hidden">
-        {/* Memory title — shown at the top of the preview */}
-        <h2 className="text-lg font-semibold text-gray-900 break-words">
-          {context.key}
-        </h2>
-
+      <div className="flex flex-col gap-4 w-full min-w-0 overflow-hidden">
         {/* Description */}
         <div className="bg-gray-50/60 rounded-xl p-4 w-full min-w-0 overflow-hidden">
-          <label className="text-xs text-gray-800 mb-1 block">
+          <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
             When should the agent use this?
           </label>
-          <p className="text-sm text-gray-900 break-words whitespace-pre-wrap">
+          <p className="text-sm text-gray-700 break-words whitespace-pre-wrap">
             {context.description || "—"}
           </p>
         </div>
 
-        {/* Attached files — rendered between description and content so they
-            read as supporting material the agent can pull from. */}
-        {contextAttachments.length > 0 && (
-          <div className="w-full min-w-0 px-4 pt-1 flex flex-col gap-1.5">
-            <label className="text-xs text-gray-800">Attachments</label>
-            <div className="flex flex-wrap gap-1.5">
-              {contextAttachments.map((attachment) => (
-                <FileChip
-                  key={attachment.id}
-                  file={attachment}
-                  onClick={() => setPreviewingAttachment(attachment)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Memory Content */}
-        <div className="w-full min-w-0 overflow-hidden px-4 pb-4 pt-2">
-          <label className="text-xs text-gray-800 mb-1 block">
+        <div className="bg-gray-50/60 rounded-xl p-4 w-full min-w-0 overflow-hidden">
+          <label className="text-xs font-semibold text-gray-500 tracking-wider mb-2 block">
             Memory Content
           </label>
-          <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_[data-streamdown]:first-child]:!mt-1 [&_pre]:overflow-x-auto [&_code]:break-all">
+          <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
             <Streamdown parseIncompleteMarkdown={false}>
               {context.value || "No content yet"}
             </Streamdown>
@@ -515,14 +373,10 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
   return (
     <div className="flex flex-col h-full p-2">
       {/* Page Header */}
-      <div className="px-4 pt-4 pb-6 border-b border-gray-100">
-        <h2 className="text-xl font-semibold text-gray-900">
-          {showUser ? "User Memory" : "Org Memory"}
-        </h2>
+      <div className="px-4 pt-4 pb-6 border-b border-gray-200">
+        <h2 className="text-xl font-semibold text-gray-900">Memory</h2>
         <p className="text-sm text-gray-600">
-          {showUser
-            ? "Manage your personal preferences and context"
-            : "Define context shared across all users in your organization"}
+          Configure context that helps Von understand you and your organization
         </p>
       </div>
 
@@ -537,314 +391,153 @@ export function OrgContextTab({ view }: OrgContextTabProps) {
           )}
 
           {/* ===== ORG MEMORY SECTION ===== */}
-          {showOrg && (
-            <div className="w-[60%]">
-              {/* Org Memory Card — list | editor in a single card */}
-              <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-                <div className="flex w-full h-[calc(100vh-220px)]">
-                  {/* Left Panel - Context List */}
-                  <div className="w-60 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
-                    <OrgContextDocumentList
-                      contexts={contexts}
-                      selectedContextId={selectedOrgContextId}
-                      onSelectContext={handleSelectOrgContext}
-                      onCreateClick={handleCreateClick}
-                      isLoading={isOrgLoading}
-                      hasNextPage={hasNextPage}
-                      onLoadMore={fetchNextPage}
-                      isFetchingNextPage={isFetchingNextPage}
-                      canCreateOrgMemory={canCreateOrgMemory}
-                    />
-                  </div>
+          <div className="w-[75%]">
+            {/* Section Header - Outside card */}
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-gray-800">
+                Org Memory
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                Define context shared across all users in your organization
+              </p>
+            </div>
 
-                  {/* Right Panel - View Content */}
-                  <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
-                    {/* Floating edit/delete actions — top-right, hidden while
-                        the inline editor is active so they don't overlap the
-                        form. */}
-                    {!isEditing &&
-                      selectedOrgContext &&
-                      !(isOrgLoading && contexts.length === 0) &&
-                      contexts.length > 0 &&
-                      (canUpdateOrgMemory ||
-                        (canDeleteOrgMemory &&
-                          !selectedOrgContext.isDefault)) && (
-                        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-                          {canDeleteOrgMemory &&
-                            !selectedOrgContext.isDefault && (
-                              <button
-                                onClick={handleDeleteClick}
-                                disabled={deleteMutation.isPending}
-                                className="h-8 w-8 flex items-center justify-center rounded-xl bg-white border border-gray-200/80 shadow-xs hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Delete"
-                              >
-                                <TrashIcon
-                                  size={14}
-                                  weight="regular"
-                                  className="text-red-600"
-                                />
-                              </button>
-                            )}
-                          {canUpdateOrgMemory && (
-                            <button
-                              onClick={handleEditOrgClick}
-                              className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-                              title="Edit"
-                            >
-                              <PencilSimpleIcon
-                                size={14}
-                                weight="regular"
-                                className="text-gray-900"
-                              />
-                              Edit
-                            </button>
-                          )}
-                        </div>
-                      )}
+            {/* Org Memory Card */}
+            <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
+              <div
+                className={`flex w-full ${isUserMemoryEnabled ? "h-[50vh]" : "h-[70vh]"}`}
+              >
+                {/* Left Panel - Context List */}
+                <div className="w-60 h-full border-r border-gray-100/80 bg-gradient-to-b from-slate-50/50 to-gray-50/30 flex-shrink-0 flex flex-col">
+                  <OrgContextDocumentList
+                    contexts={contexts}
+                    selectedContextId={selectedOrgContextId}
+                    onSelectContext={handleSelectOrgContext}
+                    onCreateClick={handleCreateClick}
+                    onEditClick={handleEditOrgClick}
+                    onDeleteClick={handleDeleteClick}
+                    isLoading={isOrgLoading}
+                    currentPage={pagination?.page || 1}
+                    totalPages={pagination?.totalPages || 1}
+                    onPageChange={setCurrentPage}
+                    canCreateOrgMemory={canCreateOrgMemory}
+                    canUpdateOrgMemory={canUpdateOrgMemory}
+                    canDeleteOrgMemory={canDeleteOrgMemory}
+                    isDeleting={deleteMutation.isPending}
+                  />
+                </div>
 
-                    {/* Inline editor takes over the right panel in edit/create mode */}
-                    {isEditing ? (
-                      <MemoryContextEditor
-                        key={
-                          editMode === "create"
-                            ? `create-${editingContext?.id ?? "blank"}`
-                            : (editingContext?.id ?? "edit")
-                        }
-                        mode={editMode as "create" | "edit"}
-                        context={editingContext}
-                        onSave={handleSave}
-                        onCancel={handleCancelEdit}
-                        initialAttachments={
-                          editingContext
-                            ? (attachmentsByContextId[editingContext.id] ?? [])
-                            : []
-                        }
-                        onPreviewAttachment={setPreviewingAttachment}
-                        isSaving={
-                          createMutation.isPending || updateMutation.isPending
-                        }
-                      />
-                    ) : (
-                      /* Content Area */
-                      <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
-                        {isOrgLoading && contexts.length === 0 ? (
-                          <div
-                            className="flex flex-col gap-4 w-full"
-                            aria-label="Loading memory"
-                          >
-                            <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
-                              <div className="h-3 w-44 bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-                            </div>
-                            <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
-                              <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
-                              <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
-                            </div>
-                          </div>
-                        ) : contexts.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-3">
-                              <BrainIcon
-                                size={24}
-                                weight="duotone"
-                                className="text-indigo-400"
-                              />
-                            </div>
-                            <h4 className="text-sm font-medium text-gray-600 mb-1">
-                              No org memories yet
-                            </h4>
-                            <p className="text-xs text-gray-400 text-center">
-                              Insights will appear here as your team asks
-                              questions.
-                            </p>
-                          </div>
-                        ) : (
-                          renderContentView(selectedOrgContext)
-                        )}
+                {/* Right Panel - View Content */}
+                <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50">
+                  {/* Content Area */}
+                  <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {isOrgLoading && contexts.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                        <span className="animate-pulse">Loading...</span>
                       </div>
+                    ) : contexts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mb-3">
+                          <BrainIcon
+                            size={24}
+                            weight="duotone"
+                            className="text-indigo-400"
+                          />
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-600 mb-1">
+                          No org memories yet
+                        </h4>
+                        <p className="text-xs text-gray-400 text-center">
+                          Insights will appear here as your team asks questions.
+                        </p>
+                      </div>
+                    ) : (
+                      renderContentView(selectedOrgContext)
                     )}
                   </div>
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* ===== USER MEMORY SECTION ===== */}
-          {showUser && isUserMemoryEnabled && (
-            <div className="w-[55%] max-w-[680px]">
-              <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-                <div className="flex w-full h-[calc(100vh-300px)] min-h-[480px]">
-                  {/* Content area */}
-                  <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
-                    {/* Floating Import + Edit actions — top-right, mirrors
-                        org memory's pattern. Hidden during edit mode and
-                        bulk-import processing so they don't overlap the
-                        form or the reviewing skeleton. */}
-                    {!isEditing && !isBulkImportProcessing && userMemory && (
-                      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-                        <button
-                          onClick={() => setIsBulkImportOpen(true)}
-                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-                          title="Import memory"
-                        >
-                          <DownloadSimpleIcon size={14} weight="regular" />
-                          Import memory
-                        </button>
-                        <button
-                          onClick={handleEditUserClick}
-                          className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-xl bg-white border border-gray-200/80 shadow-xs text-sm text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-                          title="Edit"
-                        >
-                          <PencilSimpleIcon
-                            size={14}
-                            weight="regular"
-                            className="text-gray-900"
-                          />
-                          Edit
-                        </button>
-                      </div>
-                    )}
+          {isUserMemoryEnabled && (
+            <div className="w-[75%]">
+              {/* Section Header - Outside card */}
+              <div className="mb-3">
+                <h3 className="text-sm font-semibold text-gray-800">
+                  User Memory
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Manage your personal preferences and context
+                </p>
+              </div>
 
-                    {isBulkImportProcessing ? (
-                      <div
-                        className="flex flex-col h-full w-full overflow-hidden p-6"
-                        aria-label="Von is reviewing the import"
-                      >
-                        <div className="space-y-3 opacity-60">
-                          <div className="h-3 w-1/3 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
-                        </div>
-                        <div className="flex-1 flex items-center justify-center">
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/80 bg-white shadow-xs">
-                            <SparkleIcon
-                              size={14}
-                              weight="fill"
-                              className="text-gray-500 memory-sparkle-pulse"
-                            />
-                            <span className="text-sm text-gray-700">
-                              Von is reviewing the import
-                            </span>
-                            <span
-                              className="inline-flex items-center gap-1 ml-0.5"
-                              aria-hidden
-                            >
-                              <span className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce" />
-                              <span
-                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
-                                style={{ animationDelay: "150ms" }}
-                              />
-                              <span
-                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
-                                style={{ animationDelay: "300ms" }}
-                              />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : isEditing && editingContext?.accessLevel === "user" ? (
-                      <MemoryContextEditor
-                        key={editingContext.id}
-                        mode="edit"
-                        context={editingContext}
-                        onSave={handleSave}
-                        onCancel={handleCancelEdit}
-                        initialAttachments={
-                          attachmentsByContextId[editingContext.id] ?? []
-                        }
-                        onPreviewAttachment={setPreviewingAttachment}
-                        isSaving={
-                          createMutation.isPending || updateMutation.isPending
-                        }
-                      />
-                    ) : isUserMemoryLoading || isCreatingUserMemory ? (
-                      <div
-                        className="flex flex-col gap-4 w-full p-4"
-                        aria-label="Loading user memory"
-                      >
-                        <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
-                          <div className="h-3 w-44 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-                        </div>
-                        <div className="bg-gray-50/60 rounded-xl p-4 space-y-2">
-                          <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
-                          <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
-                        </div>
-                      </div>
-                    ) : userMemory ? (
-                      <div className="flex-1 w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
-                        {renderContentView(userMemory)}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center h-full">
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
-                          <BrainIcon
-                            size={24}
-                            weight="duotone"
-                            className="text-violet-400"
-                          />
-                        </div>
-                        <h4 className="text-sm font-medium text-gray-600 mb-1">
-                          No user memory yet
-                        </h4>
-                        <p className="text-xs text-gray-400 text-center">
-                          Your personal memory will appear here.
-                        </p>
-                      </div>
-                    )}
+              {/* User Memory Card - Fixed height with scroll */}
+              <div className="w-full bg-white/80 rounded-2xl shadow-xs border border-gray-200 overflow-hidden h-[200px] relative">
+                {isUserMemoryLoading || isCreatingUserMemory ? (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                    <span className="animate-pulse">Loading...</span>
                   </div>
-                </div>
+                ) : userMemory ? (
+                  <div className="h-full w-full min-w-0 overflow-y-auto overflow-x-hidden settings-scrollbar p-4">
+                    {/* Edit button - top right */}
+                    <button
+                      onClick={handleEditUserClick}
+                      className="absolute top-3 right-3 p-2 text-violet-500 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-all duration-200 cursor-pointer z-10"
+                      title="Edit"
+                    >
+                      <PencilSimpleIcon size={14} weight="bold" />
+                    </button>
+                    <div className="prose prose-sm max-w-full w-full text-sm [&>*]:text-sm [&>*]:leading-relaxed [&>*]:break-words [&>*]:overflow-hidden [&_pre]:overflow-x-auto [&_code]:break-all">
+                      <Streamdown parseIncompleteMarkdown={false}>
+                        {userMemory.value || "No content yet"}
+                      </Streamdown>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-purple-100 flex items-center justify-center mb-3">
+                      <BrainIcon
+                        size={24}
+                        weight="duotone"
+                        className="text-violet-400"
+                      />
+                    </div>
+                    <h4 className="text-sm font-medium text-gray-600 mb-1">
+                      No user memory yet
+                    </h4>
+                    <p className="text-xs text-gray-400 text-center">
+                      Your personal memory will appear here.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Delete Confirmation Modal — mirrors the folder-delete experience */}
-      <DeleteConfirmationPopup
-        isOpen={isDeleteModalOpen}
-        itemLabel={selectedOrgContext?.key ?? "this memory"}
-        itemType="memory"
-        onConfirm={confirmDelete}
-        onCancel={() => setIsDeleteModalOpen(false)}
+      {/* Memory Context Pane (Sidebar for editing/creating) */}
+      <MemoryContextPane
+        isOpen={isPaneOpen}
+        onClose={handlePaneClose}
+        mode={paneMode}
+        context={editingContext}
+        onSave={handleSave}
+        isSaving={createMutation.isPending || updateMutation.isPending}
       />
 
-      {/* Bulk import drawer — user memory only. Submit appends the pasted
-          content to the user's existing memory and persists attachments. */}
-      {showUser && (
-        <BulkImportPane
-          isOpen={isBulkImportOpen}
-          onClose={() => setIsBulkImportOpen(false)}
-          onSubmit={handleBulkImportSubmit}
-        />
-      )}
-
-      {/* Shared attachment preview drawer — generic panel from
-          design-components. Handles PDF / DOCX / XLSX / CSV / text / md /
-          images; same component the Commands drawer uses. */}
-      <FilesPreviewPanel
-        contextName={editingContext?.key || "Memory"}
-        files={
-          previewingAttachment && previewObjectUrl
-            ? [
-                {
-                  file: previewingAttachment,
-                  previewUrl: previewObjectUrl,
-                },
-              ]
-            : []
-        }
-        isOpen={previewingAttachment !== null}
-        onClose={() => setPreviewingAttachment(null)}
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Memory"
+        message="Are you sure you want to delete this memory context? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        confirmVariant="danger"
       />
     </div>
   );

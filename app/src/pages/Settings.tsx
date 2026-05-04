@@ -20,6 +20,7 @@ import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
+import { OrgContextTabV2 } from "../components/tabs/OrgContextTabV2";
 import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
@@ -41,23 +42,28 @@ const Settings = () => {
     isUsageMetricsEnabled,
     isUserMemoryEnabled,
     isVonAiFieldsEnabled,
+    isMemoryV2Enabled,
   } = useFeatureFlag();
 
   // Get initial tab from URL query parameter or default to integrations.
-  // Old "memory" links land on the Org Memory sub-page so we don't break URLs.
+  // Under V2 the legacy `memory` deep-link lands on the Org Memory sub-page
+  // (V2 splits the tab into memory-org/memory-user children); under V1 the
+  // single `memory` tab is the only one so we leave the URL alone.
   const tabFromUrl = searchParams.get("tab");
-  const normalizedTab = tabFromUrl === "memory" ? "memory-org" : tabFromUrl;
+  const normalizedTab =
+    isMemoryV2Enabled && tabFromUrl === "memory" ? "memory-org" : tabFromUrl;
   const initialTab = normalizedTab || "integrations";
   const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
 
   // Set default tab in URL if not present, and rewrite the legacy "memory" tab
+  // when V2 is on.
   useEffect(() => {
     if (!tabFromUrl) {
       navigate(`/settings?tab=integrations`, { replace: true });
-    } else if (tabFromUrl === "memory") {
+    } else if (isMemoryV2Enabled && tabFromUrl === "memory") {
       navigate(`/settings?tab=memory-org`, { replace: true });
     }
-  }, [tabFromUrl, navigate]);
+  }, [tabFromUrl, navigate, isMemoryV2Enabled]);
 
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
@@ -163,17 +169,24 @@ const Settings = () => {
         label: "Fields",
         icon: <RowsIcon size={20} weight="regular" />,
       },
-      {
-        id: "memory",
-        label: "Memory",
-        icon: <BrainIcon size={20} weight="regular" />,
-        children: [
-          { id: "memory-org", label: "Org Memory" },
-          ...(isUserMemoryEnabled
-            ? [{ id: "memory-user", label: "User Memory" }]
-            : []),
-        ],
-      },
+      // Memory V2 splits into Org/User children; legacy V1 is a single tab.
+      isMemoryV2Enabled
+        ? {
+            id: "memory",
+            label: "Memory",
+            icon: <BrainIcon size={20} weight="regular" />,
+            children: [
+              { id: "memory-org", label: "Org Memory" },
+              ...(isUserMemoryEnabled
+                ? [{ id: "memory-user", label: "User Memory" }]
+                : []),
+            ],
+          }
+        : {
+            id: "memory",
+            label: "Memory",
+            icon: <BrainIcon size={20} weight="regular" />,
+          },
       ...(isVonAiFieldsEnabled
         ? [
             {
@@ -224,10 +237,15 @@ const Settings = () => {
         return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
+      case "memory":
+        // V1 only — V2 routes through the memory-org/memory-user children.
+        return isMemoryV2Enabled ? null : <OrgContextTab />;
       case "memory-org":
-        return <OrgContextTab view="org" />;
+        return isMemoryV2Enabled ? <OrgContextTabV2 view="org" /> : null;
       case "memory-user":
-        return isUserMemoryEnabled ? <OrgContextTab view="user" /> : null;
+        return isMemoryV2Enabled && isUserMemoryEnabled ? (
+          <OrgContextTabV2 view="user" />
+        ) : null;
       case "custom-iq":
         return isVonAiFieldsEnabled ? <VonAiFieldsTab /> : null;
       case "usage":

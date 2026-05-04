@@ -1,15 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState, useId } from "react";
+import { useRef, useState, useId } from "react";
 import { PaperclipIcon } from "@phosphor-icons/react";
 import {
+  FileChip,
   generateFileId,
   getFileInfo,
   getAcceptString,
   type FileAttachment,
 } from "@vonlabs/design-components";
 import { OrgContextEditor } from "./OrgContextEditor";
-import { FileChip } from "@vonlabs/design-components";
-import type { MemoryContext } from "../types/memoryContext";
-import { MEMORY_CONTEXT_LIMITS } from "../types/memoryContext";
+import {
+  MEMORY_CONTEXT_LIMITS,
+  type MemoryContext,
+} from "../types/memoryContext";
 
 /**
  * Circular progress indicator for character budget. Only renders once usage
@@ -97,6 +99,10 @@ interface MemoryContextEditorProps {
   /** Click a file chip to open a preview drawer. Owned by the parent so it
    *  can pick the surface (SidePane, modal, etc). */
   onPreviewAttachment?: (attachment: FileAttachment) => void;
+  /** Called immediately when the user picks a file. Should presign + S3 PUT
+   *  and resolve with the persisted attachment metadata. The editor shows an
+   *  uploading spinner until this resolves. */
+  onUploadFile?: (file: File) => Promise<{ fileId: string; s3Key: string }>;
 }
 
 /**
@@ -112,6 +118,7 @@ export function MemoryContextEditor({
   isSaving = false,
   initialAttachments = [],
   onPreviewAttachment,
+  onUploadFile,
 }: MemoryContextEditorProps) {
   // `context` seeds initial values in BOTH modes — edit mode loads an existing
   // memory, create mode can pre-fill from a draft.
@@ -148,47 +155,44 @@ export function MemoryContextEditor({
         type: file.type,
         extension: info.extension,
         category: info.category,
-        status: "uploaded",
+        status: onUploadFile ? "uploading" : "uploaded",
       });
     });
-    if (next.length > 0) {
-      setAttachments((prev) => [...prev, ...next]);
-    }
+    if (next.length === 0) return;
+    setAttachments((prev) => [...prev, ...next]);
+    if (!onUploadFile) return;
+
+    // Kick off uploads in parallel; patch each chip with its s3Key/uploadId
+    // as the upload resolves. The local id is preserved so concurrent picks
+    // and removes don't collide. Failed uploads drop their chip — the user
+    // retries by re-attaching.
+    next.forEach((att) => {
+      onUploadFile(att.file)
+        .then(({ fileId, s3Key }) => {
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a.id === att.id
+                ? { ...a, uploadId: fileId, s3Key, status: "uploaded" }
+                : a,
+            ),
+          );
+        })
+        .catch((err) => {
+          console.error("Memory attachment upload failed", err);
+          setAttachments((prev) => prev.filter((a) => a.id !== att.id));
+        });
+    });
   };
 
+  // Remove just drops the chip locally. The BE has no per-file delete — the
+  // memory's attachments array (sent on save) is the source of truth, so
+  // dropping a chip and saving is enough; orphan S3 objects are reaped by
+  // BE-side cleanup.
   const handleRemoveAttachment = (id: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // Attach button + chips flow inline on a single row when they fit. Once
-  // any chip wraps, we flip into "stacked" mode: chips wrap freely on top,
-  // Attach button alone on the bottom row. Reset on count change so adding
-  // / removing files re-evaluates the layout from scratch.
-  const [attachmentsStacked, setAttachmentsStacked] = useState(false);
-  const inlineRowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    setAttachmentsStacked(false);
-  }, [attachments.length]);
-  useLayoutEffect(() => {
-    const node = inlineRowRef.current;
-    if (!node) return;
-    const check = () => {
-      if (attachmentsStacked) return;
-      const children = Array.from(node.children) as HTMLElement[];
-      if (children.length <= 1) return;
-      const firstTop = children[0].offsetTop;
-      const wrapped = children.some(
-        (c) => Math.abs(c.offsetTop - firstTop) > 4,
-      );
-      if (wrapped) setAttachmentsStacked(true);
-    };
-    const ro = new ResizeObserver(check);
-    ro.observe(node);
-    check();
-    return () => ro.disconnect();
-  }, [attachmentsStacked, attachments.length]);
-
-  // Hidden file input + button shared between both layouts.
+  // Hidden file input + Attach button.
   const hiddenFileInput = (
     <input
       ref={fileInputRef}
@@ -218,13 +222,16 @@ export function MemoryContextEditor({
   const isUserMemory = mode === "edit" && context?.accessLevel === "user";
   const isTitleReadOnly = isDefault || isUserMemory;
 
+  const hasUploadInFlight = attachments.some((a) => a.status === "uploading");
+
   const isValid =
     editingKey.trim().length > 0 &&
     (isUserMemory || editingDescription.trim().length > 0) &&
     editingKey.length <= MEMORY_CONTEXT_LIMITS.key &&
     (isUserMemory ||
       editingDescription.length <= MEMORY_CONTEXT_LIMITS.description) &&
-    editingContent.length <= MEMORY_CONTEXT_LIMITS.value;
+    editingContent.length <= MEMORY_CONTEXT_LIMITS.value &&
+    !hasUploadInFlight;
 
   const handleSave = async () => {
     await onSave({
@@ -287,44 +294,29 @@ export function MemoryContextEditor({
         </div>
       </div>
 
-      {/* Attachments — pinned ABOVE Memory Content. Default flow: Attach
-          button + chips share a single row. When the row would wrap, we
-          flip into stacked mode: chips wrap freely above, Attach alone
-          below. Width transitions on the chip's hover X reveal are driven
-          by framer-motion's `layout` prop on each chip. */}
-      <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
-        {hiddenFileInput}
-        {attachmentsStacked ? (
-          <>
-            <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+      {/* Attachments — pinned ABOVE Memory Content. Hidden for user memory
+          (text-only). Chips wrap freely on top, Attach button on its own
+          row below. Stable layout regardless of chip count. */}
+      {!isUserMemory && (
+        <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
+          {hiddenFileInput}
+          {attachments.length > 0 && (
+            <div className="flex flex-row flex-wrap items-start gap-1.5 min-w-0">
               {attachments.map((attachment) => (
-                <FileChip
-                  key={attachment.id}
-                  file={attachment}
-                  onRemove={handleRemoveAttachment}
-                  onClick={() => onPreviewAttachment?.(attachment)}
-                />
+                <div key={attachment.id} className="shrink-0">
+                  <FileChip
+                    file={attachment}
+                    isUploading={attachment.status === "uploading"}
+                    onRemove={handleRemoveAttachment}
+                    onClick={() => onPreviewAttachment?.(attachment)}
+                  />
+                </div>
               ))}
             </div>
-            <div>{attachButton}</div>
-          </>
-        ) : (
-          <div
-            ref={inlineRowRef}
-            className="flex flex-wrap items-center gap-1.5 min-w-0"
-          >
-            {attachButton}
-            {attachments.map((attachment) => (
-              <FileChip
-                key={attachment.id}
-                file={attachment}
-                onRemove={handleRemoveAttachment}
-                onClick={() => onPreviewAttachment?.(attachment)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          )}
+          <div>{attachButton}</div>
+        </div>
+      )}
 
       {/* Memory Content — stretches to fill remaining space so the TipTap
           editor gets a concrete height to scroll within. */}
@@ -359,11 +351,13 @@ export function MemoryContextEditor({
           onClick={handleSave}
           disabled={!isValid || isSaving}
           title={
-            !isValid &&
-            editingKey.trim().length > 0 &&
-            editingDescription.trim().length > 0
-              ? "One or more fields exceed character limits"
-              : undefined
+            hasUploadInFlight
+              ? "Waiting for file uploads to finish"
+              : !isValid &&
+                  editingKey.trim().length > 0 &&
+                  editingDescription.trim().length > 0
+                ? "One or more fields exceed character limits"
+                : undefined
           }
           className="px-2.5 py-1.5 text-sm text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
