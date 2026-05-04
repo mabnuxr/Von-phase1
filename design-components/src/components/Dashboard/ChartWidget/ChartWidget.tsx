@@ -1,23 +1,35 @@
 import { useRef, useEffect, memo } from 'react';
 import Highcharts from './highchartsSetup';
 import HighchartsReact from 'highcharts-react-official';
-import type { ChartWidgetConfig, DrilldownConfig, DrillFilters } from '../types';
+import type {
+  ChartWidgetConfig,
+  DrilldownConfig,
+  DrillFilters,
+  PanelDrilldownV2,
+} from '../types';
 import { useChartOptions } from './useChartOptions';
 
 export interface ChartWidgetProps {
   config: ChartWidgetConfig;
-  /** Drilldown config with column_map for point-level drilldown. */
+  /** Legacy V1 drilldown config — flat ``{query_ref, column_map}``. */
   drilldown?: DrilldownConfig | null;
-  /** Called when a chart data point is clicked and column_map is present. */
+  /**
+   * V2 drilldown config. When present, takes precedence over ``drilldown``
+   * for point-click filter extraction (column_map is sourced from the
+   * default target's default variant).
+   */
+  drilldownV2?: PanelDrilldownV2 | null;
+  /** Called when a chart data point is clicked and a column_map is available. */
   onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
-const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, onPointClick }) => {
+const ChartWidget: React.FC<ChartWidgetProps> = memo(({ config, drilldown, drilldownV2, onPointClick }) => {
   const chartRef = useRef<HighchartsReact.RefObject>(null);
   const sizeRef = useRef<HTMLDivElement>(null);
   const { options: finalOptions, constructorType } = useChartOptions({
     config,
     drilldown,
+    drilldownV2,
     onPointClick,
   });
 

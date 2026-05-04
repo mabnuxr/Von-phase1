@@ -43,6 +43,11 @@ export const FEATURE_FLAGS = {
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
   // so a single toggle in LaunchDarkly flips both sides in sync.
   DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  // LaunchDarkly key: `drilldown_v2` (underscored — matches the backend
+  // gate at `app/api/v1/dashboard.py::DRILLDOWN_V2_FLAG`). The React SDK
+  // doesn't auto-transform underscores, so the access key here is the
+  // same string the backend uses.
+  DRILLDOWN_V2: "drilldown_v2",
   // Gates the "Share chat" entry points (header button + sidebar
   // context-menu item). The recipient `/shared/:token` route stays
   // reachable so already-generated links continue to work.
@@ -211,6 +216,16 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether the V2 drilldown UI is wired — bottom-sheet panel,
+     * variants UI, V2 endpoint routing, whole-row descent through the
+     * pyramid model. When OFF, panels with `drilldown_v2` from the backend
+     * fall through to the legacy V1 wiring (which is a no-op for V2-only
+     * panels — acceptable since V2-built dashboards are only served to
+     * flagged users in practice).
+     */
+    isDrilldownV2Enabled: flags[FEATURE_FLAGS.DRILLDOWN_V2] === true,
 
     /**
      * Controls whether the chat sharing feature is enabled
