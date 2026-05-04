@@ -219,10 +219,10 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
 
   // Refresh user memory on mount to reflect updates made via chat
   useEffect(() => {
-    if (isUserMemoryEnabled) {
+    if (showUser && isUserMemoryEnabled) {
       refetchUserMemory();
     }
-  }, [isUserMemoryEnabled, refetchUserMemory]);
+  }, [showUser, isUserMemoryEnabled, refetchUserMemory]);
 
   // Auto-create user memory if feature is enabled but no user memory exists
   const [isCreatingUserMemory, setIsCreatingUserMemory] = useState(false);
