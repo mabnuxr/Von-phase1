@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { clearAllAuth } from "../lib/auth";
+import { resetPosthogUser } from "../lib/posthog";
 import { authService } from "../services/authService";
 
 function Logout() {
@@ -15,7 +16,8 @@ function Logout() {
           );
         }
 
-        // Clear all auth tokens from localStorage
+        // Clear all auth tokens from localStorage and reset PostHog identity
+        resetPosthogUser();
         clearAllAuth();
 
         // Redirect to the URL provided by backend
@@ -35,6 +37,7 @@ function Logout() {
         if (import.meta.env.DEV) {
           console.error("[Logout] Backend logout failed:", error);
         }
+        resetPosthogUser();
         clearAllAuth();
         window.location.href = location.origin;
       }

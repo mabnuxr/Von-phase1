@@ -27,6 +27,7 @@ import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
 import { useAppShell } from "../hooks/useAppShell";
+import { usePostHog } from "@posthog/react";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
@@ -40,6 +41,7 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
+  const posthog = usePostHog();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -138,6 +140,24 @@ const NewConversation = () => {
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  const pageViewCaptured = useRef(false);
+  useEffect(() => {
+    if (!user || !posthog || pageViewCaptured.current) return;
+
+    posthog.capture("Chat - Page Viewed", {
+      company: user.tenant ?? null,
+      company_id: user.tenantId ?? null,
+      user_id: user.id,
+      user_email: user.email,
+      user_role: !user.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    });
+    pageViewCaptured.current = true;
+  }, [user, posthog]);
+
   const {
     isSidebarV2,
     isAgentV2: isAgentV2Flag,

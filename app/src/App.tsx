@@ -1,4 +1,6 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { usePostHog } from "@posthog/react";
 import RootGate from "./pages/RootGate";
 import Callback from "./pages/Callback";
 import Conversation from "./pages/Conversation";
@@ -16,9 +18,21 @@ import { LaunchDarklyGate } from "./components/LaunchDarkly";
 import { NavigationGuardProvider } from "./providers/NavigationGuard";
 import { ConversationSkeleton } from "./components/ConversationSkeleton";
 
+function PostHogPageviewTracker() {
+  const location = useLocation();
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    posthog?.capture("$pageview");
+  }, [location.pathname, posthog]);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <PostHogPageviewTracker />
       <Routes>
         {/* Public routes */}
         <Route path="/health" element={<Health />} />
