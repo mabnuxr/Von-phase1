@@ -22,6 +22,7 @@ import {
   fileUploadService,
   type FileMetadataResponse,
 } from "../services/fileUploadService";
+import { recordArtifactDelivered } from "../lib/realtimeFileDeliveryObservability";
 
 /** Query key factory for agent artifact queries */
 export const agentArtifactKeys = {
@@ -52,6 +53,7 @@ export function useAgentArtifacts(
           "agent_generated",
           runId,
         );
+        recordArtifactDelivered(conversationId, runId, response.data, "api");
         return response.data;
       },
       enabled: !!conversationId,
