@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
@@ -99,29 +99,14 @@ export function OrgContextEditor({
     },
     editorProps: {
       attributes: {
-        class: "tiptap-editor min-h-[200px] focus:outline-none px-4 py-2",
+        class: "tiptap-editor min-h-[200px] focus:outline-none px-4 pt-0 pb-3",
       },
     },
   });
 
-  // Force-reset editor content whenever `contentKey` changes. This routes
-  // the initial value through tiptap-markdown's parser, which the initial
-  // `useEditor({ content })` call does not reliably do.
-  const lastAppliedContentKey = useRef<string | undefined>(undefined);
+  // Update editor content when content prop changes
   useEffect(() => {
-    if (!editor) return;
-    const keyChanged =
-      contentKey !== undefined && contentKey !== lastAppliedContentKey.current;
-    if (keyChanged) {
-      lastAppliedContentKey.current = contentKey;
-      // Place the caret at the start so the toolbar doesn't light up with
-      // whatever node happens to be at the end of the document (often a list).
-      editor.chain().setContent(content).setTextSelection(0).run();
-      return;
-    }
-    // Otherwise keep the editor in sync with external `content` updates
-    // without fighting the user's caret while they're typing.
-    if (content !== getMarkdown(editor)) {
+    if (editor && content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
     }
   }, [content, contentKey, editor]);
@@ -148,7 +133,7 @@ export function OrgContextEditor({
               type="button"
               title="Bold (Ctrl+B)"
             >
-              <TextB size={16} weight="regular" />
+              <TextB size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleItalic().run()}
@@ -156,7 +141,7 @@ export function OrgContextEditor({
               type="button"
               title="Italic (Ctrl+I)"
             >
-              <TextItalic size={16} weight="regular" />
+              <TextItalic size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleUnderline().run()}
@@ -164,7 +149,7 @@ export function OrgContextEditor({
               type="button"
               title="Underline (Ctrl+U)"
             >
-              <TextUnderline size={16} weight="regular" />
+              <TextUnderline size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -172,7 +157,7 @@ export function OrgContextEditor({
               type="button"
               title="Strikethrough"
             >
-              <TextStrikethrough size={16} weight="regular" />
+              <TextStrikethrough size={16} weight="bold" />
             </button>
           </div>
 
@@ -189,7 +174,7 @@ export function OrgContextEditor({
               type="button"
               title="Heading 1"
             >
-              <TextHOne size={16} weight="regular" />
+              <TextHOne size={16} weight="bold" />
             </button>
             <button
               onClick={() =>
@@ -201,7 +186,7 @@ export function OrgContextEditor({
               type="button"
               title="Heading 2"
             >
-              <TextHTwo size={16} weight="regular" />
+              <TextHTwo size={16} weight="bold" />
             </button>
           </div>
 
@@ -214,7 +199,7 @@ export function OrgContextEditor({
               type="button"
               title="Bullet List"
             >
-              <ListBullets size={16} weight="regular" />
+              <ListBullets size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleOrderedList().run()}
@@ -222,7 +207,7 @@ export function OrgContextEditor({
               type="button"
               title="Numbered List"
             >
-              <ListNumbers size={16} weight="regular" />
+              <ListNumbers size={16} weight="bold" />
             </button>
           </div>
 
@@ -235,7 +220,7 @@ export function OrgContextEditor({
               type="button"
               title="Blockquote"
             >
-              <Quotes size={16} weight="regular" />
+              <Quotes size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().toggleCodeBlock().run()}
@@ -243,7 +228,7 @@ export function OrgContextEditor({
               type="button"
               title="Code Block"
             >
-              <Code size={16} weight="regular" />
+              <Code size={16} weight="bold" />
             </button>
           </div>
 
@@ -261,14 +246,14 @@ export function OrgContextEditor({
               type="button"
               title="Insert Table"
             >
-              <TableIcon size={16} weight="regular" />
+              <TableIcon size={16} weight="bold" />
             </button>
             <button
               onClick={() => editor.chain().focus().setHorizontalRule().run()}
               type="button"
               title="Horizontal Rule"
             >
-              <Minus size={16} weight="regular" />
+              <Minus size={16} weight="bold" />
             </button>
           </div>
         </div>
