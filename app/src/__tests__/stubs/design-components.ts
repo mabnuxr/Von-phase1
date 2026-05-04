@@ -29,9 +29,10 @@ export {
   isApprovalTool,
   isGoogleCalendarApprovalTool,
 } from "../../../../design-components/src/components/Chat/types";
+export { ensureUTC } from "../../../../design-components/src/utils/ensureUTC";
 
 // ReportTable types & utils
-export type { ReportColumn } from "../../../../design-components/src/components/ReportTable/ReportTable";
+export type { ReportColumn } from "../../../../design-components/src/components/ReportTable/types";
 export {
   buildGridOptions,
   autoSizeGridColumns,
@@ -39,3 +40,17 @@ export {
   getDataTableColumns,
   formatValue,
 } from "../../../../design-components/src/components/ReportTable/reportTableUtils";
+export {
+  computeColumnWidths,
+  buildProbeColumns,
+  humanizeColumnId,
+  PROBE_CANDIDATE_LIMIT,
+  PROBE_SAMPLE_SIZE,
+  MAX_COL_WIDTH,
+  MIN_COL_WIDTH,
+  WIDTH_BUFFER,
+} from "../../../../design-components/src/components/ReportTable/columnWidthLogic";
+export type {
+  ProbeColumn,
+  ColumnWidthInputs,
+} from "../../../../design-components/src/components/ReportTable/columnWidthLogic";

@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { ReportTable, handleLongTextHover, LongTextPopover } from '../../ReportTable';
+import {
+  ReportTable,
+  LongTextPopover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
+  escapeHtml,
+} from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
@@ -18,6 +25,89 @@ interface TableWidgetProps {
   sortState?: ServerSortState | null;
   /** Called when a table body cell is clicked for drilldown */
   onCellClick?: (columnId: string, cellValue: unknown) => void;
+}
+
+/** Identify text column ids by checking data values */
+function findTextColumnIds(options: GridOptions): Set<string> {
+  const ids = new Set<string>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opts = options as any;
+  // Grid Lite supports both `data.columns` (new) and `dataTable.columns` (legacy)
+  const dataCols: Record<string, unknown[]> | undefined =
+    opts.data?.columns ?? opts.dataTable?.columns;
+  if (!dataCols) return ids;
+  for (const [colId, values] of Object.entries(dataCols)) {
+    if (colId.startsWith('_')) continue; // skip internal columns
+    if (!Array.isArray(values)) continue;
+    const first = values.find((v) => v != null);
+    if (typeof first === 'string') ids.add(colId);
+  }
+  return ids;
+}
+
+// Auto-assign markdownCellFormatter to text columns. Existing per-column
+// formatters or formats (backend- or config-supplied, including those set
+// by applyColumnRenderers via cell variants) win — Grid Lite returns an
+// empty cell when BOTH `cells.format` and `cells.formatter` are non-default,
+// so we must leave columns that already carry a `format` template untouched.
+// Disabled columns are also skipped since they don't render at all.
+function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
+  const textIds = findTextColumnIds(options);
+  if (textIds.size === 0) return options;
+  const cols = options.columns;
+  if (!cols) return options;
+  return {
+    ...options,
+    columns: cols.map((col) => {
+      if (!textIds.has(col.id)) return col;
+      if (col.enabled === false) return col;
+      if (col.cells?.formatter) return col;
+      if (col.cells?.format) return col; // backend template (e.g. <a> link)
+      return { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } };
+    }),
+  };
+}
+
+// Grid Lite's built-in `cells.format` templating resolves `{key}` against the
+// cell only — `{value}` works, but `{account_link}` (or any other row-sibling
+// column) returns empty. When the empty value lands in `<a href="">`, AST
+// rejects the href and the link becomes unclickable. Replace such templates
+// with a formatter that substitutes from `cell.row.data`.
+const ROW_TEMPLATE_VAR = /\{([a-zA-Z_][\w.]*)\}/g;
+
+function applyRowDataTemplates(options: GridOptions): GridOptions {
+  const cols = options.columns;
+  if (!cols) return options;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapped = (cols as any[]).map((col: any) => {
+    const template: unknown = col.cells?.format;
+    if (typeof template !== 'string') return col;
+    if (col.cells?.formatter) return col;
+    // Skip if the template only references {value} (Grid Lite handles it natively).
+    let needsRowData = false;
+    template.replace(ROW_TEMPLATE_VAR, (_m, key) => {
+      if (key !== 'value') needsRowData = true;
+      return _m;
+    });
+    if (!needsRowData) return col;
+    const tmpl = template;
+    return {
+      ...col,
+      cells: {
+        ...col.cells,
+        format: undefined,
+        formatter(this: { value: unknown; row?: { data?: Record<string, unknown> } }) {
+          const value = this.value;
+          const data = this.row?.data ?? {};
+          return tmpl.replace(ROW_TEMPLATE_VAR, (_m: string, key: string) => {
+            const v = key === 'value' ? value : data[key];
+            return v == null ? '' : escapeHtml(String(v));
+          });
+        },
+      },
+    };
+  });
+  return { ...options, columns: mapped };
 }
 
 const TableWidget: React.FC<TableWidgetProps> = ({
@@ -38,13 +128,21 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const lastOptionsRef = useRef<GridOptions | null>(null);
 
   const base = config.gridOptions as GridOptions & { autoHeight?: boolean };
-  // Only disable client-side pagination for server-paginated tables;
-  // non-server-paginated tables keep their existing pagination config.
-  const applied = applyColumnRenderers(
-    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
-  );
-  const options = applied.options;
-  const autoHeight = base.autoHeight === true || applied.hasWrapColumn;
+  // Variant-based renderers run first (they may set formatters/cellClasses
+  // and tell us whether any column wraps). Markdown + row-data templates
+  // then fill in formatters for columns the variant pass left untouched.
+  // Memoized so popover open/close (setPopover → re-render) doesn't rebuild
+  // the columns array and force Grid Lite to re-run every formatter.
+  const { options, autoHeight } = useMemo<{ options: GridOptions; autoHeight: boolean }>(() => {
+    const applied = applyColumnRenderers(
+      hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+    );
+    const finalOptions = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    return {
+      options: finalOptions,
+      autoHeight: base.autoHeight === true || applied.hasWrapColumn,
+    };
+  }, [base, hasServerPagination]);
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
@@ -56,21 +154,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
 
-  /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback((e: React.MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
-    if (!btn) return;
-    e.stopPropagation();
-
-    const td = btn.closest('td');
-    if (!td) return;
-
-    const span = td.querySelector('.dt-longtext-wrap > span');
-    const fullText = span?.textContent ?? '';
-    if (fullText) {
-      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-    }
-  }, []);
+  const handleGridClick = useMemo(() => createMarkdownCellClickHandler(setPopover), []);
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,7 +210,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
         ref={containerRef}
         className="flex-1 min-h-0 overflow-hidden relative"
         onClick={handleGridClick}
-        onMouseOver={handleLongTextHover}
+        onMouseOver={handleMarkdownCellHover}
       >
         <ReportTable
           options={stableOptions}

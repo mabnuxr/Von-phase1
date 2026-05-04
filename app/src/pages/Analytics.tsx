@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLineRightIcon,
-  ClockCounterClockwiseIcon,
-  PlusIcon,
-} from "@phosphor-icons/react";
+import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
@@ -21,7 +17,6 @@ import {
 import {
   Tooltip,
   useVisibilityToggle,
-  formatRelativeTime,
   type MentionItem,
   type WidgetAddToChatPayload,
 } from "@vonlabs/design-components";
@@ -31,7 +26,10 @@ import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
 import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
-import { ChatSession } from "../components/chat/ChatSession";
+import {
+  ChatSession,
+  type ChatSessionRef,
+} from "../components/chat/ChatSession";
 import { AnalyticsChatEmptyState } from "../components/AnalyticsChatEmptyState";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
@@ -318,6 +316,7 @@ const Analytics = () => {
   // an in-flight response from a previous dashboard doesn't overwrite state
   // after the user has navigated to a different dashboard.
   const activeDashboardIdRef = useRef(dashboardId);
+  const chatSessionRef = useRef<ChatSessionRef>(null);
 
   // Widget chips queued before a conversation exists (new-chat path).
   // Passed to ChatSession so NewChatInner can render them; flushed into the
@@ -384,12 +383,6 @@ const Analytics = () => {
   const dashboardTitle = data?.dashboard?.title ?? "";
   const dashboardVersion = data?.dashboard?.dashboardVersion ?? 0;
 
-  const activeChatAssociation = conversationId
-    ? associatedChatsData?.conversations.find(
-        (c) => c.conversationId === conversationId,
-      )
-    : undefined;
-
   // Auto-select the most-recent associated chat when the panel is open and
   // nothing is selected (fresh open, or cleared by a dashboard switch).
   // Deep-link id is set by the effect above and takes precedence.
@@ -451,6 +444,9 @@ const Analytics = () => {
           prev.some((m) => m.id === mention.id) ? prev : [...prev, mention],
         );
       }
+      requestAnimationFrame(() => {
+        chatSessionRef.current?.focus();
+      });
     },
     [
       data?.dashboard,
@@ -467,6 +463,13 @@ const Analytics = () => {
     [],
   );
 
+  const handleAskVonClick = useCallback(() => {
+    if (!isChatPanelOpen) openChatPanel();
+    requestAnimationFrame(() => {
+      chatSessionRef.current?.focus();
+    });
+  }, [isChatPanelOpen, openChatPanel]);
+
   const {
     widthCss: chatPaneWidth,
     isResizing,
@@ -482,7 +485,7 @@ const Analytics = () => {
         <DashboardCanvas
           key={dashboardId}
           dashboardId={dashboardId}
-          onChatClick={openChatPanel}
+          onChatClick={handleAskVonClick}
           isChatOpen={isChatPanelOpen}
           onAddWidgetToChat={handleAddWidgetToChat}
         />
@@ -542,21 +545,10 @@ const Analytics = () => {
           </Tooltip>
         </div>
 
-        {/* Dashboard-association context pill — visible only when the open
-            chat is in the by-dashboard response for the active dashboard. */}
-        {activeChatAssociation && (
-          <div className="flex-shrink-0 px-3 py-1.5 border-b border-gray-100">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[11px] font-medium">
-              <ClockCounterClockwiseIcon size={11} aria-hidden />
-              This dashboard was mentioned ·{" "}
-              {formatRelativeTime(activeChatAssociation.lastMentionedAt)}
-            </span>
-          </div>
-        )}
-
         {/* Chat content — always render ChatSession so it never unmounts on dashboard switch */}
         <div className="flex-1 min-h-0 overflow-hidden">
           <ChatSession
+            ref={chatSessionRef}
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact

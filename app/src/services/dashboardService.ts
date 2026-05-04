@@ -201,6 +201,10 @@ class DashboardService {
     );
   }
 
+  async deleteDashboard(dashboardId: string): Promise<void> {
+    return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}`);
+  }
+
   async deleteSchedule(dashboardId: string): Promise<void> {
     return apiClient.delete<void>(`/api/v1/dashboards/${dashboardId}/schedule`);
   }

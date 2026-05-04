@@ -9,12 +9,13 @@ import {
   formatRelativeTime,
   useVisibilityToggle,
 } from "@vonlabs/design-components";
-import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
+import { useChatSidebar } from "../../hooks/useChatSidebar";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
 import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
 import { useDashboardAssociatedChats } from "../../hooks/useDashboardAssociatedChats";
-import type { SidebarConversation } from "../../types/chatSidebar";
+import { isMentionStale } from "../../utils/isMentionStale";
+import type { FolderConversationRow } from "../../types/chatSidebar";
 import type { DashboardAssociatedChat } from "../../types/dashboardAssociatedChats";
 
 interface ChatPickerProps {
@@ -25,17 +26,17 @@ interface ChatPickerProps {
   dashboardId?: string;
 }
 
-function groupByRecency(conversations: SidebarConversation[]) {
+function groupByRecency(conversations: FolderConversationRow[]) {
   const now = Date.now();
   const sevenDays = 7 * 24 * 60 * 60 * 1000;
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
-  const last7: SidebarConversation[] = [];
-  const last30: SidebarConversation[] = [];
-  const older: SidebarConversation[] = [];
+  const last7: FolderConversationRow[] = [];
+  const last30: FolderConversationRow[] = [];
+  const older: FolderConversationRow[] = [];
 
   for (const conv of conversations) {
-    const age = now - new Date(ensureUTC(conv.updatedAt)).getTime();
+    const age = now - new Date(ensureUTC(conv.updated_at)).getTime();
     if (age <= sevenDays) {
       last7.push(conv);
     } else if (age <= thirtyDays) {
@@ -54,7 +55,7 @@ function ConvButton({
   onSelect,
   onClose,
 }: {
-  conv: SidebarConversation;
+  conv: FolderConversationRow;
   isActive: boolean;
   onSelect: (id: string) => void;
   onClose: () => void;
@@ -62,7 +63,7 @@ function ConvButton({
   return (
     <button
       onClick={() => {
-        onSelect(conv.conversationId);
+        onSelect(conv.conversation_id);
         onClose();
       }}
       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg transition-colors ${
@@ -103,7 +104,7 @@ function AssociatedConvButton({
       >
         <ClockCounterClockwiseIcon
           size={14}
-          className="flex-shrink-0 text-violet-400"
+          className="flex-shrink-0 text-gray-400"
           aria-hidden
         />
         <span
@@ -136,7 +137,7 @@ export function ChatPicker({
     unfiledConversations,
     isLoading: isLoadingFull,
     renameConversation,
-  } = useChatSidebarV2();
+  } = useChatSidebar();
   const { user } = useAppShell();
   const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
@@ -160,8 +161,13 @@ export function ChatPicker({
   const activeAssociated = associatedData?.conversations.find(
     (c) => c.conversationId === activeChatId,
   );
+  const activeMentionedAt = activeAssociated?.lastMentionedAt;
+  const showTriggerMentionIcon = isMentionStale(activeMentionedAt);
+  const triggerMentionTooltip = activeMentionedAt
+    ? `This dashboard was mentioned · ${formatRelativeTime(activeMentionedAt)}`
+    : "";
   const activeUnfiled = unfiledConversations.find(
-    (c) => c.conversationId === activeChatId,
+    (c) => c.conversation_id === activeChatId,
   );
   const activeTitle =
     activeAssociated?.title?.trim() ||
@@ -236,18 +242,27 @@ export function ChatPicker({
   // the adjacent "+" button). Gate on !isLoading to avoid a flash.
   const disableTrigger = !isLoading && isEmpty && !activeChatId;
   const triggerTooltip = disableTrigger
-    ? "No chats for this dashboard yet"
-    : "Switch chat";
+    ? "New conversation with this Dashboard"
+    : showTriggerMentionIcon
+      ? triggerMentionTooltip
+      : "Switch chat";
 
   const triggerButton = (
     <button
       onClick={toggleDropdown}
       disabled={disableTrigger}
-      className={`inline-flex items-center gap-1.5 min-w-0 max-w-full px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
-        disableTrigger ? "cursor-default" : "hover:bg-gray-100"
+      className={`flex items-center gap-1.5 w-full min-w-0 px-2 py-1.5 rounded-lg text-sm font-medium text-gray-800 transition-colors ${
+        disableTrigger ? "cursor-default" : "hover:bg-gray-100 cursor-pointer"
       }`}
     >
-      <span className="truncate max-w-[140px]">{displayTitle}</span>
+      {showTriggerMentionIcon && (
+        <ClockCounterClockwiseIcon
+          size={13}
+          className="flex-shrink-0 text-gray-400"
+          aria-hidden
+        />
+      )}
+      <span className="truncate min-w-0 flex-1">{displayTitle}</span>
       {!disableTrigger && (
         <CaretUpDownIcon
           size={13}
@@ -274,15 +289,13 @@ export function ChatPicker({
             }
           }}
           onBlur={handleRenameSubmit}
-          className="w-full min-w-0 max-w-[160px] px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
+          className="w-full min-w-0 px-2 py-1.5 text-sm font-medium text-gray-800 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-400"
         />
       ) : (
-        // Wrapper ensures the tooltip works even when the button is disabled
-        // (native `title` on disabled buttons is unreliable in Chrome/Safari).
         <Tooltip
           content={triggerTooltip}
-          placement="top"
-          wrapperClassName="inline-flex max-w-full"
+          placement="bottom"
+          wrapperClassName="inline-flex max-w-full min-w-0"
         >
           {triggerButton}
         </Tooltip>
@@ -290,7 +303,7 @@ export function ChatPicker({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden max-h-80 overflow-y-auto p-1 min-w-[220px]">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden max-h-80 overflow-y-auto p-1">
           {isLoading ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
               Loading…
@@ -301,9 +314,7 @@ export function ChatPicker({
             </div>
           ) : isEmpty ? (
             <div className="px-3 py-4 text-xs text-gray-400 text-center">
-              {isDashboardMode
-                ? "No chats for this dashboard yet"
-                : "No chats yet"}
+              No chats yet
             </div>
           ) : isDashboardMode ? (
             <div>
@@ -329,9 +340,9 @@ export function ChatPicker({
                   </div>
                   {last7.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />
@@ -349,9 +360,9 @@ export function ChatPicker({
                   </div>
                   {last30.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />
@@ -371,9 +382,9 @@ export function ChatPicker({
                   </div>
                   {older.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />

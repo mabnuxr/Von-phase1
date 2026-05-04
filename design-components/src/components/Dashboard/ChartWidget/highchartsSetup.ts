@@ -45,4 +45,14 @@ import 'highcharts/modules/variwide';
 import 'highcharts/modules/venn';
 import 'highcharts/modules/wordcloud';
 
+// ── Custom date format tokens ───────────────────────────────────
+// Registers `%Q` for use in any Highcharts format string (xAxis labels,
+// tooltip xDateFormat, dataLabels, etc). Returns the calendar quarter
+// (1–4) for a given epoch timestamp. Pair with type: "datetime" axes
+// whose data points sit on quarter-start dates.
+Highcharts.dateFormats = Highcharts.dateFormats || {};
+Highcharts.dateFormats.Q = function quarterToken(timestamp: number) {
+  return String(Math.floor(new Date(timestamp).getUTCMonth() / 3) + 1);
+};
+
 export default Highcharts;

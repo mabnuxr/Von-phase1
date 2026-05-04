@@ -1,8 +1,8 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite';
 import { useState } from 'react';
 import type { LayoutItem } from 'react-grid-layout';
-import { ChatSidebar } from '../../../components/ChatSidebarV2';
-import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
+import { ChatSidebar } from '../../../components/ChatSidebar';
+import type { SidebarItem, Folder } from '../../../components/ChatSidebar';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import type {
   ChartComponent,

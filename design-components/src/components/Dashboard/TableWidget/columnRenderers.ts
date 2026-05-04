@@ -11,7 +11,7 @@
  */
 
 import type { GridOptions } from '@highcharts/grid-lite-react';
-import { longTextExpandFormatter } from '../../ReportTable';
+import { markdownCellFormatter } from '../../ReportTable';
 
 export const CELL_VARIANTS = [
   'text',
@@ -45,7 +45,7 @@ export const columnRenderers: Record<CellVariant, ColumnRenderer> = {
     wrap: true,
   },
   longtext_expand: {
-    formatter: longTextExpandFormatter,
+    formatter: markdownCellFormatter,
     cellClass: 'tw-cell-longtext',
     wrap: false,
   },

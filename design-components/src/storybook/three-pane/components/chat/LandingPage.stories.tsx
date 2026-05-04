@@ -48,7 +48,7 @@ type Story = StoryObj<typeof meta>;
  * inside a PrototypeFrame with sidebar.
  *
  * Features:
- * - ChatSidebarV2 (collapsible)
+ * - ChatSidebar (collapsible)
  * - Von logo with gradient
  * - Time-based greeting
  * - StandardChatInput via ChatInputSelector

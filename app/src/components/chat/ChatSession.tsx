@@ -14,12 +14,16 @@
 
 import {
   createContext,
+  forwardRef,
   useContext,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { useGuardedNavigate } from "../../providers/NavigationGuard";
 import {
@@ -30,7 +34,11 @@ import {
   usePanelResize,
 } from "@vonlabs/design-components";
 import type { ConversationMode } from "@vonlabs/design-components";
-import type { FileArtifact, MentionItem } from "@vonlabs/design-components";
+import type {
+  ChatRef,
+  FileArtifact,
+  MentionItem,
+} from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
 import type {
@@ -104,6 +112,15 @@ function collectSlots(children: ReactNode): ChatSessionSlots {
 
 // ─── Props ──────────────────────────────────────────────────────────
 
+/**
+ * Imperative handle for `ChatSession`. Forwards `focus()` to the underlying
+ * `Chat` input. Used by parents that need to programmatically move focus
+ * into the chat (e.g. after `Add to Chat` routes a widget mention).
+ */
+export interface ChatSessionRef {
+  focus: () => void;
+}
+
 export interface ChatSessionProps {
   /** Conversation ID — omit/null for new conversation (create on first message) */
   conversationId?: string | null;
@@ -153,6 +170,13 @@ export interface ChatSessionProps {
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
 
+  // ── Box ────────────────────────────────────────
+  onBoxClick?: (fileId: string) => void;
+  isBoxEnabled?: boolean;
+  isBoxConnected?: boolean;
+  boxTooltip?: string;
+  boxLoadingFileId?: string | null;
+
   /**
    * Read-only mode for shared-chat recipients.
    * Hides the input bar and disables actions that would mutate the
@@ -177,30 +201,50 @@ export interface ChatSessionProps {
 
 // ─── Main component ─────────────────────────────────────────────────
 
-function ChatSessionRoot(props: ChatSessionProps) {
-  const slots = collectSlots(props.children);
+const ChatSessionRoot = forwardRef<ChatSessionRef, ChatSessionProps>(
+  function ChatSessionRoot(props, ref) {
+    const slots = collectSlots(props.children);
+    const chatRef = useRef<ChatRef | null>(null);
 
-  if (props.conversationId) {
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          chatRef.current?.focus();
+        },
+      }),
+      [],
+    );
+
+    if (props.conversationId) {
+      return (
+        <SlotsContext.Provider value={slots}>
+          <ExistingChatInner
+            {...props}
+            conversationId={props.conversationId}
+            chatRef={chatRef}
+          />
+        </SlotsContext.Provider>
+      );
+    }
+
     return (
       <SlotsContext.Provider value={slots}>
-        <ExistingChatInner {...props} conversationId={props.conversationId} />
+        <NewChatInner {...props} chatRef={chatRef} />
       </SlotsContext.Provider>
     );
-  }
-
-  return (
-    <SlotsContext.Provider value={slots}>
-      <NewChatInner {...props} />
-    </SlotsContext.Provider>
-  );
-}
+  },
+);
 
 // ─── Existing conversation inner ────────────────────────────────────
 
 function ExistingChatInner(
-  props: ChatSessionProps & { conversationId: string },
+  props: ChatSessionProps & {
+    conversationId: string;
+    chatRef: RefObject<ChatRef | null>;
+  },
 ) {
-  const { conversationId } = props;
+  const { conversationId, chatRef } = props;
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
   const navigate = useGuardedNavigate();
@@ -494,6 +538,27 @@ function ExistingChatInner(
     [props.banner, chatV2.writeBlocked, chatV2.dismissWriteBlocked],
   );
 
+  // ── Storage service tracking (syncs card ↔ panel selection) ────────
+  const [lastUsedServiceId, setLastUsedServiceId] = useState<string | null>(
+    null,
+  );
+
+  const wrappedDriveClick = useMemo(() => {
+    if (!props.onGoogleDriveClick) return undefined;
+    return (fileId: string) => {
+      setLastUsedServiceId("drive");
+      props.onGoogleDriveClick!(fileId);
+    };
+  }, [props.onGoogleDriveClick]);
+
+  const wrappedBoxClick = useMemo(() => {
+    if (!props.onBoxClick) return undefined;
+    return (fileId: string) => {
+      setLastUsedServiceId("box");
+      props.onBoxClick!(fileId);
+    };
+  }, [props.onBoxClick]);
+
   // ── Loading ───────────────────────────────────────────────────────
   if (!base.user || (isLoadingMessages && conversationMessages.length === 0)) {
     return <ChatSkeleton messageCount={4} />;
@@ -502,6 +567,7 @@ function ExistingChatInner(
   // ── Chat ───────────────────────────────────────────────────────────
   const chatElement = (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}
@@ -521,6 +587,7 @@ function ExistingChatInner(
       thinkingProcessVersion="v2"
       useStandardInput
       hideInput={props.readOnly}
+      hideScrollToBottom={props.readOnly}
       disableFileAttachments={props.disableFileAttachments}
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
@@ -593,11 +660,17 @@ function ExistingChatInner(
       widgetMentions={widgetMentions}
       onWidgetMentionRemoved={handleWidgetMentionRemoved}
       // Google Drive
-      onGoogleDriveClick={props.onGoogleDriveClick}
+      onGoogleDriveClick={wrappedDriveClick}
       isDriveEnabled={props.isDriveEnabled}
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
+      // Box
+      onBoxClick={wrappedBoxClick}
+      isBoxEnabled={props.isBoxEnabled}
+      isBoxConnected={props.isBoxConnected}
+      boxTooltip={props.boxTooltip}
+      boxLoadingFileId={props.boxLoadingFileId}
       // Infinite scroll
       loadMoreRef={loadMoreRef}
       isFetchingMore={isFetchingNextMessagePage}
@@ -668,11 +741,8 @@ function ExistingChatInner(
                   : undefined
               }
               onGoogleDriveClick={
-                props.onGoogleDriveClick && chatV2.fileArtifactPanel.fileId
-                  ? () =>
-                      props.onGoogleDriveClick!(
-                        chatV2.fileArtifactPanel.fileId!,
-                      )
+                wrappedDriveClick && chatV2.fileArtifactPanel.fileId
+                  ? () => wrappedDriveClick(chatV2.fileArtifactPanel.fileId!)
                   : undefined
               }
               isDriveEnabled={props.isDriveEnabled}
@@ -681,6 +751,18 @@ function ExistingChatInner(
               isDriveLoading={
                 props.driveLoadingFileId === chatV2.fileArtifactPanel.fileId
               }
+              onBoxClick={
+                wrappedBoxClick && chatV2.fileArtifactPanel.fileId
+                  ? () => wrappedBoxClick(chatV2.fileArtifactPanel.fileId!)
+                  : undefined
+              }
+              isBoxEnabled={props.isBoxEnabled}
+              isBoxConnected={props.isBoxConnected}
+              boxTooltip={props.boxTooltip}
+              isBoxLoading={
+                props.boxLoadingFileId === chatV2.fileArtifactPanel.fileId
+              }
+              activeServiceId={lastUsedServiceId}
             />
           )}
       </div>
@@ -691,9 +773,12 @@ function ExistingChatInner(
 
 // ─── New conversation inner ─────────────────────────────────────────
 
-function NewChatInner(props: ChatSessionProps) {
+function NewChatInner(
+  props: ChatSessionProps & { chatRef: RefObject<ChatRef | null> },
+) {
   const base = useBaseChatConfig();
   const slots = useContext(SlotsContext);
+  const { chatRef } = props;
 
   // ── Mentions ──────────────────────────────────────────────────────
   const {
@@ -733,6 +818,7 @@ function NewChatInner(props: ChatSessionProps) {
 
   return (
     <Chat
+      ref={chatRef}
       title={props.title ?? props.dashboardTitle ?? "von AI"}
       userId={base.user?.id}
       userName={base.user?.firstName || base.user?.name?.split(" ")[0]}

@@ -1,558 +1,1004 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatTextIcon, SidebarSimpleIcon } from '@phosphor-icons/react';
+import { SidebarSimpleIcon, PlusCircleIcon, DotsThreeIcon } from '@phosphor-icons/react';
+import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
+import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
+import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
+import {
+  ConversationItem,
+  FolderList,
+  SectionHeader,
+  CollapsedSidebar,
+  ProfileSection,
+  RowShimmers,
+} from './components';
+import { FOLDER_SECTION_LIMIT } from './components/FolderContents';
+import { useChatSidebarState } from './hooks';
+import { getContextMenuItems, getFolderContextMenuItems } from './utils';
 
-export interface ChatItem {
+const VON_COMBINATION_MARK_URL =
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type ItemType = 'chat' | 'dashboard';
+export type ItemStatus = 'idle' | 'running' | 'complete';
+
+/**
+ * Approval indicator state for a conversation row.
+ * - "pending": awaiting user action → pulsing purple dot
+ * - "expired": TTL passed without action → orange→red gradient dot
+ * - absent: no indicator
+ */
+export type ApprovalState = 'pending' | 'expired';
+
+export interface SidebarItem {
   id: string;
   label: string;
+  type: ItemType;
   href?: string;
+  /** Folder ID this item belongs to (null for root level) */
+  folderId?: string | null;
+  /** Status indicator for the item (chats only) */
+  status?: ItemStatus;
+  /** Approval indicator state (chats only). Absent means no indicator. */
+  approvalState?: ApprovalState;
+  /** Whether the current user owns this item — gates rename/delete in the
+   *  context menu. Always true for chats; reflects API truth for dashboards. */
+  isOwner?: boolean;
 }
 
-export interface ChatSidebarProps {
-  /**
-   * List of chat items to display
-   */
-  chatItems?: ChatItem[];
+// ============================================================================
+// Dashboard Types (modular — can be removed without affecting chat sidebar)
+// ============================================================================
 
-  /**
-   * Selected chat ID
-   */
-  selectedChatId?: string;
+export type DashboardItemState = 'draft' | 'published';
+export type DashboardItemVisibility = 'private' | 'org';
 
-  /**
-   * Chat item click handler
-   */
-  onChatClick?: (id: string) => void;
+export interface DashboardSidebarItem {
+  id: string;
+  label: string;
+  state: DashboardItemState;
+  visibility: DashboardItemVisibility;
+  href?: string;
+  isPinned?: boolean;
+  isOwner?: boolean;
+  lastEdited?: string;
+  lastSaved?: string;
+}
 
-  /**
-   * New chat button click handler
-   */
-  onNewChatClick?: () => void;
-
-  /**
-   * Search input change handler
-   */
-  onSearchChange?: (value: string) => void;
-
-  /**
-   * Search placeholder text
-   * @default 'Search Chats'
-   */
-  searchPlaceholder?: string;
-
-  /**
-   * Width of the sidebar
-   * @default '200px'
-   */
-  width?: string;
-
-  /**
-   * Whether the sidebar is collapsed
-   * @default false
-   */
-  isCollapsed?: boolean;
-
-  /**
-   * Callback when collapse toggle is clicked
-   */
-  onToggleCollapse?: () => void;
-
-  /**
-   * Ref for infinite scroll trigger element
-   * Attach this to a div at the bottom of the list for infinite scroll
-   */
-  loadMoreRef?: React.Ref<HTMLDivElement | null>;
-
-  /**
-   * Whether currently fetching more items
-   */
-  isFetchingMore?: boolean;
-
-  /**
-   * Whether there are more items to load
-   */
-  hasNextPage?: boolean;
-
-  /**
-   * Callback to load more items
-   */
-  onLoadMore?: () => void;
-
-  /**
-   * Avatar image URL
-   */
-  avatarSrc?: string;
-
-  /**
-   * Avatar initials/label (shown when no image)
-   */
-  avatarLabel?: string;
-
-  /**
-   * User's display name
-   */
-  userName?: string;
-
-  /**
-   * User's email
-   */
-  userEmail?: string;
-
-  /**
-   * Callback when avatar is clicked
-   * Receives the DOMRect of the clicked button for positioning menus
-   */
-  onAvatarClick?: (rect: DOMRect) => void;
+export interface Folder {
+  id: string;
+  label: string;
+  /** Whether folder is expanded */
+  isExpanded?: boolean;
+  /** Whether folder is pinned */
+  isPinned?: boolean;
+  /** Display order for sorting (0 = pinned, 100 = default) */
+  displayOrder?: number;
 }
 
 /**
- * ChatSidebar - Left sidebar for chat history
+ * Map of folder ID to chat items within that folder
+ */
+export type FolderItemsMap = Record<string, SidebarItem[]>;
+
+/**
+ * Map of folder ID to dashboard items within that folder. Same row shape
+ * as `FolderItemsMap` (a `SidebarItem` carries `type: 'dashboard'` for these),
+ * so the rendering layer treats both subsections identically.
+ */
+export type FolderDashboardsMap = Record<string, SidebarItem[]>;
+
+/**
+ * Map of folder ID to loading state
+ */
+export type FolderLoadingMap = Record<string, boolean>;
+
+/**
+ * Per-folder, per-type totals from the data layer. The "Show 5 more"
+ * expander is hidden when the visible item count reaches the type's total.
+ */
+export type FolderSectionTotalsMap = Record<string, { conversation: number; dashboard: number }>;
+
+/** Item types that can be filed inside a folder. */
+export type FolderItemType = 'conversation' | 'dashboard';
+
+/**
+ * Per-section pagination state. Keyed by `${folderId}:${itemType}`; the
+ * value is the number of *additional* pages fetched beyond the first
+ * (page 1 = first 5 from `/contents`). Absent keys default to 0. Each
+ * "Show 5 more" click bumps the count by 1; "Show less" resets to 0.
+ */
+export type SectionShowMoreMap = Record<string, number>;
+
+export interface ChatSidebarProps {
+  items?: SidebarItem[];
+  folders?: Folder[];
+  folderItems?: FolderItemsMap;
+  /** Dashboards filed inside each folder (keyed by folderId) */
+  folderDashboards?: FolderDashboardsMap;
+  /** Per-folder, per-type totals — drives "Show 5 more" visibility. */
+  folderSectionTotals?: FolderSectionTotalsMap;
+  folderLoadingMap?: FolderLoadingMap;
+  isLoading?: boolean;
+  selectedItemId?: string;
+  onItemClick?: (id: string) => void;
+  onNewChatClick?: () => void;
+  onNewChatFolderClick?: (folderName: string) => void;
+  onRenameItem?: (id: string, newName: string) => void;
+  onShareItem?: (id: string) => void;
+  /** Called when a conversation's context menu opens — lets the container fetch share status */
+  onContextMenuOpen?: (itemId: string) => void;
+  /** Share status for the item whose context menu is currently open */
+  contextMenuShareInfo?: { isShared: boolean; accessType?: string | null };
+  onDeleteItem?: (id: string) => void;
+  onMoveItemToFolder?: (itemId: string, folderId: string) => void;
+  onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
+  onRemoveItemFromFolder?: (itemId: string) => void;
+  /** Per-section reveal-count map keyed by `${folderId}:${itemType}`. */
+  sectionShowMore?: SectionShowMoreMap;
+  /** Reveal the next page of items in a section ("Show 5 more"). */
+  onRevealMoreInSection?: (folderId: string, itemType: FolderItemType) => void;
+  /** Collapse a section back to the default reveal count ("Show less"). */
+  onCollapseSection?: (folderId: string, itemType: FolderItemType) => void;
+  onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
+  onRenameFolder?: (folderId: string, newName: string) => void;
+  onDeleteFolder?: (folderId: string) => void;
+  onPinFolder?: (folderId: string, isPinned: boolean) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
+  loadMoreRef?: React.Ref<HTMLDivElement | null>;
+  isFetchingMore?: boolean;
+  /** Whether more unfiled chats are available — drives the click-driven
+   *  "Show 5 more" button below the top-level Chats list. */
+  hasMoreChats?: boolean;
+  /** Callback invoked when the user clicks "Show 5 more" under Chats. */
+  onLoadMoreChats?: () => void;
+  onLogoClick?: () => void;
+  userName?: string;
+  userEmail?: string;
+  avatarSrc?: string;
+  avatarLabel?: string;
+  onSettingsClick?: () => void;
+
+  onSignOutClick?: () => void;
+  /** Whether the "New Chat" button should appear in active/selected state */
+  isNewChatActive?: boolean;
+
+  // ── Dashboard section (modular — omit all to hide) ──
+  /** Dashboard items to show in a "Dashboards" section. Omit to hide the section entirely. */
+  dashboards?: DashboardSidebarItem[];
+  /** Currently selected dashboard ID */
+  selectedDashboardId?: string;
+  /** Callback when a dashboard item is clicked */
+  onDashboardClick?: (id: string) => void;
+  /** Callback to rename a dashboard */
+  onRenameDashboard?: (id: string, newName: string) => void;
+  /** Callback to delete a dashboard (only shown to owner) */
+  onDeleteDashboard?: (id: string) => void;
+  /** Whether more dashboards are available to load */
+  hasMoreDashboards?: boolean;
+  /** Callback to load more dashboards */
+  onLoadMoreDashboards?: () => void;
+  /** True while the next page of dashboards is in flight. Drives shimmer
+   *  placeholders below the dashboards list. */
+  isLoadingMoreDashboards?: boolean;
+  /** File a dashboard into an existing folder */
+  onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
+  /** Create a new folder and file the dashboard into it */
+  onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
+  /** Unfile a dashboard from its current folder */
+  onRemoveDashboardFromFolder?: (dashboardId: string) => void;
+  /** Currently-selected conversation/dashboard ID — used by in-folder dashboard rows. */
+  selectedDashboardIdInFolders?: string;
+}
+
+// ============================================================================
+// Empty State Components
+// ============================================================================
+
+const SectionEmptyState: React.FC<{
+  message: string;
+}> = ({ message }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.3, ease: 'easeOut' }}
+    className="mx-1 my-1 px-3 py-3 rounded-xl border border-dashed border-gray-200 bg-gray-50/50"
+  >
+    <p className="text-[12px] text-gray-400 leading-tight">{message}</p>
+  </motion.div>
+);
+
+// ============================================================================
+// Dashboard Section (with show more / show less)
+// ============================================================================
+
+const MAX_ITEMS_SHOWN = 5;
+
+interface DashboardContextMenuState {
+  isOpen: boolean;
+  position: { top: number; left: number };
+  dashboard: DashboardSidebarItem | null;
+}
+
+/** Individual dashboard row — mirrors FolderRow hover/action pattern exactly */
+const DashboardRow: React.FC<{
+  dash: DashboardSidebarItem;
+  isSelected: boolean;
+  isEditing: boolean;
+  isMenuOpen: boolean;
+  onDashboardClick?: (id: string) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onRenameDashboard?: (id: string, newName: string) => void;
+  onCancelEdit: () => void;
+}> = ({
+  dash,
+  isSelected,
+  isEditing,
+  isMenuOpen,
+  onDashboardClick,
+  onContextMenu,
+  onRenameDashboard,
+  onCancelEdit,
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [editValue, setEditValue] = useState(dash.label);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const showDotsButton = (isHovered || isMenuOpen) && !isEditing;
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    setEditValue(dash.label);
+  }, [dash.label, isEditing]);
+
+  const handleSave = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== dash.label) {
+      onRenameDashboard?.(dash.id, trimmed);
+    }
+    onCancelEdit();
+  };
+
+  return (
+    <div
+      className={`
+        group relative flex items-center justify-between gap-2.5 px-2 h-8 rounded-xl text-sm text-gray-800 hover:text-gray-900
+        transition-colors duration-150 cursor-pointer
+        ${
+          isSelected
+            ? 'shadow-xs bg-gray-50 border border-gray-200 hover:bg-gray-100'
+            : 'border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+        }
+      `}
+      onClick={isEditing ? undefined : () => onDashboardClick?.(dash.id)}
+      onContextMenu={isEditing || !dash.isOwner ? undefined : onContextMenu}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title={dash.label}
+    >
+      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+        {isEditing ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                onCancelEdit();
+              }
+            }}
+            onBlur={handleSave}
+            className="flex-1 text-sm text-gray-900 bg-white border border-gray-200 rounded-md px-1.5 py-0.5 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="flex-1 text-left truncate min-w-0">{dash.label}</span>
+        )}
+      </div>
+
+      {!isEditing && showDotsButton && (
+        <div className="flex items-center gap-0.5 flex-shrink-0 h-6">
+          <PrimaryIconButton
+            icon={<DotsThreeIcon size={16} weight="bold" />}
+            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+              e.stopPropagation();
+              onContextMenu(e);
+            }}
+            visible={true}
+            size="small"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+interface DashboardSectionProps {
+  dashboards: DashboardSidebarItem[];
+  /** Folders available as targets in the Move to Folder picker. */
+  folders: Folder[];
+  selectedDashboardId?: string;
+  onDashboardClick?: (id: string) => void;
+  onRenameDashboard?: (id: string, newName: string) => void;
+  onDeleteDashboard?: (id: string) => void;
+  onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
+  onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
+  hasMoreDashboards?: boolean;
+  onLoadMoreDashboards?: () => void;
+  isLoadingMoreDashboards?: boolean;
+}
+
+const DashboardSection: React.FC<DashboardSectionProps> = ({
+  dashboards,
+  folders,
+  selectedDashboardId,
+  onDashboardClick,
+  onRenameDashboard,
+  onDeleteDashboard,
+  onMoveDashboardToFolder,
+  onCreateFolderAndMoveDashboard,
+  hasMoreDashboards,
+  onLoadMoreDashboards,
+  isLoadingMoreDashboards = false,
+}) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<DashboardContextMenuState>({
+    isOpen: false,
+    position: { top: 0, left: 0 },
+    dashboard: null,
+  });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    dashboard: DashboardSidebarItem | null;
+  }>({ isOpen: false, dashboard: null });
+  const [moveToFolderState, setMoveToFolderState] = useState<{
+    isOpen: boolean;
+    dashboard: DashboardSidebarItem | null;
+  }>({ isOpen: false, dashboard: null });
+
+  const handleOpenContextMenu = (e: React.MouseEvent, dash: DashboardSidebarItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setContextMenu({
+      isOpen: true,
+      position: { top: rect.bottom + 4, left: rect.left },
+      dashboard: dash,
+    });
+  };
+
+  const folderOptions = useMemo(
+    () => folders.map((f) => ({ id: f.id, label: f.label })),
+    [folders]
+  );
+
+  return (
+    <div className="mb-3">
+      <SectionHeader label="Dashboards" />
+      <div>
+        {dashboards.map((dash) => (
+          <DashboardRow
+            key={dash.id}
+            dash={dash}
+            isSelected={dash.id === selectedDashboardId}
+            isEditing={editingId === dash.id}
+            isMenuOpen={contextMenu.isOpen && contextMenu.dashboard?.id === dash.id}
+            onDashboardClick={onDashboardClick}
+            onContextMenu={(e) => handleOpenContextMenu(e, dash)}
+            onRenameDashboard={onRenameDashboard}
+            onCancelEdit={() => setEditingId(null)}
+          />
+        ))}
+        {isLoadingMoreDashboards ? (
+          <RowShimmers count={FOLDER_SECTION_LIMIT} />
+        ) : hasMoreDashboards ? (
+          <button
+            onClick={onLoadMoreDashboards}
+            className="w-full px-2 py-1 text-sm text-gray-800 hover:text-gray-900 transition-colors text-left cursor-pointer"
+          >
+            Show more
+          </button>
+        ) : null}
+      </div>
+
+      {/* Dashboard Context Menu — same shape as the chat context menu;
+          rename/delete owner-gated, no Share for dashboards. */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
+        items={getContextMenuItems({
+          itemType: 'dashboard',
+          isOwner: contextMenu.dashboard?.isOwner,
+        })}
+        fixedPosition={contextMenu.position}
+        width={180}
+        onItemClick={(menuItem) => {
+          const dash = contextMenu.dashboard;
+          if (!dash) return;
+          if (menuItem.id === 'rename' && dash.isOwner) {
+            setEditingId(dash.id);
+          } else if (menuItem.id === 'move') {
+            setMoveToFolderState({ isOpen: true, dashboard: dash });
+          } else if (menuItem.id === 'delete' && dash.isOwner) {
+            setDeleteConfirmation({ isOpen: true, dashboard: dash });
+          }
+          setContextMenu((prev) => ({ ...prev, isOpen: false }));
+        }}
+      />
+
+      {/* Dashboard Delete Confirmation */}
+      <DeleteConfirmationPopup
+        isOpen={deleteConfirmation.isOpen}
+        itemLabel={deleteConfirmation.dashboard?.label || ''}
+        itemType="dashboard"
+        onConfirm={() => {
+          if (deleteConfirmation.dashboard) {
+            onDeleteDashboard?.(deleteConfirmation.dashboard.id);
+          }
+          setDeleteConfirmation({ isOpen: false, dashboard: null });
+        }}
+        onCancel={() => setDeleteConfirmation({ isOpen: false, dashboard: null })}
+      />
+
+      {/* Move-to-Folder picker — same modal as for chats */}
+      <MoveToFolderModal
+        isOpen={moveToFolderState.isOpen}
+        itemName={moveToFolderState.dashboard?.label || ''}
+        itemType="dashboard"
+        folders={folderOptions}
+        onConfirm={(config) => {
+          const dash = moveToFolderState.dashboard;
+          setMoveToFolderState({ isOpen: false, dashboard: null });
+          if (!dash) return;
+          if (config.isNewFolder && config.newFolderName) {
+            onCreateFolderAndMoveDashboard?.(dash.id, config.newFolderName);
+          } else if (config.folderId) {
+            onMoveDashboardToFolder?.(dash.id, config.folderId);
+          }
+        }}
+        onCancel={() => setMoveToFolderState({ isOpen: false, dashboard: null })}
+      />
+    </div>
+  );
+};
+
+// ============================================================================
+// Main Component
+// ============================================================================
+
+/**
+ * ChatSidebar - Left sidebar for chats
  *
- * Displays a list of past chats with search functionality and new chat button.
- * Clean, minimal design with white background.
- *
- * @example
- * ```tsx
- * <ChatSidebar
- *   chatItems={[
- *     { id: '1', label: 'Team Review' },
- *     { id: '2', label: 'Forecast Q3' }
- *   ]}
- *   selectedChatId="1"
- *   onChatClick={(id) => console.log(id)}
- *   onNewChatClick={() => console.log('New chat')}
- * />
- * ```
+ * Displays a hierarchical list of chats organized in folders.
+ * Supports rename, delete, move, pin operations via context menu.
+ * Folders section with inline creation, "See more" pagination.
  */
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({
-  chatItems = [],
-  selectedChatId,
-  onChatClick,
+  items = [],
+  folders = [],
+  folderItems = {},
+  folderDashboards = {},
+  folderSectionTotals = {},
+  folderLoadingMap = {},
+  isLoading = false,
+  selectedItemId,
+  onItemClick,
+  onNewChatClick,
+  onNewChatFolderClick,
+  onRenameItem,
+  onShareItem,
+  onContextMenuOpen,
+  contextMenuShareInfo,
+  onDeleteItem,
+  onMoveItemToFolder,
+  onCreateFolderAndMoveItem,
+  onRemoveItemFromFolder,
+  sectionShowMore,
+  onRevealMoreInSection,
+  onCollapseSection,
+  onFolderToggle,
+  onRenameFolder,
+  onDeleteFolder,
+  onPinFolder,
   isCollapsed = false,
   onToggleCollapse,
   loadMoreRef,
   isFetchingMore = false,
-  hasNextPage = false,
-  onLoadMore,
-  avatarSrc,
-  avatarLabel,
+  hasMoreChats,
+  onLoadMoreChats,
+  onLogoClick,
   userName,
   userEmail,
-  onAvatarClick,
+  avatarSrc,
+  avatarLabel,
+  onSettingsClick,
+  onSignOutClick,
+  isNewChatActive = false,
+  dashboards,
+  selectedDashboardId,
+  onDashboardClick,
+  onRenameDashboard,
+  onDeleteDashboard,
+  hasMoreDashboards,
+  onLoadMoreDashboards,
+  isLoadingMoreDashboards,
+  onMoveDashboardToFolder,
+  onCreateFolderAndMoveDashboard,
+  onRemoveDashboardFromFolder,
 }) => {
-  const [isChatsHovered, setIsChatsHovered] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
-  const chatButtonRef = useRef<HTMLButtonElement>(null);
+  // Use the sidebar state hook
+  const {
+    // State
+    contextMenu,
+    editingItemId,
+    editingItemFolderId,
+    deleteConfirmation,
+    folderContextMenu,
+    editingFolderId,
+    folderDeleteConfirmation,
+    moveToFolderModal,
+    isProfileOpen,
+    popoverPosition,
+    isChatsHovered,
+    dropdownPosition,
+    isFoldersHovered,
+    foldersDropdownPosition,
+    isDashboardsHovered,
+    dashboardsDropdownPosition,
 
-  const handleChatsHover = (isHovering: boolean) => {
-    if (isHovering) {
-      if (!chatButtonRef.current) return; // Prevent rendering with invalid position
-      const rect = chatButtonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.top,
-        left: rect.right + 8, // 8px gap
-      });
-    }
-    setIsChatsHovered(isHovering);
-  };
+    // Inline folder creation
+    isCreatingFolder,
+    newFolderName,
+    setNewFolderName,
+    newFolderInputRef,
+    handleStartFolderCreation,
+    handleConfirmFolderCreation,
+    handleCancelFolderCreation,
 
-  const handleItemClick = (e: React.MouseEvent, itemId: string) => {
-    // Allow default behavior for Cmd/Ctrl+Click, middle-click
-    if (e.metaKey || e.ctrlKey || e.button === 1) {
-      return;
-    }
+    // Refs
+    chatButtonRef,
+    foldersButtonRef,
+    dashboardsButtonRef,
+    avatarButtonRef,
 
-    // Prevent default for normal click and use SPA navigation
-    e.preventDefault();
-    onChatClick?.(itemId);
-  };
+    // Derived state
+    rootItems,
+    itemsByFolder,
+    sortedFolders,
+    getAvailableFoldersForMove,
 
-  // Collapsed state - show minimal sidebar with toggle button and chat icon with hover dropdown
-  if (isCollapsed) {
-    return (
-      <div className="px-2 py-3 h-full w-full bg-white flex text-sm flex-col antialiased font-sf">
-        {/* Collapsed Header - Toggle button */}
-        <div className="flex flex-col items-center px-1 pt-1 pb-3 border-b border-gray-200 mb-2">
-          <button
-            onClick={onToggleCollapse}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-            title="Expand sidebar"
+    // Item handlers
+    handleContextMenu: rawHandleContextMenu,
+    handleCloseContextMenu,
+    handleStartRename,
+    handleSaveRename,
+    handleCancelRename,
+    handleShowDeleteConfirmation,
+    handleConfirmDelete,
+    handleCancelDelete,
+
+    // Folder handlers
+    handleFolderContextMenu,
+    handleCloseFolderContextMenu,
+    handleStartFolderRename,
+    handleSaveFolderRename,
+    handleCancelFolderRename,
+    handleShowFolderDeleteConfirmation,
+    handleConfirmFolderDelete,
+    handleCancelFolderDelete,
+    handlePinFolder,
+
+    // Move handlers
+    handleShowMoveToFolder,
+    handleConfirmMoveToFolder,
+    handleCancelMoveToFolder,
+    handleRemoveFromFolder,
+
+    // UI handlers
+    handleChatsHover,
+    handleFoldersHover,
+    handleDashboardsHover,
+    handleAvatarClick,
+    handleCloseProfile,
+  } = useChatSidebarState({
+    items,
+    folders,
+    folderItems,
+    onRenameItem,
+    onDeleteItem,
+    onRenameFolder,
+    onDeleteFolder,
+    onPinFolder,
+    onFolderToggle,
+    onNewChatFolderClick,
+    onMoveItemToFolder,
+    onCreateFolderAndMoveItem,
+    onRemoveItemFromFolder,
+    onRenameDashboard,
+    onDeleteDashboard,
+    onMoveDashboardToFolder,
+    onCreateFolderAndMoveDashboard,
+    onRemoveDashboardFromFolder,
+  });
+
+  // Wrap context menu handler to notify container (for share status fetch)
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent, item: SidebarItem) => {
+      rawHandleContextMenu(e, item);
+      onContextMenuOpen?.(item.id);
+    },
+    [rawHandleContextMenu, onContextMenuOpen]
+  );
+
+  // Show more / show less state for folders
+  const [showAllFolders, setShowAllFolders] = useState(false);
+  const hasMoreFolders = sortedFolders.length > MAX_ITEMS_SHOWN;
+
+  const visibleFolders = useMemo(() => {
+    if (showAllFolders || !hasMoreFolders) return sortedFolders;
+    return sortedFolders.slice(0, MAX_ITEMS_SHOWN);
+  }, [sortedFolders, showAllFolders, hasMoreFolders]);
+
+  // Single summary dot for the collapsed Chats icon. Pending beats expired —
+  // any actionable approval should win over a passive "overdue" hint.
+  const summaryApprovalState: ApprovalState | undefined = useMemo(() => {
+    const all = [...items, ...Object.values(folderItems).flat()];
+    if (all.some((i) => i.approvalState === 'pending')) return 'pending';
+    if (all.some((i) => i.approvalState === 'expired')) return 'expired';
+    return undefined;
+  }, [items, folderItems]);
+
+  // ============================================================================
+  // Render: Stacked layers for smooth collapse/expand animation
+  // ============================================================================
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      {/* Base layer: Collapsed sidebar — always rendered, always visible */}
+      <div
+        className="absolute top-0 bottom-0 left-0 w-12"
+        style={{ pointerEvents: isCollapsed ? 'auto' : 'none' }}
+      >
+        <CollapsedSidebar
+          items={items}
+          folders={folders}
+          folderItems={folderItems}
+          folderLoadingMap={folderLoadingMap}
+          selectedItemId={selectedItemId}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={onToggleCollapse}
+          onNewChatClick={onNewChatClick}
+          onItemClick={onItemClick}
+          onFolderToggle={onFolderToggle}
+          isChatsHovered={isChatsHovered}
+          dropdownPosition={dropdownPosition}
+          chatButtonRef={chatButtonRef}
+          onChatsHover={handleChatsHover}
+          isFoldersHovered={isFoldersHovered}
+          foldersDropdownPosition={foldersDropdownPosition}
+          foldersButtonRef={foldersButtonRef}
+          onFoldersHover={handleFoldersHover}
+          dashboards={dashboards}
+          selectedDashboardId={selectedDashboardId}
+          onDashboardClick={onDashboardClick}
+          isDashboardsHovered={isDashboardsHovered}
+          dashboardsDropdownPosition={dashboardsDropdownPosition}
+          dashboardsButtonRef={dashboardsButtonRef}
+          onDashboardsHover={handleDashboardsHover}
+          userName={userName}
+          userEmail={userEmail}
+          avatarSrc={avatarSrc}
+          avatarLabel={avatarLabel}
+          isProfileOpen={isProfileOpen}
+          popoverPosition={popoverPosition}
+          avatarButtonRef={avatarButtonRef}
+          onAvatarClick={handleAvatarClick}
+          onCloseProfile={handleCloseProfile}
+          onSettingsClick={onSettingsClick}
+          onSignOutClick={onSignOutClick}
+          isNewChatActive={isNewChatActive}
+          sortedFolders={sortedFolders}
+          itemsByFolder={itemsByFolder}
+          summaryApprovalState={summaryApprovalState}
+        />
+      </div>
+
+      {/* Overlay layer: Expanded content — fades in/out */}
+      <AnimatePresence>
+        {!isCollapsed && (
+          <motion.div
+            key="expanded"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-0 bottom-0 left-0 w-60 bg-white rounded-xl border border-gray-100 shadow-xs"
           >
-            <SidebarSimpleIcon size={18} weight="regular" className="text-gray-500" />
-          </button>
-        </div>
+            <div className="relative pl-2 py-3 h-full w-full bg-transparent flex text-sm flex-col overflow-hidden antialiased font-sf">
+              {/* Logo Row */}
+              <div className="flex items-center justify-between mb-3 px-2 pr-4">
+                <img
+                  src={VON_COMBINATION_MARK_URL}
+                  alt="Von logo"
+                  width={64}
+                  height={24}
+                  style={{ cursor: onLogoClick ? 'pointer' : 'default' }}
+                  onClick={onLogoClick}
+                />
+                <TertiaryIconButton
+                  icon={<SidebarSimpleIcon size={16} weight="regular" className="text-gray-800" />}
+                  onClick={onToggleCollapse}
+                  title="Collapse sidebar"
+                />
+              </div>
 
-        {/* Collapsed Menu - Chat icon with hover dropdown */}
-        <div className="flex-1 px-1">
-          <div className="flex flex-col items-center gap-1">
-            {/* Chat Icon with Hover Dropdown */}
-            <div
-              className="relative"
-              onMouseEnter={() => handleChatsHover(true)}
-              onMouseLeave={() => handleChatsHover(false)}
-            >
-              <button
-                ref={chatButtonRef}
-                className={`
-                  flex items-center justify-center w-8 h-8
-                  rounded-lg border-0 cursor-pointer
-                  transition-all duration-200
-                  ${isChatsHovered ? 'bg-gray-100 text-gray-900' : 'bg-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
-                `}
-                title="Past Chats"
-              >
-                <ChatTextIcon size={20} weight="regular" />
-              </button>
+              {/* New Chat Button */}
+              <div className="mt-2 mb-3 pr-2">
+                <button
+                  className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isNewChatActive
+                      ? 'bg-gray-50 border-gray-200 shadow-xs'
+                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+                  }`}
+                  onClick={onNewChatClick}
+                  type="button"
+                >
+                  <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
+                  <span className="whitespace-nowrap">New Chat</span>
+                </button>
+              </div>
 
-              {/* Hover Dropdown - Conversation List (fixed position to escape overflow:hidden) */}
-              <AnimatePresence>
-                {isChatsHovered && chatItems.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.15 }}
-                    className="fixed w-56 max-h-80 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden z-[9999]"
-                    style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
-                  >
-                    <div className="px-3 py-2 border-b border-gray-100">
-                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                        Past Chats
-                      </span>
-                    </div>
-                    <div className="overflow-y-auto max-h-64 py-1">
-                      {chatItems.slice(0, 10).map((item) => {
-                        const isSelected = item.id === selectedChatId;
+              {/* Scrollable Content */}
+              <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 settings-scrollbar">
+                {/* Loading Skeleton */}
+                {isLoading && <ChatSidebarSkeleton />}
 
-                        if (item.href) {
-                          return (
-                            <a
-                              key={item.id}
-                              href={item.href}
-                              className={`
-                                block px-3 py-2 text-sm text-gray-900
-                                transition-all duration-150 whitespace-nowrap overflow-hidden
-                                text-ellipsis no-underline cursor-pointer
-                                ${isSelected ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50 font-normal'}
-                              `}
-                              onClick={(e) => handleItemClick(e, item.id)}
-                              title={item.label}
-                            >
-                              {item.label}
-                            </a>
-                          );
-                        }
-
-                        return (
-                          <div
-                            key={item.id}
-                            className={`
-                              px-3 py-2 text-sm text-gray-900
-                              transition-all duration-150 whitespace-nowrap overflow-hidden
-                              text-ellipsis cursor-pointer
-                              ${isSelected ? 'bg-gray-100 font-medium' : 'hover:bg-gray-50 font-normal'}
-                            `}
-                            onClick={() => onChatClick?.(item.id)}
-                            title={item.label}
-                          >
-                            {item.label}
-                          </div>
-                        );
-                      })}
-                      {chatItems.length > 10 && (
-                        <div className="px-3 py-2 text-xs text-gray-500 border-t border-gray-100">
-                          +{chatItems.length - 10} more chats
-                        </div>
+                {/* Folders Section */}
+                {!isLoading && (
+                  <div className="mb-3">
+                    <SectionHeader label="Folders" />
+                    <div>
+                      <FolderList
+                        sortedFolders={visibleFolders}
+                        itemsByFolder={itemsByFolder}
+                        dashboardsByFolder={folderDashboards}
+                        folderSectionTotals={folderSectionTotals}
+                        folderLoadingMap={folderLoadingMap}
+                        selectedItemId={selectedItemId ?? selectedDashboardId}
+                        isCreatingFolder={isCreatingFolder}
+                        newFolderName={newFolderName}
+                        onNewFolderNameChange={setNewFolderName}
+                        newFolderInputRef={newFolderInputRef}
+                        onStartFolderCreation={handleStartFolderCreation}
+                        onConfirmFolderCreation={handleConfirmFolderCreation}
+                        onCancelFolderCreation={handleCancelFolderCreation}
+                        editingFolderId={editingFolderId}
+                        folderContextMenu={folderContextMenu}
+                        onFolderToggle={onFolderToggle}
+                        onFolderContextMenu={handleFolderContextMenu}
+                        onPinFolder={handlePinFolder}
+                        onSaveFolderRename={handleSaveFolderRename}
+                        onCancelFolderRename={handleCancelFolderRename}
+                        editingItemId={editingItemId}
+                        editingItemFolderId={editingItemFolderId}
+                        contextMenu={contextMenu}
+                        onItemClick={onItemClick}
+                        onItemContextMenu={handleContextMenu}
+                        onDashboardClick={onDashboardClick}
+                        onSaveRename={handleSaveRename}
+                        onCancelRename={handleCancelRename}
+                        sectionShowMore={sectionShowMore}
+                        onRevealMoreInSection={onRevealMoreInSection}
+                        onCollapseSection={onCollapseSection}
+                      />
+                      {hasMoreFolders && (
+                        <button
+                          onClick={() => setShowAllFolders((prev) => !prev)}
+                          className="w-full px-2 py-1 text-sm text-gray-800 hover:text-gray-900 transition-colors text-left cursor-pointer"
+                        >
+                          {showAllFolders ? 'Show less' : 'Show more'}
+                        </button>
                       )}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </div>
-
-        {/* Collapsed Avatar Section - Just avatar */}
-        {(userName || userEmail || avatarLabel) && (
-          <div className="pt-3 mt-auto border-t border-gray-200">
-            <button
-              className="w-full flex items-center justify-center p-1 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
-              title={userName || userEmail}
-            >
-              <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
-                {avatarSrc ? (
-                  <img
-                    src={avatarSrc}
-                    alt={userName || 'User avatar'}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                    {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
                   </div>
                 )}
+
+                {/* Dashboards Section (modular — only renders when dashboards prop is provided) */}
+                {!isLoading && dashboards && (
+                  <>
+                    {dashboards.length > 0 ? (
+                      <DashboardSection
+                        dashboards={dashboards}
+                        folders={folders}
+                        selectedDashboardId={selectedDashboardId}
+                        onDashboardClick={onDashboardClick}
+                        onRenameDashboard={onRenameDashboard}
+                        onDeleteDashboard={onDeleteDashboard}
+                        onMoveDashboardToFolder={onMoveDashboardToFolder}
+                        onCreateFolderAndMoveDashboard={onCreateFolderAndMoveDashboard}
+                        hasMoreDashboards={hasMoreDashboards}
+                        onLoadMoreDashboards={onLoadMoreDashboards}
+                        isLoadingMoreDashboards={isLoadingMoreDashboards}
+                      />
+                    ) : (
+                      <div className="mb-3">
+                        <SectionHeader label="Dashboards" />
+                        <SectionEmptyState message="No dashboards yet. Chat with Von to create one." />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Chats Section (root items not in folders) */}
+                {!isLoading && (
+                  <div className="mb-2">
+                    <SectionHeader label="Chats" />
+                    {rootItems.length > 0 ? (
+                      <div>
+                        {rootItems.map((item) => (
+                          <ConversationItem
+                            key={item.id}
+                            item={item}
+                            isSelected={item.id === selectedItemId}
+                            onClick={() => onItemClick?.(item.id)}
+                            onContextMenu={(e) => handleContextMenu(e, item)}
+                            isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
+                            isEditing={editingItemId === item.id && editingItemFolderId === null}
+                            onSaveEdit={(newName) => handleSaveRename(item, newName)}
+                            onCancelEdit={handleCancelRename}
+                          />
+                        ))}
+                        {isFetchingMore ? (
+                          <RowShimmers count={FOLDER_SECTION_LIMIT} />
+                        ) : hasMoreChats ? (
+                          <button
+                            onClick={onLoadMoreChats}
+                            className="w-full px-2 py-1 text-sm text-gray-800 hover:text-gray-900 transition-colors text-left cursor-pointer"
+                          >
+                            Show more
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <SectionEmptyState message="No conversations yet. Start a new chat to get going." />
+                    )}
+                  </div>
+                )}
+
+                {/* Infinite scroll trigger */}
+                {loadMoreRef && <div ref={loadMoreRef} className="h-px flex-shrink-0" />}
               </div>
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
 
-  // Expanded state - show full sidebar
-  return (
-    <motion.div
-      className="px-2 py-2 h-full w-full bg-white flex text-sm flex-col overflow-hidden antialiased font-sf"
-      initial={{ width: 64 }}
-      animate={{ width: 240 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-    >
-      {/* Logo Row with Collapse Button */}
-      {/* <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-200"> */}
-      {/* Combination Logo */}
-      {/* <svg width="72" height="28" viewBox="0 0 80 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z" fill="url(#paint0_radial_expanded)"/>
-          <path d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z" stroke="white" strokeWidth="1.33"/>
-          <circle cx="13.9922" cy="14" r="7.835" stroke="white" strokeWidth="1.33"/>
-          <path d="M32.0962 6.78408C31.8987 6.26257 32.0053 6.00182 32.4162 6.00182H33.6252C34.0519 6.00182 34.3363 6.19541 34.4786 6.58259L38.3306 17.1906C38.4966 17.6568 38.702 18.285 38.947 19.0751C39.1998 19.8574 39.3697 20.4816 39.4566 20.9478H39.504C39.5909 20.4816 39.7569 19.8574 40.0018 19.0751C40.2547 18.285 40.4641 17.6568 40.63 17.1906L44.4821 6.58259C44.6243 6.19541 44.9088 6.00182 45.3355 6.00182H46.5444C46.9553 6.00182 47.062 6.26257 46.8644 6.78408L41.0923 22.2753C40.9105 22.7573 40.6498 22.9983 40.31 22.9983H38.6506C38.3109 22.9983 38.0501 22.7573 37.8684 22.2753L32.0962 6.78408Z" fill="#332D3E"/>
-          <path d="M47.7038 14.5001C47.7038 11.7345 48.3833 9.56942 49.7424 8.00489C51.1094 6.43246 53.0769 5.64624 55.6449 5.64624C58.213 5.64624 60.1765 6.43246 61.5356 8.00489C62.9026 9.56942 63.5861 11.7345 63.5861 14.5001C63.5861 17.2656 62.9026 19.4347 61.5356 21.0071C60.1765 22.5716 58.213 23.3539 55.6449 23.3539C53.0769 23.3539 51.1094 22.5716 49.7424 21.0071C48.3833 19.4347 47.7038 17.2656 47.7038 14.5001ZM50.1335 14.5001C50.1335 16.7125 50.5879 18.4351 51.4966 19.6678C52.4052 20.8925 53.788 21.5049 55.6449 21.5049C57.5018 21.5049 58.8846 20.8925 59.7933 19.6678C60.702 18.4351 61.1563 16.7125 61.1563 14.5001C61.1563 12.2876 60.702 10.569 59.7933 9.34422C58.8846 8.11156 57.5018 7.49523 55.6449 7.49523C53.788 7.49523 52.4052 8.11156 51.4966 9.34422C50.5879 10.569 50.1335 12.2876 50.1335 14.5001Z" fill="#332D3E"/>
-          <path d="M66.7841 22.9983C66.389 22.9983 66.1915 22.781 66.1915 22.3464V6.6537C66.1915 6.21911 66.389 6.00182 66.7841 6.00182H68.3012C68.8543 6.00182 69.2494 6.19936 69.4865 6.59444L76.9061 19.0277H76.9535C76.9377 18.7116 76.9298 18.3956 76.9298 18.0795V6.6537C76.9298 6.21911 77.1274 6.00182 77.5225 6.00182H78.6129C79.008 6.00182 79.2055 6.21911 79.2055 6.6537V22.3464C79.2055 22.781 79.008 22.9983 78.6129 22.9983H77.5699C77.0167 22.9983 76.6217 22.8008 76.3846 22.4057L68.4908 9.21384H68.4434C68.4592 9.52991 68.4671 9.84598 68.4671 10.162V22.3464C68.4671 22.781 68.2696 22.9983 67.8745 22.9983H66.7841Z" fill="#332D3E"/>
-          <defs>
-            <radialGradient id="paint0_radial_expanded" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)">
-              <stop stopColor="#FFF3EB"/>
-              <stop offset="0.26" stopColor="#FF9042"/>
-              <stop offset="1" stopColor="#854FFF"/>
-            </radialGradient>
-          </defs>
-        </svg> */}
-
-      {/* Collapse Button */}
-      {/* <motion.button
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-          onClick={onToggleCollapse}
-          whileHover={{ scale: 1 }}
-          whileTap={{ scale: 0.95 }}
-          title="Collapse sidebar"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="text-gray-500"
-          >
-            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </motion.button>
-      </div> */}
-
-      {/* New Chat Button */}
-      {/* <motion.button
-        className={`w-full h-[32px] mb-3 flex items-center justify-center gap-2 rounded-xl bg-gray-900 text-white text-sm font-semibold transition-all duration-200
-          cursor-pointer
-        }`}
-        onClick={onNewChatClick}
-        whileHover={{ scale: 1, opacity: 0.95 }}
-        whileTap={{ scale: 0.98 }}
-        transition={{ duration: 0.2 }}
-        title={'Create a new chat'}
-      >
-        New Chat
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-        >
-          <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-        </svg>
-      </motion.button> */}
-
-      {/* Section Header */}
-      <div className="flex items-center justify-between px-2 pt-1 pb-3 border-b border-gray-200 mb-2">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
-          <ChatTextIcon size={16} weight="regular" />
-          Past Chats
-        </div>
-        <button
-          onClick={onToggleCollapse}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-          title="Collapse sidebar"
-        >
-          <SidebarSimpleIcon size={16} weight="regular" className="text-gray-500" />
-        </button>
-      </div>
-
-      {/* Chat List Container - Relative positioning for absolute indicator */}
-      <div className="flex-1 relative overflow-hidden">
-        {/* Chat List - Scrollable but hidden scrollbar */}
-        <div className="h-full overflow-y-scroll overflow-x-hidden scrollbar-hide">
-          {chatItems.map((item) => {
-            const isSelected = item.id === selectedChatId;
-
-            // If href provided, use anchor tag for proper link behavior
-            if (item.href) {
-              return (
-                <a
-                  key={item.id}
-                  href={item.href}
-                  className={`
-                    block px-2 py-1.5 mx-0 mb-0.25 text-sm text-gray-900
-                    transition-all duration-200 whitespace-nowrap overflow-hidden
-                    text-ellipsis rounded-lg no-underline cursor-pointer
-                    ${
-                      isSelected
-                        ? 'bg-gray-100 font-medium'
-                        : 'bg-transparent hover:bg-gray-50 font-normal'
-                    }
-                  `}
-                  onClick={(e) => handleItemClick(e, item.id)}
-                  title={item.label}
-                >
-                  {item.label}
-                </a>
-              );
-            }
-
-            // Fallback to div for backward compatibility
-            return (
-              <div
-                key={item.id}
-                className={`
-                  block px-2 py-1.5 mx-0 my-0.25 text-sm text-gray-900
-                  transition-all duration-200 whitespace-nowrap overflow-hidden
-                  text-ellipsis rounded-lg cursor-pointer
-                  ${
-                    isSelected
-                      ? 'bg-gray-100 font-medium'
-                      : 'bg-transparent hover:bg-gray-50 font-normal'
-                  }
-                `}
-                onClick={() => onChatClick?.(item.id)}
-                title={item.label}
-              >
-                {item.label}
-              </div>
-            );
-          })}
-
-          {/* Infinite scroll trigger - hidden but still functional */}
-          {loadMoreRef && <div ref={loadMoreRef} className="h-px" />}
-        </div>
-
-        {/* More Content Indicator - Animated double arrow at bottom */}
-        {hasNextPage && !isFetchingMore && (
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 h-16 flex items-end justify-center pb-2 pointer-events-none gradient-fade-top"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.button
-              className="pointer-events-auto px-4 py-2 flex flex-col items-center justify-center gap-0 cursor-pointer"
-              onClick={onLoadMore}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <motion.svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="text-gray-600"
-                animate={{
-                  y: [0, 4, 0],
-                }}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              >
-                <path d="M7 13l5 5 5-5M7 6l5 5 5-5" strokeLinecap="round" strokeLinejoin="round" />
-              </motion.svg>
-              <span className="text-[11px] text-gray-600 font-medium">More</span>
-            </motion.button>
-          </motion.div>
-        )}
-
-        {/* Loading indicator */}
-        {isFetchingMore && (
-          <motion.div
-            className="absolute bottom-0 left-0 right-0 h-16 flex items-center justify-center gradient-fade-top"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0 }}
-              />
-              <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
-              />
-              <motion.div
-                className="w-1 h-1 rounded-full bg-gray-500"
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
-              />
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Avatar Section at Bottom */}
-      {(userName || userEmail || avatarLabel) && (
-        <div className="pt-3 mt-auto border-t border-gray-200">
-          <button
-            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-            onClick={(e) => onAvatarClick?.(e.currentTarget.getBoundingClientRect())}
-          >
-            {/* Avatar */}
-            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden">
-              {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt={userName || 'User avatar'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                  {avatarLabel || userName?.charAt(0)?.toUpperCase() || '?'}
+              {/* Loading indicator */}
+              {isFetchingMore && (
+                <div className="flex items-center justify-center py-1.5">
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <motion.div
+                        key={i}
+                        className="w-1 h-1 rounded-full bg-gray-400"
+                        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                        transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* User Profile Section */}
+              <ProfileSection
+                userName={userName}
+                userEmail={userEmail}
+                avatarSrc={avatarSrc}
+                avatarLabel={avatarLabel}
+                isProfileOpen={isProfileOpen}
+                popoverPosition={popoverPosition}
+                avatarButtonRef={avatarButtonRef}
+                onAvatarClick={handleAvatarClick}
+                onCloseProfile={handleCloseProfile}
+                onSettingsClick={onSettingsClick}
+                onSignOutClick={onSignOutClick}
+              />
             </div>
-            {/* User Info */}
-            <div className="flex-1 min-w-0 text-left">
-              {userName && <p className="text-sm font-medium text-gray-900 truncate">{userName}</p>}
-              {userEmail && <p className="text-xs text-gray-500 truncate">{userEmail}</p>}
-            </div>
-            {/* Chevron */}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-gray-400 flex-shrink-0"
-            >
-              <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Shared overlays — rendered outside collapsed/expanded wrappers so they work in both states */}
+
+      {/* Context Menu (for items — same surface for chats and dashboards;
+          rename/delete owner-gated, share appears for chats only). */}
+      <ContextMenu
+        isOpen={contextMenu.isOpen}
+        onClose={handleCloseContextMenu}
+        items={getContextMenuItems({
+          itemType: contextMenu.item?.type,
+          isOwner: contextMenu.item?.isOwner,
+          isInFolder: !!contextMenu.item?.folderId,
+          enableShare: !!onShareItem,
+          shareInfo: contextMenuShareInfo,
+        })}
+        fixedPosition={contextMenu.position}
+        width={160}
+        onItemClick={(menuItem) => {
+          if (menuItem.id === 'rename' && contextMenu.item) {
+            handleStartRename(contextMenu.item);
+          } else if (menuItem.id === 'move' && contextMenu.item) {
+            handleShowMoveToFolder(contextMenu.item);
+          } else if (menuItem.id === 'share' && contextMenu.item) {
+            onShareItem?.(contextMenu.item.id);
+          } else if (menuItem.id === 'remove-from-folder' && contextMenu.item) {
+            handleRemoveFromFolder(contextMenu.item);
+          } else if (menuItem.id === 'delete' && contextMenu.item) {
+            handleShowDeleteConfirmation(contextMenu.item);
+          }
+          handleCloseContextMenu();
+        }}
+      />
+
+      {/* Delete Confirmation Popup (for items) */}
+      <DeleteConfirmationPopup
+        isOpen={deleteConfirmation.isOpen}
+        itemLabel={deleteConfirmation.item?.label || ''}
+        itemType={deleteConfirmation.item?.type || 'chat'}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+
+      {/* Folder Context Menu */}
+      <ContextMenu
+        isOpen={folderContextMenu.isOpen}
+        onClose={handleCloseFolderContextMenu}
+        items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
+        fixedPosition={folderContextMenu.position}
+        width={128}
+        onItemClick={(menuItem) => {
+          if (menuItem.id === 'pin' && folderContextMenu.folder) {
+            handlePinFolder(folderContextMenu.folder);
+          } else if (menuItem.id === 'rename' && folderContextMenu.folder) {
+            handleStartFolderRename(folderContextMenu.folder);
+          } else if (menuItem.id === 'delete' && folderContextMenu.folder) {
+            handleShowFolderDeleteConfirmation(folderContextMenu.folder);
+          }
+          handleCloseFolderContextMenu();
+        }}
+      />
+
+      {/* Delete Confirmation Popup (for folders) */}
+      <DeleteConfirmationPopup
+        isOpen={folderDeleteConfirmation.isOpen}
+        itemLabel={folderDeleteConfirmation.folder?.label || ''}
+        itemType="folder"
+        onConfirm={handleConfirmFolderDelete}
+        onCancel={handleCancelFolderDelete}
+      />
+
+      {/* Move to Folder Modal */}
+      <MoveToFolderModal
+        isOpen={moveToFolderModal.isOpen}
+        itemName={moveToFolderModal.item?.label || ''}
+        itemType="chat"
+        folders={getAvailableFoldersForMove()}
+        currentFolderId={moveToFolderModal.item?.folderId}
+        onConfirm={handleConfirmMoveToFolder}
+        onCancel={handleCancelMoveToFolder}
+      />
+    </div>
   );
 };
 

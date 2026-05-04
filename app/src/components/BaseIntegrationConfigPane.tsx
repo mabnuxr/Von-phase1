@@ -704,6 +704,7 @@ export function BaseIntegrationConfigPane({
               {(integrationId === "salesforce" ||
                 integrationId === "googlecalendar" ||
                 integrationId === "googledrive" ||
+                integrationId === "box" ||
                 integrationId === "gmail" ||
                 integrationId === "granola" ||
                 integrationId === "notion" ||
@@ -1352,7 +1353,9 @@ export function BaseIntegrationConfigPane({
                       label="Workspace URL"
                       value={databricksWorkspaceUrl}
                       onChange={(e) =>
-                        setDatabricksWorkspaceUrl(e.target.value)
+                        setDatabricksWorkspaceUrl(
+                          e.target.value.replace(/^https?:\/\//i, ""),
+                        )
                       }
                       placeholder={
                         hasExistingCredentials

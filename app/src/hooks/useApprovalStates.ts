@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Channel } from "pusher-js";
 import {
   UserChannelEvents,
@@ -8,40 +8,29 @@ import {
 } from "../types/userChannelEvents";
 import type {
   ConversationApprovalState,
-  SidebarConversation,
-  FolderConversation,
+  FolderConversationRow,
 } from "../types/chatSidebar";
 
 type ApprovalState = ConversationApprovalState;
 type PusherStateValue = ApprovalState | "cleared";
 
 interface UseApprovalStatesParams {
-  sidebarConversations: SidebarConversation[];
-  folderConversations: Record<string, FolderConversation[]>;
+  unfiledConversations: FolderConversationRow[];
+  folderConversations: Record<string, FolderConversationRow[]>;
   userChannel: Channel | null;
 }
 
 interface UseApprovalStatesReturn {
   /** Map of conversationId → current approval indicator state. */
   approvalStates: Map<string, ApprovalState>;
-  /** Call when the user opens a conversation — hides its dot for this session. */
-  markViewed: (conversationId: string) => void;
 }
 
-/**
- * Read the approval indicator for a single conversation.
- *
- * During backend rollout the server may still return only the boolean
- * `hasPendingApproval`. Fall back to that so the UI keeps working before
- * `approval_state` is deployed.
- */
 function readApprovalState(
-  conv: Pick<SidebarConversation, "approvalState" | "hasPendingApproval">,
+  conv: Pick<FolderConversationRow, "approval_state">,
 ): ApprovalState | undefined {
-  if (conv.approvalState === "pending" || conv.approvalState === "expired") {
-    return conv.approvalState;
+  if (conv.approval_state === "pending" || conv.approval_state === "expired") {
+    return conv.approval_state;
   }
-  if (conv.hasPendingApproval) return "pending";
   return undefined;
 }
 
@@ -56,56 +45,45 @@ function readApprovalState(
  *    `"expired"` set the state; `"cleared"` acts as a tombstone for
  *    user-driven resolutions so an API-seeded dot disappears immediately
  *    without waiting for a refetch.
- * 3. `viewedIds` — set by `markViewed` when the user opens a conversation.
- *    Removes the dot locally, sticky across navigation within the session.
- *    A fresh Pusher event (pending or expired) clears the id from `viewedIds`
- *    so the user sees the new state transition.
  */
 export function useApprovalStates({
-  sidebarConversations,
+  unfiledConversations,
   folderConversations,
   userChannel,
 }: UseApprovalStatesParams): UseApprovalStatesReturn {
   const apiStates = useMemo(() => {
     const map = new Map<string, ApprovalState>();
-    for (const conv of sidebarConversations) {
+    for (const conv of unfiledConversations) {
       const state = readApprovalState(conv);
-      if (state) map.set(conv.conversationId, state);
+      if (state) map.set(conv.conversation_id, state);
     }
     for (const convs of Object.values(folderConversations)) {
       for (const conv of convs) {
         const state = readApprovalState(conv);
-        if (state) map.set(conv.conversationId, state);
+        if (state) map.set(conv.conversation_id, state);
       }
     }
     return map;
-  }, [sidebarConversations, folderConversations]);
+  }, [unfiledConversations, folderConversations]);
 
   const [pusherStates, setPusherStates] = useState<
     Map<string, PusherStateValue>
   >(new Map());
-  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
 
-  const applyLiveTransition = useCallback(
-    (conversationId: string, value: PusherStateValue) => {
+  useEffect(() => {
+    if (!userChannel) return;
+
+    const applyLiveTransition = (
+      conversationId: string,
+      value: PusherStateValue,
+    ) => {
       setPusherStates((prev) => {
         if (prev.get(conversationId) === value) return prev;
         const next = new Map(prev);
         next.set(conversationId, value);
         return next;
       });
-      setViewedIds((prev) => {
-        if (!prev.has(conversationId)) return prev;
-        const next = new Set(prev);
-        next.delete(conversationId);
-        return next;
-      });
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!userChannel) return;
+    };
 
     const handlePending = (data: ConversationApprovalPendingEvent) => {
       applyLiveTransition(data.conversationId, "pending");
@@ -144,11 +122,10 @@ export function useApprovalStates({
         handleResolved,
       );
     };
-  }, [userChannel, applyLiveTransition]);
+  }, [userChannel]);
 
   // Reconcile Pusher overrides against a refreshed API base: drop overrides
-  // the server already reflects. `viewedIds` intentionally survives API
-  // refresh — that's the whole point of the local-only override.
+  // the server already reflects.
   useEffect(() => {
     setPusherStates((prev) => {
       if (prev.size === 0) return prev;
@@ -161,7 +138,7 @@ export function useApprovalStates({
             next.delete(id);
             changed = true;
           }
-        } else if (apiValue === value) {
+        } else if (!apiValue || apiValue === value) {
           next.delete(id);
           changed = true;
         }
@@ -170,24 +147,14 @@ export function useApprovalStates({
     });
   }, [apiStates]);
 
-  const markViewed = useCallback((conversationId: string) => {
-    setViewedIds((prev) => {
-      if (prev.has(conversationId)) return prev;
-      const next = new Set(prev);
-      next.add(conversationId);
-      return next;
-    });
-  }, []);
-
   const approvalStates = useMemo(() => {
     const result = new Map(apiStates);
     for (const [id, value] of pusherStates) {
       if (value === "cleared") result.delete(id);
       else result.set(id, value);
     }
-    for (const id of viewedIds) result.delete(id);
     return result;
-  }, [apiStates, pusherStates, viewedIds]);
+  }, [apiStates, pusherStates]);
 
-  return { approvalStates, markViewed };
+  return { approvalStates };
 }

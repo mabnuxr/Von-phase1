@@ -26,6 +26,9 @@ export {
 // Conversations Service
 export { conversationsService } from "./conversationsService";
 
+// Folders Service
+export { foldersService } from "./foldersService";
+
 // Preferences Service
 export { preferencesService } from "./preferencesService";
 export type { PreferencesData } from "./preferencesService";
@@ -66,3 +69,7 @@ export type {
 // GSuite Services
 export { exportToDrive } from "./gsuite";
 export type { ExportToDriveResponse } from "./gsuite";
+
+// Box Services
+export { exportToBox } from "./box";
+export type { ExportToBoxResponse } from "./box";

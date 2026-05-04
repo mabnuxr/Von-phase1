@@ -206,6 +206,7 @@ export type { ConfirmationModalProps } from './ConfirmationModal';
 export { Chat } from './Chat';
 export type {
   ChatProps,
+  ChatRef,
   Message,
   MessageFileAttachment,
   FixedPosition,
@@ -260,29 +261,29 @@ export type { ConversationSearchRendererProps } from './Chat/ConversationSearchR
 export { TopBar } from './TopBar';
 export type { TopBarProps, Tab } from './TopBar';
 
-// ChatSidebar Organism (uses: Search + List, manages chat history)
+// ChatSidebar Organism (Folders v2 — sectioned + nested A2 layout, supports
+// dashboards + chats inside folders).
 export { ChatSidebar } from './ChatSidebar';
-export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
-
-// ChatSidebarV2 Organism (uses: Folders + Search + List, supports folder organization)
-export { ChatSidebar as ChatSidebarV2 } from './ChatSidebarV2';
 export type {
-  ChatSidebarProps as ChatSidebarV2Props,
+  ChatSidebarProps,
   SidebarItem,
   Folder,
   ItemType,
   ItemStatus,
   ApprovalState,
   FolderItemsMap,
+  FolderDashboardsMap,
   FolderLoadingMap,
   DashboardSidebarItem,
   DashboardItemState,
   DashboardItemVisibility,
-} from './ChatSidebarV2';
-export { ApprovalDot } from './ChatSidebarV2';
-export type { ApprovalDotProps } from './ChatSidebarV2';
-export { ApprovalPill } from './ChatSidebarV2';
-export type { ApprovalPillProps } from './ChatSidebarV2';
+  SectionShowMoreMap,
+  FolderItemType,
+} from './ChatSidebar';
+export { ApprovalDot } from './ChatSidebar';
+export type { ApprovalDotProps } from './ChatSidebar';
+export { ApprovalPill } from './ChatSidebar';
+export type { ApprovalPillProps } from './ChatSidebar';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)
@@ -391,6 +392,8 @@ export type { DashboardCanvasProps } from './DashboardCanvas';
 // THINKING PROCESS V2 (Timeline-based thinking visualization)
 // ============================================================================
 export { TimelineThinkingProcess } from './TimelineThinkingProcess';
+export { TextShimmer } from './TimelineThinkingProcess/components/TextShimmer';
+export type { TextShimmerProps } from './TimelineThinkingProcess/components/TextShimmer';
 export type {
   TimelineThinkingProcessProps,
   TimelineStep,
@@ -453,8 +456,9 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
-  longTextExpandFormatter,
-  handleLongTextHover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
   escapeHtml,
   LongTextPopover,
 } from './ReportTable';
