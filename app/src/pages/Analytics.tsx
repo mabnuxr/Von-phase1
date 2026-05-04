@@ -191,7 +191,9 @@ function DashboardCanvas({
   // flagged users in practice).
   const { isDrilldownV2Enabled } = useFeatureFlag();
   const drillV2 = useDrilldownV2(dashboardId);
-  const useV2 = useCallback(
+  // Named ``shouldUseV2`` (not ``useV2``) so React's rules-of-hooks lint
+  // doesn't mistake this regular callback for a custom hook.
+  const shouldUseV2 = useCallback(
     (panelId: string) => {
       if (!isDrilldownV2Enabled) return false;
       const widget = dashboard?.widgets?.[panelId];
@@ -202,18 +204,18 @@ function DashboardCanvas({
 
   const handleWidgetDrillDown = useCallback(
     (panelId: string) => {
-      if (useV2(panelId)) {
+      if (shouldUseV2(panelId)) {
         drillV2.openPanelDrilldown(panelId, [], {});
         return;
       }
       openDrilldown(panelId);
     },
-    [useV2, drillV2, openDrilldown],
+    [shouldUseV2, drillV2, openDrilldown],
   );
 
   const handlePointDrillDown = useCallback(
     (panelId: string, filters: Record<string, unknown>) => {
-      if (useV2(panelId)) {
+      if (shouldUseV2(panelId)) {
         // V2: column_path empty = default target; filters pass through as-is
         // (FE assumes the parent click handler already prefixed with the right
         // data_key convention — e.g. point.name, series.name).
@@ -222,7 +224,7 @@ function DashboardCanvas({
       }
       openPointDrilldown(panelId, filters);
     },
-    [useV2, drillV2, openPointDrilldown],
+    [shouldUseV2, drillV2, openPointDrilldown],
   );
 
   const handleV2RowDrill = useCallback(
@@ -237,9 +239,9 @@ function DashboardCanvas({
       // share depth; the segment value itself is opaque to routing — we use
       // the first scalar key as a breadcrumb hint.
       const filters = rowDescentFilters(rowData);
-      const breadcrumbSeg = Object.keys(filters)[0] ?? `L${drillV2.clickChain.length}`;
-      const topChainNode =
-        drillV2.clickChain[drillV2.clickChain.length - 1];
+      const breadcrumbSeg =
+        Object.keys(filters)[0] ?? `L${drillV2.clickChain.length}`;
+      const topChainNode = drillV2.clickChain[drillV2.clickChain.length - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
       drillV2.pushLevel(nextPath, filters);
     },
@@ -372,7 +374,7 @@ function DashboardCanvas({
           drill={drillV2}
           widgetTitle={
             drillV2.panelId
-              ? dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown"
+              ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
               : "Drilldown"
           }
           onRowDrill={handleV2RowDrill}

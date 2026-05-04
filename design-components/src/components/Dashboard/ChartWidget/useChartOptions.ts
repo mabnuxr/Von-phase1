@@ -225,8 +225,7 @@ function resolveEffectiveColumnMap(
   // descent happens via the drilldown panel UI.
   const l0 = drilldownV2?.levels?.[0];
   if (l0?.variants?.length) {
-    const defaultVariant =
-      l0.variants.find((v) => v.is_default) ?? l0.variants[0];
+    const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
     if (defaultVariant?.column_map?.length) {
       return defaultVariant.column_map;
     }

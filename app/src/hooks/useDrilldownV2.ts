@@ -86,10 +86,7 @@ export interface UseDrilldownV2Return {
    * contribution from THIS click; combined with shallower-level filters at
    * fetch time.
    */
-  pushLevel: (
-    columnPath: string[],
-    filters: Record<string, unknown>,
-  ) => void;
+  pushLevel: (columnPath: string[], filters: Record<string, unknown>) => void;
   popToLevel: (depth: number) => void;
   closeDrilldown: () => void;
   changeVariant: (variantId: string | null) => void;
@@ -154,7 +151,10 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
         page: state.page,
         ...(state.sort && {
           sort_config: [
-            { order_by: state.sort.orderBy, order_by_asc: state.sort.orderByAsc },
+            {
+              order_by: state.sort.orderBy,
+              order_by_asc: state.sort.orderByAsc,
+            },
           ],
         }),
       };
@@ -241,7 +241,9 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       setState((prev) => {
         if (!prev) return prev;
         const nextSort: SortInfo | null =
-          order === null ? null : { orderBy: columnId, orderByAsc: order === "asc" };
+          order === null
+            ? null
+            : { orderBy: columnId, orderByAsc: order === "asc" };
         return { ...prev, page: 1, sort: nextSort };
       });
     },

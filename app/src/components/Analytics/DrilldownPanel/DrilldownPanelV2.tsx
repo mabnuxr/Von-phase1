@@ -23,11 +23,12 @@
  */
 import { useCallback, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { XIcon, CaretRightIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import {
-  ReportTable,
-  buildGridOptions,
-} from "@vonlabs/design-components";
+  XIcon,
+  CaretRightIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
+import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
 import type { ReportColumn, ServerSortState } from "@vonlabs/design-components";
 import type { UseDrilldownV2Return } from "../../../hooks/useDrilldownV2";
 import type { DrilldownV2VariantSummary } from "../../../types/dashboard";
@@ -40,7 +41,10 @@ function inferColumnType(key: string, value: unknown): ReportColumn["type"] {
   if (value === null || value === undefined) return "text";
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") {
-    if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("price"))
+    if (
+      key.toLowerCase().includes("amount") ||
+      key.toLowerCase().includes("price")
+    )
       return "currency";
     if (
       key.toLowerCase().includes("probability") ||
@@ -91,7 +95,11 @@ export interface DrilldownPanelV2Props {
   onRowDrill?: (rowIndex: number, rowData: Record<string, unknown>) => void;
 }
 
-export function DrilldownPanelV2({ drill, widgetTitle, onRowDrill }: DrilldownPanelV2Props) {
+export function DrilldownPanelV2({
+  drill,
+  widgetTitle,
+  onRowDrill,
+}: DrilldownPanelV2Props) {
   // Close on ESC
   useEffect(() => {
     if (!drill.isOpen) return;
@@ -136,12 +144,9 @@ export function DrilldownPanelV2({ drill, widgetTitle, onRowDrill }: DrilldownPa
     [drill.data, drill.hasNextLevel, onRowDrill],
   );
 
-  const sortStateForTable: ServerSortState | null = drill.currentSort
-    ? {
-        columnId: drill.currentSort.orderBy,
-        order: drill.currentSort.orderByAsc ? "asc" : "desc",
-      }
-    : null;
+  // ServerSortState is ``{orderBy, orderByAsc}`` — same shape as the hook's
+  // ``currentSort``. No translation needed; pass through directly.
+  const sortStateForTable: ServerSortState | null = drill.currentSort;
 
   if (!drill.isOpen) return null;
 
@@ -204,8 +209,8 @@ export function DrilldownPanelV2({ drill, widgetTitle, onRowDrill }: DrilldownPa
           <div className="dd-v2-advisory">
             <WarningCircleIcon size={16} weight="fill" />
             <span>
-              You've gone deep. If you're looking for something specific, asking in
-              chat may be faster than continuing to drill.
+              You've gone deep. If you're looking for something specific, asking
+              in chat may be faster than continuing to drill.
             </span>
           </div>
         )}
@@ -228,7 +233,8 @@ export function DrilldownPanelV2({ drill, widgetTitle, onRowDrill }: DrilldownPa
             <div className="dd-v2-empty">
               <div className="dd-v2-empty-title">No records found.</div>
               <div className="dd-v2-empty-sub">
-                Zero rows is valid information — nothing matches the drilldown query.
+                Zero rows is valid information — nothing matches the drilldown
+                query.
               </div>
             </div>
           ) : (
@@ -280,7 +286,11 @@ function Breadcrumb({
         const label = formatSegment(node);
         return (
           <span key={`seg-${idx}`} className="dd-v2-breadcrumb-seg">
-            <CaretRightIcon size={10} weight="bold" className="dd-v2-breadcrumb-sep" />
+            <CaretRightIcon
+              size={10}
+              weight="bold"
+              className="dd-v2-breadcrumb-sep"
+            />
             <button
               className="dd-v2-breadcrumb-btn"
               onClick={() => onPopToLevel(idx)}
@@ -303,10 +313,12 @@ function formatSegment(
     : "";
   const firstFilter = Object.entries(node.filters)[0];
   if (pathLabel) {
-    if (firstFilter) return `${formatLabel(pathLabel)}: ${String(firstFilter[1])}`;
+    if (firstFilter)
+      return `${formatLabel(pathLabel)}: ${String(firstFilter[1])}`;
     return formatLabel(pathLabel);
   }
-  if (firstFilter) return `${formatLabel(stripPrefix(firstFilter[0]))}: ${String(firstFilter[1])}`;
+  if (firstFilter)
+    return `${formatLabel(stripPrefix(firstFilter[0]))}: ${String(firstFilter[1])}`;
   return "Drill";
 }
 
@@ -325,7 +337,11 @@ function VariantButtons({
   onChange: (id: string | null) => void;
 }) {
   return (
-    <div className="dd-v2-variant-btns" role="group" aria-label="Variant selector">
+    <div
+      className="dd-v2-variant-btns"
+      role="group"
+      aria-label="Variant selector"
+    >
       {variants.map((v) => (
         <button
           key={v.id}
