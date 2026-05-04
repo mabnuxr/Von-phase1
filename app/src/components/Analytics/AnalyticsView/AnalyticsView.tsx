@@ -274,6 +274,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { handleLayoutChange } = useLayoutAutoSave(
     dashboard.id,
     dashboard.isEditable,
+    layout,
   );
 
   const variablesByWidget = useMemo(

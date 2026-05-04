@@ -47,12 +47,25 @@ function layoutsEqual(a: PanelLayouts, b: PanelLayouts): boolean {
  * The hook is intentionally stateless w.r.t. positions — react-grid-layout
  * owns the in-flight layout; we just forward the final shape server-side.
  */
-export function useLayoutAutoSave(dashboardId: string, isEditMode: boolean) {
+export function useLayoutAutoSave(
+  dashboardId: string,
+  isEditMode: boolean,
+  layout: readonly LayoutItem[],
+) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<PanelLayouts | null>(null);
   const lastSavedRef = useRef<PanelLayouts | null>(null);
+
+  // Seed the saved baseline from the current dashboard layout. Without this,
+  // entering edit mode triggers RGL's `static: true → false` reconcile,
+  // which fires `onLayoutChange` with unchanged positions; the equality
+  // guard in `flushNow` would otherwise short-circuit on a null baseline
+  // and PATCH the layout back to the server unnecessarily.
+  useEffect(() => {
+    lastSavedRef.current = toPanelLayouts(layout);
+  }, [layout]);
 
   const mutation = useMutation({
     mutationFn: async (panelLayouts: PanelLayouts) => {
@@ -112,21 +125,32 @@ export function useLayoutAutoSave(dashboardId: string, isEditMode: boolean) {
     () => () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       const pending = pendingRef.current;
+      // Clear pending so a `dashboardId`-prop change (which re-runs this
+      // effect without unmounting) can't leak the old dashboard's layout
+      // into the new one's mutation.
+      pendingRef.current = null;
       if (!pending) return;
       if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, pending)) {
         return;
       }
       // Fire-and-forget on unmount. Errors will only appear in the console —
-      // users won't see a toast for a tab they just closed.
+      // users won't see a toast for a tab they just closed. `queryClient`
+      // outlives the component, so invalidating here keeps the cache fresh
+      // even though we bypass the mutation observer's onSuccess.
       dashboardService
         .updateDashboard(dashboardId, {
           ui_config: { panel_layouts: pending },
+        })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: dashboardKeys.detail(dashboardId),
+          });
         })
         .catch((error) => {
           console.error("[useLayoutAutoSave] unmount PATCH failed:", error);
         });
     },
-    [dashboardId],
+    [dashboardId, queryClient],
   );
 
   return { handleLayoutChange, isSaving: mutation.isPending };
