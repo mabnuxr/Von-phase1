@@ -1,10 +1,11 @@
 import posthog from "posthog-js";
 
 let isInitialized = false;
- 
+
 export function initPosthog() {
   const apiKey = import.meta.env.VITE_POSTHOG_API_KEY;
-  const apiHost = import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com";
+  const apiHost =
+    import.meta.env.VITE_POSTHOG_HOST || "https://us.i.posthog.com";
 
   if (!apiKey) {
     return;
