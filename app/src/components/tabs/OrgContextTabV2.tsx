@@ -128,7 +128,9 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   const bulkImportFlow = useCreateAndSendMessage({
     agentVersion: isAgentV2Flag ? "v2" : "v1",
     isAgentV2: isAgentV2Flag,
-    title: "User Memory Import",
+    // Empty title — let the backend auto-derive from the first message,
+    // matching how the regular New Conversation flow behaves.
+    title: "",
     navigateOnCreate: false,
   });
 
