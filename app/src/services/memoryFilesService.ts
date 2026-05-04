@@ -11,15 +11,12 @@ export function generateMemoryId(): string {
   const timestamp = Math.floor(Date.now() / 1000)
     .toString(16)
     .padStart(8, "0");
-  const random = Array.from({ length: 10 }, () =>
-    Math.floor(Math.random() * 256)
-      .toString(16)
-      .padStart(2, "0"),
-  ).join("");
-  const counter = Math.floor(Math.random() * 0xffffff)
-    .toString(16)
-    .padStart(6, "0");
-  return timestamp + random + counter;
+  const bytes = new Uint8Array(13);
+  crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
+    "",
+  );
+  return timestamp + hex;
 }
 
 /**

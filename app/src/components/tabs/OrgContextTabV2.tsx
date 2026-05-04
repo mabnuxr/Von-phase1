@@ -118,11 +118,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   const { showToast } = useToast();
 
   // Feature flags
-  const {
-    isUserMemoryEnabled,
-    isAgentV2: isAgentV2Flag,
-    isSidebarV2,
-  } = useFeatureFlag();
+  const { isUserMemoryEnabled, isAgentV2: isAgentV2Flag } = useFeatureFlag();
 
   // Bulk-import handoff: creates a new conversation seeded with the pasted
   // content + a brief directive. We DON'T navigate — the pane stays open
@@ -134,7 +130,6 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     isAgentV2: isAgentV2Flag,
     title: "User Memory Import",
     navigateOnCreate: false,
-    isSidebarV2,
   });
 
   // Currently previewed attachment — null when the preview drawer is closed.
