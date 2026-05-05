@@ -241,9 +241,9 @@ export function BulkImportPane({
             </span>
           </div>
 
-          {/* Rich text editor — Tiptap surface. Starts at ~65% of available
-              height; user-resizable up to the full pane. */}
-          <div className="flex-shrink-0 min-h-[180px] h-[65%] max-h-full resize-y overflow-auto border border-gray-200/80 rounded-xl">
+          {/* Rich text editor — Tiptap surface. Takes the remaining space
+              after the prompt block; user-resizable. */}
+          <div className="flex-1 min-h-[180px] resize-y overflow-auto border border-gray-200/80 rounded-xl">
             <OrgContextEditor
               content={input}
               onChange={setInput}
