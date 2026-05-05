@@ -6,6 +6,7 @@ import { AddToChatButton } from '../../VonIcon';
 import type { CounterWidgetProps } from '../types';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
+import { DragPill } from '../DragPill';
 import {
   formatKpiDisplay,
   computeProgress,
@@ -103,6 +104,7 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   appliedFilters,
   filterSlot,
   onAddToChat,
+  isEditMode,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
 
@@ -132,6 +134,11 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
       className="group relative h-full bg-white border border-gray-200 px-4 py-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
       onClick={onDrillDown}
     >
+      {isEditMode && title && (
+        <div className="absolute top-2.5 left-2.5 z-10 flex items-center h-7">
+          <DragPill label={title} />
+        </div>
+      )}
       {(filterSlot || appliedFilters || queryInfo || onDrillDown || onAddToChat) && (
         <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
           {filterSlot

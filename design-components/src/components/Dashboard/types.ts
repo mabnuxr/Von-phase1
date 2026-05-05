@@ -191,6 +191,11 @@ export interface CounterWidgetProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -212,6 +217,12 @@ export interface TextWidgetProps {
   /** Variables substituted into `{{key}}` tokens in `config.content`. */
   variables?: MustacheVariables;
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle at the top-left so the
+   * widget can be moved while the dashboard is in edit mode. Only takes
+   * effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Table ──────────────────────────────────────────────────────
@@ -274,6 +285,11 @@ export interface WidgetShellProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -305,6 +321,11 @@ export interface WidgetRendererProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Variables for `{{key}}` mustache tokens inside a text widget's content. */
   variables?: MustacheVariables;
+  /**
+   * When true, renders edit-mode chrome (drag-pill in widget header). Pass
+   * through from the grid; only takes effect alongside the drag-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────

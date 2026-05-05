@@ -6,13 +6,17 @@ import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 import { DashboardGridConfigContext } from '../DashboardGridConfigContext';
 import type { DashboardGridProps } from '../types';
 import 'react-grid-layout/css/styles.css';
+import './dashboard-grid.css';
 
 /**
- * Dashboard grid. Renders widgets in their configured positions
- * using react-grid-layout with drag and resize disabled.
+ * Dashboard grid. Renders widgets in their configured positions using
+ * react-grid-layout. Drag and resize are only enabled in edit mode AND when
+ * the drag-and-drop feature flag (`isDragDropEnabled`) is on.
  *
- * When `isEditMode` is true, widgets get a dashed border treatment
- * to indicate they are editable.
+ * In that "drag-drop active" state we layer in:
+ * - a faint dotted gridline backdrop sized to the actual snap cells
+ * - the orange tab-pill drag handle inside each widget's header
+ * - blue circular handles at all four widget corners for resizing
  */
 const DashboardGrid: React.FC<DashboardGridProps> = memo(
   ({
@@ -34,10 +38,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     variablesByWidget,
     onLayoutChange,
   }) => {
-    // Drag/drop chrome (movable handle, dashed border, react-grid-layout
-    // drag/resize) is only active when both edit mode and the drag-and-drop
-    // feature flag are on. Edit mode alone keeps widgets pinned.
+    // Drag/drop chrome is only active when both edit mode and the
+    // drag-and-drop feature flag are on. Edit mode alone keeps widgets pinned.
     const dragDropActive = !!isEditMode && isDragDropEnabled;
+
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
 
@@ -66,9 +70,31 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
       minH: 2,
     }));
 
+    // Cell dimensions for the gridline backdrop. Computed from containerWidth
+    // and the configured cols/margin/padding so the lines align exactly with
+    // react-grid-layout's snap targets.
+    const [marginX, marginY] = gridConfig.margin;
+    const [padX, padY] = gridConfig.containerPadding;
+    const usableWidth = Math.max(containerWidth - padX * 2, 0);
+    const colStep = (usableWidth + marginX) / gridConfig.cols;
+    const rowStep = gridConfig.rowHeight + marginY;
+
     return (
       <DashboardGridConfigContext.Provider value={gridConfig}>
-        <div ref={containerRef} className="w-full pb-12">
+        <div
+          ref={containerRef}
+          className={`w-full pb-12 ${dragDropActive ? 'dashboard-grid-canvas' : ''}`}
+          style={
+            dragDropActive
+              ? ({
+                  '--grid-col-step': `${colStep}px`,
+                  '--grid-row-step': `${rowStep}px`,
+                  '--grid-pad-x': `${padX}px`,
+                  '--grid-pad-y': `${padY}px`,
+                } as React.CSSProperties)
+              : undefined
+          }
+        >
           <GridLayout
             className="layout "
             layout={gridLayout}
@@ -82,12 +108,17 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
             }}
             dragConfig={{
               enabled: dragDropActive,
-              // Only drag when the user grabs the widget wrapper itself — lets
-              // users still click/sort/filter inside widget content without
-              // accidentally starting a drag.
+              // Only drag when the user grabs the orange DragPill in the
+              // widget header — leaves widget content (chart tooltips,
+              // table sorts, etc.) interactive.
               handle: '.widget-drag-handle',
             }}
-            resizeConfig={{ enabled: dragDropActive }}
+            resizeConfig={{
+              enabled: dragDropActive,
+              // 4 corner brackets (nw/ne/sw/se) for diagonal resize +
+              // 4 edge midpoints (n/s/e/w) for single-axis resize.
+              handles: ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'],
+            }}
             compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
             onLayoutChange={(next) => onLayoutChange?.(next)}
           >
@@ -95,14 +126,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
               const widget = widgets[item.i];
               if (!widget) return <div key={item.i} />;
               return (
-                <div
-                  key={item.i}
-                  className={`h-full ${
-                    dragDropActive
-                      ? 'widget-drag-handle cursor-move border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
-                      : ''
-                  }`}
-                >
+                <div key={item.i} className="h-full relative">
                   {isLoading ? (
                     <WidgetSkeleton widget={widget} />
                   ) : (
@@ -119,6 +143,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                         filterSlot={widgetFilterSlot?.(widget.id)}
                         onAddToChat={onAddToChat}
                         variables={variablesByWidget?.[widget.id]}
+                        isEditMode={dragDropActive}
                       />
                     </WidgetErrorBoundary>
                   )}

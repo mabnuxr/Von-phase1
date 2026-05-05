@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TiptapViewer } from '../../TiptapEditor';
 import { AddToChatButton } from '../../VonIcon';
+import { DragPill } from '../DragPill';
 import type { TextWidgetProps } from '../types';
 import { resolveMustache } from './resolveMustache';
 import { useContentHeightFit } from '../useContentHeightFit';
@@ -49,7 +50,13 @@ function hashString(s: string): string {
  * Plain-styled mode fires only when `variant` is one of the known enum keys.
  * Anything else falls to rich markdown via TiptapViewer.
  */
-const TextWidget: React.FC<TextWidgetProps> = ({ panelId, config, variables, onAddToChat }) => {
+const TextWidget: React.FC<TextWidgetProps> = ({
+  panelId,
+  config,
+  variables,
+  onAddToChat,
+  isEditMode,
+}) => {
   const { content, variant, alignment = 'left', overflow = 'auto' } = config;
   const resolvedContent = useMemo(() => resolveMustache(content, variables), [content, variables]);
   const knownVariant =
@@ -116,6 +123,11 @@ const TextWidget: React.FC<TextWidgetProps> = ({ panelId, config, variables, onA
 
   return (
     <div className="group relative h-full bg-white border border-gray-200 hover:border-gray-300 transition-all overflow-hidden">
+      {isEditMode && (
+        <div className="absolute top-2.5 left-2.5 z-10">
+          <DragPill label="Text" />
+        </div>
+      )}
       {body}
       {onAddToChat && (
         <div className="absolute bottom-3 right-4 z-10 pointer-events-none">
