@@ -26,15 +26,21 @@ interface UseCellInteractionsResult {
  * Wraps two click behaviors that share the same click target:
  *   1. AI reasoning button (`.von-cell-btn[data-reasoning]`) opens a
  *      SourcePopover anchored to the button.
- *   2. Generic cell click resolves the column id + raw value from the
- *      grid's dataTable and forwards to `onCellClick`.
+ *   2. Generic cell click resolves the column id + raw value + full row
+ *      data from the grid's dataTable and forwards to `onCellClick`. The
+ *      row data is required by V2 drilldown which needs to look up multiple
+ *      data_keys from the clicked row (e.g. cohort cell click drills on
+ *      both `account_name` AND `week_label`, regardless of which cell was
+ *      clicked).
  *
  * Anchor links, buttons, inputs, and form controls are skipped so native
  * interactions still work (e.g. a Salesforce link in a cell).
  */
 export function useCellInteractions(
   options: GridOptions,
-  onCellClick: ((columnId: string, cellValue: unknown) => void) | undefined
+  onCellClick:
+    | ((columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void)
+    | undefined
 ): UseCellInteractionsResult {
   const [popover, setPopover] = useState<AIReasoningPopoverState | null>(null);
 
@@ -83,7 +89,21 @@ export function useCellInteractions(
       const rowIndex = Array.from(tr.parentElement!.children).indexOf(tr);
       const rawValue = dataTable?.columns?.[columnId]?.[rowIndex] ?? td.textContent?.trim() ?? '';
 
-      onCellClick(columnId, rawValue);
+      // Build the row dict by reading dataTable.columns[col][rowIndex] for every
+      // column. V2 drilldown's column_map can reference any data_key from the
+      // row (not just the clicked cell's column), so the handler needs full
+      // row context to extract drillFilters correctly.
+      const rowData: Record<string, unknown> = {};
+      const allCols = dataTable?.columns;
+      if (allCols) {
+        for (const [colId, values] of Object.entries(allCols)) {
+          if (Array.isArray(values)) {
+            rowData[colId] = values[rowIndex];
+          }
+        }
+      }
+
+      onCellClick(columnId, rawValue, rowData);
     },
     [onCellClick, options.dataTable, options.columns]
   );

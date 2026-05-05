@@ -26,8 +26,11 @@ interface TableWidgetProps {
   onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current server sort state */
   sortState?: ServerSortState | null;
-  /** Called when a table body cell is clicked for drilldown */
-  onCellClick?: (columnId: string, cellValue: unknown) => void;
+  /** Called when a table body cell is clicked for drilldown — provides column
+   *  ID, raw cell value, and the full row dict so V2 drilldown can extract
+   *  multiple data_keys from a single click (e.g. cohort cells need both
+   *  account_name AND week_label regardless of which column was clicked). */
+  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
 }
 
 const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons

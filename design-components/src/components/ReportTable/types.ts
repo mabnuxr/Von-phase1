@@ -75,8 +75,11 @@ export interface ReportTableProps {
   onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current server sort state (reserved for future initial-sort sync) */
   sortState?: ServerSortState | null;
-  /** Called when a table body cell is clicked — provides column ID and raw value */
-  onCellClick?: (columnId: string, cellValue: unknown) => void;
+  /** Called when a table body cell is clicked — provides column ID, raw cell
+   *  value, and the full row dict (column_id → value) so callers that need
+   *  multi-column context (e.g. V2 drilldown column_map) can extract every
+   *  data_key from the row, not just the clicked cell. */
+  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
   /** Disable the built-in truncation tooltip (e.g. when using a custom expand popover) */
   disableTooltip?: boolean;
   /** Compact display mode — smaller fonts and tighter padding (used in dashboard widgets) */
