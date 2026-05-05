@@ -43,6 +43,7 @@ import {
   dashboardAssociatedChatsKeys,
   useDashboardAssociatedChats,
 } from "../hooks/useDashboardAssociatedChats";
+import { rowDescentFilters } from "../utils/drilldownFilters";
 
 interface DashboardCanvasProps {
   dashboardId: string;
@@ -50,35 +51,6 @@ interface DashboardCanvasProps {
   isChatOpen: boolean;
   /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
   onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
-}
-
-/**
- * Build the cumulative grouping-key filter dict for whole-row descent. At the
- * current depth N, the next level expects every grouping-key column from the
- * clicked row as a filter contribution (latest-wins on collision with deeper-
- * level filter shapes). We approximate "grouping keys" as ALL of the clicked
- * row's columns whose values are scalar-ish (string / number / boolean) — the
- * backend's column_map at level N+1 picks out the ones it knows how to
- * SQL-translate; extra keys are ignored with a debug log.
- *
- * This replaces the previous per-column `isExplicitNextLevelColumn` lookup.
- * Under the pyramid model there's no per-column branching — every cell click
- * descends to the SAME `levels[N+1]`, with the row's full grouping-key dict
- * propagating down.
- */
-function rowDescentFilters(
-  rowData: Record<string, unknown>,
-): Record<string, unknown> {
-  const filters: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(rowData)) {
-    if (value === null || value === undefined) continue;
-    const t = typeof value;
-    if (t === "string" || t === "number" || t === "boolean") {
-      filters[key] = value;
-    }
-    // Skip arrays / objects — they aren't meaningful filter contributions.
-  }
-  return filters;
 }
 
 /**
