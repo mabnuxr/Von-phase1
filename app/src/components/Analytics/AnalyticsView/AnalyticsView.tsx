@@ -132,6 +132,13 @@ interface AnalyticsViewProps {
   onRename?: (newName: string) => void;
   /** Hide the "Created by" chip in the header */
   hideCreatorChip?: boolean;
+  /**
+   * True when rendered inside the chat-side preview pane. Auto-fit only
+   * runs when this is true AND edit mode is on AND the drag-and-drop flag
+   * is enabled — the full dashboard page never auto-fits, regardless of
+   * mode/flag.
+   */
+  isPreview?: boolean;
   /** Schedule state and handlers (required when dashboard.isOwner) */
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
@@ -249,6 +256,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   tableSortStates,
   onRename,
   hideCreatorChip,
+  isPreview,
   schedule,
   isScheduled,
   isSchedulePaused,
@@ -274,6 +282,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
+  // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
+  // can roll the manual-layout feature out per tenant. Edit mode itself
+  // (filters, rename, save) stays available regardless.
+  const { isDashboardDragDropEnabled } = useFeatureFlag();
+
   const { handleLayoutChange: saveLayoutChange } = useLayoutAutoSave(
     dashboard.id,
     dashboard.isEditable,
@@ -282,8 +295,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { controller: autoFitController, handleLayoutChange } =
     useDashboardAutoFit({
       layout,
-      gridConfig,
       onLayoutChange: saveLayoutChange,
+      // Auto-fit runs only in the preview pane, only when in edit mode,
+      // only when the drag-drop flag is on. All three required.
+      isEnabled:
+        !!isPreview && dashboard.isEditable && isDashboardDragDropEnabled,
     });
 
   const variablesByWidget = useMemo(
@@ -351,11 +367,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   // ── Dashboard edit mode (API-driven via is_editable) ────────────
   const isEditMode = dashboard.isEditable;
-
-  // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
-  // can roll the manual-layout feature out per tenant. Edit mode itself
-  // (filters, rename, save) stays available regardless.
-  const { isDashboardDragDropEnabled } = useFeatureFlag();
 
   const handleEnterEditMode = useCallback(() => {
     if (dashboard.isOwner) {

@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { verticalCompactor, type Layout } from "react-grid-layout";
 import type {
   AutoFitController,
   AutoFitReport,
-  GridConfig,
   LayoutItem,
 } from "@vonlabs/design-components";
 
 interface UseDashboardAutoFitOptions {
   layout: readonly LayoutItem[];
-  gridConfig: GridConfig;
   /** Forwarded to useLayoutAutoSave's handleLayoutChange. */
   onLayoutChange: (next: readonly LayoutItem[]) => void;
+  /**
+   * Auto-fit only fires when this is true. The caller folds in all the
+   * required conditions — typically `isPreview && isEditMode &&
+   * isDashboardDragDropEnabled`. When false, widget reports are dropped on
+   * the floor (no measurement, no flush, no PATCH) and the persisted
+   * layout is treated as authoritative.
+   */
+  isEnabled: boolean;
 }
 
 interface UseDashboardAutoFitResult {
@@ -69,9 +74,16 @@ function layoutsShallowEqual(
  */
 export function useDashboardAutoFit({
   layout,
-  gridConfig,
   onLayoutChange,
+  isEnabled,
 }: UseDashboardAutoFitOptions): UseDashboardAutoFitResult {
+  // Mirror the enable gate into a ref so the memoized `report` callback
+  // always reads the current value without forcing every consumer to rebind
+  // when the gate flips.
+  const isEnabledRef = useRef(isEnabled);
+  useEffect(() => {
+    isEnabledRef.current = isEnabled;
+  }, [isEnabled]);
   const layoutRef = useRef<readonly LayoutItem[]>(layout);
   const pinRef = useRef<Map<string, PinState>>(new Map());
   const fpRef = useRef<Map<string, string>>(new Map());
@@ -104,20 +116,24 @@ export function useDashboardAutoFit({
     pending.clear();
     if (!changed) return;
 
-    if (gridConfig.compactType === "vertical") {
-      const compacted = verticalCompactor.compact(
-        next as Layout,
-        gridConfig.cols,
-      ) as unknown as LayoutItem[];
-      next = compacted;
-    }
+    // Compaction is intentionally NOT applied here. Auto-fit only runs when
+    // the manual-layout flow is active (preview + edit + flag), and that
+    // flow disables compaction in DashboardGrid so n/w/corner resize handles
+    // behave as the user expects. Compacting here would re-introduce the
+    // same y-snap fight on auto-fit-driven height changes.
 
     lastProgrammaticRef.current = next;
     onLayoutChange(next);
-  }, [gridConfig.compactType, gridConfig.cols, onLayoutChange]);
+  }, [onLayoutChange]);
 
   const report = useCallback(
     (r: AutoFitReport) => {
+      // Auto-fit only fires when the consumer's gate is true (preview pane +
+      // edit mode + drag-drop flag). Otherwise the persisted layout is
+      // authoritative — drop the report without recording state so the
+      // dashboard doesn't drift / PATCH while the user is just looking at it.
+      if (!isEnabledRef.current) return;
+
       const current = layoutRef.current.find(
         (it) => String(it.i) === r.panelId,
       );

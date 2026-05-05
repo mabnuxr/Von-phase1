@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState, memo } from 'react';
-import { GridLayout, verticalCompactor, type Layout } from 'react-grid-layout';
+import { useCallback, useEffect, useRef, useState, memo } from 'react';
+import { GridLayout, noCompactor, verticalCompactor, type Layout } from 'react-grid-layout';
 import { WidgetRenderer } from '../WidgetRenderer';
 import { WidgetSkeleton } from '../WidgetSkeleton';
 import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
@@ -44,6 +44,19 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
+
+    // Manual-layout flow uses `noCompactor` *during* drag/resize so the
+    // placeholder follows the cursor and other widgets stay where the user
+    // pushed them. On drop we run the final layout through
+    // `verticalCompactor.compact` once so any gap left behind by the
+    // dragged widget gets closed (e.g. dropping a top widget onto a middle
+    // one pulls the rest up to fill the empty top row). Outside drag-drop
+    // we honor the dashboard's saved `compactType`.
+    const compactor = dragDropActive
+      ? noCompactor
+      : gridConfig.compactType === 'vertical'
+        ? verticalCompactor
+        : noCompactor;
 
     useEffect(() => {
       const el = containerRef.current;
@@ -108,15 +121,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
             }}
             dragConfig={{
               enabled: dragDropActive,
-              // Only drag when the user grabs the orange DragPill in the
-              // widget header — leaves widget content (chart tooltips,
-              // table sorts, etc.) interactive.
               handle: '.widget-drag-handle',
             }}
             resizeConfig={{
               enabled: dragDropActive,
-              // 4 corner brackets (nw/ne/sw/se) for diagonal resize +
-              // 4 edge midpoints (n/s/e/w) for single-axis resize.
               handles: ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'],
             }}
             compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}

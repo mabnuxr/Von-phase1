@@ -32,7 +32,12 @@ interface TableWidgetProps {
 
 const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons
 const TABLE_PADDING_PX = 16; // .table-widget-root padding 8px × 2
-const WIDGET_SHELL_HEADER_PX = 56; // approx WidgetShell title bar
+// WidgetShell title bar: 53px content + 1px bottom border.
+const WIDGET_SHELL_HEADER_PX = 54;
+// Native horizontal scrollbar height when columns overflow — added to the
+// reported height only when overflow is actually present so the last row
+// doesn't get clipped by the scrollbar.
+const HORIZONTAL_SCROLLBAR_PX = 16;
 
 /** Identify text column ids by checking data values */
 function findTextColumnIds(options: GridOptions): Set<string> {
@@ -168,6 +173,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [theadHeight, setTheadHeight] = useState(40);
   const [tableHeight, setTableHeight] = useState(0);
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
   const [colWidths, setColWidths] = useState<number[]>([]);
 
   const measure = useCallback(() => {
@@ -175,11 +181,39 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     if (!el) return;
     const thead = el.querySelector('.hcg-table thead');
     if (thead) {
-      setTheadHeight(thead.getBoundingClientRect().height);
+      const next = Math.round(thead.getBoundingClientRect().height);
+      setTheadHeight((prev) => (prev === next ? prev : next));
     }
     const table = el.querySelector('.hcg-table') as HTMLElement | null;
     if (!table) return;
-    setTableHeight(table.offsetHeight);
+
+    // Grid Lite injects empty filler rows (`.hcg-mocked-row`) to fill the
+    // scroll container's visible area. Reading `table.offsetHeight` directly
+    // captures those filler rows and would feed an ever-growing measurement
+    // back to auto-fit, since each grow lets Grid Lite inject more fillers.
+    // Measure only thead + real (non-mocked) tbody rows so the reported
+    // height is the table's intrinsic content height, independent of the
+    // container.
+    const theadEl = table.querySelector('thead') as HTMLElement | null;
+    const realRows = table.querySelectorAll(
+      'tbody tr:not(.hcg-mocked-row)'
+    ) as NodeListOf<HTMLElement>;
+    let intrinsicH = 0;
+    if (theadEl) intrinsicH += theadEl.offsetHeight;
+    realRows.forEach((row) => {
+      intrinsicH += row.offsetHeight;
+    });
+    const nextTableH = Math.round(intrinsicH > 0 ? intrinsicH : table.offsetHeight);
+    setTableHeight((prev) => (prev === nextTableH ? prev : nextTableH));
+    // Horizontal overflow lives on the scroll container Grid Lite wraps the
+    // table in. When columns are wider than the available width its
+    // scrollWidth exceeds its clientWidth and a horizontal scrollbar
+    // appears at the bottom — we add 16px to measuredPx in that case so
+    // the last row isn't clipped by the scrollbar.
+    const scrollEl = el.querySelector('.hcg-scrollable-content') as HTMLElement | null;
+    if (scrollEl) {
+      setHasHorizontalOverflow(scrollEl.scrollWidth > scrollEl.clientWidth);
+    }
     const ths = table.querySelectorAll('thead th');
     const widths: number[] = [];
     ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
@@ -204,6 +238,17 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [stableOptions, measure]);
 
+  // Row count used for both the fingerprint and the intrinsic height
+  // calculation below.
+  const rowCount = useMemo(() => {
+    const opts = stableOptions as {
+      data?: { columns?: Record<string, unknown[]> };
+      dataTable?: { columns?: Record<string, unknown[]> };
+    };
+    const dataCols = opts.data?.columns ?? opts.dataTable?.columns;
+    return dataCols ? ((Object.values(dataCols)[0] as unknown[] | undefined)?.length ?? 0) : 0;
+  }, [stableOptions]);
+
   // Fingerprint for auto-fit. Changes when the agent/user changes column
   // structure, formatters, row count, autoHeight, or pagination page —
   // anything that could plausibly change the rendered height.
@@ -221,21 +266,20 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           `${c.id}:${c.enabled !== false ? 1 : 0}:${c.cells?.variant ?? ''}:${c.cells?.format ?? c.format ?? ''}`
       )
       .join('|');
-    const opts = stableOptions as {
-      data?: { columns?: Record<string, unknown[]> };
-      dataTable?: { columns?: Record<string, unknown[]> };
-    };
-    const dataCols = opts.data?.columns ?? opts.dataTable?.columns;
-    const rowCount = dataCols
-      ? ((Object.values(dataCols)[0] as unknown[] | undefined)?.length ?? 0)
-      : 0;
     const page = serverPagination?.page ?? 0;
     return `${colSig}#${rowCount}#${autoHeight ? 'a' : 's'}#${page}`;
-  }, [stableOptions, autoHeight, serverPagination?.page]);
+  }, [stableOptions, autoHeight, serverPagination?.page, rowCount]);
 
+  // Auto-fit's `measuredPx` is the rendered table height read from the DOM,
+  // plus the surrounding chrome we know about. We add `HORIZONTAL_SCROLLBAR_PX`
+  // ONLY when the columns actually overflow horizontally — when a scrollbar
+  // is present, the last row would otherwise be clipped beneath it.
   const measuredPx =
     tableHeight > 0
-      ? tableHeight + (hasServerPagination ? SERVER_PAGINATION_PX : 0) + TABLE_PADDING_PX
+      ? tableHeight +
+        (hasHorizontalOverflow ? HORIZONTAL_SCROLLBAR_PX : 0) +
+        (hasServerPagination ? SERVER_PAGINATION_PX : 0) +
+        TABLE_PADDING_PX
       : null;
 
   useContentHeightFit({

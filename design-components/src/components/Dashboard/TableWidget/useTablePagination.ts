@@ -80,12 +80,9 @@ export function useTablePagination(totalRows: number): TablePaginationResult {
     const spaceWithoutPagination = containerHeight - HEADER_HEIGHT - BUFFER;
     const rowsWithoutPagination = rowsThatFit(spaceWithoutPagination);
 
-    // All rows fit (or within 1 of fitting — sub-pixel grace).
-    if (totalRows <= rowsWithoutPagination + 1 && totalRows <= rowsWithoutPagination) {
-      return { enabled: false as const };
-    }
-    // Strictly within budget → no pagination.
-    if (totalRows <= rowsWithoutPagination) {
+    // All rows fit (or within 1 of fitting — sub-pixel grace so a borderline
+    // overflow doesn't force a useless 1-row second page).
+    if (totalRows <= rowsWithoutPagination + 1) {
       return { enabled: false as const };
     }
 

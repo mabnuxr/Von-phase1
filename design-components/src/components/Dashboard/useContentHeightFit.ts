@@ -40,10 +40,16 @@ export function useContentHeightFit({
       const totalPx = measuredPx + chromePx;
       const rowPx = gridConfig.rowHeight;
       const verticalMargin = gridConfig.margin?.[1] ?? 0;
-      const desiredH = Math.max(
-        2,
-        Math.ceil((totalPx + verticalMargin) / (rowPx + verticalMargin))
-      );
+      // Convert pixels to grid rows. We use ceil-with-tolerance instead of
+      // plain `Math.ceil` so a near-exact fit (≤10% of a row leftover)
+      // doesn't get bumped up to the next row. A few sub-pixel borders or
+      // a horizontal scrollbar fudge factor would otherwise force an extra
+      // grid row of empty slack at the bottom of every widget.
+      const exact = (totalPx + verticalMargin) / (rowPx + verticalMargin);
+      const floored = Math.floor(exact);
+      const remainder = exact - floored;
+      const FIT_TOLERANCE = 0.1;
+      const desiredH = Math.max(2, remainder > FIT_TOLERANCE ? floored + 1 : floored);
       auto.report({ panelId, desiredH, fingerprint });
     });
     return () => {

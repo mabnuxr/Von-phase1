@@ -23,6 +23,12 @@ const DragPill: React.FC<DragPillProps> = ({ label }) => (
     className="widget-drag-handle shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
     aria-label={`Drag ${label}`}
     title="Drag to move"
+    // Stop click on the handle so widgets that have their own onClick
+    // (e.g. CounterWidget's click-to-drilldown) don't fire a drilldown
+    // when the user just clicked the grip. mousedown is intentionally
+    // NOT stopped — react-grid-layout listens for it on the grid item to
+    // start a drag, and stopping it would break drag.
+    onClick={(e) => e.stopPropagation()}
   >
     <DotsSixVerticalIcon size={16} weight="bold" />
   </button>

@@ -17,7 +17,11 @@
 .dashboard-grid-canvas::before {
   content: '';
   position: absolute;
-  inset: 0 -16px;
+  /* Extend the backdrop past the parent canvas's padding so the dotted
+     pattern reads as edge-to-edge instead of a tinted box floating inside
+     a white frame. DashboardLayout.Canvas adds px-4 py-4 (16px) on every
+     side, so we offset by -16px on every side to cover that gap. */
+  inset: -16px;
   background-color: rgb(247, 248, 250);
   background-image: radial-gradient(circle, rgba(15, 23, 42, 0.32) 1px, transparent 1.4px);
   background-size: var(--grid-col-step) var(--grid-row-step);
