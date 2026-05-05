@@ -6,26 +6,29 @@ const ROW_HEIGHT = 36; // Each body row: 36px (height + border, box-sizing: bord
 const HEADER_HEIGHT = 40; // The <thead> row is slightly taller for visual hierarchy
 const PAGINATION_HEIGHT = 44; // Pagination bar: ~18px text + 24px padding + 1px border-top
 
+// Debounce window for height settling. Auto-fit can produce a brief flurry of
+// container-height changes as it PATCHes the layout and the grid reflows;
+// we don't want pageSize to flicker mid-flight.
+const HEIGHT_SETTLE_MS = 50;
+
 /**
  * useTablePagination
  *
  * Figures out how many rows to show per page so the table never overflows
- * vertically (no vertical scrollbar). Here's how it works in plain English:
+ * vertically (no vertical scrollbar). Here's how it works:
  *
- * 1. We watch the container's height using a ResizeObserver.
- *    → This tells us exactly how many pixels we have to work with.
+ * 1. We watch the container's height using a ResizeObserver, debounced so
+ *    intermediate values during the auto-fit PATCH cycle don't flicker
+ *    pageSize.
  *
- * 2. We check: can ALL rows fit without needing pagination?
- *    → availableForRows = containerHeight − headerHeight
- *    → If totalRows ≤ floor(availableForRows / rowHeight), we disable pagination.
+ * 2. We check whether all rows fit without pagination. If `totalRows` is
+ *    within 1 of the available row budget we still treat it as "fits" —
+ *    sub-pixel rounding shouldn't force a useless 1-row second page.
  *
- * 3. If not all rows fit, we enable pagination and shrink the row budget
- *    by subtracting the pagination bar height:
- *    → availableForRows = containerHeight − headerHeight − paginationHeight
- *    → pageSize = floor(availableForRows / rowHeight)
- *
- * We subtract an extra 2px safety buffer to avoid sub-pixel rounding issues
- * that can cause a partial row to peek out and trigger a scrollbar.
+ * 3. Otherwise we enable pagination and pick a pageSize that maximizes the
+ *    visible row count without overflow. We round to the nearest row when
+ *    the leftover is more than ½ a row (so a 7.6-row container picks 8 not
+ *    7, when the alternative would feel cramped).
  */
 
 interface TablePaginationResult {
@@ -34,42 +37,60 @@ interface TablePaginationResult {
   pagination: { enabled: false } | { enabled: true; pageSize: number } | null;
 }
 
+function rowsThatFit(spacePx: number): number {
+  if (spacePx <= 0) return 1;
+  const exact = spacePx / ROW_HEIGHT;
+  const floored = Math.floor(exact);
+  const remainder = exact - floored;
+  // Allow a ½-row tolerance — sub-pixel layout often leaves ~0.5 row of
+  // slack that shouldn't force a smaller page.
+  return Math.max(1, remainder >= 0.5 ? floored + 1 : floored);
+}
+
 export function useTablePagination(totalRows: number): TablePaginationResult {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Step 1: Measure the container height whenever it changes
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     const observer = new ResizeObserver(([entry]) => {
-      setContainerHeight(entry.contentRect.height);
+      const height = entry.contentRect.height;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setContainerHeight(height);
+      }, HEIGHT_SETTLE_MS);
     });
 
+    // Synchronous first measurement so initial render isn't gated on the debounce.
+    setContainerHeight(el.getBoundingClientRect().height);
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      observer.disconnect();
+    };
   }, []);
 
-  // Step 2 & 3: Calculate pagination config
   const pagination = useMemo(() => {
     if (containerHeight === null) return null;
 
-    const BUFFER = 2; // safety margin for sub-pixel rendering
-
-    // How many rows fit if we DON'T show the pagination bar?
+    const BUFFER = 2;
     const spaceWithoutPagination = containerHeight - HEADER_HEIGHT - BUFFER;
-    const rowsWithoutPagination = Math.max(1, Math.floor(spaceWithoutPagination / ROW_HEIGHT));
+    const rowsWithoutPagination = rowsThatFit(spaceWithoutPagination);
 
-    // All rows fit → no pagination needed
+    // All rows fit (or within 1 of fitting — sub-pixel grace).
+    if (totalRows <= rowsWithoutPagination + 1 && totalRows <= rowsWithoutPagination) {
+      return { enabled: false as const };
+    }
+    // Strictly within budget → no pagination.
     if (totalRows <= rowsWithoutPagination) {
       return { enabled: false as const };
     }
 
-    // Not all rows fit → enable pagination, subtract pagination bar height
     const spaceWithPagination = containerHeight - HEADER_HEIGHT - PAGINATION_HEIGHT - BUFFER;
-    const pageSize = Math.max(1, Math.floor(spaceWithPagination / ROW_HEIGHT));
-
+    const pageSize = rowsThatFit(spaceWithPagination);
     return { enabled: true as const, pageSize };
   }, [containerHeight, totalRows]);
 

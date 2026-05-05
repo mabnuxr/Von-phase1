@@ -106,13 +106,17 @@ export function useLayoutAutoSave(
 
   const handleLayoutChange = useCallback(
     (layout: readonly LayoutItem[]) => {
-      if (!isEditMode) return;
+      // Forward unconditionally. User drags are gated by RGL's
+      // `static: !isEditMode`, so the only non-equal layouts produced
+      // outside edit mode are auto-fit-driven height changes from
+      // useDashboardAutoFit — those still need to PATCH so the next
+      // page load reflects the fitted heights.
       const next = toPanelLayouts(layout);
       pendingRef.current = next;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(flushNow, AUTOSAVE_DEBOUNCE_MS);
     },
-    [isEditMode, flushNow],
+    [flushNow],
   );
 
   // Flush any pending change when leaving edit mode or unmounting, so the

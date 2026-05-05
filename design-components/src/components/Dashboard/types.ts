@@ -134,6 +134,8 @@ export interface TextWidgetConfig {
 export type MustacheVariables = Record<string, string | number | null | undefined>;
 
 export interface TextWidgetProps {
+  /** Panel id used by auto-fit coordination. Pass through from WidgetRenderer. */
+  panelId?: string;
   config: TextWidgetConfig;
   /** Variables substituted into `{{key}}` tokens in `config.content`. */
   variables?: MustacheVariables;

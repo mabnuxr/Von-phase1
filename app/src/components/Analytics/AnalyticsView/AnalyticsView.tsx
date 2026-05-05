@@ -17,6 +17,7 @@ import {
   DashboardGrid,
   ErrorBoundary,
   Tooltip,
+  AutoFitContext,
 } from "@vonlabs/design-components";
 import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
 import { DataSourcesSlot } from "./DataSourcesSlot";
@@ -26,6 +27,7 @@ import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
 import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
+import { useDashboardAutoFit } from "../../../hooks/useDashboardAutoFit";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
@@ -272,11 +274,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     WidgetConfig
   >;
 
-  const { handleLayoutChange } = useLayoutAutoSave(
+  const { handleLayoutChange: saveLayoutChange } = useLayoutAutoSave(
     dashboard.id,
     dashboard.isEditable,
     layout,
   );
+  const { controller: autoFitController, handleLayoutChange } =
+    useDashboardAutoFit({
+      layout,
+      gridConfig,
+      onLayoutChange: saveLayoutChange,
+    });
 
   const variablesByWidget = useMemo(
     () =>
@@ -687,26 +695,28 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </AnimatePresence>
 
         <ErrorBoundary>
-          <DashboardGrid
-            layout={layout}
-            widgets={widgets}
-            gridConfig={gridConfig}
-            onTablePageChange={onTablePageChange}
-            loadingTablePanels={loadingTablePanels}
-            onDrillDown={onDrillDown}
-            onPointDrillDown={onPointDrillDown}
-            onAddToChat={onAddWidgetToChat}
-            onTableSortChange={onTableSortChange}
-            tableSortStates={tableSortStates}
-            isEditMode={isEditMode}
-            isDragDropEnabled={isDashboardDragDropEnabled}
-            isLoading={isRefetchingData || isRefreshing}
-            variablesByWidget={variablesByWidget}
-            onLayoutChange={handleLayoutChange}
-            // Widget-level filter UI hidden until panel-filter designs are ready
-            // widgetAppliedFilters={widgetAppliedFilters}
-            // widgetFilterSlot={widgetFilterSlot}
-          />
+          <AutoFitContext.Provider value={autoFitController}>
+            <DashboardGrid
+              layout={layout}
+              widgets={widgets}
+              gridConfig={gridConfig}
+              onTablePageChange={onTablePageChange}
+              loadingTablePanels={loadingTablePanels}
+              onDrillDown={onDrillDown}
+              onPointDrillDown={onPointDrillDown}
+              onAddToChat={onAddWidgetToChat}
+              onTableSortChange={onTableSortChange}
+              tableSortStates={tableSortStates}
+              isEditMode={isEditMode}
+              isDragDropEnabled={isDashboardDragDropEnabled}
+              isLoading={isRefetchingData || isRefreshing}
+              variablesByWidget={variablesByWidget}
+              onLayoutChange={handleLayoutChange}
+              // Widget-level filter UI hidden until panel-filter designs are ready
+              // widgetAppliedFilters={widgetAppliedFilters}
+              // widgetFilterSlot={widgetFilterSlot}
+            />
+          </AutoFitContext.Provider>
         </ErrorBoundary>
 
         {/* Edit mode banner — full-width sticky bottom (hidden when drilldown is open; parent renders its own) */}

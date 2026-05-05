@@ -3,6 +3,7 @@ import { GridLayout, verticalCompactor, type Layout } from 'react-grid-layout';
 import { WidgetRenderer } from '../WidgetRenderer';
 import { WidgetSkeleton } from '../WidgetSkeleton';
 import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
+import { DashboardGridConfigContext } from '../DashboardGridConfigContext';
 import type { DashboardGridProps } from '../types';
 import 'react-grid-layout/css/styles.css';
 
@@ -66,65 +67,67 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     }));
 
     return (
-      <div ref={containerRef} className="w-full pb-12">
-        <GridLayout
-          className="layout "
-          layout={gridLayout}
-          width={containerWidth}
-          gridConfig={{
-            cols: gridConfig.cols,
-            rowHeight: gridConfig.rowHeight,
-            margin: gridConfig.margin,
-            containerPadding: gridConfig.containerPadding,
-            maxRows: Infinity,
-          }}
-          dragConfig={{
-            enabled: dragDropActive,
-            // Only drag when the user grabs the widget wrapper itself — lets
-            // users still click/sort/filter inside widget content without
-            // accidentally starting a drag.
-            handle: '.widget-drag-handle',
-          }}
-          resizeConfig={{ enabled: dragDropActive }}
-          compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
-          onLayoutChange={(next) => onLayoutChange?.(next)}
-        >
-          {gridLayout.map((item) => {
-            const widget = widgets[item.i];
-            if (!widget) return <div key={item.i} />;
-            return (
-              <div
-                key={item.i}
-                className={`h-full ${
-                  dragDropActive
-                    ? 'widget-drag-handle cursor-move border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
-                    : ''
-                }`}
-              >
-                {isLoading ? (
-                  <WidgetSkeleton widget={widget} />
-                ) : (
-                  <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
-                    <WidgetRenderer
-                      widget={widget}
-                      onTablePageChange={onTablePageChange}
-                      isTableLoading={loadingTablePanels?.has(widget.id)}
-                      onDrillDown={onDrillDown}
-                      onPointDrillDown={onPointDrillDown}
-                      onTableSortChange={onTableSortChange}
-                      tableSortState={tableSortStates?.[widget.id]}
-                      appliedFilters={widgetAppliedFilters?.[widget.id]}
-                      filterSlot={widgetFilterSlot?.(widget.id)}
-                      onAddToChat={onAddToChat}
-                      variables={variablesByWidget?.[widget.id]}
-                    />
-                  </WidgetErrorBoundary>
-                )}
-              </div>
-            );
-          })}
-        </GridLayout>
-      </div>
+      <DashboardGridConfigContext.Provider value={gridConfig}>
+        <div ref={containerRef} className="w-full pb-12">
+          <GridLayout
+            className="layout "
+            layout={gridLayout}
+            width={containerWidth}
+            gridConfig={{
+              cols: gridConfig.cols,
+              rowHeight: gridConfig.rowHeight,
+              margin: gridConfig.margin,
+              containerPadding: gridConfig.containerPadding,
+              maxRows: Infinity,
+            }}
+            dragConfig={{
+              enabled: dragDropActive,
+              // Only drag when the user grabs the widget wrapper itself — lets
+              // users still click/sort/filter inside widget content without
+              // accidentally starting a drag.
+              handle: '.widget-drag-handle',
+            }}
+            resizeConfig={{ enabled: dragDropActive }}
+            compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
+            onLayoutChange={(next) => onLayoutChange?.(next)}
+          >
+            {gridLayout.map((item) => {
+              const widget = widgets[item.i];
+              if (!widget) return <div key={item.i} />;
+              return (
+                <div
+                  key={item.i}
+                  className={`h-full ${
+                    dragDropActive
+                      ? 'widget-drag-handle cursor-move border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
+                      : ''
+                  }`}
+                >
+                  {isLoading ? (
+                    <WidgetSkeleton widget={widget} />
+                  ) : (
+                    <WidgetErrorBoundary widgetId={widget.id} widgetTitle={widget.title}>
+                      <WidgetRenderer
+                        widget={widget}
+                        onTablePageChange={onTablePageChange}
+                        isTableLoading={loadingTablePanels?.has(widget.id)}
+                        onDrillDown={onDrillDown}
+                        onPointDrillDown={onPointDrillDown}
+                        onTableSortChange={onTableSortChange}
+                        tableSortState={tableSortStates?.[widget.id]}
+                        appliedFilters={widgetAppliedFilters?.[widget.id]}
+                        filterSlot={widgetFilterSlot?.(widget.id)}
+                        onAddToChat={onAddToChat}
+                        variables={variablesByWidget?.[widget.id]}
+                      />
+                    </WidgetErrorBoundary>
+                  )}
+                </div>
+              );
+            })}
+          </GridLayout>
+        </div>
+      </DashboardGridConfigContext.Provider>
     );
   }
 );

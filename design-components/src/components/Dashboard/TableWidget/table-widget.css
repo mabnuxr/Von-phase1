@@ -122,32 +122,11 @@
   border-color: #9ca3af;
 }
 
-/* ─── Empty filler rows below data (spreadsheet look) ────────── */
-
-.table-filler {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  pointer-events: none;
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  z-index: 1;
-}
-
-.table-filler td {
-  height: 36px;
-  max-height: 36px;
-  box-sizing: border-box;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  border-right: 1px solid #e5e7eb;
-}
-
-.table-filler td:last-child {
-  border-right: none;
+/* Reserve scrollbar gutter so the appearance of Grid Lite's vertical
+   scrollbar doesn't shrink the content area and trigger a phantom
+   horizontal scrollbar. */
+.table-widget-root .hcg-scrollable-content {
+  scrollbar-gutter: stable;
 }
 
 /* ─── Table Skeleton (shown while loading a new page) ─────────── */

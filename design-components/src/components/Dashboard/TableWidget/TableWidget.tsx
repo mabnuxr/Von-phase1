@@ -13,9 +13,12 @@ import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
 import { ServerPagination } from './ServerPagination';
 import { applyColumnRenderers } from './columnRenderers';
+import { useContentHeightFit } from '../useContentHeightFit';
 import './table-widget.css';
 
 interface TableWidgetProps {
+  /** Panel id used by auto-fit coordination. */
+  panelId?: string;
   config: TableWidgetConfig;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
@@ -26,6 +29,10 @@ interface TableWidgetProps {
   /** Called when a table body cell is clicked for drilldown */
   onCellClick?: (columnId: string, cellValue: unknown) => void;
 }
+
+const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons
+const TABLE_PADDING_PX = 16; // .table-widget-root padding 8px × 2
+const WIDGET_SHELL_HEADER_PX = 56; // approx WidgetShell title bar
 
 /** Identify text column ids by checking data values */
 function findTextColumnIds(options: GridOptions): Set<string> {
@@ -111,6 +118,7 @@ function applyRowDataTemplates(options: GridOptions): GridOptions {
 }
 
 const TableWidget: React.FC<TableWidgetProps> = ({
+  panelId,
   config,
   onPageChange,
   isLoading,
@@ -196,6 +204,48 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     return () => cancelAnimationFrame(raf);
   }, [stableOptions, measure]);
 
+  // Fingerprint for auto-fit. Changes when the agent/user changes column
+  // structure, formatters, row count, autoHeight, or pagination page —
+  // anything that could plausibly change the rendered height.
+  const fingerprint = useMemo(() => {
+    type RawCol = {
+      id: string;
+      enabled?: boolean;
+      cells?: { variant?: string; format?: string };
+      format?: string;
+    };
+    const cols = ((stableOptions as { columns?: RawCol[] }).columns ?? []) as RawCol[];
+    const colSig = cols
+      .map(
+        (c) =>
+          `${c.id}:${c.enabled !== false ? 1 : 0}:${c.cells?.variant ?? ''}:${c.cells?.format ?? c.format ?? ''}`
+      )
+      .join('|');
+    const opts = stableOptions as {
+      data?: { columns?: Record<string, unknown[]> };
+      dataTable?: { columns?: Record<string, unknown[]> };
+    };
+    const dataCols = opts.data?.columns ?? opts.dataTable?.columns;
+    const rowCount = dataCols
+      ? ((Object.values(dataCols)[0] as unknown[] | undefined)?.length ?? 0)
+      : 0;
+    const page = serverPagination?.page ?? 0;
+    return `${colSig}#${rowCount}#${autoHeight ? 'a' : 's'}#${page}`;
+  }, [stableOptions, autoHeight, serverPagination?.page]);
+
+  const measuredPx =
+    tableHeight > 0
+      ? tableHeight + (hasServerPagination ? SERVER_PAGINATION_PX : 0) + TABLE_PADDING_PX
+      : null;
+
+  useContentHeightFit({
+    panelId: panelId ?? '',
+    fingerprint,
+    measuredPx,
+    chromePx: WIDGET_SHELL_HEADER_PX,
+    enabled: !!panelId,
+  });
+
   // Derive column count from gridOptions so skeleton matches the real table
   const skeletonColCount = useMemo(() => {
     const cols = (stableOptions as { columns?: Array<unknown> }).columns;
@@ -220,30 +270,6 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           onCellClick={onCellClick}
           disableTooltip
         />
-
-        {/* Empty filler rows below data — spreadsheet look. Skipped when
-            auto-height is on because variable row heights make fixed filler
-            rows misalign with the real grid. */}
-        {!autoHeight && tableHeight > 0 && !isLoading && (
-          <table aria-hidden className="table-filler" style={{ top: tableHeight }}>
-            {colWidths.length > 0 && (
-              <colgroup>
-                {colWidths.map((w, i) => (
-                  <col key={i} style={{ width: w }} />
-                ))}
-              </colgroup>
-            )}
-            <tbody>
-              {Array.from({ length: 50 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: colWidths.length || skeletonColCount }).map((_, j) => (
-                    <td key={j} />
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
 
         {/* Shimmer covers body rows while headers stay visible */}
         {isLoading && (

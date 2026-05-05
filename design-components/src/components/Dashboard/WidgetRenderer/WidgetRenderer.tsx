@@ -114,6 +114,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
       case 'text':
         return (
           <TextWidget
+            panelId={widget.id}
             config={widget.config as TextWidgetConfig}
             variables={variables}
             onAddToChat={addToChatHandler}
@@ -132,6 +133,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             onAddToChat={addToChatHandler}
           >
             <TableWidget
+              panelId={widget.id}
               config={widget.config as TableWidgetConfig}
               onPageChange={
                 onTablePageChange ? (page: number) => onTablePageChange(widget.id, page) : undefined
