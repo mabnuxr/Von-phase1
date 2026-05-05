@@ -7,6 +7,8 @@ import type {
   PanelRenderResponse,
   PanelDrilldownRequest,
   PanelDrilldownResponse,
+  DrilldownV2Request,
+  DrilldownV2Response,
   ScheduleConfigRequest,
   DashboardScheduleResponse,
   FilterPatchPayload,
@@ -155,6 +157,23 @@ class DashboardService {
   ): Promise<PanelDrilldownResponse> {
     return apiClient.post<PanelDrilldownResponse>(
       `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
+      request,
+    );
+  }
+
+  /**
+   * V2 drilldown — feature-flagged via `drilldown_v2` on the backend.
+   *
+   * Returns a 5xx when the flag is off; callers should first check the panel's
+   * loaded `drilldown_v2` config presence before invoking this endpoint, and
+   * treat a 5xx as "V2 not enabled for this tenant".
+   */
+  async drilldownPanelV2(
+    dashboardId: string,
+    request: DrilldownV2Request,
+  ): Promise<DrilldownV2Response> {
+    return apiClient.post<DrilldownV2Response>(
+      `/api/v1/dashboards/${dashboardId}/panels/drilldown/v2`,
       request,
     );
   }

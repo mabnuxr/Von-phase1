@@ -22,6 +22,7 @@ import type { ArtifactCreatedEventPayload } from "../types/conversationChannelEv
 import { agentArtifactKeys } from "./useAgentArtifacts";
 import { QUICK_COMMANDS_QUERY_KEY } from "./useQuickCommands";
 import type { FileMetadataResponse } from "../services/fileUploadService";
+import { recordArtifactDelivered } from "../lib/realtimeFileDeliveryObservability";
 
 export function useArtifactCreatedEvent(
   channel: Channel | null,
@@ -79,6 +80,7 @@ export function useArtifactCreatedEvent(
         const incomingIds = new Set(incoming.map((r) => r.id));
         return [...existing.filter((r) => !incomingIds.has(r.id)), ...incoming];
       });
+      recordArtifactDelivered(convId, parsed.runId, incoming, "pusher");
       // Future mounts should refetch (cheap; gives definitive Mongo state)
       // but skip immediate refetch to avoid racing the same event's payload.
       queryClient.invalidateQueries({ queryKey, refetchType: "none" });

@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   SidebarSimpleIcon,
   ArrowLeftIcon,
   CaretUpDownIcon,
+  CaretRightIcon,
 } from "@phosphor-icons/react";
 
 const VON_COMBINATION_MARK_URL =
@@ -12,6 +14,7 @@ export interface SettingsItem {
   id: string;
   label: string;
   icon?: React.ReactNode;
+  children?: SettingsItem[];
 }
 
 export interface SettingsGroupItem {
@@ -58,8 +61,45 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     ...(settingsItems?.usage || []),
   ];
 
-  // Reusable menu item renderer
-  const renderMenuItem = (item: SettingsItem) => {
+  const hasSelectedChild = (item: SettingsItem) =>
+    !!item.children?.some((c) => c.id === selectedSettingId);
+
+  // Explicit expand/collapse toggles layered on top of auto-expansion from
+  // selection. A parent is expanded when either the user toggled it open or
+  // one of its children is currently selected.
+  const [explicitlyExpandedIds, setExplicitlyExpandedIds] = useState<
+    Set<string>
+  >(new Set());
+
+  const isExpanded = (item: SettingsItem) =>
+    explicitlyExpandedIds.has(item.id) || hasSelectedChild(item);
+
+  const toggleExpanded = (item: SettingsItem) => {
+    const currentlyExpanded = isExpanded(item);
+    setExplicitlyExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (currentlyExpanded) {
+        next.delete(item.id);
+      } else {
+        next.add(item.id);
+      }
+      return next;
+    });
+
+    // If a parent with children is clicked while collapsed and no child is
+    // selected, jump to the first child so the user lands on a page.
+    if (
+      !currentlyExpanded &&
+      !hasSelectedChild(item) &&
+      item.children &&
+      item.children.length > 0
+    ) {
+      onSettingClick?.(item.children[0].id);
+    }
+  };
+
+  // Reusable menu item renderer for leaf items
+  const renderLeafItem = (item: SettingsItem) => {
     const isSelected = item.id === selectedSettingId;
 
     return (
@@ -88,6 +128,89 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       </button>
     );
   };
+
+  // Reusable child item renderer (no icon, rendered inside indented container)
+  const renderChildItem = (item: SettingsItem) => {
+    const isSelected = item.id === selectedSettingId;
+
+    return (
+      <button
+        key={item.id}
+        className={`
+          flex items-center gap-2 px-2 h-8 mb-0.5
+          text-sm rounded-xl cursor-pointer
+          w-full text-left transition-colors duration-150
+          ${
+            isSelected
+              ? "shadow-xs bg-gray-50 border border-gray-200 text-gray-900 font-medium"
+              : "border border-transparent text-gray-900 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
+          }
+        `}
+        onClick={() => onSettingClick?.(item.id)}
+      >
+        <span>{item.label}</span>
+      </button>
+    );
+  };
+
+  // Parent item with expandable children
+  const renderParentItem = (item: SettingsItem) => {
+    const expanded = isExpanded(item);
+    const parentActive = hasSelectedChild(item);
+
+    return (
+      <div key={item.id}>
+        <button
+          className={`
+            flex items-center gap-2.5 px-2 h-8 mb-0.5
+            text-sm rounded-xl cursor-pointer
+            w-full text-left transition-colors duration-150
+            ${
+              parentActive
+                ? "text-gray-900 font-medium"
+                : "border border-transparent text-gray-900 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs"
+            }
+            ${parentActive ? "border border-transparent" : ""}
+          `}
+          onClick={() => toggleExpanded(item)}
+        >
+          {item.icon && (
+            <span
+              className={`flex-shrink-0 ${parentActive ? "text-gray-900" : "text-gray-600"}`}
+            >
+              {item.icon}
+            </span>
+          )}
+          <span className="flex-1">{item.label}</span>
+          <CaretRightIcon
+            size={12}
+            weight="bold"
+            className={`text-gray-500 flex-shrink-0 transition-transform duration-150 ${
+              expanded ? "rotate-90" : ""
+            }`}
+          />
+        </button>
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden pl-2 border-l border-gray-200 ml-4 mb-0.5"
+            >
+              {item.children?.map(renderChildItem)}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const renderMenuItem = (item: SettingsItem) =>
+    item.children && item.children.length > 0
+      ? renderParentItem(item)
+      : renderLeafItem(item);
 
   // Collapsed state
   if (isCollapsed) {
@@ -129,7 +252,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         <div className="flex-1 overflow-y-auto settings-scrollbar">
           <div className="flex flex-col items-start gap-1">
             {allItems.map((item: SettingsItem) => {
-              const isSelected = item.id === selectedSettingId;
+              const isSelected =
+                item.id === selectedSettingId || hasSelectedChild(item);
+              const targetId =
+                item.children && item.children.length > 0
+                  ? item.children[0].id
+                  : item.id;
 
               return (
                 <button
@@ -144,7 +272,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                         : "border border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs hover:text-gray-900"
                     }
                   `}
-                  onClick={() => onSettingClick?.(item.id)}
+                  onClick={() => onSettingClick?.(targetId)}
                   title={item.label}
                 >
                   {item.icon && (

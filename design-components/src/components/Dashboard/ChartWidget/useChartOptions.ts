@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
 import type Highcharts from 'highcharts';
-import type { ChartWidgetConfig, DrilldownConfig, DrillFilters } from '../types';
+import type {
+  ChartWidgetConfig,
+  DrilldownConfig,
+  DrilldownColumnMapping,
+  DrillFilters,
+  PanelDrilldownV2,
+} from '../types';
 
 // ── Shared defaults ─────────────────────────────────────────────
 
@@ -199,13 +205,42 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
 
 // ── Drilldown injection ─────────────────────────────────────────
 
+/**
+ * Resolve the effective column_map for a chart's point click — V2 (when
+ * present) takes precedence over the legacy V1 ``drilldown.column_map`` so
+ * V2-authored panels keep V1-style "click a bar to filter by stage"
+ * behavior.
+ *
+ * For V2 the column_map is read off ``levels[0]``'s default variant. Deeper
+ * levels are descended into via the drilldown panel UI, not via widget point
+ * clicks — every chart click always opens drilldown at depth 0.
+ */
+function resolveEffectiveColumnMap(
+  drilldown: DrilldownConfig | null | undefined,
+  drilldownV2: PanelDrilldownV2 | null | undefined
+): DrilldownColumnMapping[] {
+  // V2 pyramid model: chart parent clicks always live at L0 = levels[0].
+  // Read its default variant's column_map to find which Highcharts properties
+  // map to which SQL columns. Deeper levels are unreachable from a widget click;
+  // descent happens via the drilldown panel UI.
+  const l0 = drilldownV2?.levels?.[0];
+  if (l0?.variants?.length) {
+    const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
+    if (defaultVariant?.column_map?.length) {
+      return defaultVariant.column_map;
+    }
+  }
+  return drilldown?.column_map ?? [];
+}
+
 function injectDrilldown(
   options: Highcharts.Options,
   drilldown: DrilldownConfig | null | undefined,
+  drilldownV2: PanelDrilldownV2 | null | undefined,
   onPointClick: ((drillFilters: DrillFilters) => void) | undefined
 ): Highcharts.Options {
-  const columnMap = drilldown?.column_map;
-  if (!columnMap?.length || !onPointClick) return options;
+  const columnMap = resolveEffectiveColumnMap(drilldown, drilldownV2);
+  if (!columnMap.length || !onPointClick) return options;
 
   const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
   const existingSeriesOpts = (existingPlotOptions.series ?? {}) as Record<string, unknown>;
@@ -232,17 +267,48 @@ function injectDrilldown(
                 existingClickHandler.call(this, event);
               }
 
+              // Resolve each column_map entry against the click event:
+              //  - If `extract_from` is set, read from that Highcharts property
+              //    path (the V2 unified-data_key shape — `data_key` is the SQL
+              //    column name, `extract_from` is the bridge to the click event).
+              //  - Otherwise fall back to looking up `data_key` as a path on the
+              //    point. This handles V1 dashboards where data_key was a
+              //    dotted Highcharts path like `point.name` directly, AND L1+
+              //    cell clicks where data_key matches a result-row column name.
+              //
+              // Robustness fallback: when ``extract_from`` is ``point.name`` or
+              // ``point.x`` and resolves to undefined, fall back to
+              // ``point.category``. Highcharts only populates ``point.name`` when
+              // the data array uses the explicit shape ``[{name, y}, ...]``.
+              // For the common categorical-bar pattern (``data: [71, 9]`` + the
+              // labels living on ``xAxis.categories``), Highcharts leaves
+              // ``point.name`` undefined but always sets ``point.category`` to
+              // the category label. Falling back here keeps drill clicks
+              // working for both data shapes without requiring sub-agent prompt
+              // perfection.
+              // Emit the filter keyed by `data_key` (single-namespace at the wire).
               const filters: Record<string, unknown> = {};
-              for (const { data_key } of columnMap) {
-                // Special-case series.name — access the typed accessor directly
-                // rather than traversing via generic property lookup on a class instance
-                const value =
-                  data_key === 'series.name' ? this.series?.name : getNestedValue(this, data_key);
+              const lookupPointValue = (lookupPath: string): unknown => {
+                if (lookupPath === 'series.name') {
+                  return this.series?.name;
+                }
+                const direct = getNestedValue(this, lookupPath);
+                if (direct != null) return direct;
+                // Category-axis fallback for the common bar/column shape
+                if (lookupPath === 'point.name' || lookupPath === 'point.x') {
+                  const cat = (this as unknown as { category?: unknown }).category;
+                  if (cat != null) return cat;
+                }
+                return direct;
+              };
+              for (const cm of columnMap) {
+                const lookupPath = cm.extract_from || cm.data_key;
+                const value = lookupPointValue(lookupPath);
                 if (value != null) {
-                  filters[data_key] = value;
+                  filters[cm.data_key] = value;
                 } else {
                   console.warn(
-                    `[ChartWidget] drilldown data_key "${data_key}" resolved to null/undefined on point click`
+                    `[ChartWidget] drilldown data_key "${cm.data_key}" (lookup "${lookupPath}") resolved to null/undefined on point click`
                   );
                 }
               }
@@ -262,10 +328,16 @@ function injectDrilldown(
 interface UseChartOptionsParams {
   config: ChartWidgetConfig;
   drilldown?: DrilldownConfig | null;
+  drilldownV2?: PanelDrilldownV2 | null;
   onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
-export function useChartOptions({ config, drilldown, onPointClick }: UseChartOptionsParams) {
+export function useChartOptions({
+  config,
+  drilldown,
+  drilldownV2,
+  onPointClick,
+}: UseChartOptionsParams) {
   const isGantt = config.chartType === 'gantt';
   const constructorType: 'chart' | 'ganttChart' = isGantt ? 'ganttChart' : 'chart';
 
@@ -275,8 +347,8 @@ export function useChartOptions({ config, drilldown, onPointClick }: UseChartOpt
   }, [config.highchartsOptions, isGantt]);
 
   const finalOptions = useMemo(
-    () => injectDrilldown(options, drilldown, onPointClick),
-    [options, drilldown, onPointClick]
+    () => injectDrilldown(options, drilldown, drilldownV2, onPointClick),
+    [options, drilldown, drilldownV2, onPointClick]
   );
 
   return { options: finalOptions, constructorType };

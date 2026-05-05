@@ -168,8 +168,11 @@ export interface ChatSidebarProps {
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
-  // ── Dashboard section (modular — omit all to hide) ──
-  /** Dashboard items to show in a "Dashboards" section. Omit to hide the section entirely. */
+  // ── Dashboard section (modular — set isDashboardsEnabled=false to hide) ──
+  /** When false, hides the top-level Dashboards section AND the per-folder
+   *  Dashboards subsection. Defaults to true. */
+  isDashboardsEnabled?: boolean;
+  /** Dashboard items to show in a "Dashboards" section. */
   dashboards?: DashboardSidebarItem[];
   /** Currently selected dashboard ID */
   selectedDashboardId?: string;
@@ -530,6 +533,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onSignOutClick,
   isNewChatActive = false,
+  isDashboardsEnabled = true,
   dashboards,
   selectedDashboardId,
   onDashboardClick,
@@ -693,7 +697,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           foldersDropdownPosition={foldersDropdownPosition}
           foldersButtonRef={foldersButtonRef}
           onFoldersHover={handleFoldersHover}
-          dashboards={dashboards}
+          dashboards={isDashboardsEnabled ? dashboards : undefined}
           selectedDashboardId={selectedDashboardId}
           onDashboardClick={onDashboardClick}
           isDashboardsHovered={isDashboardsHovered}
@@ -777,6 +781,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         sortedFolders={visibleFolders}
                         itemsByFolder={itemsByFolder}
                         dashboardsByFolder={folderDashboards}
+                        isDashboardsEnabled={isDashboardsEnabled}
                         folderSectionTotals={folderSectionTotals}
                         folderLoadingMap={folderLoadingMap}
                         selectedItemId={selectedItemId ?? selectedDashboardId}
@@ -818,8 +823,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   </div>
                 )}
 
-                {/* Dashboards Section (modular — only renders when dashboards prop is provided) */}
-                {!isLoading && dashboards && (
+                {/* Dashboards Section (modular — gated by isDashboardsEnabled) */}
+                {!isLoading && isDashboardsEnabled && dashboards && (
                   <>
                     {dashboards.length > 0 ? (
                       <DashboardSection

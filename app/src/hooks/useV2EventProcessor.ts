@@ -44,6 +44,10 @@ import {
 } from "../utils/transformAguiToTimelineSteps";
 import { conversationsService } from "../services/conversationsService";
 import useChatStore from "../store/chatStore";
+import {
+  recordRunStarted,
+  recordRunFinished,
+} from "../lib/realtimeFileDeliveryObservability";
 
 /** Check if a sorted event array has missing sequences (gaps or doesn't start at 0/1). */
 function hasSequenceGaps(events: AguiEventWrapper[]): boolean {
@@ -597,6 +601,9 @@ export function useV2EventProcessor(
               setIsDashboardBuilderMode(false);
             });
             timerOnRunStarted(run_id);
+            if (conversationId) {
+              recordRunStarted(run_id, conversationId);
+            }
           } else {
             // Mid-stream reconnect: set run ID but preserve existing state,
             // seeding will fill in the gaps and re-transform
@@ -746,6 +753,9 @@ export function useV2EventProcessor(
         ) {
           finishedRunsRef.current.add(run_id);
           timerOnRunCompleted(run_id);
+          if (conversationId) {
+            recordRunFinished(run_id, conversationId);
+          }
           onRunComplete?.();
         }
       } catch (error) {
