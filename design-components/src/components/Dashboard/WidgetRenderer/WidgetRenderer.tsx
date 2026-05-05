@@ -55,6 +55,56 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
     const addToChatHandler = onAddToChat ? handleAddToChat : undefined;
 
+    // Table cell-click → drilldown_v2 wiring. Mirror of the chart `onPointClick`
+    // path above (line 45–50) for table panels: when the user clicks any body
+    // cell, build drillFilters by reading every column_map.data_key from the
+    // clicked row, then fire onPointDrillDown — same shape the chart point
+    // handler sends. Without this wire-up, table panels rely solely on the
+    // corner drilldown icon (panel-level drill, no row context), which makes
+    // 2-D cohort/pivot cells effectively non-drillable even when
+    // drilldown_v2 is correctly authored.
+    //
+    // Resolves drillFilters from the L0 default variant's column_map because
+    // drilldown_v2 starts at L0 and that level declares the panel's click axes.
+    // `extract_from` is null on table column_map entries (data_key already
+    // matches the row column), so we just look up rowData[data_key]. Skip
+    // entries with extract_from set (those are chart-axis bridges, not
+    // table-row data) and skip data_keys not present in the row to avoid
+    // sending `undefined` drill_filter values.
+    const handleTableCellClick = useCallback(
+      (_columnId: string, _cellValue: unknown, rowData: Record<string, unknown>) => {
+        if (!onPointDrillDown) return;
+        const v2 = widget.drilldown_v2;
+        const defaultVariant =
+          v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
+        const columnMap = defaultVariant?.column_map ?? [];
+        if (columnMap.length === 0) return;
+        const drillFilters: DrillFilters = {};
+        for (const cm of columnMap) {
+          if (cm.extract_from) continue;
+          const value = rowData[cm.data_key];
+          // Match the chart `onPointClick` handler in useChartOptions.ts:307
+          // — skip null/undefined values rather than emitting them as
+          // drill_filters. The backend treats `{week_label: null}` as
+          // "filter to rows where week_label IS NULL," not as "filter
+          // omitted." A row with a missing dimension value should not
+          // narrow the drill to NULL-only rows.
+          if (value != null) {
+            drillFilters[cm.data_key] = value;
+          } else {
+            console.warn(
+              `[TableWidget] drilldown data_key "${cm.data_key}" resolved to null/undefined on cell click`
+            );
+          }
+        }
+        if (Object.keys(drillFilters).length === 0) return;
+        onPointDrillDown(widget.id, drillFilters);
+      },
+      [onPointDrillDown, widget.id, widget.drilldown_v2]
+    );
+
+    const tableCellClickHandler = onPointDrillDown ? handleTableCellClick : undefined;
+
     switch (widget.type) {
       case 'chart':
         return (
@@ -158,6 +208,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
                   : undefined
               }
               sortState={tableSortState}
+              onCellClick={tableCellClickHandler}
             />
           </WidgetShell>
         );
