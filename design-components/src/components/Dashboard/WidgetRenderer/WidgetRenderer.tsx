@@ -164,11 +164,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       default:
         return (
-          <WidgetShell
-            title={widget.title}
-            onAddToChat={addToChatHandler}
-            isEditMode={isEditMode}
-          >
+          <WidgetShell title={widget.title} onAddToChat={addToChatHandler} isEditMode={isEditMode}>
             <div className="flex items-center justify-center h-full text-sm text-gray-400">
               Unknown widget type
             </div>
