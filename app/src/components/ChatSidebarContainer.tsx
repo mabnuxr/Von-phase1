@@ -93,7 +93,7 @@ export function ChatSidebarContainer({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
-  const { isChatSharingEnabled } = useFeatureFlag();
+  const { isChatSharingEnabled, isDeepResearchEnabled } = useFeatureFlag();
 
   // Track which conversation's context menu is open to fetch its share status
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
@@ -302,6 +302,7 @@ export function ChatSidebarContainer({
       onSignOutClick={onLogoutClick}
       onSettingsClick={onSettingsClick}
       isNewChatActive={isNewChatActive}
+      isDashboardsEnabled={isDeepResearchEnabled}
       dashboards={dashboards}
       selectedDashboardId={dashboardId}
       hasMoreDashboards={hasNextDashboardPage}
