@@ -22,14 +22,35 @@ export interface BulkImportPaneProps {
 
 /** Canned prompt the user can copy into Claude/ChatGPT/Gemini to extract
  *  their stored memories, then paste back into step 2 below. */
-const EXPORT_PROMPT =
-  "Export all of my stored memories and any context you've learned about me from past conversations. " +
-  "Preserve my words verbatim where possible, especially for instructions and preferences.\n\n" +
-  "## Categories (output in this order):\n" +
-  "- Preferences\n" +
-  "- Instructions\n" +
-  "- Context about me\n" +
-  "- Projects and goals";
+const EXPORT_PROMPT = `I'm setting up a new AI workspace and want to carry over what you've learned about how I work. Put together an export based on the rules below.
+
+Focus on the *how* — communication style, preferences, workflows, vocabulary. Skip the *who* — anything personal, biographical, or sensitive, even if it's in your memory.
+
+Include:
+- Explicit instructions I've given you (rules, corrections, format/tone preferences) — keep my exact wording where you can
+- Patterns you've noticed in how I communicate (tone, length, punctuation quirks) — your own description is fine; mark these [inferred]
+- How I like things explained (TL;DR-first, examples-heavy, technical depth, etc.)
+- Decision-making style and frameworks I rely on
+- Tools and recurring workflows
+- Industry terms, acronyms, and company-specific vocabulary I use, so the new workspace doesn't over-explain familiar concepts
+
+Exclude:
+Personal life, family, relationships, health, hobbies, age, location, political or religious views, career history, biographical details, identity attributes, or anything sensitive — even if you remember it.
+
+Notes:
+- If a category is empty, write "(none)". If you have no memory of me at all, say so.
+- Keep each preference as its own line rather than merging similar ones.
+- If two items contradict each other, include both and flag with [?].
+- Add [?] to anything you're unsure about.
+
+Format:
+- One code block, bullet points.
+- Each line: [YYYY-MM-DD] - Entry. Use [unknown] if you don't know the date — don't guess.
+- Group by category in this order: Explicit rules, Communication patterns, Explanation preferences, Decision frameworks, Tools & workflows, Vocabulary.
+
+After the code block, note:
+1. Whether this is everything, or you hit a length limit and there's more.
+2. Any categories where you had nothing.`;
 
 /**
  * Side drawer for importing user memory. Two-step flow:
@@ -183,7 +204,7 @@ export function BulkImportPane({
                 1
               </span>
               <span className="text-sm text-gray-900">
-                Copy this prompt into a chat with your other AI provider
+                Copy this prompt into a new chat with your other AI provider
               </span>
             </div>
             <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20">
