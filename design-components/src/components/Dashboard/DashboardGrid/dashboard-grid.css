@@ -80,87 +80,103 @@
 /* ============================================================================
    Resize handles
    --------------------------------------------------------------------------
-   Eight invisible hit-zones — one at each edge midpoint (n/s/e/w) and one at
-   each corner (nw/ne/sw/se). No visible markers; the user sees only the
-   appropriate resize cursor when they hover the widget edge.
+   Use the library's default chevron markers (visible on widget hover only)
+   but reposition the hit-zones from corners-only to all eight directions
+   (n/s/e/w + nw/ne/sw/se), with full-width/height edge strips so the resize
+   cursor shows along the entire edge.
 
-   Library's default rotated-diamond SVG is suppressed via
-   `background-image: none` and `transform: none`.
+   The library's corner/edge rules use TWO classes
+   (`.react-resizable-handle.react-resizable-handle-nw`, specificity 0,3,0)
+   so our overrides must stack the same two classes — a bare
+   `.react-resizable-handle-nw` would lose to the library's defaults.
    ========================================================================== */
-.react-grid-item > .react-resizable-handle {
-  background-color: transparent;
+
+/* Edge hit-zones: thin strips along each side. We stretch them to full width
+   or height so the resize cursor shows along the entire edge — but that
+   breaks the library's chevron `::after` (anchored at bottom-right) and SVG
+   background-image (stretched across the strip), so we suppress both for
+   edges. Corners keep the library chevron. */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w {
   background-image: none;
-  border: none;
-  box-shadow: none;
   transform: none;
-  padding: 0;
-  margin: 0;
-  opacity: 1;
 }
 
-/* Edge hit-zones: thin strips along each side. */
-.react-grid-item > .react-resizable-handle-n {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w::after {
+  content: none;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n {
   top: -4px;
   left: 0;
   width: 100%;
   height: 8px;
+  margin: 0;
   cursor: ns-resize;
 }
 
-.react-grid-item > .react-resizable-handle-s {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
   bottom: -4px;
   left: 0;
   width: 100%;
   height: 8px;
+  margin: 0;
   cursor: ns-resize;
 }
 
-.react-grid-item > .react-resizable-handle-e {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e {
   right: -4px;
   top: 0;
   width: 8px;
   height: 100%;
+  margin: 0;
   cursor: ew-resize;
 }
 
-.react-grid-item > .react-resizable-handle-w {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w {
   left: -4px;
   top: 0;
   width: 8px;
   height: 100%;
+  margin: 0;
   cursor: ew-resize;
 }
 
 /* Corner hit-zones: small squares overlapping the edge zones for diagonal
    resize. Stacked above the edge handles so corners take precedence. */
-.react-grid-item > .react-resizable-handle-nw,
-.react-grid-item > .react-resizable-handle-ne,
-.react-grid-item > .react-resizable-handle-sw,
-.react-grid-item > .react-resizable-handle-se {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-nw,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-ne,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-sw,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
   width: 14px;
   height: 14px;
   z-index: 1;
 }
 
-.react-grid-item > .react-resizable-handle-nw {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-nw {
   top: -4px;
   left: -4px;
   cursor: nwse-resize;
 }
 
-.react-grid-item > .react-resizable-handle-ne {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-ne {
   top: -4px;
   right: -4px;
   cursor: nesw-resize;
 }
 
-.react-grid-item > .react-resizable-handle-sw {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-sw {
   bottom: -4px;
   left: -4px;
   cursor: nesw-resize;
 }
 
-.react-grid-item > .react-resizable-handle-se {
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
   bottom: -4px;
   right: -4px;
   cursor: nwse-resize;
