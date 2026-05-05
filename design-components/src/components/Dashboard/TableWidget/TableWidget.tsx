@@ -301,7 +301,12 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   return (
     <div
-      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}${autoHeight ? ' auto-height' : ''}`}
+      // ``clickable-cells`` is the styling hook for the drillable hover state
+      // (light-violet td bg + pointer cursor). Gated on whether the parent
+      // wired ``onCellClick`` — that's the same gate ``useCellInteractions``
+      // uses to decide whether to fire a click — so the visual affordance and
+      // the actual click behaviour stay in lockstep.
+      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}${autoHeight ? ' auto-height' : ''}${onCellClick ? ' clickable-cells' : ''}`}
     >
       <div
         ref={containerRef}

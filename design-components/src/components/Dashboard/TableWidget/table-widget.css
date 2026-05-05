@@ -59,6 +59,28 @@
   border-right: none;
 }
 
+/* ─── Drillable cell hover ───────────────────────────────────────
+ * Light-violet row tint + pointer cursor when cells trigger drilldown.
+ * The ``clickable-cells`` modifier is added by TableWidget when its
+ * ``onCellClick`` prop is wired (i.e. WidgetRenderer's case 'table'
+ * passed an onPointDrillDown handler — which in turn requires the panel
+ * to have ``drilldown_v2`` populated). So the affordance only appears
+ * when clicking will actually do something.
+ *
+ * Targets ``tbody tr:hover td`` (not bare ``td:hover``) so the entire row
+ * lights up — clicking ANY cell drills with the row's column_map values,
+ * so highlighting the whole row matches the click semantics. Override
+ * applies to even/odd rows alike — Grid Lite zebra-stripes via opaque td
+ * backgrounds, so the violet has to win at the same selector specificity. */
+.table-widget-root.clickable-cells .hcg-table tbody td {
+  cursor: pointer;
+}
+
+.table-widget-root.clickable-cells .hcg-table tbody tr:hover td,
+.table-widget-root.clickable-cells .hcg-table tbody tr.hcg-row-even:hover td {
+  background-color: #ede9fe; /* violet-100 — same token as variant pill */
+}
+
 /* ─── Server Pagination (matches HCG pagination style) ──────────── */
 
 .server-pagination-bar {

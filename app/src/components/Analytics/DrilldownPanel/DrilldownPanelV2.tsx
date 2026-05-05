@@ -10,7 +10,9 @@
  * - 95vh bottom sheet with scrim + grip handle; ESC / close button to dismiss.
  * - Breadcrumb: Widget › L1-segment › L2-segment › … (one segment per click);
  *   click any segment to pop to that level.
- * - Button-style variant selector when `variants.length > 1`.
+ * - Pill-shaped variant-dropdown selector when `variants.length > 1`
+ *   (replaces older row-of-buttons UI; dropdown scales better past 2-3
+ *   variants and competes less for header space against the breadcrumb).
  * - Justification line rendered from the backend's `justification` string.
  * - Data table reuses the existing ReportTable component for consistent UX.
  * - **Whole-row descent.** When `hasNextLevel === true`, every row is
@@ -26,10 +28,20 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   XIcon,
   CaretRightIcon,
+  CaretDownIcon,
+  CheckIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { ReportTable, buildGridOptions } from "@vonlabs/design-components";
-import type { ReportColumn, ServerSortState } from "@vonlabs/design-components";
+import {
+  ReportTable,
+  buildGridOptions,
+  Dropdown,
+} from "@vonlabs/design-components";
+import type {
+  ReportColumn,
+  ServerSortState,
+  DropdownItem,
+} from "@vonlabs/design-components";
 import type { UseDrilldownV2Return } from "../../../hooks/useDrilldownV2";
 import type { DrilldownV2VariantSummary } from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
@@ -173,7 +185,7 @@ export function DrilldownPanelV2({
       >
         <div className="dd-v2-grip" />
 
-        {/* Header: breadcrumb + variant buttons + close */}
+        {/* Header: breadcrumb + variant dropdown + close */}
         <div className="dd-v2-header">
           <Breadcrumb
             widgetTitle={widgetTitle ?? drill.title ?? "Drilldown"}
@@ -182,7 +194,7 @@ export function DrilldownPanelV2({
           />
           <div className="dd-v2-header-actions">
             {drill.variants.length > 1 && (
-              <VariantButtons
+              <VariantDropdown
                 variants={drill.variants}
                 currentVariantId={drill.currentVariantId}
                 onChange={drill.changeVariant}
@@ -327,7 +339,18 @@ function stripPrefix(dataKey: string): string {
   return dot >= 0 ? dataKey.slice(dot + 1) : dataKey;
 }
 
-function VariantButtons({
+/**
+ * Single pill-shaped dropdown that lets the user switch variants at the
+ * current drill level. Replaces the older row-of-buttons UI — a row gets
+ * unwieldy past 2-3 variants and competes with the breadcrumb for header
+ * space. The dropdown trigger shows the active variant's label + chevron;
+ * the menu lists every variant with a check icon next to the active one.
+ *
+ * Resolves the active variant from ``currentVariantId`` with a fallback to
+ * the default variant, then to the first variant — matches the hook's own
+ * resolution order so the trigger label is never empty.
+ */
+function VariantDropdown({
   variants,
   currentVariantId,
   onChange,
@@ -336,25 +359,46 @@ function VariantButtons({
   currentVariantId: string | null;
   onChange: (id: string | null) => void;
 }) {
-  return (
-    <div
-      className="dd-v2-variant-btns"
-      role="group"
-      aria-label="Variant selector"
+  const activeVariant =
+    variants.find((v) => v.id === currentVariantId) ??
+    variants.find((v) => v.is_default) ??
+    variants[0];
+
+  // Reserve a small slot for the check icon on every menu item so labels
+  // stay vertically aligned across rows (active + inactive). An invisible
+  // spacer of the same width keeps non-active items in the same column.
+  const items: DropdownItem[] = variants.map((v) => ({
+    key: v.id,
+    label: v.label,
+    onClick: () => onChange(v.id),
+    icon:
+      v.id === activeVariant?.id ? (
+        <CheckIcon size={14} weight="bold" />
+      ) : (
+        <span style={{ display: "inline-block", width: 14 }} />
+      ),
+  }));
+
+  const trigger = (
+    <button
+      type="button"
+      className="dd-v2-variant-trigger"
+      aria-label="Select variant"
+      title={activeVariant?.description}
     >
-      {variants.map((v) => (
-        <button
-          key={v.id}
-          className={`dd-v2-variant-btn ${currentVariantId === v.id ? "dd-v2-variant-btn-active" : ""}`}
-          onClick={() => onChange(v.id)}
-          title={v.description}
-        >
-          {v.label}
-          {v.is_default && currentVariantId !== v.id && (
-            <span className="dd-v2-variant-default-tag">default</span>
-          )}
-        </button>
-      ))}
-    </div>
+      <span className="dd-v2-variant-trigger-label">
+        {activeVariant?.label ?? "Variant"}
+      </span>
+      <CaretDownIcon size={14} weight="bold" />
+    </button>
+  );
+
+  return (
+    <Dropdown
+      trigger={trigger}
+      items={items}
+      position="bottom-right"
+      className="dd-v2-variant-dropdown"
+    />
   );
 }
