@@ -251,6 +251,13 @@ export interface DashboardGridProps {
   tableSortStates?: Record<string, SortState>;
   /** Whether the dashboard is in edit mode (shows visual indicators on widgets) */
   isEditMode?: boolean;
+  /**
+   * Whether widgets can be rearranged via drag-and-drop and resized in edit
+   * mode. Only takes effect when `isEditMode` is also true. Defaults to true
+   * for backward compatibility — callers gating behind a feature flag should
+   * pass this explicitly.
+   */
+  isDragDropEnabled?: boolean;
   /** Whether all widgets are loading (e.g. after a filter change) */
   isLoading?: boolean;
   /** Applied filters per widget ID (read-only display) */

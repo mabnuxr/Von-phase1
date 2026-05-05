@@ -25,6 +25,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     onTableSortChange,
     tableSortStates,
     isEditMode,
+    isDragDropEnabled = true,
     isLoading,
     widgetAppliedFilters,
     widgetFilterSlot,
@@ -32,6 +33,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     variablesByWidget,
     onLayoutChange,
   }) => {
+    // Drag/drop chrome (movable handle, dashed border, react-grid-layout
+    // drag/resize) is only active when both edit mode and the drag-and-drop
+    // feature flag are on. Edit mode alone keeps widgets pinned.
+    const dragDropActive = !!isEditMode && isDragDropEnabled;
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
 
@@ -53,9 +58,9 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
       y: Number(item.y),
       w: Number(item.w),
       h: Number(item.h),
-      // Allow drag/resize only in edit mode. Outside edit mode widgets stay
-      // pinned to their configured position.
-      static: !isEditMode,
+      // Allow drag/resize only when edit mode AND drag-drop are both on.
+      // Otherwise widgets stay pinned to their configured position.
+      static: !dragDropActive,
       minW: 2,
       minH: 2,
     }));
@@ -74,13 +79,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
             maxRows: Infinity,
           }}
           dragConfig={{
-            enabled: !!isEditMode,
+            enabled: dragDropActive,
             // Only drag when the user grabs the widget wrapper itself — lets
             // users still click/sort/filter inside widget content without
             // accidentally starting a drag.
             handle: '.widget-drag-handle',
           }}
-          resizeConfig={{ enabled: !!isEditMode }}
+          resizeConfig={{ enabled: dragDropActive }}
           compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
           onLayoutChange={(next) => onLayoutChange?.(next)}
         >
@@ -91,7 +96,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
               <div
                 key={item.i}
                 className={`h-full ${
-                  isEditMode
+                  dragDropActive
                     ? 'widget-drag-handle cursor-move border-2 border-dashed border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.10)]'
                     : ''
                 }`}

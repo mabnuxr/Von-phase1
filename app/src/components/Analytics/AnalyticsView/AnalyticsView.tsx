@@ -26,6 +26,7 @@ import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
 import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
+import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -342,6 +343,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   // ── Dashboard edit mode (API-driven via is_editable) ────────────
   const isEditMode = dashboard.isEditable;
+
+  // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
+  // can roll the manual-layout feature out per tenant. Edit mode itself
+  // (filters, rename, save) stays available regardless.
+  const { isDashboardDragDropEnabled } = useFeatureFlag();
 
   const handleEnterEditMode = useCallback(() => {
     if (dashboard.isOwner) {
@@ -693,6 +699,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             onTableSortChange={onTableSortChange}
             tableSortStates={tableSortStates}
             isEditMode={isEditMode}
+            isDragDropEnabled={isDashboardDragDropEnabled}
             isLoading={isRefetchingData || isRefreshing}
             variablesByWidget={variablesByWidget}
             onLayoutChange={handleLayoutChange}
