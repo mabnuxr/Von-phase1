@@ -207,7 +207,7 @@ export function BulkImportPane({
                 Copy this prompt into a new chat with your other AI provider
               </span>
             </div>
-            <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20">
+            <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20 h-[160px] overflow-hidden">
               <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
                 {EXPORT_PROMPT}
               </p>
@@ -241,9 +241,10 @@ export function BulkImportPane({
             </span>
           </div>
 
-          {/* Rich text editor — Tiptap surface. Takes the remaining space
-              after the prompt block; user-resizable. */}
-          <div className="flex-1 min-h-[180px] resize-y overflow-auto border border-gray-200/80 rounded-xl">
+          {/* Rich text editor — Tiptap surface. Starts at ~65% of available
+              height; user-resizable up to the full pane. The prompt block
+              above is capped with internal scroll so this always has room. */}
+          <div className="flex-shrink-0 min-h-[180px] h-[65%] max-h-full resize-y overflow-auto border border-gray-200/80 rounded-xl">
             <OrgContextEditor
               content={input}
               onChange={setInput}
