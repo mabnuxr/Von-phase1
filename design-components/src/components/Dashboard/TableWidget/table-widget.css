@@ -78,7 +78,12 @@
   cursor: pointer;
 }
 
-.table-widget-root.clickable-cells .hcg-table tbody td:hover,
+/* The compound ``.table-widget-root.clickable-cells`` selector wins on
+ * specificity (0,4,2) against the design-system theme's whole-row hover
+ * rule (0,3,3) — class count beats element count. The ``hcg-row-even``
+ * branch covers Grid Lite's zebra-striped rows, which paint td bg via a
+ * higher-specificity rule of their own. */
+.table-widget-root.clickable-cells .hcg-table tbody tr td:hover,
 .table-widget-root.clickable-cells .hcg-table tbody tr.hcg-row-even td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }

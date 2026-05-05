@@ -499,7 +499,17 @@
   cursor: pointer;
 }
 
-.dd-v2-grid-wrap-drillable .hcg-table tbody td:hover,
+/* Specificity matters here. The design-system theme paints the whole row
+ * on hover via ``.report-grid-wrapper .hcg-table tbody tr:hover td``
+ * (specificity 0,3,3). The naive cell rule
+ * ``.dd-v2-grid-wrap-drillable .hcg-table tbody td:hover`` is (0,3,2) —
+ * loses. Adding the explicit ``tr`` segment bumps to (0,3,3) which ties
+ * the theme rule, and source order tiebreaker favors this rule (app CSS
+ * loads after the design-components dist CSS in main.tsx). The
+ * ``hcg-row-even`` qualifier covers the other code path Grid Lite uses
+ * for zebra-striped even rows (paints td bg with higher specificity than
+ * the row-hover rule, so the hover override needs to match it). */
+.dd-v2-grid-wrap-drillable .hcg-table tbody tr td:hover,
 .dd-v2-grid-wrap-drillable .hcg-table tbody tr.hcg-row-even td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }
