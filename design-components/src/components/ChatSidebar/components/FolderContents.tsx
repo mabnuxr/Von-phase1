@@ -20,6 +20,9 @@ export interface FolderContentsProps {
   conversations: SidebarItem[];
   /** Dashboard items in this folder (rendered with the same row component). */
   dashboards?: SidebarItem[];
+  /** When false, hides the Dashboards subsection entirely (modular —
+   *  mirrors the top-level Dashboards section gating). Defaults to true. */
+  isDashboardsEnabled?: boolean;
   /** Per-type total counts from the contents endpoint, used by Show-N-more. */
   conversationsTotal?: number;
   dashboardsTotal?: number;
@@ -183,6 +186,7 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
   isLoading = false,
   conversations,
   dashboards = [],
+  isDashboardsEnabled = true,
   conversationsTotal,
   dashboardsTotal,
   selectedItemId,
@@ -196,7 +200,7 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
   onSaveEdit,
   onCancelEdit,
 }) => {
-  const dashTotal = dashboardsTotal ?? dashboards.length;
+  const dashTotal = isDashboardsEnabled ? (dashboardsTotal ?? dashboards.length) : 0;
   const chatTotal = conversationsTotal ?? conversations.length;
 
   const dashFooter = computeFooterCounts({
@@ -246,25 +250,29 @@ export const FolderContents: React.FC<FolderContentsProps> = ({
             </div>
           ) : isFullyEmpty ? (
             <EmptyHint>
-              Add chats and dashboards to this folder using{' '}
+              Add {isDashboardsEnabled ? 'chats and dashboards' : 'chats'} to this folder using{' '}
               <span className="text-gray-700 font-medium">Add to folder</span>.
             </EmptyHint>
           ) : (
             <>
-              <Subhead>Dashboards</Subhead>
-              {dashTotal === 0 ? (
-                <EmptyHint>
-                  No dashboards yet — use{' '}
-                  <span className="text-gray-700 font-medium">Add to folder</span>.
-                </EmptyHint>
-              ) : (
+              {isDashboardsEnabled && (
                 <>
-                  <ItemList items={dashboards} {...sharedListProps} />
-                  <SectionFooter
-                    {...dashFooter}
-                    onReveal={() => onRevealMoreInSection?.(folderId, 'dashboard')}
-                    onCollapse={() => onCollapseSection?.(folderId, 'dashboard')}
-                  />
+                  <Subhead>Dashboards</Subhead>
+                  {dashTotal === 0 ? (
+                    <EmptyHint>
+                      No dashboards yet — use{' '}
+                      <span className="text-gray-700 font-medium">Add to folder</span>.
+                    </EmptyHint>
+                  ) : (
+                    <>
+                      <ItemList items={dashboards} {...sharedListProps} />
+                      <SectionFooter
+                        {...dashFooter}
+                        onReveal={() => onRevealMoreInSection?.(folderId, 'dashboard')}
+                        onCollapse={() => onCollapseSection?.(folderId, 'dashboard')}
+                      />
+                    </>
+                  )}
                 </>
               )}
 

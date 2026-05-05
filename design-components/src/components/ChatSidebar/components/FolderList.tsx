@@ -18,6 +18,7 @@ export interface FolderListProps {
   sortedFolders: Folder[];
   itemsByFolder: FolderItemsMap;
   dashboardsByFolder?: FolderDashboardsMap;
+  isDashboardsEnabled?: boolean;
   folderSectionTotals?: FolderSectionTotalsMap;
   folderLoadingMap?: FolderLoadingMap;
   selectedItemId?: string;
@@ -78,6 +79,7 @@ export const FolderList: React.FC<FolderListProps> = ({
   sortedFolders,
   itemsByFolder,
   dashboardsByFolder = {},
+  isDashboardsEnabled = true,
   folderSectionTotals = {},
   folderLoadingMap = {},
   selectedItemId,
@@ -174,6 +176,7 @@ export const FolderList: React.FC<FolderListProps> = ({
               isLoading={isFolderLoading}
               conversations={folderConversations}
               dashboards={folderDashes}
+              isDashboardsEnabled={isDashboardsEnabled}
               conversationsTotal={folderSectionTotals[folder.id]?.conversation}
               dashboardsTotal={folderSectionTotals[folder.id]?.dashboard}
               selectedItemId={selectedItemId}
