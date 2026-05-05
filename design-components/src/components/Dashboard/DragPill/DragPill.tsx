@@ -29,6 +29,12 @@ const DragPill: React.FC<DragPillProps> = ({ label }) => (
     // NOT stopped — react-grid-layout listens for it on the grid item to
     // start a drag, and stopping it would break drag.
     onClick={(e) => e.stopPropagation()}
+    // Block the button's default mousedown behavior (focus + space-key
+    // activation) without stopping propagation: react-grid-layout still
+    // sees the event on the grid item and starts a drag, but the button
+    // doesn't steal focus or arm a keyboard click that could fire
+    // mid-gesture and interfere with the pointer drag in some browsers.
+    onMouseDown={(e) => e.preventDefault()}
   >
     <DotsSixVerticalIcon size={16} weight="bold" />
   </button>

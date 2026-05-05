@@ -72,11 +72,13 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
 
     // Cell dimensions for the gridline backdrop. Computed from containerWidth
     // and the configured cols/margin/padding so the lines align exactly with
-    // react-grid-layout's snap targets.
+    // react-grid-layout's snap targets. Clamp `cols` to >= 1 so a malformed
+    // dashboard config can't yield Infinity CSS vars and break rendering.
     const [marginX, marginY] = gridConfig.margin;
     const [padX, padY] = gridConfig.containerPadding;
+    const cols = Math.max(1, gridConfig.cols);
     const usableWidth = Math.max(containerWidth - padX * 2, 0);
-    const colStep = (usableWidth + marginX) / gridConfig.cols;
+    const colStep = (usableWidth + marginX) / cols;
     const rowStep = gridConfig.rowHeight + marginY;
 
     return (

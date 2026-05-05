@@ -56,16 +56,24 @@ export function useLayoutAutoSave(
   const { showToast } = useToast();
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<PanelLayouts | null>(null);
-  const lastSavedRef = useRef<PanelLayouts | null>(null);
 
-  // Seed the saved baseline from the current dashboard layout. Without this,
-  // entering edit mode triggers RGL's `static: true → false` reconcile,
-  // which fires `onLayoutChange` with unchanged positions; the equality
-  // guard in `flushNow` would otherwise short-circuit on a null baseline
-  // and PATCH the layout back to the server unnecessarily.
-  useEffect(() => {
-    lastSavedRef.current = toPanelLayouts(layout);
-  }, [layout]);
+  // Seed the saved baseline once from the layout the hook was first called
+  // with. Without this, entering edit mode triggers RGL's
+  // `static: true → false` reconcile, which fires `onLayoutChange` with
+  // unchanged positions; the equality guard in `flushNow` would otherwise
+  // short-circuit on a null baseline and PATCH the layout back to the
+  // server unnecessarily.
+  //
+  // We deliberately don't re-seed from later `layout` prop changes —
+  // overwriting the baseline with stale server data while a save is in
+  // flight (refetch lag) would trick `flushNow` into re-PATCHing work
+  // that's already in flight. After mount, `lastSavedRef` is owned by
+  // `mutation.onSuccess`. Both call sites of this hook gate rendering on
+  // the dashboard query resolving, so the very first `layout` we see is
+  // the authoritative server layout. `useRef`'s initial-value argument is
+  // captured at first render and ignored on subsequent renders, which is
+  // exactly the seed-once semantics we want.
+  const lastSavedRef = useRef<PanelLayouts | null>(toPanelLayouts(layout));
 
   const mutation = useMutation({
     mutationFn: async (panelLayouts: PanelLayouts) => {
