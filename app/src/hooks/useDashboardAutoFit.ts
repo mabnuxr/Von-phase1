@@ -102,7 +102,7 @@ export function useDashboardAutoFit({
     if (pending.size === 0) return;
 
     const current = layoutRef.current;
-    let next = current.slice();
+    const next = current.slice();
     let changed = false;
 
     pending.forEach((report, panelId) => {

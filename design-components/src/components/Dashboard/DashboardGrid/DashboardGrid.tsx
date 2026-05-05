@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, memo } from 'react';
-import { GridLayout, noCompactor, verticalCompactor, type Layout } from 'react-grid-layout';
+import { useEffect, useRef, useState, memo } from 'react';
+import { GridLayout, verticalCompactor, type Layout } from 'react-grid-layout';
 import { WidgetRenderer } from '../WidgetRenderer';
 import { WidgetSkeleton } from '../WidgetSkeleton';
 import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
@@ -44,19 +44,6 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
-
-    // Manual-layout flow uses `noCompactor` *during* drag/resize so the
-    // placeholder follows the cursor and other widgets stay where the user
-    // pushed them. On drop we run the final layout through
-    // `verticalCompactor.compact` once so any gap left behind by the
-    // dragged widget gets closed (e.g. dropping a top widget onto a middle
-    // one pulls the rest up to fill the empty top row). Outside drag-drop
-    // we honor the dashboard's saved `compactType`.
-    const compactor = dragDropActive
-      ? noCompactor
-      : gridConfig.compactType === 'vertical'
-        ? verticalCompactor
-        : noCompactor;
 
     useEffect(() => {
       const el = containerRef.current;

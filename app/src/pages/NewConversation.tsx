@@ -136,7 +136,6 @@ const NewConversation = () => {
       }
     }, 100);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const {
     isAgentV2: isAgentV2Flag,
