@@ -82,8 +82,19 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
         const drillFilters: DrillFilters = {};
         for (const cm of columnMap) {
           if (cm.extract_from) continue;
-          if (cm.data_key in rowData) {
-            drillFilters[cm.data_key] = rowData[cm.data_key];
+          const value = rowData[cm.data_key];
+          // Match the chart `onPointClick` handler in useChartOptions.ts:307
+          // — skip null/undefined values rather than emitting them as
+          // drill_filters. The backend treats `{week_label: null}` as
+          // "filter to rows where week_label IS NULL," not as "filter
+          // omitted." A row with a missing dimension value should not
+          // narrow the drill to NULL-only rows.
+          if (value != null) {
+            drillFilters[cm.data_key] = value;
+          } else {
+            console.warn(
+              `[TableWidget] drilldown data_key "${cm.data_key}" resolved to null/undefined on cell click`
+            );
           }
         }
         if (Object.keys(drillFilters).length === 0) return;
