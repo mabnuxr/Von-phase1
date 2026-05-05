@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
@@ -35,7 +35,11 @@ import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
-import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
+import {
+  useAgentArtifacts,
+  agentArtifactKeys,
+  type AgentArtifactTurn,
+} from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import {
@@ -137,7 +141,7 @@ export function useChatV2(props: UseChatV2Props) {
       }
     }
 
-    // Await the message refetch so assistantRunIds (derived from
+    // Await the message refetch so assistantTurns (derived from
     // conversationMessages) includes the new runId. Backend guarantees the
     // assistant message is durable in Mongo BEFORE RUN_FINISHED fires, so
     // this refetch is sufficient to register the per-run query subscription.
@@ -147,16 +151,12 @@ export function useChatV2(props: UseChatV2Props) {
       console.error("[handleV2RunComplete] refetchMessages failed:", err);
     }
 
-    // Invalidate the artifact query so the per-run subscription pulls fresh
-    // FileMetadata. Backend has already registered rows in `processing`, so
-    // this returns immediately with skeleton-eligible data; rows transition
-    // to `completed` via Pusher events or refetchInterval polling.
-    const runId = processor?.currentRunId;
-    if (runId) {
-      queryClient.invalidateQueries({
-        queryKey: agentArtifactKeys.run(conversationId, runId),
-      });
-    }
+    // Prefix-match invalidates every per-runId query under this
+    // conversation; avoids a closure read of `processor.currentRunId`
+    // that can be undefined here.
+    queryClient.invalidateQueries({
+      queryKey: agentArtifactKeys.forConversation(conversationId),
+    });
   }, [conversationId, refetchMessages, queryClient]);
 
   // V2 event processing (AGUI events → timeline steps)
@@ -183,21 +183,39 @@ export function useChatV2(props: UseChatV2Props) {
   // Surface write-blocked notifications as banner above chat input
   const { writeBlocked, dismissWriteBlocked } = useWriteBlockedEvent(channel);
 
-  // Extract unique runIds from assistant messages for per-run artifact fetching
-  const assistantRunIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const msg of conversationMessages) {
-      if (msg.role === "assistant" && msg.runId) {
-        ids.add(msg.runId);
-      }
-    }
-    return Array.from(ids);
-  }, [conversationMessages]);
+  // runId + terminal flag per turn. The flag drives useAgentArtifacts'
+  // polling so a too-early empty fetch on a still-running turn doesn't disarm.
+  const assistantTurns = useMemo<AgentArtifactTurn[]>(
+    () =>
+      conversationMessages.flatMap<AgentArtifactTurn>((msg) =>
+        msg.role === "assistant" && msg.runId
+          ? [
+              {
+                runId: msg.runId,
+                isTerminal:
+                  !!msg.status &&
+                  msg.status !== "created" &&
+                  msg.status !== "streaming",
+              },
+            ]
+          : [],
+      ),
+    [conversationMessages],
+  );
 
   const agentArtifactsByRunId = useAgentArtifacts(
     conversationId,
-    assistantRunIds,
+    assistantTurns,
   );
+
+  // Recovery path for a missed RUN_FINISHED: any messages refetch
+  // (focus, mount, reconciliation) re-pulls artifact rows.
+  useEffect(() => {
+    if (!conversationId || conversationMessages.length === 0) return;
+    queryClient.invalidateQueries({
+      queryKey: agentArtifactKeys.forConversation(conversationId),
+    });
+  }, [conversationMessages, conversationId, queryClient]);
 
   // Chat-type-aware reconciliation
   useReconciliation({
