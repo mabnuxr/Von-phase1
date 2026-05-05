@@ -325,47 +325,52 @@
   color: #1e293b;
 }
 
-.dd-v2-variant-btns {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px;
-  background: #f1f5f9;
-  border-radius: 6px;
+/* Variant selector — pill-shaped dropdown trigger.
+ * Replaces the older row-of-buttons UI; the design-system Dropdown
+ * (../../../../design-components/src/components/Dropdown) supplies the menu.
+ * Soft violet styling visually distinguishes "switch variant at current
+ * level" from breadcrumb segments (which are level navigation). */
+.dd-v2-variant-dropdown {
+  /* Container is positioned by Dropdown itself (relative + inline-block);
+   * scope nothing here — the trigger button below carries all the visual
+   * styling. */
 }
 
-.dd-v2-variant-btn {
-  position: relative;
-  background: transparent;
-  border: none;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #475569;
-  cursor: pointer;
-  border-radius: 4px;
-  font-family: inherit;
+.dd-v2-variant-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 5px 12px;
+  background: #ede9fe; /* violet-100 */
+  color: #7c3aed; /* violet-600 */
+  border: none;
+  border-radius: 9999px; /* full pill */
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
   white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.dd-v2-variant-btn:hover {
-  color: #1e293b;
+.dd-v2-variant-trigger:hover {
+  background: #ddd6fe; /* violet-200 */
 }
 
-.dd-v2-variant-btn-active {
-  background: #fff;
-  color: #1e293b;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+.dd-v2-variant-trigger:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
 }
 
-.dd-v2-variant-default-tag {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: #94a3b8;
-  letter-spacing: 0.04em;
+.dd-v2-variant-trigger-label {
+  /* Truncate very long variant labels rather than letting them push the
+   * close icon off the header. Generous max-width keeps typical 1–3-word
+   * labels intact. */
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dd-v2-icon-btn {
@@ -477,10 +482,40 @@
   position: relative;
 }
 
+/* Drillable cell affordance — pointer cursor on every clickable row, and
+ * a light-violet bg on the SPECIFIC hovered cell (cell-level, not
+ * row-level). The ``dd-v2-grid-wrap-drillable`` class is toggled by
+ * DrilldownPanelV2 based on ``drill.hasNextLevel``: present when cell
+ * clicks descend, absent at the floor of the pyramid where rows are
+ * inert. Same violet token as the dashboard's TableWidget cell hover so
+ * the visual language matches across both views.
+ *
+ * Cell-level scoping (``td:hover``) is intentional — the affordance is
+ * "this cell triggers a drill," and the hover should land where the
+ * cursor is, not light up the entire row. The duplicated selector
+ * handles Grid Lite's even-row zebra stripes (opaque td bg) at matching
+ * specificity. */
 .dd-v2-grid-wrap-drillable tbody tr {
   cursor: pointer;
 }
 
-.dd-v2-grid-wrap-drillable tbody tr:hover {
-  background-color: #f9fafb;
+/* Specificity matters here. Empirically (verified via DevTools cascade
+ * inspection on a live drill view), a (0,3,3) rule structurally matches
+ * the hovered td but Grid Lite's CSS-variable-driven cell painting wins
+ * for ``background-color`` even when source-order tiebreaker should favor
+ * us — outline-only properties from the same selector DO apply, so the
+ * issue is specifically a competing bg declaration somewhere in the
+ * Grid Lite cascade. Bumping to (0,4,3) by adding the ``.hcg-container``
+ * class qualifier (which is on a Grid-Lite-internal wrapper between our
+ * wrap and the table) wins reliably for both zebra-stripe variants
+ * (odd + even rows). The ``hcg-row-even`` branch stays for parity with
+ * Grid Lite's zebra rules that paint the even-row td bg directly. */
+.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr td:hover,
+.dd-v2-grid-wrap-drillable
+  .hcg-container
+  .hcg-table
+  tbody
+  tr.hcg-row-even
+  td:hover {
+  background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }

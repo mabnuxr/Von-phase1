@@ -59,6 +59,41 @@
   border-right: none;
 }
 
+/* ─── Drillable cell hover ───────────────────────────────────────
+ * Light-violet bg + pointer cursor on the hovered cell only — indicates
+ * "this cell can trigger a drill." The ``clickable-cells`` modifier is
+ * added by TableWidget when its ``onCellClick`` prop is wired (i.e.
+ * WidgetRenderer's case 'table' passed an onPointDrillDown handler —
+ * which requires the panel to have ``drilldown_v2`` populated). So the
+ * affordance only appears when clicking will actually do something.
+ *
+ * Cell-level (``td:hover``) — not row-level — because the hover is a
+ * pointer-affordance hint rather than a "this whole row is selected"
+ * indication. The cell-level scope keeps the visual change tight under
+ * the cursor where the user expects it. The duplicated selector
+ * explicitly handles ``tr.hcg-row-even td`` because Grid Lite paints
+ * even-row zebra stripes via an opaque td background; the violet has to
+ * win at the same or higher selector specificity. */
+.table-widget-root.clickable-cells .hcg-table tbody td {
+  cursor: pointer;
+}
+
+/* Specificity bump — adding ``.hcg-container`` qualifier between the root
+ * and ``.hcg-table`` lifts to (0,5,3), winning reliably against Grid Lite's
+ * CSS-variable-driven cell painting on both zebra-stripe variants (odd +
+ * even rows). The compound ``.table-widget-root.clickable-cells`` already
+ * gave us (0,4,2), but empirical DevTools inspection on the V2 drill view
+ * showed even (0,3,3) loses for ``background-color`` to a Grid Lite
+ * declaration we couldn't pin down via static analysis (outline-only
+ * properties from the same selector applied — so the issue is specifically
+ * a bg declaration). The ``hcg-container`` segment is the inner wrapper
+ * Grid Lite always renders, so the new specificity holds for every
+ * TableWidget render. */
+.table-widget-root.clickable-cells .hcg-container .hcg-table tbody tr td:hover,
+.table-widget-root.clickable-cells .hcg-container .hcg-table tbody tr.hcg-row-even td:hover {
+  background-color: #ede9fe; /* violet-100 — same token as variant pill */
+}
+
 /* ─── Server Pagination (matches HCG pagination style) ──────────── */
 
 .server-pagination-bar {
