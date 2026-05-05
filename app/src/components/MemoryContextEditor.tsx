@@ -100,9 +100,9 @@ interface MemoryContextEditorProps {
    *  can pick the surface (SidePane, modal, etc). */
   onPreviewAttachment?: (attachment: FileAttachment) => void;
   /** Called immediately when the user picks a file. Should presign + S3 PUT
-   *  and resolve with the persisted attachment metadata. The editor shows an
-   *  uploading spinner until this resolves. */
-  onUploadFile?: (file: File) => Promise<{ fileId: string; s3Key: string }>;
+   *  + confirm and resolve with the persisted FileMetadata id. The editor
+   *  shows an uploading spinner until this resolves. */
+  onUploadFile?: (file: File) => Promise<{ fileId: string }>;
 }
 
 /**
@@ -162,17 +162,17 @@ export function MemoryContextEditor({
     setAttachments((prev) => [...prev, ...next]);
     if (!onUploadFile) return;
 
-    // Kick off uploads in parallel; patch each chip with its s3Key/uploadId
-    // as the upload resolves. The local id is preserved so concurrent picks
-    // and removes don't collide. Failed uploads drop their chip — the user
-    // retries by re-attaching.
+    // Kick off uploads in parallel; patch each chip with its uploadId
+    // (FileMetadata id) as the upload resolves. The local id is preserved
+    // so concurrent picks and removes don't collide. Failed uploads drop
+    // their chip — the user retries by re-attaching.
     next.forEach((att) => {
       onUploadFile(att.file)
-        .then(({ fileId, s3Key }) => {
+        .then(({ fileId }) => {
           setAttachments((prev) =>
             prev.map((a) =>
               a.id === att.id
-                ? { ...a, uploadId: fileId, s3Key, status: "uploaded" }
+                ? { ...a, uploadId: fileId, status: "uploaded" }
                 : a,
             ),
           );

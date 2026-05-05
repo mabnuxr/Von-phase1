@@ -1,45 +1,81 @@
 import { apiClient } from "./apiClient";
 import { getFileInfo } from "@vonlabs/design-components";
-import type { PresignRequest, PresignResponse } from "./fileUploadService";
 import type { MemoryAttachment } from "../types/memoryContext";
 
 /**
- * Generate a Mongo-compatible ObjectId (24 hex chars: 8-byte timestamp +
- * 10-byte random + 6-byte counter). Avoids pulling in the `bson` package.
+ * Generate a Mongo-compatible ObjectId (24 hex chars: 4-byte timestamp +
+ * 5-byte random + 3-byte counter). Avoids pulling in the `bson` package.
  */
 export function generateMemoryId(): string {
+  // 4-byte timestamp (seconds since epoch) → 8 hex chars
   const timestamp = Math.floor(Date.now() / 1000)
     .toString(16)
     .padStart(8, "0");
-  const bytes = new Uint8Array(13);
-  crypto.getRandomValues(bytes);
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join(
-    "",
-  );
-  return timestamp + hex;
+  // 5 random bytes → 10 hex chars
+  const random = Array.from({ length: 5 }, () =>
+    Math.floor(Math.random() * 256)
+      .toString(16)
+      .padStart(2, "0"),
+  ).join("");
+  // 3-byte counter → 6 hex chars
+  const counter = Math.floor(Math.random() * 0xffffff)
+    .toString(16)
+    .padStart(6, "0");
+  return timestamp + random + counter;
 }
 
 /**
- * Memory-scoped file upload (commands-style). The BE has only two endpoints
- * for memory files:
- *   POST /memory-contexts/{memory_id}/files/presign   → presigned PUT URL
- *   GET  /memory-contexts/files/download?s3Key=...    → presigned GET URL
+ * Wire shapes for the memory file endpoints. The S3 key is internal to
+ * the BE — clients only ever see `fileId`.
+ */
+interface MemoryPresignRequest {
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+}
+interface MemoryPresignResponse {
+  uploadUrl: string;
+  fileId: string;
+}
+interface MemoryConfirmResponse {
+  fileId: string;
+  fileName: string;
+  sizeBytes: number;
+  status: string;
+}
+
+/**
+ * Memory-scoped file upload. Three-step flow modeled on the chat upload:
+ *   1. POST /memory-contexts/{memory_id}/files/presign — pending
+ *      FileMetadata + presigned PUT URL
+ *   2. PUT to S3 directly                              — bytes upload
+ *   3. POST /memory-contexts/files/{file_id}/confirm   — HeadObject
+ *      verify, mark completed
+ *   4. GET  /memory-contexts/files/{file_id}/download  — presigned GET
  *
- * There is no confirm/delete — the MemoryContext document's `attachments`
- * array (sent on create/update) is the source of truth for what's attached.
- * `memory_id` in the presign path can be any client-supplied id, including
- * one for a memory that doesn't exist yet (pre-create flow).
+ * `memory_id` may be a draft id for a memory that doesn't exist yet —
+ * the FE generates one upfront via `generateMemoryId()` and uses it as
+ * both the presign target and the create-memory id so the FileMetadata
+ * binding lines up.
  */
 class MemoryFilesService {
   private base(memoryId: string): string {
     return `/api/v1/memory-contexts/${memoryId}/files`;
   }
 
-  /** Presign a PUT URL for direct S3 upload of a file to this memory. */
-  presign(memoryId: string, request: PresignRequest): Promise<PresignResponse> {
-    return apiClient.post<PresignResponse>(
+  presign(
+    memoryId: string,
+    request: MemoryPresignRequest,
+  ): Promise<MemoryPresignResponse> {
+    return apiClient.post<MemoryPresignResponse>(
       `${this.base(memoryId)}/presign`,
       request,
+    );
+  }
+
+  confirm(fileId: string): Promise<MemoryConfirmResponse> {
+    return apiClient.post<MemoryConfirmResponse>(
+      `/api/v1/memory-contexts/files/${fileId}/confirm`,
     );
   }
 
@@ -94,21 +130,23 @@ class MemoryFilesService {
     });
   }
 
-  /** Get a presigned download URL for a memory attachment by its s3 key. */
+  /** Get a presigned download URL for a memory attachment by its fileId. */
   getDownloadUrl(
-    s3Key: string,
+    fileId: string,
   ): Promise<{ downloadUrl: string; fileName: string }> {
     return apiClient.get<{ downloadUrl: string; fileName: string }>(
-      `/api/v1/memory-contexts/files/download?s3Key=${encodeURIComponent(s3Key)}`,
+      `/api/v1/memory-contexts/files/${fileId}/download`,
     );
   }
 
   /**
-   * High-level helper: presign → S3 PUT → assemble the full MemoryAttachment
-   * shape the BE expects on memory create/update. No confirm step. The
+   * High-level helper: presign → S3 PUT → confirm → assemble the
+   * MemoryAttachment shape the BE expects on memory create/update.
+   *
    * `memoryId` may be either an existing memory's id or a client-generated
-   * draft id for a memory that doesn't exist yet (pre-create flow); the BE
-   * presign endpoint accepts both.
+   * draft id for a memory that doesn't exist yet (pre-create flow); the
+   * BE presign endpoint accepts both and binds FileMetadata.memory_id
+   * to whatever was passed.
    */
   async uploadFile(
     memoryId: string,
@@ -121,15 +159,15 @@ class MemoryFilesService {
       fileSize: file.size,
     });
     await this.uploadToS3(presigned.uploadUrl, file, onProgress);
+    const confirmed = await this.confirm(presigned.fileId);
     const info = getFileInfo(file.type);
     return {
-      fileId: presigned.uploadId,
-      fileName: file.name,
-      fileSize: file.size,
+      fileId: confirmed.fileId,
+      fileName: confirmed.fileName,
+      fileSize: confirmed.sizeBytes,
       mimeType: file.type,
       extension: info?.extension ?? "",
       category: info?.category ?? "document",
-      s3Key: presigned.s3Key,
     };
   }
 }

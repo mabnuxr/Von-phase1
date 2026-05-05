@@ -1,7 +1,11 @@
 /**
- * File attached to a memory context. Mirrors the backend's
- * FileAttachmentSchema 1:1 — same shape on read and write so the FE can
- * round-trip the array without translation.
+ * File attached to a memory context — read shape (BE → FE).
+ *
+ * Carries the fileId + denormalized display snapshot. The storage key
+ * (s3Key) is intentionally NOT exposed; clients reference files by
+ * fileId and the download endpoint resolves the storage path
+ * server-side. This decoupling lets the BE re-partition / shard / swap
+ * providers without breaking clients.
  */
 export interface MemoryAttachment {
   fileId: string;
@@ -10,7 +14,15 @@ export interface MemoryAttachment {
   mimeType: string;
   extension: string;
   category: string;
-  s3Key: string;
+}
+
+/**
+ * Memory attachment as the FE sends it on create/update — fileIds only.
+ * The BE looks up each FileMetadata, validates ownership + memory
+ * binding, and persists the denormalized snapshot.
+ */
+export interface MemoryAttachmentInput {
+  fileId: string;
 }
 
 /**
@@ -57,28 +69,29 @@ export interface MemoryContextUpdateRequest {
   key?: string;
   description?: string;
   value?: string;
-  /** Replacement set of attachments — commands-style, the server takes
-   *  whatever the FE sends as the new state. Each entry was pre-uploaded
-   *  via the presign endpoint. Org memory only. */
-  attachments?: MemoryAttachment[];
+  /** Replacement set of attachments — fileIds only. The server resolves
+   *  each FileMetadata, verifies ownership + memory binding, and stores
+   *  the denormalized display snapshot. Org memory only. */
+  attachments?: MemoryAttachmentInput[];
 }
 
 /**
  * Request body for creating a memory context
  */
 export interface MemoryContextCreateRequest {
-  /** Optional client-supplied 24-hex ObjectId. Used by the FE pre-create
-   *  attachment-upload flow so files can be uploaded against a known id
-   *  before the memory is created. */
+  /** Optional client-supplied 24-hex ObjectId. Required when
+   *  `attachments` is non-empty since presign already bound each file
+   *  to this id via FileMetadata.memory_id. */
   id?: string;
   key: string;
   description: string;
   value?: string;
   accessLevel?: "tenant" | "user";
   isDefault?: boolean;
-  /** Files attached at create time — each was pre-uploaded via presign.
+  /** Files attached at create time — fileIds only. Each was
+   *  presigned + uploaded + confirmed against the same `id` above.
    *  Org memory only. */
-  attachments?: MemoryAttachment[];
+  attachments?: MemoryAttachmentInput[];
 }
 
 /**

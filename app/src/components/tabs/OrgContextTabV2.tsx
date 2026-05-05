@@ -31,6 +31,7 @@ import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
+import { folderKeys } from "../../hooks/folders";
 import {
   memoryFilesService,
   generateMemoryId,
@@ -47,8 +48,9 @@ export interface OrgContextTabV2Props {
 /**
  * Convert a server-persisted MemoryAttachment into a FileAttachment for chip
  * rendering. The `file` field is a zero-byte placeholder Blob so the existing
- * chip components keep working; `uploadId` holds the BE FileAttachment id and
- * `s3Key` is preserved so the preview drawer can request a download URL.
+ * chip components keep working; `uploadId` holds the FileMetadata id which
+ * the preview drawer hands to the download endpoint to resolve the storage
+ * path server-side. The s3 key is intentionally NOT held client-side.
  */
 function summaryToAttachment(
   summary: NonNullable<MemoryContext["attachments"]>[number],
@@ -67,27 +69,17 @@ function summaryToAttachment(
       "document",
     status: "uploaded",
     uploadId: summary.fileId,
-    s3Key: summary.s3Key,
   };
 }
 
 /**
  * Inverse — turn an editor-local FileAttachment into the wire shape the BE
- * expects on memory create/update.
+ * expects on memory create/update. The BE accepts fileIds only and looks
+ * up the rest of the metadata server-side.
  */
-function attachmentToWire(
-  a: FileAttachment,
-): NonNullable<MemoryContext["attachments"]>[number] | null {
-  if (a.status !== "uploaded" || !a.uploadId || !a.s3Key) return null;
-  return {
-    fileId: a.uploadId,
-    fileName: a.name,
-    fileSize: a.size,
-    mimeType: a.type,
-    extension: a.extension,
-    category: a.category,
-    s3Key: a.s3Key,
-  };
+function attachmentToWire(a: FileAttachment): { fileId: string } | null {
+  if (a.status !== "uploaded" || !a.uploadId) return null;
+  return { fileId: a.uploadId };
 }
 
 export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
@@ -125,6 +117,10 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   // and shows an inline "Von is updating your memory" state. Once the user
   // memory value changes (polled below) we close the pane. The created
   // conversation is still accessible from the sidebar.
+  //
+  // `onCreated` mirrors the sidebar refetch the hook normally fires under
+  // `navigateOnCreate=true` — without it the chat sidebar stays cached
+  // and the new conversation only appears after a hard reload.
   const bulkImportFlow = useCreateAndSendMessage({
     agentVersion: isAgentV2Flag ? "v2" : "v1",
     isAgentV2: isAgentV2Flag,
@@ -132,6 +128,11 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     // matching how the regular New Conversation flow behaves.
     title: "",
     navigateOnCreate: false,
+    onCreated: () => {
+      queryClient.refetchQueries({
+        queryKey: folderKeys.unfiled("conversation"),
+      });
+    },
   });
 
   // Currently previewed attachment — null when the preview drawer is closed.
@@ -293,20 +294,21 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   }, [selectedOrgContextId, contexts]);
 
   // Fetch a presigned download URL whenever a persisted attachment opens.
-  // Persisted chips have a 0-byte placeholder File and an `s3Key`; freshly
-  // uploaded chips with a real File use a local blob URL instead.
+  // Persisted chips have a 0-byte placeholder File and a `uploadId`
+  // (FileMetadata id) — the BE resolves it to a presigned GET URL.
+  // Freshly uploaded chips with a real File use a local blob URL instead.
   useEffect(() => {
     if (!previewingAttachment) {
       setPersistedPreviewUrl(null);
       return;
     }
-    if (previewingAttachment.file.size > 0 || !previewingAttachment.s3Key) {
+    if (previewingAttachment.file.size > 0 || !previewingAttachment.uploadId) {
       setPersistedPreviewUrl(null);
       return;
     }
     let cancelled = false;
     memoryFilesService
-      .getDownloadUrl(previewingAttachment.s3Key)
+      .getDownloadUrl(previewingAttachment.uploadId)
       .then((res) => {
         if (!cancelled) setPersistedPreviewUrl(res.downloadUrl);
       })
@@ -370,20 +372,19 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     }
   };
 
-  // Editor → presigned S3 upload at file pick time. Routes to the draft
-  // endpoint when creating (memory id doesn't exist yet) or the regular
-  // endpoint when editing. Returns the persisted FileMetadata id.
-  const uploadEditorFile = async (
-    file: File,
-  ): Promise<{ fileId: string; s3Key: string }> => {
+  // Editor → presign + S3 PUT + confirm at file pick time. Returns just
+  // the FileMetadata id; the editor stores it on the chip's uploadId so
+  // attachmentToWire can serialize it on save.
+  const uploadEditorFile = async (file: File): Promise<{ fileId: string }> => {
     try {
       // Edit mode: target the existing memory's id. Create mode: target
-      // the client-generated draft id; the BE presign endpoint accepts any
-      // string, including ids of memories that don't exist yet.
+      // the client-generated draft id; the BE presign endpoint accepts
+      // any 24-hex string, including ids of memories that don't exist
+      // yet (FileMetadata.memory_id binds the file to the future memory).
       const target = editingContext?.id ?? draftMemoryId;
       if (!target) throw new Error("No memory id available for upload");
       const att = await memoryFilesService.uploadFile(target, file);
-      return { fileId: att.fileId, s3Key: att.s3Key };
+      return { fileId: att.fileId };
     } catch (err) {
       const detail = err instanceof Error ? err.message : "please try again.";
       showToast({
