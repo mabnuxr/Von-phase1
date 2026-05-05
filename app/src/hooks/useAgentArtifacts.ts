@@ -24,26 +24,36 @@ import {
 } from "../services/fileUploadService";
 import { recordArtifactDelivered } from "../lib/realtimeFileDeliveryObservability";
 
-/** Query key factory for agent artifact queries */
+/** Query key factory. `forConversation` is a prefix matching every
+ *  per-run query — pass to `invalidateQueries` to refresh all runs at once. */
 export const agentArtifactKeys = {
   all: ["agent-artifacts"] as const,
+  forConversation: (conversationId: string) =>
+    ["agent-artifacts", conversationId] as const,
   run: (conversationId: string, runId: string) =>
     ["agent-artifacts", conversationId, runId] as const,
 };
+
+/** `isTerminal` mirrors the parent message status; when false, polling
+ *  continues on empty data so a too-early initial fetch can't disarm us. */
+export interface AgentArtifactTurn {
+  runId: string;
+  isTerminal: boolean;
+}
 
 /**
  * Fetches agent-generated artifacts per run, returning a Map<runId, artifacts[]>.
  *
  * @param conversationId - The conversation these runs belong to
- * @param runIds - Unique runIds extracted from assistant messages
+ * @param turns - Per-turn { runId, isTerminal } extracted from assistant messages
  */
 export function useAgentArtifacts(
   conversationId: string | null,
-  runIds: string[],
+  turns: AgentArtifactTurn[],
 ) {
   const queries = useQueries({
-    queries: runIds.map((runId) => ({
-      queryKey: agentArtifactKeys.run(conversationId ?? "", runId),
+    queries: turns.map((turn) => ({
+      queryKey: agentArtifactKeys.run(conversationId ?? "", turn.runId),
       queryFn: async (): Promise<FileMetadataResponse[]> => {
         if (!conversationId) return [];
         const response = await fileUploadService.listFiles(
@@ -51,22 +61,30 @@ export function useAgentArtifacts(
           1,
           100,
           "agent_generated",
-          runId,
+          turn.runId,
         );
-        recordArtifactDelivered(conversationId, runId, response.data, "api");
+        recordArtifactDelivered(
+          conversationId,
+          turn.runId,
+          response.data,
+          "api",
+        );
         return response.data;
       },
       enabled: !!conversationId,
-      // staleTime is short rather than Infinity because rows transition
-      // processing → completed asynchronously; refetches must be allowed.
       staleTime: 0,
+      // Tab-refocus recovery for missed RUN_FINISHED.
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
       refetchInterval: (query: {
         state: { data?: FileMetadataResponse[]; dataUpdateCount: number };
       }) => {
-        const data = query.state.data;
-        if (!data || data.length === 0) return false;
         if (query.state.dataUpdateCount >= ARTIFACT_INFLIGHT_MAX_POLLS)
           return false;
+        const data = query.state.data;
+        if (!data || data.length === 0) {
+          return turn.isTerminal ? false : ARTIFACT_INFLIGHT_POLL_INTERVAL_MS;
+        }
         if (data.some((a) => a.status !== "completed"))
           return ARTIFACT_INFLIGHT_POLL_INTERVAL_MS;
         return false;
@@ -77,14 +95,14 @@ export function useAgentArtifacts(
   // Combine per-run query results into a single Map<runId, FileMetadataResponse[]>
   const agentArtifactsByRunId = useMemo(() => {
     const map = new Map<string, FileMetadataResponse[]>();
-    for (let i = 0; i < runIds.length; i++) {
+    for (let i = 0; i < turns.length; i++) {
       const result = queries[i];
       if (result?.data && result.data.length > 0) {
-        map.set(runIds[i], result.data);
+        map.set(turns[i].runId, result.data);
       }
     }
     return map;
-  }, [runIds, queries]);
+  }, [turns, queries]);
 
   return agentArtifactsByRunId;
 }
