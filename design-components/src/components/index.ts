@@ -78,11 +78,15 @@ export type { TextProps } from './Text';
 
 // File Attachment Types & Components
 export type { FileAttachment, FileCategory } from './Chat/FileAttachment';
+export { FilePreview } from './Chat/FileAttachment';
+export type { FilePreviewProps } from './Chat/FileAttachment';
 export { FilePreviewModal } from './Chat/FileAttachment';
 export type { FilePreviewModalProps } from './Chat/FileAttachment';
 export {
   getFileInfo,
   generateFileId,
+  getAcceptString,
+  formatFileSize,
   FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
@@ -549,6 +553,9 @@ export type {
   ShareResult as ChatShareResult,
   TeamMemberOption,
 } from './popups';
+
+export { DeleteConfirmationPopup } from './popups';
+export type { DeleteConfirmationPopupProps, DeleteItemType } from './popups';
 
 // ============================================================================
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
