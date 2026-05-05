@@ -482,23 +482,24 @@
   position: relative;
 }
 
-/* Whole-row drillable affordance — pointer cursor + light-violet hover.
- * The ``dd-v2-grid-wrap-drillable`` class is toggled by DrilldownPanelV2
- * based on ``drill.hasNextLevel``: present when row clicks descend, absent
- * at the floor of the pyramid where rows are inert. Same violet token as
- * the dashboard's TableWidget hover so the visual language matches across
- * the dashboard view and the drill view. Cell-level rule overrides Grid
- * Lite's per-td opaque backgrounds (zebra stripes) — the row-level rule
- * alone wouldn't show through. */
+/* Drillable cell affordance — pointer cursor on every clickable row, and
+ * a light-violet bg on the SPECIFIC hovered cell (cell-level, not
+ * row-level). The ``dd-v2-grid-wrap-drillable`` class is toggled by
+ * DrilldownPanelV2 based on ``drill.hasNextLevel``: present when cell
+ * clicks descend, absent at the floor of the pyramid where rows are
+ * inert. Same violet token as the dashboard's TableWidget cell hover so
+ * the visual language matches across both views.
+ *
+ * Cell-level scoping (``td:hover``) is intentional — the affordance is
+ * "this cell triggers a drill," and the hover should land where the
+ * cursor is, not light up the entire row. The duplicated selector
+ * handles Grid Lite's even-row zebra stripes (opaque td bg) at matching
+ * specificity. */
 .dd-v2-grid-wrap-drillable tbody tr {
   cursor: pointer;
 }
 
-.dd-v2-grid-wrap-drillable tbody tr:hover {
-  background-color: #ede9fe;
-}
-
-.dd-v2-grid-wrap-drillable .hcg-table tbody tr:hover td,
-.dd-v2-grid-wrap-drillable .hcg-table tbody tr.hcg-row-even:hover td {
+.dd-v2-grid-wrap-drillable .hcg-table tbody td:hover,
+.dd-v2-grid-wrap-drillable .hcg-table tbody tr.hcg-row-even td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }
