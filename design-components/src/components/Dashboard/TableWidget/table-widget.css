@@ -78,13 +78,19 @@
   cursor: pointer;
 }
 
-/* The compound ``.table-widget-root.clickable-cells`` selector wins on
- * specificity (0,4,2) against the design-system theme's whole-row hover
- * rule (0,3,3) — class count beats element count. The ``hcg-row-even``
- * branch covers Grid Lite's zebra-striped rows, which paint td bg via a
- * higher-specificity rule of their own. */
-.table-widget-root.clickable-cells .hcg-table tbody tr td:hover,
-.table-widget-root.clickable-cells .hcg-table tbody tr.hcg-row-even td:hover {
+/* Specificity bump — adding ``.hcg-container`` qualifier between the root
+ * and ``.hcg-table`` lifts to (0,5,3), winning reliably against Grid Lite's
+ * CSS-variable-driven cell painting on both zebra-stripe variants (odd +
+ * even rows). The compound ``.table-widget-root.clickable-cells`` already
+ * gave us (0,4,2), but empirical DevTools inspection on the V2 drill view
+ * showed even (0,3,3) loses for ``background-color`` to a Grid Lite
+ * declaration we couldn't pin down via static analysis (outline-only
+ * properties from the same selector applied — so the issue is specifically
+ * a bg declaration). The ``hcg-container`` segment is the inner wrapper
+ * Grid Lite always renders, so the new specificity holds for every
+ * TableWidget render. */
+.table-widget-root.clickable-cells .hcg-container .hcg-table tbody tr td:hover,
+.table-widget-root.clickable-cells .hcg-container .hcg-table tbody tr.hcg-row-even td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }
 

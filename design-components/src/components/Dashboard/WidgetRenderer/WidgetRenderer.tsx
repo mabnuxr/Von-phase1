@@ -1,4 +1,4 @@
-import { useCallback, memo } from 'react';
+import { useCallback, useMemo, memo } from 'react';
 import { WidgetShell } from '../WidgetShell';
 import { AddToChatButton } from '../../VonIcon';
 import { ChartWidget } from '../ChartWidget';
@@ -103,7 +103,26 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
       [onPointDrillDown, widget.id, widget.drilldown_v2]
     );
 
-    const tableCellClickHandler = onPointDrillDown ? handleTableCellClick : undefined;
+    // Gate the cell-click handler on the panel actually having a usable
+    // drilldown_v2 column_map. Without this, ANY table panel where the parent
+    // wires onPointDrillDown gets the cell-click handler — and the
+    // ``clickable-cells`` modifier downstream — even though clicking will
+    // return early at the columnMap.length === 0 check above. The user then
+    // sees a hover affordance on cells that don't actually drill (e.g. a
+    // cohort table whose lineage shape didn't qualify for drilldown_v2).
+    //
+    // Mirror the same usability check the handler does: at least one
+    // non-extract_from column_map entry on the L0 default variant is required
+    // for the click to produce drill_filters.
+    const hasUsableDrilldownV2 = useMemo(() => {
+      const v2 = widget.drilldown_v2;
+      const defaultVariant =
+        v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
+      const columnMap = defaultVariant?.column_map ?? [];
+      return columnMap.some((cm) => !cm.extract_from);
+    }, [widget.drilldown_v2]);
+    const tableCellClickHandler =
+      onPointDrillDown && hasUsableDrilldownV2 ? handleTableCellClick : undefined;
 
     switch (widget.type) {
       case 'chart':

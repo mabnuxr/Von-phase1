@@ -499,17 +499,18 @@
   cursor: pointer;
 }
 
-/* Specificity matters here. The design-system theme paints the whole row
- * on hover via ``.report-grid-wrapper .hcg-table tbody tr:hover td``
- * (specificity 0,3,3). The naive cell rule
- * ``.dd-v2-grid-wrap-drillable .hcg-table tbody td:hover`` is (0,3,2) —
- * loses. Adding the explicit ``tr`` segment bumps to (0,3,3) which ties
- * the theme rule, and source order tiebreaker favors this rule (app CSS
- * loads after the design-components dist CSS in main.tsx). The
- * ``hcg-row-even`` qualifier covers the other code path Grid Lite uses
- * for zebra-striped even rows (paints td bg with higher specificity than
- * the row-hover rule, so the hover override needs to match it). */
-.dd-v2-grid-wrap-drillable .hcg-table tbody tr td:hover,
-.dd-v2-grid-wrap-drillable .hcg-table tbody tr.hcg-row-even td:hover {
+/* Specificity matters here. Empirically (verified via DevTools cascade
+ * inspection on a live drill view), a (0,3,3) rule structurally matches
+ * the hovered td but Grid Lite's CSS-variable-driven cell painting wins
+ * for ``background-color`` even when source-order tiebreaker should favor
+ * us — outline-only properties from the same selector DO apply, so the
+ * issue is specifically a competing bg declaration somewhere in the
+ * Grid Lite cascade. Bumping to (0,4,3) by adding the ``.hcg-container``
+ * class qualifier (which is on a Grid-Lite-internal wrapper between our
+ * wrap and the table) wins reliably for both zebra-stripe variants
+ * (odd + even rows). The ``hcg-row-even`` branch stays for parity with
+ * Grid Lite's zebra rules that paint the even-row td bg directly. */
+.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr td:hover,
+.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr.hcg-row-even td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }
