@@ -511,6 +511,11 @@
  * (odd + even rows). The ``hcg-row-even`` branch stays for parity with
  * Grid Lite's zebra rules that paint the even-row td bg directly. */
 .dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr td:hover,
-.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr.hcg-row-even td:hover {
+.dd-v2-grid-wrap-drillable
+  .hcg-container
+  .hcg-table
+  tbody
+  tr.hcg-row-even
+  td:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
 }
