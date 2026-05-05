@@ -5,88 +5,16 @@
  * The dropdown lists ALL enabled services — connected ones have a green checkmark,
  * non-connected ones trigger a "connect" flow when clicked.
  * Hidden entirely when no services are enabled.
+ *
+ * Types live in `./storageExportTypes` and the legacy-prop helper in
+ * `./buildStorageServices` so this file only exports the React component
+ * (required for HMR / fast-refresh).
  */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { CaretDownIcon, SpinnerGapIcon, CheckIcon } from '@phosphor-icons/react';
-import { Tooltip } from '../Tooltip';
-
-const driveLogo =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/GDrive.svg';
-const boxLogo = 'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Box.svg';
-
-// ============================================================================
-// Types
-// ============================================================================
-
-export interface StorageService {
-  id: string;
-  name: string;
-  logo: string;
-  tooltip: string;
-  connected: boolean;
-  loading: boolean;
-  onClick: () => void;
-}
-
-export interface StorageExportButtonProps {
-  services: StorageService[];
-  /** Whether to stop event propagation on clicks (needed inside clickable cards) */
-  stopPropagation?: boolean;
-  /** Which side the dropdown opens towards. Defaults to 'left' (dropdown left-aligned). */
-  dropdownAlign?: 'left' | 'right';
-  /** Externally controlled active service ID (syncs selection across instances) */
-  activeServiceId?: string | null;
-}
-
-// ============================================================================
-// Helpers — build services from the legacy per-service props
-// ============================================================================
-
-export interface StorageExportLegacyProps {
-  onGoogleDriveClick?: () => void;
-  isDriveEnabled?: boolean;
-  isDriveConnected?: boolean;
-  isDriveLoading?: boolean;
-  onBoxClick?: () => void;
-  isBoxEnabled?: boolean;
-  isBoxConnected?: boolean;
-  isBoxLoading?: boolean;
-}
-
-export function buildStorageServices(props: StorageExportLegacyProps): StorageService[] {
-  const services: StorageService[] = [];
-
-  if (props.isDriveEnabled && props.onGoogleDriveClick) {
-    services.push({
-      id: 'drive',
-      name: 'Google Drive',
-      logo: driveLogo,
-      tooltip: props.isDriveConnected ? 'Open in Google Drive' : 'Connect Google Drive',
-      connected: props.isDriveConnected ?? false,
-      loading: props.isDriveLoading ?? false,
-      onClick: props.onGoogleDriveClick,
-    });
-  }
-
-  if (props.isBoxEnabled && props.onBoxClick) {
-    services.push({
-      id: 'box',
-      name: 'Box',
-      logo: boxLogo,
-      tooltip: props.isBoxConnected ? 'Open in Box' : 'Connect Box',
-      connected: props.isBoxConnected ?? false,
-      loading: props.isBoxLoading ?? false,
-      onClick: props.onBoxClick,
-    });
-  }
-
-  return services;
-}
-
-// ============================================================================
-// Component
-// ============================================================================
+import { Tooltip } from '../../Tooltip';
+import type { StorageService, StorageExportButtonProps } from './storageExportTypes';
 
 export const StorageExportButton: React.FC<StorageExportButtonProps> = ({
   services,

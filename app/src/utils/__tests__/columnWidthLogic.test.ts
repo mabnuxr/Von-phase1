@@ -199,7 +199,6 @@ describe("buildProbeColumns", () => {
       [
         {
           id: "name",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           cells: {
             formatter(this: { value: unknown }) {
               return `<strong>${String(this.value)}</strong>`;
@@ -220,7 +219,6 @@ describe("buildProbeColumns", () => {
       [
         {
           id: "name",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           cells: { format: '<a href="{url}">{value}</a>' },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,

@@ -191,6 +191,11 @@ export interface CounterWidgetProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -206,10 +211,18 @@ export interface TextWidgetConfig {
 export type MustacheVariables = Record<string, string | number | null | undefined>;
 
 export interface TextWidgetProps {
+  /** Panel id used by auto-fit coordination. Pass through from WidgetRenderer. */
+  panelId?: string;
   config: TextWidgetConfig;
   /** Variables substituted into `{{key}}` tokens in `config.content`. */
   variables?: MustacheVariables;
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle at the top-left so the
+   * widget can be moved while the dashboard is in edit mode. Only takes
+   * effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Table ──────────────────────────────────────────────────────
@@ -272,6 +285,11 @@ export interface WidgetShellProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -303,6 +321,11 @@ export interface WidgetRendererProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Variables for `{{key}}` mustache tokens inside a text widget's content. */
   variables?: MustacheVariables;
+  /**
+   * When true, renders edit-mode chrome (drag-pill in widget header). Pass
+   * through from the grid; only takes effect alongside the drag-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -323,6 +346,13 @@ export interface DashboardGridProps {
   tableSortStates?: Record<string, SortState>;
   /** Whether the dashboard is in edit mode (shows visual indicators on widgets) */
   isEditMode?: boolean;
+  /**
+   * Whether widgets can be rearranged via drag-and-drop and resized in edit
+   * mode. Only takes effect when `isEditMode` is also true. Defaults to true
+   * for backward compatibility — callers gating behind a feature flag should
+   * pass this explicitly.
+   */
+  isDragDropEnabled?: boolean;
   /** Whether all widgets are loading (e.g. after a filter change) */
   isLoading?: boolean;
   /** Applied filters per widget ID (read-only display) */
@@ -336,4 +366,10 @@ export interface DashboardGridProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Per-widget variables map for `{{key}}` mustache tokens inside text widgets. */
   variablesByWidget?: Record<string, MustacheVariables>;
+  /**
+   * Called with the new layout (array of {i,x,y,w,h}) whenever the user drags
+   * or resizes a widget in edit mode. Parent persists the layout; the grid
+   * itself is stateless with respect to positions.
+   */
+  onLayoutChange?: (layout: readonly LayoutItem[]) => void;
 }

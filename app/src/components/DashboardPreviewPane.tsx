@@ -159,6 +159,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       ) : (
         <>
           <AnalyticsView
+            isPreview
             dashboard={dashboard}
             refreshInfo={refreshInfo}
             filterDefinitions={filterDefinitions}

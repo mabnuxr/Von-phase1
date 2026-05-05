@@ -614,6 +614,8 @@ export {
   TextWidget,
   DashboardLayout,
   DataSources,
+  AutoFitContext,
+  useAutoFit,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -635,4 +637,6 @@ export type {
   DataSource,
   DataSourceIcon,
   WidgetAddToChatPayload,
+  AutoFitController,
+  AutoFitReport,
 } from './Dashboard';

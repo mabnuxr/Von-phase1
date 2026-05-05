@@ -43,6 +43,12 @@ export const FEATURE_FLAGS = {
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
   // so a single toggle in LaunchDarkly flips both sides in sync.
   DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  // LaunchDarkly key: `enable-dashboard-drag-drop` (auto-camelCased to
+  // `enableDashboardDragDrop` for `useFlags()` access). Gates the manual
+  // drag-and-drop / resize affordance in dashboard edit mode. When off,
+  // edit mode still works for filters / rename / save, but widgets stay
+  // pinned to their configured layout.
+  DASHBOARD_DRAG_DROP: "enableDashboardDragDrop",
   // LaunchDarkly key: `drilldown_v2` (underscored — matches the backend
   // gate at `app/api/v1/dashboard.py::DRILLDOWN_V2_FLAG`). The React SDK
   // doesn't auto-transform underscores, so the access key here is the
@@ -227,6 +233,14 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether dashboard widgets can be rearranged via drag-and-drop
+     * and resized in edit mode. When false, widgets stay pinned to their
+     * configured layout — edit mode still works for filters / rename / save.
+     */
+    isDashboardDragDropEnabled:
+      flags[FEATURE_FLAGS.DASHBOARD_DRAG_DROP] === true,
 
     /**
      * Controls whether the V2 drilldown UI is wired — bottom-sheet panel,

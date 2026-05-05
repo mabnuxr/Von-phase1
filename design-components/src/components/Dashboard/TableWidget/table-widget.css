@@ -13,17 +13,34 @@
 
 /* Fixed row heights so JS pageSize calculation is exact.
    Matches the drilldown table for visual consistency.
-   Header is a bit taller than body rows for visual hierarchy. */
+   Header is a bit taller than body rows for visual hierarchy.
+   When `autoHeight` is set (or any column has variant `text_wrap`), the
+   fixed tbody height is dropped so rows grow to fit wrapped content. */
 .table-widget-root .hcg-table thead th {
   height: 40px;
   max-height: 40px;
   box-sizing: border-box;
 }
 
-.table-widget-root .hcg-table tbody td {
+.table-widget-root:not(.auto-height) .hcg-table tbody td {
   height: 36px;
   max-height: 36px;
   box-sizing: border-box;
+}
+
+/* ─── Variant cell styles ──────────────────────────────────── */
+
+.table-widget-root .hcg-table td.tw-cell-text-wrap {
+  white-space: normal;
+  vertical-align: top;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  line-height: 1.4;
+}
+
+.table-widget-root .hcg-table td.tw-cell-numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Hide rows-per-page selector — page size is auto-calculated from widget height */
@@ -105,32 +122,11 @@
   border-color: #9ca3af;
 }
 
-/* ─── Empty filler rows below data (spreadsheet look) ────────── */
-
-.table-filler {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  pointer-events: none;
-  width: 100%;
-  table-layout: fixed;
-  border-collapse: collapse;
-  z-index: 1;
-}
-
-.table-filler td {
-  height: 36px;
-  max-height: 36px;
-  box-sizing: border-box;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  border-right: 1px solid #e5e7eb;
-}
-
-.table-filler td:last-child {
-  border-right: none;
+/* Reserve scrollbar gutter so the appearance of Grid Lite's vertical
+   scrollbar doesn't shrink the content area and trigger a phantom
+   horizontal scrollbar. */
+.table-widget-root .hcg-scrollable-content {
+  scrollbar-gutter: stable;
 }
 
 /* ─── Table Skeleton (shown while loading a new page) ─────────── */

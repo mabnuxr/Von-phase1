@@ -7,6 +7,7 @@ import { TextWidget } from '../TextWidget';
 import { TableWidget } from '../TableWidget';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
+import { DragPill } from '../DragPill';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
@@ -33,6 +34,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     filterSlot,
     onAddToChat,
     variables,
+    isEditMode,
   }) => {
     const handleDrillDown = useCallback(() => {
       onDrillDown?.(widget.id);
@@ -64,6 +66,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            isEditMode={isEditMode}
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
@@ -81,6 +84,11 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               className="group relative h-full bg-white border border-gray-200 p-4 flex flex-col items-center justify-center cursor-pointer hover:border-gray-300 transition-all"
               onClick={drillDownHandler}
             >
+              {isEditMode && widget.title && (
+                <div className="absolute top-2.5 left-2.5 z-10 flex items-center h-7">
+                  <DragPill label={widget.title} />
+                </div>
+              )}
               {(filterSlot || appliedFilters || widget.queryInfo || addToChatHandler) && (
                 <div className="absolute top-2.5 right-2.5 flex items-center gap-0.5 z-10">
                   {filterSlot
@@ -109,15 +117,18 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            isEditMode={isEditMode}
           />
         );
 
       case 'text':
         return (
           <TextWidget
+            panelId={widget.id}
             config={widget.config as TextWidgetConfig}
             variables={variables}
             onAddToChat={addToChatHandler}
+            isEditMode={isEditMode}
           />
         );
 
@@ -131,8 +142,10 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            isEditMode={isEditMode}
           >
             <TableWidget
+              panelId={widget.id}
               config={widget.config as TableWidgetConfig}
               onPageChange={
                 onTablePageChange ? (page: number) => onTablePageChange(widget.id, page) : undefined
@@ -151,7 +164,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
       default:
         return (
-          <WidgetShell title={widget.title} onAddToChat={addToChatHandler}>
+          <WidgetShell title={widget.title} onAddToChat={addToChatHandler} isEditMode={isEditMode}>
             <div className="flex items-center justify-center h-full text-sm text-gray-400">
               Unknown widget type
             </div>

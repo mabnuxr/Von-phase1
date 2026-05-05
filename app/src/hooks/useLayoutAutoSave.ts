@@ -1,0 +1,169 @@
+import { useCallback, useEffect, useRef } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { LayoutItem } from "@vonlabs/design-components";
+import { dashboardService } from "../services/dashboardService";
+import { dashboardKeys } from "./useDashboardQuery";
+import { useToast } from "./useToast";
+
+const AUTOSAVE_DEBOUNCE_MS = 500;
+
+type PanelLayouts = Record<
+  string,
+  { x: number; y: number; w: number; h: number }
+>;
+
+function toPanelLayouts(layout: readonly LayoutItem[]): PanelLayouts {
+  const out: PanelLayouts = {};
+  for (const item of layout) {
+    out[String(item.i)] = {
+      x: Number(item.x),
+      y: Number(item.y),
+      w: Number(item.w),
+      h: Number(item.h),
+    };
+  }
+  return out;
+}
+
+function layoutsEqual(a: PanelLayouts, b: PanelLayouts): boolean {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) {
+    const ai = a[k];
+    const bi = b[k];
+    if (!bi) return false;
+    if (ai.x !== bi.x || ai.y !== bi.y || ai.w !== bi.w || ai.h !== bi.h) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Persists drag/resize changes to `ui_config.panel_layouts` via PATCH.
+ * Debounces consecutive changes so a single drag gesture fires one PATCH.
+ *
+ * The hook is intentionally stateless w.r.t. positions — react-grid-layout
+ * owns the in-flight layout; we just forward the final shape server-side.
+ */
+export function useLayoutAutoSave(
+  dashboardId: string,
+  isEditMode: boolean,
+  layout: readonly LayoutItem[],
+) {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pendingRef = useRef<PanelLayouts | null>(null);
+
+  // Seed the saved baseline once from the layout the hook was first called
+  // with. Without this, entering edit mode triggers RGL's
+  // `static: true → false` reconcile, which fires `onLayoutChange` with
+  // unchanged positions; the equality guard in `flushNow` would otherwise
+  // short-circuit on a null baseline and PATCH the layout back to the
+  // server unnecessarily.
+  //
+  // We deliberately don't re-seed from later `layout` prop changes —
+  // overwriting the baseline with stale server data while a save is in
+  // flight (refetch lag) would trick `flushNow` into re-PATCHing work
+  // that's already in flight. After mount, `lastSavedRef` is owned by
+  // `mutation.onSuccess`. Both call sites of this hook gate rendering on
+  // the dashboard query resolving, so the very first `layout` we see is
+  // the authoritative server layout. `useRef`'s initial-value argument is
+  // captured at first render and ignored on subsequent renders, which is
+  // exactly the seed-once semantics we want.
+  const lastSavedRef = useRef<PanelLayouts | null>(toPanelLayouts(layout));
+
+  const mutation = useMutation({
+    mutationFn: async (panelLayouts: PanelLayouts) => {
+      await dashboardService.updateDashboard(dashboardId, {
+        ui_config: { panel_layouts: panelLayouts },
+      });
+    },
+    onSuccess: (_, panelLayouts) => {
+      lastSavedRef.current = panelLayouts;
+      queryClient.invalidateQueries({
+        queryKey: dashboardKeys.detail(dashboardId),
+      });
+    },
+    onError: (error: unknown) => {
+      console.error("[useLayoutAutoSave] PATCH failed:", error);
+      showToast({
+        message: "Failed to save layout. Please try again.",
+        variant: "error",
+      });
+      // Reset lastSaved so a subsequent identical layout still retries.
+      lastSavedRef.current = null;
+    },
+  });
+
+  const flushNow = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    }
+    const next = pendingRef.current;
+    if (!next) return;
+    pendingRef.current = null;
+    if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, next)) {
+      return;
+    }
+    mutation.mutate(next);
+  }, [mutation]);
+
+  const handleLayoutChange = useCallback(
+    (layout: readonly LayoutItem[]) => {
+      // Forward unconditionally. User drags are gated by RGL's
+      // `static: !isEditMode`, so the only non-equal layouts produced
+      // outside edit mode are auto-fit-driven height changes from
+      // useDashboardAutoFit — those still need to PATCH so the next
+      // page load reflects the fitted heights.
+      const next = toPanelLayouts(layout);
+      pendingRef.current = next;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(flushNow, AUTOSAVE_DEBOUNCE_MS);
+    },
+    [flushNow],
+  );
+
+  // Flush any pending change when leaving edit mode or unmounting, so the
+  // server always ends up in sync with the last user gesture.
+  useEffect(() => {
+    if (!isEditMode) flushNow();
+  }, [isEditMode, flushNow]);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      const pending = pendingRef.current;
+      // Clear pending so a `dashboardId`-prop change (which re-runs this
+      // effect without unmounting) can't leak the old dashboard's layout
+      // into the new one's mutation.
+      pendingRef.current = null;
+      if (!pending) return;
+      if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, pending)) {
+        return;
+      }
+      // Fire-and-forget on unmount. Errors will only appear in the console —
+      // users won't see a toast for a tab they just closed. `queryClient`
+      // outlives the component, so invalidating here keeps the cache fresh
+      // even though we bypass the mutation observer's onSuccess.
+      dashboardService
+        .updateDashboard(dashboardId, {
+          ui_config: { panel_layouts: pending },
+        })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: dashboardKeys.detail(dashboardId),
+          });
+        })
+        .catch((error) => {
+          console.error("[useLayoutAutoSave] unmount PATCH failed:", error);
+        });
+    },
+    [dashboardId, queryClient],
+  );
+
+  return { handleLayoutChange, isSaving: mutation.isPending };
+}
