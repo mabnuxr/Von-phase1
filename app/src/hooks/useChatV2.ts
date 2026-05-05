@@ -208,14 +208,23 @@ export function useChatV2(props: UseChatV2Props) {
     assistantTurns,
   );
 
-  // Recovery path for a missed RUN_FINISHED: any messages refetch
-  // (focus, mount, reconciliation) re-pulls artifact rows.
+  // Invalidate when a turn flips to terminal. Keyed off the runId set
+  // so streaming chunks don't trigger per-token re-fetches.
+  const terminalRunIdsKey = useMemo(
+    () =>
+      assistantTurns
+        .filter((t) => t.isTerminal)
+        .map((t) => t.runId)
+        .sort()
+        .join(","),
+    [assistantTurns],
+  );
   useEffect(() => {
-    if (!conversationId || conversationMessages.length === 0) return;
+    if (!conversationId || terminalRunIdsKey.length === 0) return;
     queryClient.invalidateQueries({
       queryKey: agentArtifactKeys.forConversation(conversationId),
     });
-  }, [conversationMessages, conversationId, queryClient]);
+  }, [terminalRunIdsKey, conversationId, queryClient]);
 
   // Chat-type-aware reconciliation
   useReconciliation({
