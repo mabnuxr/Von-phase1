@@ -222,8 +222,7 @@ function DashboardCanvas({
         levelColumnMaps[currentDepth] ?? [],
         levelColumnMaps[currentDepth - 1] ?? [],
       );
-      const breadcrumbSeg =
-        Object.keys(filters)[0] ?? `L${currentDepth}`;
+      const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
       drillV2.pushLevel(nextPath, filters);
