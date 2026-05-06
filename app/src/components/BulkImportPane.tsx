@@ -12,12 +12,10 @@ export interface BulkImportPaneProps {
   isOpen: boolean;
   onClose: () => void;
   /** Fires when the user submits — parent kicks off the import-mode agent
-   *  with the pasted text. User memory is text-only. */
+   *  with the pasted text. User memory is text-only. The pane closes
+   *  immediately on submit; the "Von is updating your memory" state
+   *  renders on the user-memory main window instead. */
   onSubmit?: (input: string) => void;
-  /** While true the pane shows an inline "Von is updating your memory"
-   *  state instead of the input form, and submit/cancel are suppressed.
-   *  Parent flips this to false once the user memory has updated. */
-  isProcessing?: boolean;
 }
 
 /** Canned prompt the user can copy into Claude/ChatGPT/Gemini to extract
@@ -65,7 +63,6 @@ export function BulkImportPane({
   isOpen,
   onClose,
   onSubmit,
-  isProcessing = false,
 }: BulkImportPaneProps) {
   const [input, setInput] = useState("");
   const [contentKey, setContentKey] = useState(0);
@@ -77,15 +74,16 @@ export function BulkImportPane({
   };
 
   const handleSubmit = () => {
-    // Hand off to the parent and clear the editor — but stay open. The
-    // parent flips `isProcessing` to true and only calls `onClose` once the
-    // user memory has actually updated.
+    // Hand off to the parent, clear the editor, and close immediately.
+    // The processing state ("Von is updating your memory") renders on
+    // the user-memory main window, not in this side pane — so closing
+    // here gets the pane out of the user's way.
     onSubmit?.(input);
     resetForm();
+    onClose();
   };
 
   const handleCancel = () => {
-    if (isProcessing) return;
     resetForm();
     onClose();
   };
@@ -120,10 +118,10 @@ export function BulkImportPane({
 
   const hasContent = input.trim().length > 0;
 
-  // Footer: hidden during processing. The pane stays open and shows a
-  // single "Von is updating your memory" pill until the parent confirms
-  // the import landed (user memory value changed).
-  const footer = isProcessing ? null : (
+  // Pane closes on submit — the processing state ("Von is updating your
+  // memory") is rendered by the parent on the user-memory main window,
+  // not here.
+  const footer = (
     <div className="flex items-center justify-end gap-2">
       <button
         type="button"
@@ -147,7 +145,7 @@ export function BulkImportPane({
   return (
     <SidePane
       isOpen={isOpen}
-      onClose={isProcessing ? () => {} : onClose}
+      onClose={onClose}
       title={title}
       width="560px"
       minWidth={440}
@@ -156,105 +154,64 @@ export function BulkImportPane({
       footer={footer}
       resizable
     >
-      {isProcessing ? (
-        <div
-          className="flex flex-col h-full w-full overflow-hidden p-2"
-          aria-label="Von is updating your memory"
-        >
-          <div className="space-y-3 opacity-60">
-            <div className="h-3 w-1/3 bg-gray-100 rounded animate-pulse" />
-            <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
-            <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
-            <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
-            <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
-          </div>
-          <div className="flex-1 flex items-center justify-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/80 bg-white shadow-xs">
-              <SparkleIcon
-                size={14}
-                weight="fill"
-                className="text-gray-500 memory-sparkle-pulse"
-              />
-              <span className="text-sm text-gray-700">
-                Von is updating your memory
-              </span>
-              <span
-                className="inline-flex items-center gap-1 ml-0.5"
-                aria-hidden
-              >
-                <span className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce" />
-                <span
-                  className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
-                  style={{ animationDelay: "150ms" }}
-                />
-                <span
-                  className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
-                  style={{ animationDelay: "300ms" }}
-                />
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col h-full min-h-0 gap-3 pt-2">
-          {/* Step 1: copy the export prompt into another AI. */}
-          <div className="flex-shrink-0 flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
-                1
-              </span>
-              <span className="text-sm text-gray-900">
-                Copy this prompt into a new chat with your other AI provider
-              </span>
-            </div>
-            <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20 h-[160px] overflow-hidden">
-              <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
-                {EXPORT_PROMPT}
-              </p>
-              <button
-                type="button"
-                onClick={handleCopyPrompt}
-                className="absolute top-2 right-2 inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-              >
-                {copiedPrompt ? (
-                  <>
-                    <CheckIcon size={12} weight="bold" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <CopyIcon size={12} weight="regular" />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Step 2 label. */}
-          <div className="flex-shrink-0 flex items-center gap-2">
+      <div className="flex flex-col h-full min-h-0 gap-3 pt-2">
+        {/* Step 1: copy the export prompt into another AI. */}
+        <div className="flex-shrink-0 flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
-              2
+              1
             </span>
             <span className="text-sm text-gray-900">
-              Paste results below to add to your memory
+              Copy this prompt into a new chat with your other AI provider
             </span>
           </div>
-
-          {/* Rich text editor — Tiptap surface. Starts at ~65% of available
-              height; user-resizable up to the full pane. The prompt block
-              above is capped with internal scroll so this always has room. */}
-          <div className="flex-shrink-0 min-h-[180px] h-[65%] max-h-full resize-y overflow-auto border border-gray-200/80 rounded-xl">
-            <OrgContextEditor
-              content={input}
-              onChange={setInput}
-              isEditing={true}
-              placeholder="Paste memory export from another AI, an onboarding doc, a playbook, or describe what to learn..."
-              contentKey={`bulk-import-${contentKey}`}
-            />
+          <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20 h-[160px] overflow-hidden">
+            <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
+              {EXPORT_PROMPT}
+            </p>
+            <button
+              type="button"
+              onClick={handleCopyPrompt}
+              className="absolute top-2 right-2 inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              {copiedPrompt ? (
+                <>
+                  <CheckIcon size={12} weight="bold" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <CopyIcon size={12} weight="regular" />
+                  Copy
+                </>
+              )}
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Step 2 label. */}
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
+            2
+          </span>
+          <span className="text-sm text-gray-900">
+            Paste results below to add to your memory
+          </span>
+        </div>
+
+        {/* Rich text editor — Tiptap surface. Starts at ~65% of available
+              height; user-resizable up to the full pane. The prompt block
+              above is capped with internal scroll so this always has room. */}
+        <div className="flex-shrink-0 min-h-[180px] h-[65%] max-h-full resize-y overflow-auto border border-gray-200/80 rounded-xl">
+          <OrgContextEditor
+            content={input}
+            onChange={setInput}
+            isEditing={true}
+            placeholder="Paste memory export from another AI, an onboarding doc, a playbook, or describe what to learn..."
+            contentKey={`bulk-import-${contentKey}`}
+          />
+        </div>
+      </div>
     </SidePane>
   );
 }

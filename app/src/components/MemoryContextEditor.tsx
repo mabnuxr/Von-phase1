@@ -1,7 +1,7 @@
 import { useRef, useState, useId } from "react";
 import { PaperclipIcon } from "@phosphor-icons/react";
 import {
-  FileChip,
+  FilePreview,
   generateFileId,
   getFileInfo,
   getAcceptString,
@@ -73,7 +73,7 @@ function CharacterBudget({ current, max }: { current: number; max: number }) {
       {isHovered && (
         <span
           role="tooltip"
-          className="absolute bottom-full right-0 mb-1.5 px-2 py-1 rounded-md bg-gray-900 text-white text-xs whitespace-nowrap shadow-sm pointer-events-none z-20"
+          className="absolute top-full right-0 mt-1.5 px-2 py-1 rounded-md bg-gray-900 text-white text-xs whitespace-nowrap shadow-sm pointer-events-none z-50"
         >
           {tooltipText}
         </span>
@@ -300,19 +300,30 @@ export function MemoryContextEditor({
       {!isUserMemory && (
         <div className="flex-shrink-0 flex flex-col gap-2 px-4 pt-4 min-w-0">
           {hiddenFileInput}
-          {attachments.length > 0 && (
-            <div className="flex flex-row flex-wrap items-start gap-1.5 min-w-0">
+          {/* Attachments section — always rendered (even with zero
+              entries) so layout stays stable and the Attach button is
+              consistently positioned. Each chip uses the same
+              card-style FilePreview as the chat-bar input. */}
+          <label className="block text-xs text-gray-800">Attachments</label>
+          {attachments.length > 0 ? (
+            <div className="flex flex-row flex-wrap items-start gap-2 min-w-0">
               {attachments.map((attachment) => (
-                <div key={attachment.id} className="shrink-0">
-                  <FileChip
-                    file={attachment}
-                    isUploading={attachment.status === "uploading"}
+                <div
+                  key={attachment.id}
+                  onClick={() => onPreviewAttachment?.(attachment)}
+                  className="cursor-pointer"
+                >
+                  <FilePreview
+                    attachment={attachment}
                     onRemove={handleRemoveAttachment}
-                    onClick={() => onPreviewAttachment?.(attachment)}
                   />
                 </div>
               ))}
             </div>
+          ) : (
+            <p className="text-xs text-gray-400 italic">
+              No files attached yet.
+            </p>
           )}
           <div>{attachButton}</div>
         </div>

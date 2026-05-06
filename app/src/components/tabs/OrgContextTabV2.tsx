@@ -4,10 +4,11 @@ import {
   TrashIcon,
   BrainIcon,
   DownloadSimpleIcon,
+  SparkleIcon,
 } from "@phosphor-icons/react";
 import {
   DeleteConfirmationPopup,
-  FileChip,
+  FilePreview,
   FilesPreviewPanel,
   getFileInfo,
   type FileAttachment,
@@ -87,6 +88,15 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   const showUser = view === "user";
   const queryClient = useQueryClient();
 
+  // Deep-link support: when the agent surfaces a memory_url like
+  // `/settings?tab=memory-org&memory=<id>`, that id auto-selects the
+  // matching memory in the sidebar list. Read once on mount.
+  const deepLinkMemoryId = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("memory");
+  }, []);
+
   // Selection state for org memory
   const [selectedOrgContextId, setSelectedOrgContextId] = useState<
     string | null
@@ -138,6 +148,13 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   // Currently previewed attachment — null when the preview drawer is closed.
   const [previewingAttachment, setPreviewingAttachment] =
     useState<FileAttachment | null>(null);
+
+  // When the surface flips between org and user (Settings tab swap) the
+  // preview drawer's content belongs to a memory that's no longer
+  // visible — close it so the next mount starts clean.
+  useEffect(() => {
+    setPreviewingAttachment(null);
+  }, [view]);
 
   // Bulk import drawer state — user memory only (org bulk import descoped).
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -279,12 +296,32 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   // Combined loading state for org memory
   const isOrgLoading = isLoading;
 
-  // Auto-select first org memory context when data loads.
+  // Auto-select org memory context when data loads. If a deep-link id is
+  // present in the URL (?memory=<id>), keep paginating until either the
+  // matching context shows up (and select it) or pagination exhausts;
+  // fall back to the first memory in the list if not found.
   useEffect(() => {
-    if (!selectedOrgContextId && contexts.length > 0) {
-      setSelectedOrgContextId(contexts[0].id);
+    if (selectedOrgContextId || contexts.length === 0) return;
+    if (deepLinkMemoryId) {
+      const match = contexts.find((c) => c.id === deepLinkMemoryId);
+      if (match) {
+        setSelectedOrgContextId(match.id);
+        return;
+      }
+      if (hasNextPage && !isFetchingNextPage) {
+        fetchNextPage();
+        return;
+      }
     }
-  }, [contexts, selectedOrgContextId]);
+    setSelectedOrgContextId(contexts[0].id);
+  }, [
+    contexts,
+    selectedOrgContextId,
+    deepLinkMemoryId,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  ]);
 
   // Get selected org context
   const selectedOrgContext = useMemo(() => {
@@ -338,11 +375,14 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     devAdminOverride || (orgMemoryPermissions?.delete ?? false);
 
   // Selecting a different context just swaps it. Save/cancel discard any
-  // pending edits explicitly via Cancel.
+  // pending edits explicitly via Cancel. Also closes the attachment
+  // preview drawer — its content is bound to the previously-selected
+  // memory and would otherwise stay open across the section switch.
   const handleSelectOrgContext = (id: string) => {
     setSelectedOrgContextId(id);
     setEditMode("none");
     setEditingContext(null);
+    setPreviewingAttachment(null);
   };
 
   // Handle create click - flips the right panel into create mode. Generates
@@ -406,6 +446,10 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     if (!pasted) return;
     setEditMode("none");
     setEditingContext(null);
+    // Close the side pane immediately — the processing UI takes over the
+    // user-memory main window so the user has the full surface to watch
+    // the agent work.
+    setIsBulkImportOpen(false);
 
     importBaselineValueRef.current = userMemory?.value ?? "";
     setIsImportProcessing(true);
@@ -682,22 +726,28 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
           </p>
         </div>
 
-        {/* Attached files — rendered between description and content so they
-            read as supporting material the agent can pull from. Chips flow
-            horizontally and only wrap when there's no room for the next chip. */}
-        {contextAttachments.length > 0 && (
+        {/* Attached files — always rendered (even with zero entries) so
+            layout stays stable across memories. Uses the same card-style
+            FilePreview as the chat-bar input. Org memory only — user
+            memory is text-only and renders nothing here. */}
+        {context.accessLevel === "tenant" && (
           <div className="w-full min-w-0 px-4 pt-1 flex flex-col gap-1.5">
             <label className="text-xs text-gray-800">Attachments</label>
-            <div className="flex flex-row flex-wrap items-start gap-1.5">
-              {contextAttachments.map((attachment) => (
-                <div key={attachment.id} className="shrink-0">
-                  <FileChip
-                    file={attachment}
+            {contextAttachments.length > 0 ? (
+              <div className="flex flex-row flex-wrap items-start gap-2">
+                {contextAttachments.map((attachment) => (
+                  <div
+                    key={attachment.id}
                     onClick={() => setPreviewingAttachment(attachment)}
-                  />
-                </div>
-              ))}
-            </div>
+                    className="cursor-pointer"
+                  >
+                    <FilePreview attachment={attachment} removable={false} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 italic">No files attached.</p>
+            )}
           </div>
         )}
 
@@ -903,8 +953,9 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
               <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
                 <div className="flex w-full h-[calc(100vh-220px)]">
                   <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
-                    {/* Floating Edit action — hidden during edit mode. */}
-                    {!isEditing && userMemory && (
+                    {/* Floating Edit action — hidden during edit mode and
+                        the bulk-import processing state. */}
+                    {!isEditing && !isImportProcessing && userMemory && (
                       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
                         <button
                           onClick={handleEditUserClick}
@@ -921,7 +972,46 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
                       </div>
                     )}
 
-                    {isEditing ? (
+                    {isImportProcessing ? (
+                      <div
+                        className="flex flex-col h-full w-full overflow-hidden p-6"
+                        aria-label="Von is updating your memory"
+                      >
+                        <div className="space-y-3 opacity-60">
+                          <div className="h-3 w-1/3 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-3/4 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-2/3 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-5/6 bg-gray-100 rounded animate-pulse" />
+                          <div className="h-3 w-1/2 bg-gray-100 rounded animate-pulse" />
+                        </div>
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/80 bg-white shadow-xs">
+                            <SparkleIcon
+                              size={14}
+                              weight="fill"
+                              className="text-gray-500 memory-sparkle-pulse"
+                            />
+                            <span className="text-sm text-gray-700">
+                              Von is updating your memory
+                            </span>
+                            <span
+                              className="inline-flex items-center gap-1 ml-0.5"
+                              aria-hidden
+                            >
+                              <span className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce" />
+                              <span
+                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+                                style={{ animationDelay: "150ms" }}
+                              />
+                              <span
+                                className="h-1 w-1 rounded-full bg-gray-400 memory-dot-bounce"
+                                style={{ animationDelay: "300ms" }}
+                              />
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : isEditing ? (
                       <MemoryContextEditor
                         key={editingContext?.id ?? "edit"}
                         mode="edit"
@@ -994,12 +1084,8 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
       {showUser && (
         <BulkImportPane
           isOpen={isBulkImportOpen}
-          onClose={() => {
-            if (isImportProcessing) return;
-            setIsBulkImportOpen(false);
-          }}
+          onClose={() => setIsBulkImportOpen(false)}
           onSubmit={handleBulkImportSubmit}
-          isProcessing={isImportProcessing}
         />
       )}
 
