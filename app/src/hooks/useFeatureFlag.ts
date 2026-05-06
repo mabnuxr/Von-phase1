@@ -49,11 +49,12 @@ export const FEATURE_FLAGS = {
   // edit mode still works for filters / rename / save, but widgets stay
   // pinned to their configured layout.
   DASHBOARD_DRAG_DROP: "enableDashboardDragDrop",
-  // LaunchDarkly key: `drilldown_v2` (underscored — matches the backend
-  // gate at `app/api/v1/dashboard.py::DRILLDOWN_V2_FLAG`). The React SDK
-  // doesn't auto-transform underscores, so the access key here is the
-  // same string the backend uses.
-  DRILLDOWN_V2: "drilldown_v2",
+  // LaunchDarkly flag is registered as `drilldown_v2` on the LD platform —
+  // that's the key the backend reads via the server SDK
+  // (`app/api/v1/dashboard.py::DRILLDOWN_V2_FLAG`). The React client SDK
+  // camelCases keys via `lodash.camelcase` by default (hyphens AND
+  // underscores), so `useFlags()` exposes it as `drilldownV2`.
+  DRILLDOWN_V2: "drilldownV2",
   // Gates the "Share chat" entry points (header button + sidebar
   // context-menu item). The recipient `/shared/:token` route stays
   // reachable so already-generated links continue to work.
