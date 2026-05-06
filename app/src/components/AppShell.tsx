@@ -1,17 +1,15 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { TopBar, Banner, ShareChatPopup } from "@vonlabs/design-components";
+import { Banner, ShareChatPopup } from "@vonlabs/design-components";
 
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useUser } from "../hooks/useUser";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
 import { useLogout } from "../hooks/useLogout";
 import { useTeamMembers } from "../hooks/useTeam";
-import { ChatSidebarV1Container } from "./ChatSidebarV1Container";
-import { ChatSidebarV2Container } from "./ChatSidebarV2Container";
+import { ChatSidebarContainer } from "./ChatSidebarContainer";
 import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
@@ -36,10 +34,6 @@ export function AppShell() {
   // --- Auth & User ---
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
-
-  // --- Feature Flags ---
-  const featureFlags = useFeatureFlag();
-  const { isSidebarV2 } = featureFlags;
 
   // --- Sidebar ---
   const {
@@ -124,50 +118,22 @@ export function AppShell() {
 
         {/* Full-width container */}
         <div className="w-full h-full flex flex-col overflow-hidden">
-          {/* TopBar (V1 sidebar only — V2 has its own header) */}
-          {!isSidebarV2 && (
-            <div className="bg-transparent">
-              <TopBar
-                onLogoClick={() => navigate("/chat")}
-                showMenu={false}
-                onNewChatClick={handleNewChatClick}
-              />
-            </div>
-          )}
-
           {/* Two-Pane Layout */}
-          <div
-            className={`flex flex-1 px-1.5 pb-1.5 gap-1 overflow-hidden min-h-0 ${isSidebarV2 ? "pt-1.5" : ""}`}
-          >
+          <div className="flex flex-1 px-1.5 pb-1.5 pt-1.5 gap-1 overflow-hidden min-h-0">
             {/* Left Pane - Sidebar */}
             <div
-              className={`chat-sidebar-wrapper h-full flex flex-col min-h-0 transition-all duration-300 ${
-                isSidebarV2
-                  ? ""
-                  : "rounded-xl overflow-hidden bg-white shadow-xs border border-gray-100"
-              }`}
+              className="chat-sidebar-wrapper h-full flex flex-col min-h-0 transition-all duration-300"
               style={{ width: isSidebarCollapsed ? "50px" : "240px" }}
             >
-              {isSidebarV2 ? (
-                <ChatSidebarV2Container
-                  currentConversationId={currentConversationId}
-                  user={user}
-                  onNewChatClick={handleNewChatClick}
-                  isCollapsed={isSidebarCollapsed}
-                  onToggleCollapse={toggleSidebar}
-                  onSettingsClick={handleSettingsClick}
-                  onLogoutClick={handleLogout}
-                />
-              ) : (
-                <ChatSidebarV1Container
-                  currentConversationId={currentConversationId}
-                  user={user}
-                  isCollapsed={isSidebarCollapsed}
-                  onToggleCollapse={toggleSidebar}
-                  onSettingsClick={handleSettingsClick}
-                  onLogoutClick={handleLogout}
-                />
-              )}
+              <ChatSidebarContainer
+                currentConversationId={currentConversationId}
+                user={user}
+                onNewChatClick={handleNewChatClick}
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={toggleSidebar}
+                onSettingsClick={handleSettingsClick}
+                onLogoutClick={handleLogout}
+              />
             </div>
 
             {/* Right Pane - Page Content */}

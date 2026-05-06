@@ -343,11 +343,14 @@ function IntegrationItem({
     if (canBeOrgLevel(item.id)) availableChips.push("workspace");
     if (canBeUserLevel(item.id)) availableChips.push("personal");
 
-    // Gong Engage and Salesloft Recorder share credentials with their parent
-    // integrations (Gong, Salesloft), so they show "Available" instead of a
-    // Connect button — they are enabled automatically when the parent connects.
+    // Gong Engage, Salesloft Conversation, and Outreach Kaia share credentials
+    // with their parent integrations (Gong, Salesloft, Outreach), so they
+    // show "Available" instead of a Connect button — they are enabled
+    // automatically when the parent connects.
     const isStaticAvailable =
-      item.id === "gongengage" || item.id === "salesloft_recorder";
+      item.id === "gongengage" ||
+      item.id === "salesloft_recorder" ||
+      item.id === "outreach_kaia";
 
     return (
       <IntegrationCard

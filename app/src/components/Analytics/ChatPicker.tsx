@@ -9,13 +9,13 @@ import {
   formatRelativeTime,
   useVisibilityToggle,
 } from "@vonlabs/design-components";
-import { useChatSidebarV2 } from "../../hooks/useChatSidebarV2";
+import { useChatSidebar } from "../../hooks/useChatSidebar";
 import { useAppShell } from "../../hooks/useAppShell";
 import { useTitleAnimation } from "../../hooks/useTitleAnimation";
 import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
 import { useDashboardAssociatedChats } from "../../hooks/useDashboardAssociatedChats";
 import { isMentionStale } from "../../utils/isMentionStale";
-import type { SidebarConversation } from "../../types/chatSidebar";
+import type { FolderConversationRow } from "../../types/chatSidebar";
 import type { DashboardAssociatedChat } from "../../types/dashboardAssociatedChats";
 
 interface ChatPickerProps {
@@ -26,17 +26,17 @@ interface ChatPickerProps {
   dashboardId?: string;
 }
 
-function groupByRecency(conversations: SidebarConversation[]) {
+function groupByRecency(conversations: FolderConversationRow[]) {
   const now = Date.now();
   const sevenDays = 7 * 24 * 60 * 60 * 1000;
   const thirtyDays = 30 * 24 * 60 * 60 * 1000;
 
-  const last7: SidebarConversation[] = [];
-  const last30: SidebarConversation[] = [];
-  const older: SidebarConversation[] = [];
+  const last7: FolderConversationRow[] = [];
+  const last30: FolderConversationRow[] = [];
+  const older: FolderConversationRow[] = [];
 
   for (const conv of conversations) {
-    const age = now - new Date(ensureUTC(conv.updatedAt)).getTime();
+    const age = now - new Date(ensureUTC(conv.updated_at)).getTime();
     if (age <= sevenDays) {
       last7.push(conv);
     } else if (age <= thirtyDays) {
@@ -55,7 +55,7 @@ function ConvButton({
   onSelect,
   onClose,
 }: {
-  conv: SidebarConversation;
+  conv: FolderConversationRow;
   isActive: boolean;
   onSelect: (id: string) => void;
   onClose: () => void;
@@ -63,7 +63,7 @@ function ConvButton({
   return (
     <button
       onClick={() => {
-        onSelect(conv.conversationId);
+        onSelect(conv.conversation_id);
         onClose();
       }}
       className={`w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm rounded-lg transition-colors ${
@@ -137,7 +137,7 @@ export function ChatPicker({
     unfiledConversations,
     isLoading: isLoadingFull,
     renameConversation,
-  } = useChatSidebarV2();
+  } = useChatSidebar();
   const { user } = useAppShell();
   const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
@@ -167,7 +167,7 @@ export function ChatPicker({
     ? `This dashboard was mentioned · ${formatRelativeTime(activeMentionedAt)}`
     : "";
   const activeUnfiled = unfiledConversations.find(
-    (c) => c.conversationId === activeChatId,
+    (c) => c.conversation_id === activeChatId,
   );
   const activeTitle =
     activeAssociated?.title?.trim() ||
@@ -340,9 +340,9 @@ export function ChatPicker({
                   </div>
                   {last7.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />
@@ -360,9 +360,9 @@ export function ChatPicker({
                   </div>
                   {last30.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />
@@ -382,9 +382,9 @@ export function ChatPicker({
                   </div>
                   {older.map((conv) => (
                     <ConvButton
-                      key={conv.conversationId}
+                      key={conv.conversation_id}
                       conv={conv}
-                      isActive={conv.conversationId === activeChatId}
+                      isActive={conv.conversation_id === activeChatId}
                       onSelect={onSelect}
                       onClose={closeDropdown}
                     />

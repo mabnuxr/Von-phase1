@@ -8,16 +8,15 @@ import {
 } from "../types/userChannelEvents";
 import type {
   ConversationApprovalState,
-  SidebarConversation,
-  FolderConversation,
+  FolderConversationRow,
 } from "../types/chatSidebar";
 
 type ApprovalState = ConversationApprovalState;
 type PusherStateValue = ApprovalState | "cleared";
 
 interface UseApprovalStatesParams {
-  sidebarConversations: SidebarConversation[];
-  folderConversations: Record<string, FolderConversation[]>;
+  unfiledConversations: FolderConversationRow[];
+  folderConversations: Record<string, FolderConversationRow[]>;
   userChannel: Channel | null;
 }
 
@@ -26,20 +25,12 @@ interface UseApprovalStatesReturn {
   approvalStates: Map<string, ApprovalState>;
 }
 
-/**
- * Read the approval indicator for a single conversation.
- *
- * During backend rollout the server may still return only the boolean
- * `hasPendingApproval`. Fall back to that so the UI keeps working before
- * `approval_state` is deployed.
- */
 function readApprovalState(
-  conv: Pick<SidebarConversation, "approvalState" | "hasPendingApproval">,
+  conv: Pick<FolderConversationRow, "approval_state">,
 ): ApprovalState | undefined {
-  if (conv.approvalState === "pending" || conv.approvalState === "expired") {
-    return conv.approvalState;
+  if (conv.approval_state === "pending" || conv.approval_state === "expired") {
+    return conv.approval_state;
   }
-  if (conv.hasPendingApproval) return "pending";
   return undefined;
 }
 
@@ -56,24 +47,24 @@ function readApprovalState(
  *    without waiting for a refetch.
  */
 export function useApprovalStates({
-  sidebarConversations,
+  unfiledConversations,
   folderConversations,
   userChannel,
 }: UseApprovalStatesParams): UseApprovalStatesReturn {
   const apiStates = useMemo(() => {
     const map = new Map<string, ApprovalState>();
-    for (const conv of sidebarConversations) {
+    for (const conv of unfiledConversations) {
       const state = readApprovalState(conv);
-      if (state) map.set(conv.conversationId, state);
+      if (state) map.set(conv.conversation_id, state);
     }
     for (const convs of Object.values(folderConversations)) {
       for (const conv of convs) {
         const state = readApprovalState(conv);
-        if (state) map.set(conv.conversationId, state);
+        if (state) map.set(conv.conversation_id, state);
       }
     }
     return map;
-  }, [sidebarConversations, folderConversations]);
+  }, [unfiledConversations, folderConversations]);
 
   const [pusherStates, setPusherStates] = useState<
     Map<string, PusherStateValue>

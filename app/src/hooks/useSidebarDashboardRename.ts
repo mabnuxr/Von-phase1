@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
 import { dashboardListKeys } from "./useDashboardList";
-import { sidebarDashboardKeys } from "./useSidebarDashboards";
+import { folderKeys } from "./folders";
 import { useToast } from "./useToast";
 
 /**
@@ -25,8 +25,13 @@ export function useSidebarDashboardRename() {
       queryClient.invalidateQueries({
         queryKey: dashboardListKeys.all,
       });
+      // Dashboard label appears in the unfiled list AND inside any folder's
+      // contents — invalidate both so the rename surfaces everywhere.
       queryClient.invalidateQueries({
-        queryKey: sidebarDashboardKeys.all,
+        queryKey: folderKeys.unfiled("dashboard"),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...folderKeys.all, "contents"],
       });
     },
     onError: (error: unknown) => {

@@ -1,9 +1,20 @@
 /**
- * Chat Sidebar V2 Types
- * Types for the new sidebar API that supports folders and organized conversations
+ * Folders v2 Types
+ *
+ * Generic, item-type-aware folder API. A folder holds memberships to items
+ * identified by (itemType, itemId). The two item types we render today are
+ * `conversation` and `dashboard`.
+ *
+ * Convention from the backend handoff:
+ *   - Folder + pagination wrappers are camelCase (folderId, hasNextPage, …).
+ *   - Item rows inside `items[]` are snake_case (conversation_id, dashboard_id, …).
+ * We don't normalise both directions; adapter hooks map snake_case → the
+ * design-components UI types only where required.
  */
 
 import type { ConversationMode } from "./conversation";
+
+export type FolderItemType = "conversation" | "dashboard";
 
 /**
  * Approval indicator state for a conversation in the sidebar.
@@ -14,131 +25,132 @@ import type { ConversationMode } from "./conversation";
 export type ConversationApprovalState = "pending" | "expired";
 
 /**
- * Folder entity for organizing conversations
+ * Folder entity. User-scoped; carries display metadata only — membership is
+ * the source of truth for "what's inside".
  */
-export interface ChatFolder {
+export interface Folder {
+  id: string;
   folderId: string;
   name: string;
-  folderType: "chat" | "dashboard";
-  conversationCount: number;
+  description: string | null;
+  maxItems: number;
+  itemCount: number;
   displayOrder: number;
   createdAt: string;
+  createdBy: string;
   updatedAt: string;
 }
 
 /**
- * Conversation summary for sidebar display
+ * Pagination metadata wrapper used across all folder list endpoints.
  */
-export interface SidebarConversation {
-  conversationId: string;
-  title: string;
-  mode: ConversationMode;
-  agentVersion: "v1" | "v2";
-  createdAt: string;
-  updatedAt: string;
-  approvalState?: ConversationApprovalState | null;
-  /** @deprecated — use `approvalState` instead. Kept during backend rollout. */
-  hasPendingApproval?: boolean;
-}
-
-/**
- * Pagination metadata for unfiled conversations
- */
-export interface SidebarPagination {
+export interface PaginationMetadata {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+  sortConfig: unknown;
 }
 
-/**
- * Unfiled conversations section with pagination
- */
-export interface UnfiledConversations {
-  conversations: SidebarConversation[];
-  pagination: SidebarPagination;
+export interface FoldersListResponse {
+  data: Folder[];
+  total: number;
+  pagination: PaginationMetadata;
 }
 
-/**
- * Chat Sidebar API Response
- * Contains folders and unfiled conversations
- */
-export interface ChatSidebarResponse {
-  folders: ChatFolder[];
-  unfiled: UnfiledConversations;
+// ──────────────────────────────────────────────────────────────────────────
+// Item rows (snake_case) returned by per-type adapters
+// ──────────────────────────────────────────────────────────────────────────
+
+export interface FolderConversationRow {
+  id: string;
+  conversation_id: string;
+  user_id: string;
+  tenant_id: string;
+  title: string;
+  mode: ConversationMode;
+  agent_version: "v1" | "v2";
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  approval_state: ConversationApprovalState | null;
 }
 
-// ============================================================================
-// Folder Mutation Types
-// ============================================================================
+export interface FolderDashboardRow {
+  dashboard_id: string;
+  dashboard_name: string;
+  description: string | null;
+  status: "draft" | "published" | "archived";
+  is_editable: boolean;
+  is_owner: boolean;
+  last_refreshed_at: string | null;
+  updated_at: string;
+  created_by: string;
+}
 
-/**
- * Request body for creating a new folder
- */
+// ──────────────────────────────────────────────────────────────────────────
+// Endpoint response shapes
+// ──────────────────────────────────────────────────────────────────────────
+
+/** A typed slice of items inside a folder. `items` is empty when type is
+ *  excluded from the request; `total` is the live total of THIS type. */
+export interface FolderTypedSlice<T> {
+  items: T[];
+  total: number;
+}
+
+/** Response from `GET /folders/{id}/contents`. */
+export interface FolderContentsResponse {
+  folder: Folder;
+  dashboards: FolderTypedSlice<FolderDashboardRow> | null;
+  conversations: FolderTypedSlice<FolderConversationRow> | null;
+}
+
+/** Response from `GET /folders/{id}/items?itemType=…` and
+ *  `GET /folders/unfiled-items?itemType=…`.
+ *  `folder` is null on the unfiled endpoint. */
+export interface FolderItemsResponse<
+  T = FolderConversationRow | FolderDashboardRow,
+> {
+  folder: Folder | null;
+  itemType: FolderItemType;
+  items: T[];
+  pagination: PaginationMetadata;
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Mutation request / response shapes
+// ──────────────────────────────────────────────────────────────────────────
+
 export interface CreateFolderRequest {
   name: string;
+  description?: string | null;
+  maxItems?: number;
 }
 
-/**
- * Response from create folder API
- */
-export interface CreateFolderResponse {
-  id: string;
+export interface UpdateFolderRequest {
+  name?: string | null;
+  description?: string | null;
+  maxItems?: number | null;
+  displayOrder?: number | null;
+}
+
+export interface AddItemRequest {
+  itemType: FolderItemType;
+  itemId: string;
+}
+
+export interface ReorderItemsRequest {
+  itemType: FolderItemType;
+  itemIds: string[];
+}
+
+export interface FolderOperationResponse {
+  success: boolean;
   folderId: string;
-  name: string;
-  folderType: "chat" | "dashboard";
-  description: string | null;
-  maxItems: number;
-  itemCount: number;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-}
-
-// ============================================================================
-// Folder Conversations Types
-// ============================================================================
-
-/**
- * Detailed folder info from folder conversations API
- */
-export interface FolderDetail {
-  id: string;
-  folderId: string;
-  name: string;
-  folderType: "chat" | "dashboard";
-  description: string | null;
-  maxItems: number;
-  itemCount: number;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-}
-
-/**
- * Conversation within a folder
- */
-export interface FolderConversation {
-  id: string;
-  conversationId: string;
-  userId: string;
-  tenantId: string;
-  title: string;
-  folderId: string;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  approvalState?: ConversationApprovalState | null;
-  /** @deprecated — use `approvalState` instead. Kept during backend rollout. */
-  hasPendingApproval?: boolean;
-}
-
-/**
- * Response from GET /api/v1/folders/{folder_id}/conversations
- */
-export interface FolderConversationsResponse {
-  folder: FolderDetail;
-  conversations: FolderConversation[];
+  itemType?: FolderItemType;
+  itemId?: string;
+  message?: string;
 }

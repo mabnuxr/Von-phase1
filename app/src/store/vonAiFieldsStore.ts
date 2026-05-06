@@ -1,66 +1,143 @@
 import { create } from "zustand";
+import type { AiFieldDraft, PlaygroundResultEvent } from "../types/vonAiFields";
 
-type IqFieldPaneMode = "create" | "edit" | "results" | null;
+// ─── Playground Opportunity ──────────────────────────────────
+export interface PlaygroundOpp {
+  opportunityId: string;
+  name: string;
+  amount: number | null;
+  stage: string;
+  owner: string;
+  status: "ready" | "running" | "done" | "error";
+  result?: PlaygroundResultEvent;
+}
 
-interface VonAiFieldsState {
-  // Pane state
-  paneMode: IqFieldPaneMode;
-  editingColumnId: string | null;
-  setPaneMode: (mode: IqFieldPaneMode, columnId?: string | null) => void;
-  closePane: () => void;
-
+// ─── Store Shape ─────────────────────────────────────────────
+interface AiFieldsState {
   // Search & filter
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
 
-  // Active dry run tracking
-  pollingExecutionId: string | null;
-  setPollingExecutionId: (id: string | null) => void;
-
-  // Completed execution results
-  resultsExecutionId: string | null;
-  setResultsExecutionId: (id: string | null) => void;
-
   // Delete confirmation
-  deletingColumnId: string | null;
-  setDeletingColumnId: (id: string | null) => void;
+  deletingFieldId: string | null;
+  setDeletingFieldId: (id: string | null) => void;
 
-  // Schedule editing
-  isEditingSchedule: boolean;
-  setIsEditingSchedule: (editing: boolean) => void;
+  // Draft AI field (from AI_FIELD_READY event, before creation)
+  draftAiField: AiFieldDraft | null;
+  setDraftAiField: (draft: AiFieldDraft | null) => void;
+
+  // Chat panel
+  chatPanelFieldId: string | null;
+  openChatPanel: (fieldId: string) => void;
+  closeChatPanel: () => void;
+
+  // Playground
+  playgroundOpps: PlaygroundOpp[];
+  playgroundExecutionId: string | null;
+  addPlaygroundOpp: (opp: Omit<PlaygroundOpp, "status">) => void;
+  removePlaygroundOpp: (opportunityId: string) => void;
+  clearPlaygroundOpps: () => void;
+  setPlaygroundOppStatus: (
+    opportunityId: string,
+    status: PlaygroundOpp["status"],
+    result?: PlaygroundResultEvent,
+  ) => void;
+  setPlaygroundExecutionId: (id: string | null) => void;
+
+  // Activate tracking
+  activatingFieldId: string | null;
+  setActivatingFieldId: (id: string | null) => void;
+
+  // Run history
+  runHistoryFieldId: string | null;
+  openRunHistory: (fieldId: string) => void;
+  closeRunHistory: () => void;
 }
 
-const useVonAiFieldsStore = create<VonAiFieldsState>((set) => ({
-  paneMode: null,
-  editingColumnId: null,
-  setPaneMode: (mode, columnId = null) =>
-    set({ paneMode: mode, editingColumnId: columnId }),
-  closePane: () =>
-    set({
-      paneMode: null,
-      editingColumnId: null,
-      resultsExecutionId: null,
-      pollingExecutionId: null,
-    }),
+const MAX_PLAYGROUND_OPPS = 5;
 
+const useAiFieldsStore = create<AiFieldsState>((set) => ({
+  // ─── Search & filter ──────────────────────────────────────
   searchTerm: "",
   setSearchTerm: (term) => set({ searchTerm: term }),
   statusFilter: "all",
   setStatusFilter: (status) => set({ statusFilter: status }),
 
-  pollingExecutionId: null,
-  setPollingExecutionId: (id) => set({ pollingExecutionId: id }),
+  // ─── Delete confirmation ──────────────────────────────────
+  deletingFieldId: null,
+  setDeletingFieldId: (id) => set({ deletingFieldId: id }),
 
-  resultsExecutionId: null,
-  setResultsExecutionId: (id) => set({ resultsExecutionId: id }),
+  // ─── Draft AI field ────────────────────────────────────────
+  draftAiField: null,
+  setDraftAiField: (draft) => set({ draftAiField: draft }),
 
-  deletingColumnId: null,
-  setDeletingColumnId: (id) => set({ deletingColumnId: id }),
+  // ─── Chat panel ───────────────────────────────────────────
+  chatPanelFieldId: null,
+  openChatPanel: (fieldId) =>
+    set((state) =>
+      state.chatPanelFieldId === fieldId
+        ? state
+        : {
+            chatPanelFieldId: fieldId,
+            playgroundOpps: [],
+            playgroundExecutionId: null,
+          },
+    ),
+  closeChatPanel: () =>
+    set({
+      chatPanelFieldId: null,
+      playgroundOpps: [],
+      playgroundExecutionId: null,
+    }),
 
-  isEditingSchedule: false,
-  setIsEditingSchedule: (editing) => set({ isEditingSchedule: editing }),
+  // ─── Playground ───────────────────────────────────────────
+  playgroundOpps: [],
+  playgroundExecutionId: null,
+
+  addPlaygroundOpp: (opp) =>
+    set((state) => {
+      if (state.playgroundOpps.length >= MAX_PLAYGROUND_OPPS) return state;
+      if (
+        state.playgroundOpps.some((o) => o.opportunityId === opp.opportunityId)
+      )
+        return state;
+      return {
+        playgroundOpps: [...state.playgroundOpps, { ...opp, status: "ready" }],
+      };
+    }),
+
+  removePlaygroundOpp: (opportunityId) =>
+    set((state) => ({
+      playgroundOpps: state.playgroundOpps.filter(
+        (o) => o.opportunityId !== opportunityId,
+      ),
+    })),
+
+  clearPlaygroundOpps: () =>
+    set({ playgroundOpps: [], playgroundExecutionId: null }),
+
+  setPlaygroundOppStatus: (opportunityId, status, result) =>
+    set((state) => ({
+      playgroundOpps: state.playgroundOpps.map((o) =>
+        o.opportunityId === opportunityId ? { ...o, status, result } : o,
+      ),
+    })),
+
+  setPlaygroundExecutionId: (id) => set({ playgroundExecutionId: id }),
+
+  // ─── Activate tracking ────────────────────────────────────
+  activatingFieldId: null,
+  setActivatingFieldId: (id) => set({ activatingFieldId: id }),
+
+  // ─── Run history ──────────────────────────────────────────
+  runHistoryFieldId: null,
+  openRunHistory: (fieldId) => set({ runHistoryFieldId: fieldId }),
+  closeRunHistory: () => set({ runHistoryFieldId: null }),
 }));
 
-export default useVonAiFieldsStore;
+export default useAiFieldsStore;
+
+/** @deprecated Use `useAiFieldsStore` (default export) instead. */
+export const useVonAiFieldsStore = useAiFieldsStore;

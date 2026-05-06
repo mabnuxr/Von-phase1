@@ -26,9 +26,11 @@ import { Chat } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
+import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
 import { usePostHog } from "@posthog/react";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
@@ -138,7 +140,6 @@ const NewConversation = () => {
       }
     }, 100);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const pageViewCaptured = useRef(false);
   useEffect(() => {
@@ -159,13 +160,13 @@ const NewConversation = () => {
   }, [user, posthog]);
 
   const {
-    isSidebarV2,
     isAgentV2: isAgentV2Flag,
     isTenantDisabled,
     isSlashCommandsEnabled,
     isFileUploadEnabled,
     isScheduledCommandsEnabled,
     isDeepResearchEnabled,
+    isVonAiFieldsEnabled,
   } = useFeatureFlag();
 
   const {
@@ -190,7 +191,6 @@ const NewConversation = () => {
     isAgentV2: isAgentV2Flag,
     title: "",
     navigateOnCreate: true,
-    isSidebarV2,
   });
 
   const {
@@ -210,19 +210,77 @@ const NewConversation = () => {
   const handleMentionsActivated = useCallback(() => {
     setMentionsActivated(true);
   }, []);
-  const { data: dashboardListData, isLoading: isLoadingMentions } =
+  const { data: dashboardListData, isLoading: isLoadingDashboards } =
     useDashboardList(mentionsActivated);
+  const { data: aiFieldsData, isLoading: isLoadingAiFields } = useAiFields(
+    "live",
+    1,
+    50,
+    mentionsActivated && isVonAiFieldsEnabled,
+  );
 
-  const mentionItems: MentionItem[] = useMemo(
-    () =>
+  const mentionItems: MentionItem[] = useMemo(() => {
+    const dashboards: MentionItem[] =
       dashboardListData?.data.map((d) => ({
         id: d.dashboard_id,
         name: d.dashboard_name,
         type: MentionItemType.Dashboard,
         version: d.dashboard_version,
-      })) ?? [],
-    [dashboardListData],
-  );
+      })) ?? [];
+
+    const aiFields: MentionItem[] =
+      isVonAiFieldsEnabled && aiFieldsData?.data
+        ? aiFieldsData.data.map((f) => ({
+            id: f.fieldId,
+            name: f.displayName ?? f.name,
+            type: MentionItemType.AiField,
+            version: 0,
+            aiFieldContext: { aiFieldId: f.fieldId },
+          }))
+        : [];
+
+    return [...dashboards, ...aiFields];
+  }, [dashboardListData, aiFieldsData, isVonAiFieldsEnabled]);
+
+  const isLoadingMentions = isLoadingDashboards || isLoadingAiFields;
+
+  // AI Field from URL param (settings "New chat about this field")
+  const [searchParams, setSearchParams] = useSearchParams();
+  const aiFieldIdFromUrl = searchParams.get("aiFieldId");
+  const { data: aiFieldForPreload } = useAiField(aiFieldIdFromUrl);
+  const [preloadDismissed, setPreloadDismissed] = useState(false);
+  const [capturedPreloadMention, setCapturedPreloadMention] =
+    useState<MentionItem | null>(null);
+
+  // Capture the mention into state then clean the URL param
+  useEffect(() => {
+    if (aiFieldForPreload && aiFieldIdFromUrl) {
+      setCapturedPreloadMention({
+        id: aiFieldForPreload.fieldId,
+        name: aiFieldForPreload.displayName ?? aiFieldForPreload.name,
+        type: MentionItemType.AiField,
+        version: 0,
+        aiFieldContext: { aiFieldId: aiFieldForPreload.fieldId },
+      });
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("aiFieldId");
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [aiFieldForPreload, aiFieldIdFromUrl, setSearchParams]);
+
+  const preloadedWidgetMentions = useMemo(() => {
+    if (preloadDismissed || !capturedPreloadMention) return undefined;
+    return [capturedPreloadMention];
+  }, [capturedPreloadMention, preloadDismissed]);
+
+  const handleWidgetMentionRemoved = useCallback(() => {
+    setPreloadDismissed(true);
+  }, []);
 
   const { data: teamMembersData } = useTeamMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
@@ -317,6 +375,8 @@ const NewConversation = () => {
         mentionItems={mentionItems}
         isLoadingMentions={isLoadingMentions}
         onMentionsActivated={handleMentionsActivated}
+        widgetMentions={preloadedWidgetMentions}
+        onWidgetMentionRemoved={handleWidgetMentionRemoved}
       />
     </Profiler>
   );

@@ -3,8 +3,8 @@ import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { LayoutItem } from 'react-grid-layout';
 import { CheckCircle } from '@phosphor-icons/react';
-import { ChatSidebar } from '../../../components/ChatSidebarV2';
-import type { SidebarItem, Folder } from '../../../components/ChatSidebarV2';
+import { ChatSidebar } from '../../../components/ChatSidebar';
+import type { SidebarItem, Folder } from '../../../components/ChatSidebar';
 import { Pane1 } from '../../../components/Pane1/Pane1';
 import type {
   ChartComponent,

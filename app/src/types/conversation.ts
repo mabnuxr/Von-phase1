@@ -105,6 +105,11 @@ export interface WidgetReferenceContext {
   dashboardName: string;
 }
 
+export interface AiFieldReferenceContext {
+  aiFieldId: string;
+  aiFieldName?: string;
+}
+
 export type MessageReference =
   | {
       /** Frontend tracking ID (opaque, client-generated) */
@@ -116,6 +121,11 @@ export type MessageReference =
       refId: string;
       type: typeof ReferenceType.Widget;
       context: WidgetReferenceContext;
+    }
+  | {
+      refId: string;
+      type: typeof ReferenceType.AiField;
+      context: AiFieldReferenceContext;
     };
 
 /**

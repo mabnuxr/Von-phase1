@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ChartBarIcon, ChartPieSliceIcon } from '@phosphor-icons/react';
+import { X, ChartBarIcon, ChartPieSliceIcon, LightningIcon } from '@phosphor-icons/react';
 import type { MentionItem } from '../../Mentions/types';
 import { MentionItemType } from '../../Mentions/constants';
 
@@ -12,6 +12,16 @@ export interface MentionPreviewProps {
   removable?: boolean;
 }
 
+function getPreviewIcon(mention: MentionItem) {
+  if (mention.type === MentionItemType.AiField) {
+    return <LightningIcon size={14} weight="fill" className="text-gray-800 flex-shrink-0" />;
+  }
+  if (mention.type === MentionItemType.Widget) {
+    return <ChartPieSliceIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />;
+  }
+  return <ChartBarIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />;
+}
+
 /**
  * MentionPreview component — small rounded chip with type-specific icon
  */
@@ -20,14 +30,9 @@ export const MentionPreview: React.FC<MentionPreviewProps> = ({
   onRemove,
   removable = true,
 }) => {
-  const isWidget = mention.type === MentionItemType.Widget;
   return (
     <div className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-sm text-gray-800 transition-colors duration-150 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs flex-shrink-0">
-      {isWidget ? (
-        <ChartPieSliceIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />
-      ) : (
-        <ChartBarIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />
-      )}
+      {getPreviewIcon(mention)}
       <span className="truncate max-w-[160px]" title={mention.name}>
         {mention.name}
       </span>

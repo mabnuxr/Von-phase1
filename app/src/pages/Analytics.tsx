@@ -7,6 +7,8 @@ import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
+import { useDrilldownV2 } from "../hooks/useDrilldownV2";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useResizablePane } from "../hooks/useResizablePane";
 import {
@@ -22,7 +24,10 @@ import {
 } from "@vonlabs/design-components";
 import { useWidgetMentionsStore } from "../store/widgetMentionsStore";
 import { buildWidgetMention } from "../lib/widgetMentionUtils";
-import { DrilldownPanel } from "../components/Analytics/DrilldownPanel";
+import {
+  DrilldownPanel,
+  DrilldownPanelV2,
+} from "../components/Analytics/DrilldownPanel";
 import { EditModeBanner } from "../components/Analytics/EditModeBanner";
 import { ChatPicker } from "../components/Analytics/ChatPicker";
 import { ConversationMoreMenu } from "../components/Analytics/ConversationMoreMenu";
@@ -38,6 +43,7 @@ import {
   dashboardAssociatedChatsKeys,
   useDashboardAssociatedChats,
 } from "../hooks/useDashboardAssociatedChats";
+import { rowDescentFilters } from "../utils/drilldownFilters";
 
 interface DashboardCanvasProps {
   dashboardId: string;
@@ -147,6 +153,71 @@ function DashboardCanvas({
     changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId);
 
+  // V2 drilldown runs alongside V1, gated by the `drilldown_v2` LaunchDarkly
+  // flag (matched by the backend's V2 endpoint gate). Per-panel routing also
+  // requires `widget.drilldown_v2` on the dashboard config — when the flag is
+  // off, V2-built panels fall through to the legacy V1 wiring (a no-op for
+  // V2-only panels, which is fine: V2-built dashboards are only served to
+  // flagged users in practice).
+  const { isDrilldownV2Enabled } = useFeatureFlag();
+  const drillV2 = useDrilldownV2(dashboardId);
+  // Named ``shouldUseV2`` (not ``useV2``) so React's rules-of-hooks lint
+  // doesn't mistake this regular callback for a custom hook.
+  const shouldUseV2 = useCallback(
+    (panelId: string) => {
+      if (!isDrilldownV2Enabled) return false;
+      const widget = dashboard?.widgets?.[panelId];
+      return !!widget?.drilldown_v2;
+    },
+    [isDrilldownV2Enabled, dashboard?.widgets],
+  );
+
+  const handleWidgetDrillDown = useCallback(
+    (panelId: string) => {
+      if (shouldUseV2(panelId)) {
+        drillV2.openPanelDrilldown(panelId, [], {});
+        return;
+      }
+      openDrilldown(panelId);
+    },
+    [shouldUseV2, drillV2, openDrilldown],
+  );
+
+  const handlePointDrillDown = useCallback(
+    (panelId: string, filters: Record<string, unknown>) => {
+      if (shouldUseV2(panelId)) {
+        // V2: column_path empty = default target; filters pass through as-is
+        // (FE assumes the parent click handler already prefixed with the right
+        // data_key convention — e.g. point.name, series.name).
+        drillV2.openPanelDrilldown(panelId, [], filters);
+        return;
+      }
+      openPointDrilldown(panelId, filters);
+    },
+    [shouldUseV2, drillV2, openPointDrilldown],
+  );
+
+  const handleV2RowDrill = useCallback(
+    (_rowIndex: number, rowData: Record<string, unknown>) => {
+      // Pyramid model: every click descends to the next level (when one exists).
+      // Whole-row descent — the entire row's grouping-key column values become
+      // cumulative filters at the next level. The backend's column_map at the
+      // resolved depth picks out the ones it knows how to SQL-translate.
+      //
+      // column_path is a depth marker. We extend it by one segment per descent
+      // so server cache keys stay distinct across click paths that happen to
+      // share depth; the segment value itself is opaque to routing — we use
+      // the first scalar key as a breadcrumb hint.
+      const filters = rowDescentFilters(rowData);
+      const breadcrumbSeg =
+        Object.keys(filters)[0] ?? `L${drillV2.clickChain.length}`;
+      const topChainNode = drillV2.clickChain[drillV2.clickChain.length - 1];
+      const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
+      drillV2.pushLevel(nextPath, filters);
+    },
+    [drillV2],
+  );
+
   // Schedule management
   const {
     schedule,
@@ -203,8 +274,8 @@ function DashboardCanvas({
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}
-        onDrillDown={openDrilldown}
-        onPointDrillDown={openPointDrilldown}
+        onDrillDown={handleWidgetDrillDown}
+        onPointDrillDown={handlePointDrillDown}
         onAddWidgetToChat={onAddWidgetToChat}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
@@ -220,7 +291,7 @@ function DashboardCanvas({
         onDeleteSchedule={handleDeleteSchedule}
         isRefetchingData={isFetching && !isLoading}
         isRefreshing={isRefreshing}
-        isDrilldownOpen={isDrilldownOpen}
+        isDrilldownOpen={isDrilldownOpen || drillV2.isOpen}
         panelFilterState={panelFilterState}
         lockedFilterState={lockedFilterState}
         getEffectivePanelState={getEffectivePanelState}
@@ -238,7 +309,7 @@ function DashboardCanvas({
       />
       {/* Edit mode banner — floats above drilldown panel when both are active */}
       <EditModeBanner
-        visible={dashboard.isEditable && isDrilldownOpen}
+        visible={dashboard.isEditable && (isDrilldownOpen || drillV2.isOpen)}
         className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
       />
       <DrilldownPanel
@@ -263,6 +334,22 @@ function DashboardCanvas({
         onSortChange={changeDrilldownSort}
         sortState={drilldownSort}
       />
+      {/* V2 drilldown panel — only mounted when the flag is on so v1-only
+          users can never see V2 chrome. The handlers above won't open the
+          drill state when the flag is off, but a conditional mount also
+          keeps the bottom-sheet's hooks (react-query subscriptions, etc.)
+          out of the v1 path entirely. */}
+      {isDrilldownV2Enabled && (
+        <DrilldownPanelV2
+          drill={drillV2}
+          widgetTitle={
+            drillV2.panelId
+              ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
+              : "Drilldown"
+          }
+          onRowDrill={handleV2RowDrill}
+        />
+      )}
     </>
   );
 }

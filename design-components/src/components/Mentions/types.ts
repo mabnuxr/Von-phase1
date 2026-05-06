@@ -25,6 +25,10 @@ export interface WidgetMentionContext {
   dashboardName: string;
 }
 
+export interface AiFieldMentionContext {
+  aiFieldId: string;
+}
+
 /**
  * A mentionable item shown in the @ mentions dropdown.
  */
@@ -45,4 +49,6 @@ export interface MentionItem {
   refId?: string;
   /** Populated only when type === 'widget'. Snapshot at tag time. */
   widgetContext?: WidgetMentionContext;
+  /** Populated only when type === 'ai_field'. */
+  aiFieldContext?: AiFieldMentionContext;
 }

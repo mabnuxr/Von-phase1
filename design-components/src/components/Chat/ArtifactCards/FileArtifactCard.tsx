@@ -13,7 +13,7 @@ import {
   ArrowRightIcon,
 } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
-import { StorageExportButton, buildStorageServices } from '../StorageExportButton';
+import { StorageExportButton, buildStorageServices } from '../StorageExport';
 import type { FileArtifact } from './types';
 
 // ============================================================================

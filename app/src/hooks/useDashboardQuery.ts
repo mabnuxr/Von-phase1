@@ -10,6 +10,7 @@ import type {
   DashboardMetadataResponse,
   WidgetConfig,
   ChartType,
+  PanelDrilldownV2Config,
 } from "../types/dashboard";
 
 /**
@@ -55,6 +56,7 @@ interface RawApiWidget {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;
   } | null;
+  drilldown_v2?: PanelDrilldownV2Config | null;
   pagination?: {
     page: number;
     limit: number;
@@ -127,6 +129,7 @@ function adaptWidget(
       query_failed: raw.query_failed,
       queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
+      drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     };
   }
@@ -163,6 +166,7 @@ function adaptWidget(
       } as unknown as WidgetConfig["config"],
       queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
+      drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     };
   }
@@ -188,6 +192,7 @@ function adaptWidget(
       },
       queryRef: raw.query_ref,
       drilldown: raw.drilldown ?? null,
+      drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     } as unknown as WidgetConfig;
   }
@@ -219,6 +224,7 @@ function adaptWidget(
     config: {},
     queryRef: raw.query_ref,
     drilldown: raw.drilldown ?? null,
+    drilldown_v2: raw.drilldown_v2 ?? null,
     queryInfo,
   } as WidgetConfig;
 }

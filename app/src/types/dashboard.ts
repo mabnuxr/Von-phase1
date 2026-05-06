@@ -144,6 +144,12 @@ export interface WidgetConfig {
     query_ref: string;
     column_map: Array<{ data_key: string; sql_expression: string }>;
   } | null;
+  /**
+   * V2 drilldown config — present when the `drilldown_v2` feature flag was
+   * enabled during dashboard generation. Callers should prefer V2 when present,
+   * and fall back to the legacy `drilldown` field otherwise.
+   */
+  drilldown_v2?: PanelDrilldownV2Config | null;
   queryInfo?: QueryInfo;
 }
 
@@ -675,4 +681,87 @@ export interface PanelDrilldownResponse {
   query: string;
   data: Record<string, unknown>[];
   pagination: PanelDrilldownPagination;
+}
+
+// ─── Panel Drilldown V2 (pyramid model — feature-flagged via `drilldown_v2`) ─────
+
+export interface DrilldownV2ColumnMapping {
+  data_key: string;
+  sql_expression: string;
+  /**
+   * Optional Highcharts-property bridge for chart parent clicks (e.g.
+   * "point.name", "point.x", "series.name"). When set, the FE reads the
+   * click value from `point[extract_from]` but emits the filter keyed by
+   * `data_key`. Omit for table cells / row clicks where data_key already
+   * matches a key on the click event payload.
+   */
+  extract_from?: string | null;
+  title?: string | null;
+  sql_type?: string | null;
+  pipe?: string | null;
+  value_format?: string | null;
+}
+
+export interface DrilldownV2Variant {
+  id: string;
+  label: string;
+  description: string;
+  justification_template: string;
+  query_ref: string;
+  column_map: DrilldownV2ColumnMapping[];
+  is_default: boolean;
+}
+
+export interface DrilldownV2Level {
+  description?: string | null;
+  variants: DrilldownV2Variant[];
+  source_aggregate_query_id: string;
+}
+
+export interface PanelDrilldownV2Config {
+  /**
+   * Ordered top→bottom. levels[0] reverses the topmost aggregation in the
+   * panel's main query path; levels[-1] reaches raw entity rows. Length K =
+   * count of aggregate-kind ancestors of panel.query_ref in the lineage DAG.
+   */
+  levels: DrilldownV2Level[];
+}
+
+export interface DrilldownV2Request {
+  panel_id: string;
+  /**
+   * Depth marker — only the LENGTH matters for level routing
+   * (`levels[len(column_path)]`). Segment values are kept on the wire so
+   * server cache keys stay distinct across click paths that share depth.
+   */
+  column_path: string[];
+  variant_id?: string | null;
+  drill_filters: Record<string, unknown>;
+  page_limit: number;
+  page: number;
+  sort_config?: SortConfigItem[];
+}
+
+export interface DrilldownV2VariantSummary {
+  id: string;
+  label: string;
+  description: string;
+  is_default: boolean;
+}
+
+export interface DrilldownV2Response {
+  title: string | null;
+  justification: string;
+  variants: DrilldownV2VariantSummary[];
+  current_variant_id: string;
+  query: string | null;
+  data: Record<string, unknown>[];
+  pagination: PanelDrilldownPagination;
+  /**
+   * True iff a deeper level exists in the panel's pyramid. When true, every
+   * row in `data` is clickable to descend (whole-row descent — every grouping
+   * key column from the row becomes a cumulative filter at the next level).
+   * False = floor reached, rows are inert.
+   */
+  has_next_level: boolean;
 }

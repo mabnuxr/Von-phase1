@@ -26,10 +26,29 @@ export type WidgetType = 'chart' | 'counter' | 'table' | 'text';
 
 // ─── Drilldown ────────────────────────────────────────────────────
 
-/** Maps a Highcharts point event path to a SQL expression for drilldown. */
+/**
+ * Maps a click value to a SQL expression for drilldown filtering.
+ *
+ * `data_key` is the SQL column name (or short synthetic identifier like
+ * `_won_status` for chart axes that aren't real columns). The same
+ * `data_key` is what the FE emits in `drill_filters` — single namespace at
+ * the wire (matched against the level's column_map on the backend).
+ *
+ * `extract_from` is the optional Highcharts-property bridge for chart
+ * parent clicks. When set, the FE reads the click value from
+ * `point[extract_from]` (e.g. `point.name`, `point.x`, `series.name`) but
+ * emits the filter keyed by `data_key`. When omitted, the FE looks up
+ * `point[data_key]` directly — works for table cells / row clicks where
+ * the data_key already matches a key on the click event payload.
+ *
+ * Legacy V1 dashboards may persist `data_key` values like `point.name` —
+ * the FE falls back to dotted-path lookup when `extract_from` is unset,
+ * so those continue to work without migration.
+ */
 export interface DrilldownColumnMapping {
   data_key: string;
   sql_expression: string;
+  extract_from?: string | null;
 }
 
 export interface DrilldownConfig {
@@ -39,6 +58,51 @@ export interface DrilldownConfig {
 
 /** Column-value pairs sent as drill filters from a chart point click. */
 export type DrillFilters = Record<string, unknown>;
+
+// ─── V2 drilldown (server-shape mirror — pyramid model) ──────────
+//
+// Mirrors the persisted ``panel.drilldown_v2`` field — a flat list of levels.
+// Each level corresponds to reversing one aggregation in the panel's main
+// query path. Widget components only read this to wire chart-point clicks
+// back into the L0 (= levels[0]) column_map; variant UI / level navigation
+// lives in the app's drilldown panel component.
+
+export interface DrilldownV2ColumnMapping {
+  data_key: string;
+  sql_expression: string;
+  /**
+   * Optional Highcharts-property bridge for chart parent clicks. See the
+   * docstring on the legacy ``DrilldownColumnMapping`` above for the full
+   * semantics — same field, same behavior.
+   */
+  extract_from?: string | null;
+  title?: string | null;
+  sql_type?: string | null;
+  pipe?: string | null;
+  value_format?: string | null;
+}
+
+export interface DrilldownV2Variant {
+  id: string;
+  is_default?: boolean;
+  column_map?: DrilldownV2ColumnMapping[];
+  // The remaining fields (label, description, justification_template,
+  // query_ref) aren't read here — the widget only needs column_map for
+  // point-click filter extraction.
+}
+
+export interface DrilldownV2Level {
+  variants: DrilldownV2Variant[];
+}
+
+export interface PanelDrilldownV2 {
+  /**
+   * Ordered top→bottom. levels[0] reverses the topmost aggregation of the
+   * panel's main query (the one that produced the panel's value); levels[-1]
+   * reaches raw entity rows. Empty list = panel is non-drillable (raw rows).
+   */
+  levels: DrilldownV2Level[];
+}
 
 // ─── Query Info ──────────────────────────────────────────────────
 
@@ -63,6 +127,14 @@ export interface WidgetConfig {
   queryRef?: string;
   /** Drilldown configuration — present when the panel supports drill-down. */
   drilldown?: DrilldownConfig | null;
+  /**
+   * V2 drilldown configuration (pyramid model). Present when the panel was
+   * authored with the ``drilldown_v2`` flag on. Widgets prefer this over
+   * ``drilldown`` for point-click filter extraction (read off levels[0]'s
+   * default variant); the variant selector and level-descent UI live in the
+   * drilldown panel component, not the widget itself.
+   */
+  drilldown_v2?: PanelDrilldownV2 | null;
   /** Query SQL and description for this widget */
   queryInfo?: QueryInfo;
 }
@@ -119,6 +191,11 @@ export interface CounterWidgetProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Text ────────────────────────────────────────────────────────
@@ -134,10 +211,18 @@ export interface TextWidgetConfig {
 export type MustacheVariables = Record<string, string | number | null | undefined>;
 
 export interface TextWidgetProps {
+  /** Panel id used by auto-fit coordination. Pass through from WidgetRenderer. */
+  panelId?: string;
   config: TextWidgetConfig;
   /** Variables substituted into `{{key}}` tokens in `config.content`. */
   variables?: MustacheVariables;
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle at the top-left so the
+   * widget can be moved while the dashboard is in edit mode. Only takes
+   * effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Table ──────────────────────────────────────────────────────
@@ -200,6 +285,11 @@ export interface WidgetShellProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /**
+   * When true, renders the orange tab-pill drag handle next to the title.
+   * Only takes effect alongside the dashboard-level drag-and-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Widget Renderer ─────────────────────────────────────────────
@@ -231,6 +321,11 @@ export interface WidgetRendererProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Variables for `{{key}}` mustache tokens inside a text widget's content. */
   variables?: MustacheVariables;
+  /**
+   * When true, renders edit-mode chrome (drag-pill in widget header). Pass
+   * through from the grid; only takes effect alongside the drag-drop flag.
+   */
+  isEditMode?: boolean;
 }
 
 // ─── Dashboard Grid ──────────────────────────────────────────────
@@ -251,6 +346,13 @@ export interface DashboardGridProps {
   tableSortStates?: Record<string, SortState>;
   /** Whether the dashboard is in edit mode (shows visual indicators on widgets) */
   isEditMode?: boolean;
+  /**
+   * Whether widgets can be rearranged via drag-and-drop and resized in edit
+   * mode. Only takes effect when `isEditMode` is also true. Defaults to true
+   * for backward compatibility — callers gating behind a feature flag should
+   * pass this explicitly.
+   */
+  isDragDropEnabled?: boolean;
   /** Whether all widgets are loading (e.g. after a filter change) */
   isLoading?: boolean;
   /** Applied filters per widget ID (read-only display) */
@@ -264,4 +366,10 @@ export interface DashboardGridProps {
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
   /** Per-widget variables map for `{{key}}` mustache tokens inside text widgets. */
   variablesByWidget?: Record<string, MustacheVariables>;
+  /**
+   * Called with the new layout (array of {i,x,y,w,h}) whenever the user drags
+   * or resizes a widget in edit mode. Parent persists the layout; the grid
+   * itself is stateless with respect to positions.
+   */
+  onLayoutChange?: (layout: readonly LayoutItem[]) => void;
 }

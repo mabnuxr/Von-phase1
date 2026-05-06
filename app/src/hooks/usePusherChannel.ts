@@ -21,6 +21,7 @@ import {
   PUSHER_PONG_TIMEOUT_S,
 } from "../config/constants";
 import { apiClient } from "../services/apiClient";
+import { datadogRum } from "../lib/datadog";
 
 export interface UsePusherChannelConfig {
   conversationId: string | null;
@@ -124,19 +125,38 @@ export function usePusherChannel(
             setError(
               new Error(err.error?.message || "Pusher connection error"),
             );
+            try {
+              datadogRum.addAction("pusher_channel_error", {
+                message: err.error?.message,
+                socket_id: pusher.connection.socket_id,
+              });
+            } catch (e) {
+              if (import.meta.env.DEV)
+                console.warn("[usePusherChannel] suppressed", e);
+            }
           },
         );
 
-        if (import.meta.env.DEV) {
-          pusher.connection.bind(
-            "state_change",
-            (states: { previous: string; current: string }) => {
+        pusher.connection.bind(
+          "state_change",
+          (states: { previous: string; current: string }) => {
+            if (import.meta.env.DEV) {
               console.log(
                 `[usePusherChannel] ${states.previous} -> ${states.current}`,
               );
-            },
-          );
-        }
+            }
+            try {
+              datadogRum.addAction("pusher_channel_state", {
+                previous: states.previous,
+                current: states.current,
+                socket_id: pusher.connection.socket_id,
+              });
+            } catch (e) {
+              if (import.meta.env.DEV)
+                console.warn("[usePusherChannel] suppressed", e);
+            }
+          },
+        );
 
         connectionEventsBound.current = true;
       }

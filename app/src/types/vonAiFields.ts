@@ -1,139 +1,197 @@
-// ─── Column Definition ────────────────────────────────────────
-export type IqColumnType =
-  | "numeric"
-  | "string"
-  | "array"
-  | "boolean"
-  | "integer"
-  | "object";
-export type IqColumnScope = "opportunity" | "account";
-export type IqColumnStatus = "draft" | "active" | "archived";
+// ─── AI Field Definition ─────────────────────────────────────
+export type AiFieldStatus = "draft" | "live" | "disabled";
+export type AiFieldObjectType = "opportunity" | "account";
 
-export interface IqColumn {
-  column_id: string;
+export interface ColumnToGenerate {
   name: string;
-  prompt: string;
-  column_type: IqColumnType;
-  scope: IqColumnScope;
-  status: IqColumnStatus;
-  tenant_id: string;
-  created_at: string;
-  updated_at: string;
+  description: string;
+  type: string;
 }
 
-export interface CreateIqColumnRequest {
+export interface DisplayFilterCondition {
+  field: string;
+  operator: string;
+  value: string;
+  connector: "AND" | "OR" | null;
+}
+
+export interface AiField {
+  id: string;
+  fieldId: string;
   name: string;
-  prompt: string;
-  column_type: IqColumnType;
-  scope: IqColumnScope;
+  displayName?: string;
+  description: string;
+  objectType: AiFieldObjectType;
+  columnsToGenerate: ColumnToGenerate[];
+  sources: string[];
+  opportunityFilter: string | null;
+  displayFilter?: DisplayFilterCondition[];
+  matchCount?: number | null;
+  totalRecords?: number | null;
+  status: AiFieldStatus;
+  workflowId: string | null;
+  conversationId: string | null;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+  updatedAt: string | null;
+  lastRunAt?: string | null;
+  applied?: boolean;
 }
 
-export interface UpdateIqColumnRequest {
-  name?: string;
-  prompt?: string;
-  column_type?: IqColumnType;
-  scope?: IqColumnScope;
-  status?: IqColumnStatus;
-}
-
-// ─── List Response ────────────────────────────────────────────
-export interface IqColumnsListResponse {
-  columns: IqColumn[];
-  total: number;
-}
-
-// ─── Execution ────────────────────────────────────────────────
-export type ExecutionStatus = "running" | "completed" | "failed";
-
-export interface DryRunColumnSpec {
+// ─── AI Field Draft (from AI_FIELD_READY event) ─────────────
+export interface AiFieldDraft {
+  fieldId?: string | null;
+  workflowId: string;
   name: string;
-  prompt: string;
-  column_type: IqColumnType;
-  scope: IqColumnScope;
+  displayName?: string;
+  description: string;
+  objectType: AiFieldObjectType;
+  columnsToGenerate: ColumnToGenerate[];
+  columnsGenerated: string[];
+  sources: string[];
+  opportunityFilter: string | null;
+  displayFilter?: DisplayFilterCondition[];
+  matchCount?: number | null;
+  totalRecords?: number | null;
+  sampleOpportunities?: SampleOpportunity[];
+  conversationId: string | null;
 }
 
-export interface DryRunRequest {
-  sample_size?: number;
-  opportunity_ids?: string[];
-  column?: DryRunColumnSpec;
-}
-
-// ─── Opportunity Search ───────────────────────────────────────
-export interface OpportunityRecord {
+export interface SampleOpportunity {
   id: string;
   name: string;
-  stagename: string;
-  amount: number;
-  closedate: string;
+  amount?: number | null;
+  stage?: string;
+  owner?: string;
 }
 
-export interface OpportunitySearchResponse {
-  opportunities: OpportunityRecord[];
-  total: number;
+// ─── Create AI Field Request / Response ─────────────────────
+export interface CreateAiFieldRequest {
+  name: string;
+  description: string;
+  objectType: AiFieldObjectType;
+  columnsToGenerate: ColumnToGenerate[];
+  sources: string[];
+  opportunityFilter: string | null;
+  conversationId: string | null;
+  workflowId: string;
+}
+
+export interface CreateAiFieldResponse {
+  field: AiField;
+  executionId: string;
+  pusherChannel: string;
+}
+
+// ─── Pagination ──────────────────────────────────────────────
+export interface PaginationMeta {
   page: number;
-  page_size: number;
-  total_pages: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
-export interface DryRunResponse {
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
+export type AiFieldListResponse = PaginatedResponse<AiField>;
+
+// ─── Activate / Playground Started ───────────────────────────
+export interface AiFieldActionResponse {
+  executionId: string;
+  pusherChannel: string;
+}
+
+// ─── Playground ──────────────────────────────────────────────
+export interface PlaygroundRequest {
+  opportunityIds: string[];
+  columnsToGenerate: ColumnToGenerate[];
+  sources: string[];
+}
+
+export interface OpportunitySearchResult {
+  opportunityId: string;
+  name: string;
+  amount: number | null;
+  stage: string;
+  owner?: string;
+}
+
+// ─── Run History ─────────────────────────────────────────────
+export interface RunHistoryEntry {
+  executionId: string;
   status: string;
-  sample_size: number;
-  results: unknown[];
-  columns_generated: string[];
-  execution_id: string;
+  triggerType: string;
+  totalRowsProcessed: number;
+  createdAt: string;
 }
 
-export interface ExecuteResponse {
+export type RunHistoryResponse = PaginatedResponse<RunHistoryEntry>;
+
+// ─── Associated Conversations ────────────────────────────────
+export interface AiFieldConversation {
+  conversationId: string;
+  title: string;
+  firstReferencedAt: string;
+  lastReferencedAt: string;
+}
+
+export type AiFieldConversationsResponse =
+  PaginatedResponse<AiFieldConversation>;
+
+// ─── Error ───────────────────────────────────────────────────
+export interface AiFieldError {
+  error: {
+    code: string;
+    message: string;
+  };
+}
+
+// ─── Pusher Events ───────────────────────────────────────────
+export interface ActivateStartedEvent {
+  executionId: string;
+}
+
+export interface ActivateProgressEvent {
+  executionId: string;
+  nodeId: string;
+  nodeName: string;
   status: string;
-  execution_id: string;
-  message: string;
 }
 
-export interface Execution {
-  execution_id: string;
-  status: ExecutionStatus;
-  node_results: Record<string, unknown>;
-  started_at: string;
-  completed_at: string | null;
-  error_message: string | null;
+export interface ActivateCompletedEvent {
+  executionId: string;
+  nodesExecuted: number;
+  nodesFailed: number;
 }
 
-// ─── Results ──────────────────────────────────────────────────
-export interface IqColumnResultRecord {
-  record_id: string;
-  record_name: string;
-  [key: string]: unknown;
+export interface ActivateFailedEvent {
+  executionId: string;
+  error: string;
 }
 
-export interface IqColumnResults {
-  execution_id: string;
-  tenant_id: string;
-  record_count: number;
-  columns: string[];
-  record_ids: string[];
-  results: IqColumnResultRecord[];
+export interface PlaygroundResultEvent {
+  opportunityId: string;
+  opportunityName?: string;
+  success: boolean;
+  insights?: string | Record<string, unknown>;
+  callsCount?: number;
+  emailsCount?: number;
+  error?: string;
 }
 
-// ─── Schedule ─────────────────────────────────────────────────
-export type ScheduleFrequency =
-  | "minutely"
-  | "hourly"
-  | "daily"
-  | "weekly"
-  | "monthly";
-
-export interface IqScheduleConfigRequest {
-  frequency: ScheduleFrequency;
-  interval?: number | null;
-  time?: string | null;
-  days?: string[] | null;
-  dayOfMonth?: number | null;
-  enabled?: boolean;
+export interface PlaygroundCompleteEvent {
+  executionId: string;
+  total: number;
+  succeeded: number;
 }
 
-export interface IqScheduleResponse {
-  schedule_config: IqScheduleConfigRequest | null;
-  schedule_trigger_id: string | null;
-  is_scheduled: boolean;
-  status: "active" | "paused" | "none";
+export interface PlaygroundErrorEvent {
+  executionId: string;
+  error: string;
 }

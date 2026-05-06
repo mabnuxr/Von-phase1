@@ -6,7 +6,6 @@ import type {
   RunFinishedEvent,
   DashboardReadyEvent,
 } from "@vonlabs/design-components";
-import type { ChatItem } from "@vonlabs/design-components";
 
 // App services
 import { conversationsService } from "../services/conversationsService";
@@ -15,14 +14,12 @@ import { detectIntegrationBlocks } from "../utils/integrationBlockDetector";
 // App types
 import type {
   MessageWithStreaming,
-  Conversation,
   DashboardMetadata,
 } from "../types/conversation";
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
 import { findLast } from "../utils/findLast";
-import { getDisplayTitle } from "./conversationUtils";
 import {
   transformAguiToTimelineSteps,
   getElapsedTimeFromEvents,
@@ -98,12 +95,26 @@ export function transformMessagesToChatFormat(
           | "text"
           | "image",
       })),
-      mentions: streamingMsg.references?.map((ref) => ({
-        id: ref.context.dashboardId,
-        name: ref.context.dashboardName,
-        type: ref.type,
-        version: ref.context.dashboardVersion,
-      })),
+      mentions: streamingMsg.references
+        ?.map((ref) => {
+          if (ref.type === "ai_field") {
+            return {
+              id: ref.context.aiFieldId,
+              name: ref.context.aiFieldName ?? ref.context.aiFieldId,
+              type: "ai_field" as const,
+              version: 0,
+              aiFieldContext: { aiFieldId: ref.context.aiFieldId },
+            };
+          }
+          const ctx = ref.context;
+          return {
+            id: ctx.dashboardId,
+            name: ctx.dashboardName,
+            type: ref.type,
+            version: ctx.dashboardVersion,
+          };
+        })
+        .filter((m) => m.id),
       // Map the quick command so ChatMessage can render CommandPreview
       command: streamingMsg.command
         ? {
@@ -130,30 +141,6 @@ export function transformMessagesToChatFormat(
           : undefined,
     } as ChatMessage;
   });
-}
-
-/**
- * Transform Conversation entities to ChatSidebar items
- * Filters out empty titles and applies animated titles
- */
-export function transformConversationsToChatItems(
-  conversations: Conversation[],
-  animatedTitles: Map<string, string>,
-): ChatItem[] {
-  return conversations
-    .filter((conv) => conv.title && conv.title.trim() !== "")
-    .map((conv) => {
-      // Check if this conversation has an animated title in progress
-      const animatedTitle = animatedTitles.get(conv.conversationId);
-      const displayTitle = animatedTitle || getDisplayTitle(conv.title);
-
-      return {
-        id: conv.conversationId, // Use UUID instead of MongoDB ObjectId
-        label: displayTitle, // Use animated title if available, otherwise use regular title
-        timestamp: new Date(conv.updatedAt || conv.createdAt).toLocaleString(),
-        href: `/chat/${conv.conversationId}`, // Add href for proper link behavior
-      };
-    });
 }
 
 /**
@@ -574,6 +561,60 @@ function transformMessagesForV2(
           };
         }
       }
+    }
+  }
+
+  // Inject AI Field tool call results as synthetic file artifacts
+  // so renderArtifactCard callback can render them as inline cards
+  for (let i = 0; i < transformedMessages.length; i++) {
+    const msg = transformedMessages[i];
+    if (msg.type !== "assistant") continue;
+
+    const aiFieldArtifacts: Array<{
+      fileId: string;
+      fileName: string;
+      artifactType: string;
+      mimeType: string;
+    }> = [];
+
+    // Check toolCalls on the message directly
+    const toolCalls = msg.toolCalls ?? [];
+    for (const tc of toolCalls) {
+      if (tc.result?.raw?.type === "ai_field" && tc.result.raw.fieldId) {
+        aiFieldArtifacts.push({
+          fileId: tc.result.raw.fieldId,
+          fileName: tc.result.raw.name ?? "AI Field",
+          artifactType: "ai_field",
+          mimeType: "application/json",
+        });
+      }
+    }
+
+    // Also check stepMessages for tool calls
+    const steps = msg.stepMessages ?? [];
+    for (const step of steps) {
+      for (const tc of step.toolCalls ?? []) {
+        if (tc.result?.raw?.type === "ai_field" && tc.result.raw.fieldId) {
+          // Avoid duplicates
+          if (
+            !aiFieldArtifacts.some((a) => a.fileId === tc.result!.raw.fieldId)
+          ) {
+            aiFieldArtifacts.push({
+              fileId: tc.result.raw.fieldId,
+              fileName: tc.result.raw.name ?? "AI Field",
+              artifactType: "ai_field",
+              mimeType: "application/json",
+            });
+          }
+        }
+      }
+    }
+
+    if (aiFieldArtifacts.length > 0) {
+      transformedMessages[i] = {
+        ...msg,
+        artifacts: [...(msg.artifacts ?? []), ...aiFieldArtifacts],
+      };
     }
   }
 

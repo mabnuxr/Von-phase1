@@ -7,7 +7,7 @@
  * Handles both regular V2 chat and deep research mode.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./useToast";
 import { useFileDownload } from "./useFileDownload";
@@ -35,8 +35,15 @@ import { useStopStreaming } from "./useStopStreaming";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import { useArtifactState } from "./useArtifactState";
 import { useLazyTransparencyArtifacts } from "./useMessageArtifacts";
-import { useAgentArtifacts, agentArtifactKeys } from "./useAgentArtifacts";
+import {
+  useAgentArtifacts,
+  agentArtifactKeys,
+  type AgentArtifactTurn,
+} from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
+import { useAiFieldCreatedEvent } from "./useAiFieldCreatedEvent";
+import useAiFieldsStore from "../store/vonAiFieldsStore";
+import { aiFieldKeys } from "./useVonAiFields";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import {
   transformConversationMessages,
@@ -137,28 +144,22 @@ export function useChatV2(props: UseChatV2Props) {
       }
     }
 
-    // Await the message refetch so assistantRunIds (derived from
-    // conversationMessages) includes the new runId before we invalidate its
-    // artifact query. Without this, the invalidation lands on a key with no
-    // active observer, no refetch fires, and the cache stays empty until a
-    // manual page refresh.
+    // Await the message refetch so assistantTurns (derived from
+    // conversationMessages) includes the new runId. Backend guarantees the
+    // assistant message is durable in Mongo BEFORE RUN_FINISHED fires, so
+    // this refetch is sufficient to register the per-run query subscription.
     try {
       await refetchMessages();
     } catch (err) {
       console.error("[handleV2RunComplete] refetchMessages failed:", err);
     }
 
-    // Safety net when the artifact_created Pusher event is missed (dropped
-    // or tab backgrounded). Skip if the cache already has data — refetching
-    // could race Mongo and downgrade completed rows to inflight placeholders.
-    const runId = processor?.currentRunId;
-    if (runId) {
-      const queryKey = agentArtifactKeys.run(conversationId, runId);
-      const existing = queryClient.getQueryData<unknown[]>(queryKey);
-      if (!existing || existing.length === 0) {
-        queryClient.invalidateQueries({ queryKey });
-      }
-    }
+    // Prefix-match invalidates every per-runId query under this
+    // conversation; avoids a closure read of `processor.currentRunId`
+    // that can be undefined here.
+    queryClient.invalidateQueries({
+      queryKey: agentArtifactKeys.forConversation(conversationId),
+    });
   }, [conversationId, refetchMessages, queryClient]);
 
   // V2 event processing (AGUI events → timeline steps)
@@ -182,24 +183,54 @@ export function useChatV2(props: UseChatV2Props) {
   // Agent-generated file artifacts (React Query + Pusher invalidation)
   useArtifactCreatedEvent(channel, conversationId);
 
+  // AI Field created — open side panel when agent creates a field
+  useAiFieldCreatedEvent(channel);
+
   // Surface write-blocked notifications as banner above chat input
   const { writeBlocked, dismissWriteBlocked } = useWriteBlockedEvent(channel);
 
-  // Extract unique runIds from assistant messages for per-run artifact fetching
-  const assistantRunIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const msg of conversationMessages) {
-      if (msg.role === "assistant" && msg.runId) {
-        ids.add(msg.runId);
-      }
-    }
-    return Array.from(ids);
-  }, [conversationMessages]);
+  // runId + terminal flag per turn. The flag drives useAgentArtifacts'
+  // polling so a too-early empty fetch on a still-running turn doesn't disarm.
+  const assistantTurns = useMemo<AgentArtifactTurn[]>(
+    () =>
+      conversationMessages.flatMap<AgentArtifactTurn>((msg) =>
+        msg.role === "assistant" && msg.runId
+          ? [
+              {
+                runId: msg.runId,
+                isTerminal:
+                  !!msg.status &&
+                  msg.status !== "created" &&
+                  msg.status !== "streaming",
+              },
+            ]
+          : [],
+      ),
+    [conversationMessages],
+  );
 
   const agentArtifactsByRunId = useAgentArtifacts(
     conversationId,
-    assistantRunIds,
+    assistantTurns,
   );
+
+  // Invalidate when a turn flips to terminal. Keyed off the runId set
+  // so streaming chunks don't trigger per-token re-fetches.
+  const terminalRunIdsKey = useMemo(
+    () =>
+      assistantTurns
+        .filter((t) => t.isTerminal)
+        .map((t) => t.runId)
+        .sort()
+        .join(","),
+    [assistantTurns],
+  );
+  useEffect(() => {
+    if (!conversationId || terminalRunIdsKey.length === 0) return;
+    queryClient.invalidateQueries({
+      queryKey: agentArtifactKeys.forConversation(conversationId),
+    });
+  }, [terminalRunIdsKey, conversationId, queryClient]);
 
   // Chat-type-aware reconciliation
   useReconciliation({
@@ -416,6 +447,168 @@ export function useChatV2(props: UseChatV2Props) {
     ],
   );
 
+  // Inject AI Field artifact card into assistant messages.
+  // Sources: (1) live AI_FIELD_READY from v2Processor, (2) persisted events on page refresh.
+  const finalTransformedMessages = useMemo(() => {
+    const liveAiField = v2Processor.aiFieldReady;
+
+    // Find the last assistant message index for live injection
+    let lastAssistantIdx = -1;
+    for (let i = transformedMessages.length - 1; i >= 0; i--) {
+      if (transformedMessages[i].type === "assistant") {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+
+    return transformedMessages.map((msg, idx) => {
+      // Resolve AI field mention names on user messages
+      if (msg.type === "user" && msg.mentions?.length) {
+        const needsResolve = msg.mentions.some(
+          (m) => m.type === "ai_field" && (!m.name || m.name === m.id),
+        );
+        if (needsResolve) {
+          const resolvedMentions = msg.mentions.map((m) => {
+            if (m.type !== "ai_field" || (m.name && m.name !== m.id)) return m;
+            // Try to find the name from cached AI fields list
+            const cached = queryClient.getQueryData<{
+              data: Array<{
+                fieldId: string;
+                name: string;
+                displayName?: string;
+              }>;
+            }>(aiFieldKeys.list("live", 1, 50));
+            const field = cached?.data?.find((f) => f.fieldId === m.id);
+            if (field) {
+              return { ...m, name: field.displayName ?? field.name };
+            }
+            return m;
+          });
+          return { ...msg, mentions: resolvedMentions };
+        }
+      }
+
+      if (msg.type !== "assistant") return msg;
+
+      // Check live stream — inject on the last assistant message
+      if (liveAiField && idx === lastAssistantIdx) {
+        if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
+          return msg;
+        return {
+          ...msg,
+          artifacts: [
+            ...(msg.artifacts ?? []),
+            {
+              fileId: liveAiField.fieldId,
+              fileName: liveAiField.name,
+              artifactType: "ai_field",
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+
+      // Check persisted events (page refresh)
+      const rawMsg = conversationMessages.find((m) => m.id === msg.id);
+      if (rawMsg?.events) {
+        const aiFieldEvent = rawMsg.events.find(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (e: any) => e.event?.type === "AI_FIELD_READY",
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const aiField = (aiFieldEvent as any)?.event?.ai_field;
+        if (aiField) {
+          const id =
+            aiField.field_id ??
+            aiField.fieldId ??
+            aiField.workflowId ??
+            aiField.workflow_id ??
+            "draft";
+          if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
+            return msg;
+          return {
+            ...msg,
+            artifacts: [
+              ...(msg.artifacts ?? []),
+              {
+                fileId: id,
+                fileName:
+                  aiField.displayName ??
+                  aiField.display_name ??
+                  aiField.name ??
+                  "AI Field",
+                artifactType: "ai_field",
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+      }
+
+      return msg;
+    });
+  }, [
+    transformedMessages,
+    v2Processor.aiFieldReady,
+    conversationMessages,
+    queryClient,
+  ]);
+
+  // Clear AI field panel on mount and when switching conversations
+  const prevConversationId = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevConversationId.current !== conversationId) {
+      useAiFieldsStore.getState().closeChatPanel();
+      useAiFieldsStore.getState().setDraftAiField(null);
+    }
+    prevConversationId.current = conversationId;
+  }, [conversationId]);
+
+  // Restore draftAiField from persisted events on page refresh
+  useEffect(() => {
+    const store = useAiFieldsStore.getState();
+    if (store.draftAiField) return; // already have draft data
+
+    for (const rawMsg of conversationMessages) {
+      if (!rawMsg.events) continue;
+      const aiFieldEvent = rawMsg.events.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (e: any) => e.event?.type === "AI_FIELD_READY",
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const af = (aiFieldEvent as any)?.event?.ai_field;
+      if (af) {
+        store.setDraftAiField({
+          fieldId: af.fieldId ?? af.field_id ?? null,
+          workflowId: af.workflowId ?? af.workflow_id ?? "",
+          name: af.name ?? "",
+          displayName: af.displayName ?? af.display_name,
+          description: af.description ?? "",
+          objectType: (af.objectType ?? af.object_type ?? "opportunity") as
+            | "opportunity"
+            | "account",
+          columnsToGenerate:
+            af.columnsToGenerate ??
+            af.columns_to_generate ??
+            (af.columnsGenerated ?? af.columns_generated ?? []).map(
+              (name: string) => ({ name, description: "", type: "string" }),
+            ),
+          columnsGenerated: af.columnsGenerated ?? af.columns_generated ?? [],
+          sources: af.sources ?? [],
+          opportunityFilter:
+            af.opportunityFilter ?? af.opportunity_filter ?? null,
+          displayFilter: af.displayFilter ?? af.display_filter,
+          matchCount: af.matchCount ?? af.match_count ?? null,
+          totalRecords: af.totalRecords ?? af.total_records ?? null,
+          sampleOpportunities:
+            af.sampleOpportunities ?? af.sample_opportunities,
+          conversationId: af.conversationId ?? af.conversation_id ?? null,
+        });
+        break;
+      }
+    }
+  }, [conversationMessages]);
+
   // Message filtering state
   const showMessagesFromIndex = useChatStore(
     (state) => state.showMessagesFromIndex[conversationId] ?? 0,
@@ -451,13 +644,13 @@ export function useChatV2(props: UseChatV2Props) {
   // Transparency handler
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
-      const message = transformedMessages.find((m) => m.id === messageId);
+      const message = finalTransformedMessages.find((m) => m.id === messageId);
       if (message?.runId) {
         setTransparencyRunId(message.runId);
         setIsTransparencyOpen(true);
       }
     },
-    [transformedMessages],
+    [finalTransformedMessages],
   );
 
   const handleCloseTransparency = useCallback(() => {
@@ -643,7 +836,7 @@ export function useChatV2(props: UseChatV2Props) {
     liveDashboardKey: v2Processor.liveDashboardKey,
 
     // Messages
-    transformedMessages,
+    transformedMessages: finalTransformedMessages,
     effectiveResearchResults,
     showMessagesFromIndex,
 
