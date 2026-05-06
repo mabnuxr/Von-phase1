@@ -28,6 +28,7 @@ import { MentionItemType } from "@vonlabs/design-components";
 
 import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
+import { usePostHog } from "@posthog/react";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
@@ -42,6 +43,7 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
+  const posthog = usePostHog();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -139,6 +141,24 @@ const NewConversation = () => {
     }, 100);
     return () => window.clearInterval(timer);
   }, []);
+  const pageViewCaptured = useRef(false);
+  useEffect(() => {
+    if (!user || !posthog || pageViewCaptured.current) return;
+
+    posthog.capture("Chat - Page Viewed", {
+      company: user.tenant ?? null,
+      company_id: user.tenantId ?? null,
+      user_id: user.id,
+      user_email: user.email,
+      user_role: !user.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    });
+    pageViewCaptured.current = true;
+  }, [user, posthog]);
+
   const {
     isAgentV2: isAgentV2Flag,
     isTenantDisabled,
