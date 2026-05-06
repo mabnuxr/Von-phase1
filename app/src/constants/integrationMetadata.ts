@@ -15,9 +15,8 @@ export interface IntegrationMetadata {
   note?: string;
   category:
     | "CRM"
-    | "Call Recorder"
+    | "Calls & Engagement"
     | "Knowledge base"
-    | "Sales Engagement"
     | "Data Warehouse"
     | "Customer Support"
     | "Calendar"
@@ -52,11 +51,11 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   gong: {
     id: "gong",
     name: "Gong",
-    description: "Ask about Gong calls and get Von's conversation insights",
-    note: "If you have a Gong Engage license, it will be automatically enabled with this connection",
+    description:
+      "Ask about Gong call recordings and deal signals, and manage engagement actions via Gong Engage.",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   gongengage: {
     id: "gongengage",
@@ -65,7 +64,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     note: "Set up your Gong call recorder to start using Gong Engage",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gong.svg",
-    category: "Sales Engagement",
+    category: "Calls & Engagement",
   },
   fathom: {
     id: "fathom",
@@ -73,7 +72,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Ask about Fathom calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fathom.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   zoom: {
     id: "zoom",
@@ -81,7 +80,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Connect Zoom to import meeting recordings and transcripts",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/zoom.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
     disabled: true,
   },
   googlecalendar: {
@@ -102,14 +101,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Calendar",
     disabled: true,
   },
-  // Call Recorder integrations
+  // Calls & Engagement integrations
   chorus: {
     id: "chorus",
     name: "Chorus",
     description: "Ask about Chorus calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Chorus.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   claricopilot: {
     id: "claricopilot",
@@ -117,7 +116,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Ask about Clari calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/ClariCopilot.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   attention: {
     id: "attention",
@@ -126,7 +125,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "Ask about Attention calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Attention.jpeg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   jiminny: {
     id: "jiminny",
@@ -134,7 +133,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Ask about Jiminny calls and get Von's conversation insights",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/jiminny.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   // Knowledge base integrations
   googledrive: {
@@ -215,16 +214,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     category: "Knowledge base",
     disabled: true,
   },
-  // Sales Engagement integrations
   outreachengage: {
     id: "outreachengage",
-    name: "Outreach Engage",
+    name: "Outreach",
     description:
-      "Manage sequences, log calls, and create tasks in Outreach Engage",
-    note: "If you have an Outreach Kaia license, it will be automatically enabled with this connection",
+      "Ask about Outreach sequences and prospect engagement, and import call recordings via Outreach Kaia.",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
-    category: "Sales Engagement",
+    category: "Calls & Engagement",
   },
   outreach_kaia: {
     id: "outreach_kaia",
@@ -233,17 +230,18 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     note: "Set up your Outreach connection to start using Outreach Kaia",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Outreach.svg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   salesloft_engagement: {
     id: "salesloft_engagement",
     name: "Salesloft",
-    description: "Manage cadences, log calls, and create tasks in Salesloft",
-    personalDescription: "Connect your Salesloft account for sales engagement",
-    note: "If you have a Salesloft Conversation license, it will be automatically enabled with this connection",
+    description:
+      "Ask about Salesloft cadences and revenue activity, and import call recordings via Salesloft Conversations.",
+    personalDescription:
+      "Connect your Salesloft account for cadences, calls, and Salesloft Conversation recordings",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
-    category: "Sales Engagement",
+    category: "Calls & Engagement",
   },
   salesloft_recorder: {
     id: "salesloft_recorder",
@@ -253,7 +251,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     note: "Set up your Salesloft connection to start using Salesloft Conversation",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Salesloft.jpeg",
-    category: "Call Recorder",
+    category: "Calls & Engagement",
   },
   // Data Warehouse integrations
   snowflake: {
