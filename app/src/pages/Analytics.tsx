@@ -347,6 +347,18 @@ function DashboardCanvas({
               ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
               : "Drilldown"
           }
+          levelColumnMaps={
+            drillV2.panelId
+              ? (dashboard.widgets?.[
+                  drillV2.panelId
+                ]?.drilldown_v2?.levels?.map(
+                  (lvl) =>
+                    (lvl.variants.find((v) => v.is_default) ??
+                      lvl.variants[0])
+                      ?.column_map ?? [],
+                ) ?? [])
+              : []
+          }
           onRowDrill={handleV2RowDrill}
         />
       )}
