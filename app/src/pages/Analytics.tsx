@@ -351,9 +351,7 @@ function DashboardCanvas({
               : "Drilldown"
           }
           levelColumnMaps={getLevelColumnMaps(
-            drillV2.panelId
-              ? dashboard.widgets?.[drillV2.panelId]
-              : undefined,
+            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
           )}
           onRowDrill={handleV2RowDrill}
         />
