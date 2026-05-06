@@ -154,62 +154,73 @@ export function BulkImportPane({
       footer={footer}
       resizable
     >
-      <div className="flex flex-col h-full min-h-0 gap-3 pt-2">
+      {/* Vertical timeline of numbered steps. Each row is
+          [circle + connector line] | [title + content]. The connector
+          line on step 1 fills the row height to bridge to step 2's
+          circle, mirroring the home-page onboarding pattern. */}
+      <div className="flex flex-col h-full min-h-0 pt-2">
         {/* Step 1: copy the export prompt into another AI. */}
-        <div className="flex-shrink-0 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
+        <div className="flex gap-3 flex-shrink-0">
+          <div className="flex flex-col items-center flex-shrink-0">
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
               1
             </span>
+            <div className="w-px flex-1 bg-gray-200 my-1" />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2 pb-6">
             <span className="text-sm text-gray-900">
               Copy this prompt into a new chat with your other AI provider
             </span>
-          </div>
-          <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20 h-[160px] overflow-hidden">
-            <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
-              {EXPORT_PROMPT}
-            </p>
-            <button
-              type="button"
-              onClick={handleCopyPrompt}
-              className="absolute top-2 right-2 inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
-            >
-              {copiedPrompt ? (
-                <>
-                  <CheckIcon size={12} weight="bold" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <CopyIcon size={12} weight="regular" />
-                  Copy
-                </>
-              )}
-            </button>
+            <div className="relative rounded-xl border border-gray-200/80 bg-gray-50/70 p-3 pr-20 max-h-[160px] overflow-hidden">
+              <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">
+                {EXPORT_PROMPT}
+              </p>
+              <button
+                type="button"
+                onClick={handleCopyPrompt}
+                className="absolute top-2 right-2 inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-gray-200/80 bg-white text-xs text-gray-800 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                {copiedPrompt ? (
+                  <>
+                    <CheckIcon size={12} weight="bold" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <CopyIcon size={12} weight="regular" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Step 2 label. */}
-        <div className="flex-shrink-0 flex items-center gap-2">
-          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
-            2
-          </span>
-          <span className="text-sm text-gray-900">
-            Paste results below to add to your memory
-          </span>
-        </div>
-
-        {/* Rich text editor — Tiptap surface. Starts at ~65% of available
-              height; user-resizable up to the full pane. The prompt block
-              above is capped with internal scroll so this always has room. */}
-        <div className="flex-shrink-0 min-h-[180px] h-[65%] max-h-full resize-y overflow-auto border border-gray-200/80 rounded-xl">
-          <OrgContextEditor
-            content={input}
-            onChange={setInput}
-            isEditing={true}
-            placeholder="Paste memory export from another AI, an onboarding doc, a playbook, or describe what to learn..."
-            contentKey={`bulk-import-${contentKey}`}
-          />
+        {/* Step 2: paste the result back into Von. The connector line
+            continues below the circle to extend past the last step,
+            matching the onboarding timeline pattern. Editor fills
+            remaining height (flex-1 min-h-0 chain). */}
+        <div className="flex gap-3 flex-1 min-h-0">
+          <div className="flex flex-col items-center flex-shrink-0">
+            <span className="inline-flex items-center justify-center h-5 w-5 rounded-full border border-gray-200 text-[10px] font-semibold text-gray-700 bg-white">
+              2
+            </span>
+            <div className="w-px flex-1 bg-gray-200 my-1" />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col gap-2 min-h-0">
+            <span className="text-sm text-gray-900">
+              Paste results below to add to your memory
+            </span>
+            <div className="flex-1 min-h-[180px] overflow-auto border border-gray-200/80 rounded-xl">
+              <OrgContextEditor
+                content={input}
+                onChange={setInput}
+                isEditing={true}
+                placeholder="Paste memory export from another AI, an onboarding doc, a playbook, or describe what to learn..."
+                contentKey={`bulk-import-${contentKey}`}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </SidePane>
