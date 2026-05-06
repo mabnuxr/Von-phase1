@@ -20,7 +20,7 @@ interface DragPillProps {
 const DragPill: React.FC<DragPillProps> = ({ label }) => (
   <button
     type="button"
-    className="widget-drag-handle shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+    className="widget-drag-handle shrink-0 inline-flex items-center justify-center w-7 h-7 rounded border border-gray-200 text-gray-600 hover:text-gray-800 hover:bg-gray-100 hover:border-gray-300 transition-colors"
     aria-label={`Drag ${label}`}
     title="Drag to move"
     // Stop click on the handle so widgets that have their own onClick
