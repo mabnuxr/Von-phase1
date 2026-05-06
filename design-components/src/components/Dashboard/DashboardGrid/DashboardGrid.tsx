@@ -5,6 +5,7 @@ import { WidgetSkeleton } from '../WidgetSkeleton';
 import { WidgetErrorBoundary } from '../WidgetErrorBoundary';
 import { DashboardGridConfigContext } from '../DashboardGridConfigContext';
 import type { DashboardGridProps } from '../types';
+import { useDragAutoScroll } from './useDragAutoScroll';
 import 'react-grid-layout/css/styles.css';
 import './dashboard-grid.css';
 
@@ -44,6 +45,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(1200);
+    const autoScroll = useDragAutoScroll(containerRef);
 
     useEffect(() => {
       const el = containerRef.current;
@@ -118,6 +120,10 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
             }}
             compactor={gridConfig.compactType === 'vertical' ? verticalCompactor : undefined}
             onLayoutChange={(next) => onLayoutChange?.(next)}
+            onDragStart={autoScroll.onDragStart}
+            onDragStop={autoScroll.onDragStop}
+            onResizeStart={autoScroll.onResizeStart}
+            onResizeStop={autoScroll.onResizeStop}
           >
             {gridLayout.map((item) => {
               const widget = widgets[item.i];
