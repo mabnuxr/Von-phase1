@@ -13,7 +13,6 @@
  * - Pill-shaped variant-dropdown selector when `variants.length > 1`
  *   (replaces older row-of-buttons UI; dropdown scales better past 2-3
  *   variants and competes less for header space against the breadcrumb).
- * - Justification line rendered from the backend's `justification` string.
  * - Data table reuses the existing ReportTable component for consistent UX.
  * - **Whole-row descent.** When `hasNextLevel === true`, every row is
  *   clickable — clicking ANY cell descends to the next level using the entire
@@ -210,11 +209,6 @@ export function DrilldownPanelV2({
             </button>
           </div>
         </div>
-
-        {/* Justification */}
-        {drill.justification && (
-          <div className="dd-v2-justification">{drill.justification}</div>
-        )}
 
         {/* Overflow advisory at 8+ levels */}
         {drill.overflowBannerVisible && (
