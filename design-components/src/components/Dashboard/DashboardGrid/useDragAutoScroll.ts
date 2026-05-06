@@ -13,6 +13,10 @@ function findScrollableAncestor(start: HTMLElement | null): HTMLElement | null {
     }
     node = node.parentElement;
   }
+  const root = (document.scrollingElement ?? document.documentElement) as HTMLElement | null;
+  if (root && root.scrollHeight > root.clientHeight) {
+    return root;
+  }
   return null;
 }
 
@@ -56,13 +60,16 @@ export function useDragAutoScroll(containerRef: RefObject<HTMLElement | null>) {
       velocity = MIN_VELOCITY_PX + (MAX_VELOCITY_PX - MIN_VELOCITY_PX) * ramp;
     }
 
-    if (velocity !== 0) {
-      const atTop = scroller.scrollTop <= 0 && velocity < 0;
-      const atBottom =
-        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight && velocity > 0;
-      if (!atTop && !atBottom) {
-        scroller.scrollBy(0, velocity);
-      }
+    if (velocity === 0) {
+      rafIdRef.current = null;
+      return;
+    }
+
+    const atTop = scroller.scrollTop <= 0 && velocity < 0;
+    const atBottom =
+      scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight && velocity > 0;
+    if (!atTop && !atBottom) {
+      scroller.scrollBy(0, velocity);
     }
 
     rafIdRef.current = requestAnimationFrame(tick);
