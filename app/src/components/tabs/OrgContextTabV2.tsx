@@ -796,7 +796,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
 
       {/* Content - Scrollable */}
       <div className="flex-1 overflow-y-auto settings-scrollbar px-6">
-        <div className="pt-6 pb-12 space-y-8 flex flex-col items-center">
+        <div className="pt-6 pb-12 space-y-8 w-full max-w-4xl mx-auto">
           {/* Error state */}
           {error && (
             <div className="text-center py-8 px-6 bg-red-50/80 rounded-2xl backdrop-blur-sm">
@@ -806,7 +806,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
 
           {/* ===== ORG MEMORY SECTION ===== */}
           {showOrg && (
-            <div className="w-[60%]">
+            <div className="w-full">
               {/* Org Memory Card — list | editor in a single card */}
               <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
                 <div className="flex w-full h-[calc(100vh-220px)]">
@@ -949,7 +949,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
               load; user can edit but not delete. Import button lives in the
               page header above. */}
           {showUser && isUserMemoryEnabled && (
-            <div className="w-[60%]">
+            <div className="w-full">
               <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
                 <div className="flex w-full h-[calc(100vh-220px)]">
                   <div className="flex-1 w-0 flex flex-col min-w-0 bg-white/50 relative">
