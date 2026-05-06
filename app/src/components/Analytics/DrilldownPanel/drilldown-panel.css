@@ -303,6 +303,26 @@
   flex-shrink: 0;
 }
 
+/* When the widget title is the click target for "back to L1" (rendered as a
+   button — see DrilldownPanelV2.Breadcrumb), keep the bold-dark visual but
+   add the cursor + hover affordance from .dd-v2-breadcrumb-btn so the user
+   knows it's interactive. The combined class wins on cascade because this
+   rule is more specific than .dd-v2-breadcrumb-btn alone. */
+button.dd-v2-breadcrumb-widget {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  color: #1e293b;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button.dd-v2-breadcrumb-widget:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
 .dd-v2-breadcrumb-seg {
   display: inline-flex;
   align-items: center;

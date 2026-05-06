@@ -202,23 +202,32 @@ function DashboardCanvas({
 
   const handleV2RowDrill = useCallback(
     (_rowIndex: number, rowData: Record<string, unknown>) => {
-      // Pyramid model: every click descends to the next level (when one exists).
-      // Whole-row descent — the entire row's grouping-key column values become
-      // cumulative filters at the next level. The backend's column_map at the
-      // resolved depth picks out the ones it knows how to SQL-translate.
+      // Pyramid model: every click descends to the next level (when one
+      // exists). Each chain entry captures ONLY the axes newly introduced at
+      // that depth — see `rowDescentFilters` doc — so the breadcrumb reads
+      // "Stage: X › Owner: Y" rather than every column from the clicked row
+      // (account_count, total_arr, …) leaking in as bogus filters.
       //
-      // column_path is a depth marker. We extend it by one segment per descent
-      // so server cache keys stay distinct across click paths that happen to
-      // share depth; the segment value itself is opaque to routing — we use
-      // the first scalar key as a breadcrumb hint.
-      const filters = rowDescentFilters(rowData);
-      const breadcrumbSeg =
-        Object.keys(filters)[0] ?? `L${drillV2.clickChain.length}`;
-      const topChainNode = drillV2.clickChain[drillV2.clickChain.length - 1];
+      // column_path is a depth marker. We extend it by one segment per
+      // descent so server cache keys stay distinct across click paths that
+      // happen to share depth; the segment value itself is opaque to routing
+      // — we use the first scalar key as a breadcrumb hint.
+      const widget = drillV2.panelId
+        ? dashboard?.widgets?.[drillV2.panelId]
+        : undefined;
+      const levelColumnMaps = getLevelColumnMaps(widget);
+      const currentDepth = drillV2.clickChain.length;
+      const filters = rowDescentFilters(
+        rowData,
+        levelColumnMaps[currentDepth] ?? [],
+        levelColumnMaps[currentDepth - 1] ?? [],
+      );
+      const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
+      const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
       drillV2.pushLevel(nextPath, filters);
     },
-    [drillV2],
+    [drillV2, dashboard],
   );
 
   // Schedule management
