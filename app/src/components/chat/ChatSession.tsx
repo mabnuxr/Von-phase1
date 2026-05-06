@@ -25,6 +25,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useGuardedNavigate } from "../../providers/NavigationGuard";
 import {
   Chat,
@@ -75,6 +76,10 @@ import {
   GmailDraftCardContainer,
   EmailComposerContainer,
 } from "../GmailDraftCardContainer";
+import { AIFieldArtifactCard } from "../ai-fields/AIFieldArtifactCard";
+import { AIFieldSidePanel } from "../ai-fields/AIFieldSidePanel";
+import useAiFieldsStore from "../../store/vonAiFieldsStore";
+import { useAiField } from "../../hooks/useVonAiFields";
 
 // ─── Split-pane constants ───────────────────────────────────────────
 
@@ -82,6 +87,12 @@ const SPLIT_DEFAULT_RATIOS = [0.3, 0.7];
 const SPLIT_CONSTRAINTS = [
   { min: 0.3, max: 0.6 },
   { min: 0.4, max: 0.7 },
+];
+
+const AI_FIELD_SPLIT_RATIOS = [0.4, 0.6];
+const AI_FIELD_SPLIT_CONSTRAINTS = [
+  { min: 0.25, max: 0.6 },
+  { min: 0.4, max: 0.75 },
 ];
 
 // ─── Compound component context ─────────────────────────────────────
@@ -386,10 +397,23 @@ function ExistingChatInner(
         }
       : undefined;
 
+  // ── AI Field state ──
+  const { chatPanelFieldId, closeChatPanel } = useAiFieldsStore();
+
   // ── Artifact card renderers ──────────────────────────────────────
   // Single email fallback (used when renderGroupedEmailArtifacts is not available)
   const renderArtifactCard = useCallback(
     (artifact: FileArtifact) => {
+      // AI Field artifact — injected by useChatV2 from AI_FIELD_READY event
+      if (artifact.artifactType === "ai_field") {
+        return (
+          <AIFieldArtifactCard
+            fieldId={artifact.fileId}
+            name={artifact.fileName}
+          />
+        );
+      }
+      // Email draft artifact
       if (
         artifact.artifactType === "email_draft" ||
         artifact.fileName?.endsWith(".eml")
@@ -466,6 +490,36 @@ function ExistingChatInner(
     mentionItems,
   ]);
 
+  // AI field reference from URL param only (from "Edit in chat")
+  const [searchParamsExisting, setSearchParamsExisting] = useSearchParams();
+  const aiFieldIdFromUrlExisting = searchParamsExisting.get("aiFieldId");
+  const { data: aiFieldForMention } = useAiField(aiFieldIdFromUrlExisting);
+  const [capturedAiFieldMention, setCapturedAiFieldMention] =
+    useState<MentionItem | null>(null);
+
+  // Capture the mention into state then clean the URL param
+  useEffect(() => {
+    if (aiFieldForMention && aiFieldIdFromUrlExisting) {
+      setCapturedAiFieldMention({
+        id: aiFieldForMention.fieldId,
+        name: aiFieldForMention.displayName ?? aiFieldForMention.name,
+        type: MentionItemType.AiField,
+        version: 0,
+        aiFieldContext: { aiFieldId: aiFieldForMention.fieldId },
+      });
+      setSearchParamsExisting(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete("aiFieldId");
+          return next;
+        },
+        { replace: true },
+      );
+    }
+  }, [aiFieldForMention, aiFieldIdFromUrlExisting, setSearchParamsExisting]);
+
+  const aiFieldMention = capturedAiFieldMention;
+
   const isCompact = !!props.compact || dashboardPaneState.isOpen;
   const {
     containerRef: splitContainerRef,
@@ -474,6 +528,15 @@ function ExistingChatInner(
   } = usePanelResize({
     defaultRatios: SPLIT_DEFAULT_RATIOS,
     constraints: SPLIT_CONSTRAINTS,
+  });
+
+  const {
+    containerRef: aiFieldContainerRef,
+    ratios: aiFieldRatios,
+    getHandleProps: getAiFieldHandleProps,
+  } = usePanelResize({
+    defaultRatios: AI_FIELD_SPLIT_RATIOS,
+    constraints: AI_FIELD_SPLIT_CONSTRAINTS,
   });
 
   const { onCollapseSidebar } = props;
@@ -500,6 +563,15 @@ function ExistingChatInner(
 
   const handleMentionClick = useCallback(
     (mention: MentionItem) => {
+      if (
+        mention.type === MentionItemType.AiField ||
+        mention.aiFieldContext?.aiFieldId
+      ) {
+        navigate(
+          `/settings?tab=custom-iq&fieldId=${mention.aiFieldContext?.aiFieldId ?? mention.id}`,
+        );
+        return;
+      }
       navigate(`/dashboard/${mention.id}?conversationId=${conversationId}`);
     },
     [conversationId, navigate],
@@ -510,6 +582,23 @@ function ExistingChatInner(
     onWidgetMentionRemoved: handleWidgetMentionRemoved,
     wrappedHandleSendMessage: handleSendMessage,
   } = useConversationWidgetMentions(conversationId, chatV2.handleSendMessage);
+
+  const combinedWidgetMentions = useMemo(
+    () =>
+      aiFieldMention ? [...widgetMentions, aiFieldMention] : widgetMentions,
+    [widgetMentions, aiFieldMention],
+  );
+
+  const handleCombinedWidgetMentionRemoved = useCallback(
+    (args: { id: string }) => {
+      if (aiFieldMention && args.id === aiFieldMention.id) {
+        setCapturedAiFieldMention(null);
+        return;
+      }
+      handleWidgetMentionRemoved(args);
+    },
+    [aiFieldMention, handleWidgetMentionRemoved],
+  );
 
   const prevLiveDashboardKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -657,8 +746,8 @@ function ExistingChatInner(
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
-      widgetMentions={widgetMentions}
-      onWidgetMentionRemoved={handleWidgetMentionRemoved}
+      widgetMentions={combinedWidgetMentions}
+      onWidgetMentionRemoved={handleCombinedWidgetMentionRemoved}
       // Google Drive
       onGoogleDriveClick={wrappedDriveClick}
       isDriveEnabled={props.isDriveEnabled}
@@ -683,7 +772,18 @@ function ExistingChatInner(
 
   return (
     <>
-      <div ref={splitContainerRef} className="flex h-full w-full gap-1">
+      <div
+        ref={(el) => {
+          // Both resize hooks need the container ref
+          (
+            splitContainerRef as React.MutableRefObject<HTMLDivElement | null>
+          ).current = el;
+          (
+            aiFieldContainerRef as React.MutableRefObject<HTMLDivElement | null>
+          ).current = el;
+        }}
+        className="flex h-full w-full gap-1"
+      >
         <div
           className="relative flex-1 min-w-0"
           style={
@@ -691,7 +791,11 @@ function ExistingChatInner(
               ? {
                   flex: `0 0 calc(${splitRatios[0] * 100}% - ${6 * splitRatios[0]}px)`,
                 }
-              : undefined
+              : chatPanelFieldId
+                ? {
+                    flex: `0 0 calc(${aiFieldRatios[0] * 100}% - ${6 * aiFieldRatios[0]}px)`,
+                  }
+                : undefined
           }
         >
           {typeof props.headerAction === "function"
@@ -765,6 +869,31 @@ function ExistingChatInner(
               activeServiceId={lastUsedServiceId}
             />
           )}
+        {chatPanelFieldId && !dashboardPaneState.isOpen && (
+          <>
+            <div
+              {...getAiFieldHandleProps(0)}
+              className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+            >
+              <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
+            </div>
+            <div
+              className="h-full min-w-0"
+              style={{
+                flex: `0 0 calc(${aiFieldRatios[1] * 100}% - ${6 * aiFieldRatios[1]}px)`,
+              }}
+            >
+              <AIFieldSidePanel
+                fieldId={chatPanelFieldId}
+                onClose={closeChatPanel}
+                onNavigateToSettings={(realFieldId) => {
+                  closeChatPanel();
+                  navigate(`/settings?tab=custom-iq&fieldId=${realFieldId}`);
+                }}
+              />
+            </div>
+          </>
+        )}
       </div>
       <Overlays conversationId={conversationId} chatV2={chatV2} />
     </>
@@ -787,6 +916,29 @@ function NewChatInner(
     isLoadingMentions,
     onMentionsActivated,
   } = useChatMentions();
+
+  // ── AI Field from URL (new chat about a field) ─────────────────────
+  const [searchParams] = useSearchParams();
+  const aiFieldIdFromUrl = searchParams.get("aiFieldId");
+  const { data: aiFieldForNewChat } = useAiField(aiFieldIdFromUrl);
+  const newChatAiFieldMention = useMemo(() => {
+    if (!aiFieldForNewChat) return null;
+    return {
+      id: aiFieldForNewChat.fieldId,
+      name: aiFieldForNewChat.displayName ?? aiFieldForNewChat.name,
+      type: MentionItemType.AiField,
+      version: 0,
+      aiFieldContext: { aiFieldId: aiFieldForNewChat.fieldId },
+    };
+  }, [aiFieldForNewChat]);
+
+  const newChatWidgetMentions = useMemo(
+    () =>
+      newChatAiFieldMention
+        ? [...(props.pendingWidgetMentions ?? []), newChatAiFieldMention]
+        : props.pendingWidgetMentions,
+    [props.pendingWidgetMentions, newChatAiFieldMention],
+  );
 
   // ── Dashboard @ mention ────────────────────────────────────────────
   const hasDashboard = !!(props.dashboardId && props.dashboardTitle);
@@ -859,7 +1011,7 @@ function NewChatInner(
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
       dashboardMention={dashboardMention}
-      widgetMentions={props.pendingWidgetMentions}
+      widgetMentions={newChatWidgetMentions}
       onWidgetMentionRemoved={props.onPendingWidgetMentionRemoved}
     >
       {slots.emptyState && (

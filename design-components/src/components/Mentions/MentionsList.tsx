@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { ChartBarIcon } from '@phosphor-icons/react';
+import { ChartBarIcon, LightningIcon } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
 import { Tooltip } from '../Tooltip';
 
@@ -7,7 +7,10 @@ import { Tooltip } from '../Tooltip';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getMentionIcon() {
+function getMentionIcon(item: MentionItem) {
+  if (item.type === 'ai_field') {
+    return <LightningIcon size={16} weight="fill" className="text-gray-500 flex-shrink-0" />;
+  }
   return <ChartBarIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
 }
 
@@ -48,7 +51,7 @@ const MentionItemRow: React.FC<MentionItemRowProps> = ({
       onClick={disabled ? undefined : () => onSelect(item)}
       onMouseEnter={disabled ? undefined : onMouseEnter}
     >
-      {getMentionIcon()}
+      {getMentionIcon(item)}
       <span className="text-sm text-gray-800 truncate">{item.name}</span>
     </div>
   </Tooltip>
@@ -75,7 +78,7 @@ const SkeletonLoading: React.FC = () => (
 );
 
 const EmptyState: React.FC = () => (
-  <div className="px-4 py-8 text-sm text-gray-500 text-center">No dashboards found.</div>
+  <div className="px-4 py-8 text-sm text-gray-500 text-center">No results found.</div>
 );
 
 // ---------------------------------------------------------------------------
@@ -122,7 +125,12 @@ export const MentionsList: React.FC<MentionsListProps> = ({
           items.map((item, index) => {
             const prevItem = items[index - 1];
             const showCurrentHeader = item.isCurrent && index === 0;
-            const showOthersHeader = !item.isCurrent && (index === 0 || prevItem?.isCurrent);
+            const isDashboard = item.type === 'dashboard';
+            const isAiField = item.type === 'ai_field';
+            const prevIsAiField = prevItem?.type === 'ai_field';
+            const showOthersHeader =
+              isDashboard && !item.isCurrent && (index === 0 || prevItem?.isCurrent);
+            const showAiFieldsHeader = isAiField && !prevIsAiField;
             return (
               <React.Fragment key={item.id}>
                 {showCurrentHeader && (
@@ -134,6 +142,12 @@ export const MentionsList: React.FC<MentionsListProps> = ({
                   <>
                     {index > 0 && <div className="mx-2 border-t border-gray-100" />}
                     <div className="px-2 py-1 text-xs font-medium text-gray-500">Dashboards</div>
+                  </>
+                )}
+                {showAiFieldsHeader && (
+                  <>
+                    {index > 0 && <div className="mx-2 border-t border-gray-100" />}
+                    <div className="px-2 py-1 text-xs font-medium text-gray-500">AI Fields</div>
                   </>
                 )}
                 <div

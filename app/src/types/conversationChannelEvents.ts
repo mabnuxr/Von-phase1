@@ -8,6 +8,7 @@
 export const ConversationChannelEvents = {
   ARTIFACT_CREATED: "artifact_created",
   INTEGRATION_WRITE_BLOCKED: "integration.write_blocked",
+  AI_FIELD_CREATED: "AI_FIELD_CREATED",
 } as const;
 
 export type ConversationChannelEventName =
@@ -23,6 +24,22 @@ export interface AgentWriteBlockedPayload {
   block_code: WriteBlockCode;
   message: string;
   idempotency_key: string;
+}
+
+export interface AiFieldEventPayload {
+  type: "ai_field";
+  fieldId: string;
+  name: string;
+  status: "draft" | "live" | "disabled";
+  description?: string;
+  columnsToGenerate?: Array<{
+    name: string;
+    description: string;
+    type: string;
+  }>;
+  sources?: string[];
+  opportunityFilter?: string;
+  conversationId?: string;
 }
 
 /**

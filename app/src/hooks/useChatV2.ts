@@ -41,6 +41,9 @@ import {
   type AgentArtifactTurn,
 } from "./useAgentArtifacts";
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
+import { useAiFieldCreatedEvent } from "./useAiFieldCreatedEvent";
+import useAiFieldsStore from "../store/vonAiFieldsStore";
+import { aiFieldKeys } from "./useVonAiFields";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import {
   transformConversationMessages,
@@ -179,6 +182,9 @@ export function useChatV2(props: UseChatV2Props) {
 
   // Agent-generated file artifacts (React Query + Pusher invalidation)
   useArtifactCreatedEvent(channel, conversationId);
+
+  // AI Field created — open side panel when agent creates a field
+  useAiFieldCreatedEvent(channel);
 
   // Surface write-blocked notifications as banner above chat input
   const { writeBlocked, dismissWriteBlocked } = useWriteBlockedEvent(channel);
@@ -441,6 +447,168 @@ export function useChatV2(props: UseChatV2Props) {
     ],
   );
 
+  // Inject AI Field artifact card into assistant messages.
+  // Sources: (1) live AI_FIELD_READY from v2Processor, (2) persisted events on page refresh.
+  const finalTransformedMessages = useMemo(() => {
+    const liveAiField = v2Processor.aiFieldReady;
+
+    // Find the last assistant message index for live injection
+    let lastAssistantIdx = -1;
+    for (let i = transformedMessages.length - 1; i >= 0; i--) {
+      if (transformedMessages[i].type === "assistant") {
+        lastAssistantIdx = i;
+        break;
+      }
+    }
+
+    return transformedMessages.map((msg, idx) => {
+      // Resolve AI field mention names on user messages
+      if (msg.type === "user" && msg.mentions?.length) {
+        const needsResolve = msg.mentions.some(
+          (m) => m.type === "ai_field" && (!m.name || m.name === m.id),
+        );
+        if (needsResolve) {
+          const resolvedMentions = msg.mentions.map((m) => {
+            if (m.type !== "ai_field" || (m.name && m.name !== m.id)) return m;
+            // Try to find the name from cached AI fields list
+            const cached = queryClient.getQueryData<{
+              data: Array<{
+                fieldId: string;
+                name: string;
+                displayName?: string;
+              }>;
+            }>(aiFieldKeys.list("live", 1, 50));
+            const field = cached?.data?.find((f) => f.fieldId === m.id);
+            if (field) {
+              return { ...m, name: field.displayName ?? field.name };
+            }
+            return m;
+          });
+          return { ...msg, mentions: resolvedMentions };
+        }
+      }
+
+      if (msg.type !== "assistant") return msg;
+
+      // Check live stream — inject on the last assistant message
+      if (liveAiField && idx === lastAssistantIdx) {
+        if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
+          return msg;
+        return {
+          ...msg,
+          artifacts: [
+            ...(msg.artifacts ?? []),
+            {
+              fileId: liveAiField.fieldId,
+              fileName: liveAiField.name,
+              artifactType: "ai_field",
+              mimeType: "application/json",
+            },
+          ],
+        };
+      }
+
+      // Check persisted events (page refresh)
+      const rawMsg = conversationMessages.find((m) => m.id === msg.id);
+      if (rawMsg?.events) {
+        const aiFieldEvent = rawMsg.events.find(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (e: any) => e.event?.type === "AI_FIELD_READY",
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const aiField = (aiFieldEvent as any)?.event?.ai_field;
+        if (aiField) {
+          const id =
+            aiField.field_id ??
+            aiField.fieldId ??
+            aiField.workflowId ??
+            aiField.workflow_id ??
+            "draft";
+          if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
+            return msg;
+          return {
+            ...msg,
+            artifacts: [
+              ...(msg.artifacts ?? []),
+              {
+                fileId: id,
+                fileName:
+                  aiField.displayName ??
+                  aiField.display_name ??
+                  aiField.name ??
+                  "AI Field",
+                artifactType: "ai_field",
+                mimeType: "application/json",
+              },
+            ],
+          };
+        }
+      }
+
+      return msg;
+    });
+  }, [
+    transformedMessages,
+    v2Processor.aiFieldReady,
+    conversationMessages,
+    queryClient,
+  ]);
+
+  // Clear AI field panel on mount and when switching conversations
+  const prevConversationId = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevConversationId.current !== conversationId) {
+      useAiFieldsStore.getState().closeChatPanel();
+      useAiFieldsStore.getState().setDraftAiField(null);
+    }
+    prevConversationId.current = conversationId;
+  }, [conversationId]);
+
+  // Restore draftAiField from persisted events on page refresh
+  useEffect(() => {
+    const store = useAiFieldsStore.getState();
+    if (store.draftAiField) return; // already have draft data
+
+    for (const rawMsg of conversationMessages) {
+      if (!rawMsg.events) continue;
+      const aiFieldEvent = rawMsg.events.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (e: any) => e.event?.type === "AI_FIELD_READY",
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const af = (aiFieldEvent as any)?.event?.ai_field;
+      if (af) {
+        store.setDraftAiField({
+          fieldId: af.fieldId ?? af.field_id ?? null,
+          workflowId: af.workflowId ?? af.workflow_id ?? "",
+          name: af.name ?? "",
+          displayName: af.displayName ?? af.display_name,
+          description: af.description ?? "",
+          objectType: (af.objectType ?? af.object_type ?? "opportunity") as
+            | "opportunity"
+            | "account",
+          columnsToGenerate:
+            af.columnsToGenerate ??
+            af.columns_to_generate ??
+            (af.columnsGenerated ?? af.columns_generated ?? []).map(
+              (name: string) => ({ name, description: "", type: "string" }),
+            ),
+          columnsGenerated: af.columnsGenerated ?? af.columns_generated ?? [],
+          sources: af.sources ?? [],
+          opportunityFilter:
+            af.opportunityFilter ?? af.opportunity_filter ?? null,
+          displayFilter: af.displayFilter ?? af.display_filter,
+          matchCount: af.matchCount ?? af.match_count ?? null,
+          totalRecords: af.totalRecords ?? af.total_records ?? null,
+          sampleOpportunities:
+            af.sampleOpportunities ?? af.sample_opportunities,
+          conversationId: af.conversationId ?? af.conversation_id ?? null,
+        });
+        break;
+      }
+    }
+  }, [conversationMessages]);
+
   // Message filtering state
   const showMessagesFromIndex = useChatStore(
     (state) => state.showMessagesFromIndex[conversationId] ?? 0,
@@ -476,13 +644,13 @@ export function useChatV2(props: UseChatV2Props) {
   // Transparency handler
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
-      const message = transformedMessages.find((m) => m.id === messageId);
+      const message = finalTransformedMessages.find((m) => m.id === messageId);
       if (message?.runId) {
         setTransparencyRunId(message.runId);
         setIsTransparencyOpen(true);
       }
     },
-    [transformedMessages],
+    [finalTransformedMessages],
   );
 
   const handleCloseTransparency = useCallback(() => {
@@ -668,7 +836,7 @@ export function useChatV2(props: UseChatV2Props) {
     liveDashboardKey: v2Processor.liveDashboardKey,
 
     // Messages
-    transformedMessages,
+    transformedMessages: finalTransformedMessages,
     effectiveResearchResults,
     showMessagesFromIndex,
 

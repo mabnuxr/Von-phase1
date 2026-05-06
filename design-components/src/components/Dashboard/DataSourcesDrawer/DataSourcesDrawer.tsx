@@ -6,14 +6,26 @@
  */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { XIcon, TableIcon, DatabaseIcon } from '@phosphor-icons/react';
+import {
+  XIcon,
+  TableIcon,
+  DatabaseIcon,
+  PhoneIcon,
+  EnvelopeSimpleIcon,
+} from '@phosphor-icons/react';
 import { VonIcon } from '../../VonIcon';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type DataSourceIcon = 'salesforce' | 'snowflake' | 'von_iq' | 'database';
+export type DataSourceIcon =
+  | 'salesforce'
+  | 'snowflake'
+  | 'von_iq'
+  | 'database'
+  | 'calls'
+  | 'emails';
 
 export interface DataSource {
   /** Stable key for React (typically the source type). */
@@ -55,6 +67,9 @@ const SourceIcon: React.FC<{ icon?: DataSourceIcon; size?: number }> = ({ icon, 
   if (icon === 'salesforce') return <SalesforceLogo size={size} />;
   if (icon === 'snowflake') return <SnowflakeLogo size={size} />;
   if (icon === 'von_iq') return <VonIcon variant="badge" shape="circle" size={size} />;
+  if (icon === 'calls') return <PhoneIcon size={size} weight="fill" className="text-gray-500" />;
+  if (icon === 'emails')
+    return <EnvelopeSimpleIcon size={size} weight="fill" className="text-gray-500" />;
   return (
     <div className="w-4 h-4 rounded bg-gray-200 flex items-center justify-center">
       <DatabaseIcon size={10} className="text-gray-500" />
@@ -77,14 +92,10 @@ const SourcesChip: React.FC<SourcesChipProps> = ({ sources, onClick }) => (
     title="View data sources"
     className="inline-flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-700 text-xs font-medium rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
   >
-    <div className="flex items-center -space-x-1">
-      {sources.slice(0, 3).map((source, i) => (
-        <div
-          key={source.id}
-          className="w-5 h-5 rounded-full border-2 border-white bg-white flex items-center justify-center shrink-0"
-          style={{ zIndex: 3 - i }}
-        >
-          <SourceIcon icon={source.icon} size={13} />
+    <div className="flex items-center">
+      {sources.slice(0, 3).map((source) => (
+        <div key={source.id} className="w-4 h-4 flex items-center justify-center shrink-0">
+          <SourceIcon icon={source.icon} size={14} />
         </div>
       ))}
     </div>

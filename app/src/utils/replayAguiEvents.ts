@@ -124,6 +124,14 @@ function parseToolResult(resultJson: any): ToolResult | null {
       };
     }
 
+    // Detect AI field artifact (agent created/updated an AI field)
+    if (resultJson.type === "ai_field" && resultJson.fieldId) {
+      return {
+        raw: resultJson,
+        type: "ai_field" as ToolResult["type"],
+      };
+    }
+
     // Detect fetch_conversation results (individual call or email content)
     if (
       resultJson.conversation_id &&

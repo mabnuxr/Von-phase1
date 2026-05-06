@@ -12,6 +12,19 @@ export function buildMentionReferences(
   mentions: MentionItem[],
 ): MessageReference[] {
   return mentions.flatMap((m): MessageReference[] => {
+    if (m.type === MentionItemType.AiField) {
+      if (!m.aiFieldContext) return [];
+      return [
+        {
+          refId: m.refId ?? `${ReferenceType.AiField}-${m.id}`,
+          type: ReferenceType.AiField,
+          context: {
+            aiFieldId: m.aiFieldContext.aiFieldId,
+            aiFieldName: m.name,
+          },
+        },
+      ];
+    }
     if (m.type === MentionItemType.Widget) {
       if (!m.widgetContext) return [];
       return [

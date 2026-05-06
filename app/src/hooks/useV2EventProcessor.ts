@@ -36,6 +36,8 @@ type RunFinishedEventExtended = Omit<RunFinishedEvent, "result"> & {
   };
 };
 import type { DashboardMetadata } from "../types/conversation";
+import type { AiFieldDraft, AiFieldObjectType } from "../types/vonAiFields";
+import useAiFieldsStore from "../store/vonAiFieldsStore";
 
 import {
   transformAguiToTimelineSteps,
@@ -91,6 +93,7 @@ const AGUI_EVENTS = [
   "agent.run_finished",
   "agent.run_error",
   "agent.dashboard_ready",
+  "agent.ai_field_ready",
   "agent.research_results_start",
   "agent.research_results_content",
   "agent.research_results_end",
@@ -115,6 +118,13 @@ export interface UseV2EventProcessorReturn {
   executionId: string | null;
   /** Whether the current/last run is a dashboard builder response */
   isDashboardBuilderMode: boolean;
+  /** AI Field data from AI_FIELD_READY event, keyed by runId */
+  aiFieldReady: {
+    runId: string;
+    fieldId: string;
+    name: string;
+    displayName?: string;
+  } | null;
   markStopped: () => void;
   clearPendingStop: () => void;
   /** Optimistically resume the timer when approval is granted (before Pusher events arrive). */
@@ -189,6 +199,11 @@ export function useV2EventProcessor(
   const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
+  const [aiFieldReady, setAiFieldReady] = useState<{
+    runId: string;
+    fieldId: string;
+    name: string;
+  } | null>(null);
 
   // Tracks whether we've already auto-opened a dashboard in the current run.
   // Reset on new run so only the first DASHBOARD_READY triggers auto-open.
@@ -561,6 +576,60 @@ export function useV2EventProcessor(
             }
           }
 
+          // Still process AI_FIELD_READY even for finished runs (same as DASHBOARD_READY)
+          if ((eventType as string) === "AI_FIELD_READY") {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const aiField = (wrapper.event as any)?.ai_field;
+            if (aiField) {
+              const draft: AiFieldDraft = {
+                fieldId: aiField.fieldId ?? aiField.field_id ?? null,
+                workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
+                name: aiField.name ?? "",
+                displayName: aiField.displayName ?? aiField.display_name,
+                description: aiField.description ?? "",
+                objectType: (aiField.objectType ??
+                  aiField.object_type ??
+                  "opportunity") as AiFieldObjectType,
+                columnsToGenerate:
+                  aiField.columnsToGenerate ??
+                  aiField.columns_to_generate ??
+                  (
+                    aiField.columnsGenerated ??
+                    aiField.columns_generated ??
+                    []
+                  ).map((name: string) => ({
+                    name,
+                    description: "",
+                    type: "string",
+                  })),
+                columnsGenerated:
+                  aiField.columnsGenerated ?? aiField.columns_generated ?? [],
+                sources: aiField.sources ?? [],
+                opportunityFilter:
+                  aiField.opportunityFilter ??
+                  aiField.opportunity_filter ??
+                  null,
+                displayFilter: aiField.displayFilter ?? aiField.display_filter,
+                matchCount: aiField.matchCount ?? aiField.match_count ?? null,
+                totalRecords:
+                  aiField.totalRecords ?? aiField.total_records ?? null,
+                sampleOpportunities:
+                  aiField.sampleOpportunities ?? aiField.sample_opportunities,
+                conversationId:
+                  aiField.conversationId ?? aiField.conversation_id ?? null,
+              };
+              useAiFieldsStore.getState().setDraftAiField(draft);
+              useAiFieldsStore
+                .getState()
+                .openChatPanel(draft.workflowId || "draft");
+              setAiFieldReady({
+                runId: run_id,
+                fieldId: draft.workflowId || "draft",
+                name: draft.displayName ?? draft.name,
+              });
+            }
+          }
+
           if (import.meta.env.DEV) {
             console.log(
               "[useV2EventProcessor] Accumulated late event for finished run:",
@@ -597,6 +666,7 @@ export function useV2EventProcessor(
               setCurrentRunId(run_id);
               setRunErrorMessage("");
               setDashboards([]);
+              setAiFieldReady(null);
               setExecutionId(null);
               setIsDashboardBuilderMode(false);
             });
@@ -628,6 +698,68 @@ export function useV2EventProcessor(
 
         // Transform to timeline steps
         const result = transformAguiToTimelineSteps(runEvents);
+
+        // AI Field: open side panel when agent emits AI_FIELD_READY
+        if ((eventType as string) === "AI_FIELD_READY") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const aiField = (wrapper.event as any)?.ai_field;
+          if (aiField) {
+            if (import.meta.env.DEV) {
+              console.log(
+                "[useV2EventProcessor] AI_FIELD_READY:",
+                aiField.name,
+              );
+            }
+
+            // Store draft data in Zustand store
+            const draft: AiFieldDraft = {
+              fieldId: aiField.fieldId ?? aiField.field_id ?? null,
+              workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
+              name: aiField.name ?? "",
+              displayName: aiField.displayName ?? aiField.display_name,
+              description: aiField.description ?? "",
+              objectType: (aiField.objectType ??
+                aiField.object_type ??
+                "opportunity") as AiFieldObjectType,
+              columnsToGenerate:
+                aiField.columnsToGenerate ??
+                aiField.columns_to_generate ??
+                (
+                  aiField.columnsGenerated ??
+                  aiField.columns_generated ??
+                  []
+                ).map((name: string) => ({
+                  name,
+                  description: "",
+                  type: "string",
+                })),
+              columnsGenerated:
+                aiField.columnsGenerated ?? aiField.columns_generated ?? [],
+              sources: aiField.sources ?? [],
+              opportunityFilter:
+                aiField.opportunityFilter ?? aiField.opportunity_filter ?? null,
+              displayFilter: aiField.displayFilter ?? aiField.display_filter,
+              matchCount: aiField.matchCount ?? aiField.match_count ?? null,
+              totalRecords:
+                aiField.totalRecords ?? aiField.total_records ?? null,
+              sampleOpportunities:
+                aiField.sampleOpportunities ?? aiField.sample_opportunities,
+              conversationId:
+                aiField.conversationId ?? aiField.conversation_id ?? null,
+            };
+
+            useAiFieldsStore.getState().setDraftAiField(draft);
+            useAiFieldsStore
+              .getState()
+              .openChatPanel(draft.workflowId || "draft");
+
+            setAiFieldReady({
+              runId: run_id,
+              fieldId: draft.workflowId || "draft",
+              name: draft.displayName ?? draft.name,
+            });
+          }
+        }
 
         // Extract dashboard metadata from DASHBOARD_READY event
         const dashboardReadyPayload =
@@ -814,6 +946,51 @@ export function useV2EventProcessor(
           ?.is_dashboard_builder_mode ?? false)
       : false;
 
+    // Extract AI_FIELD_READY from seeded events (for live stream seeding)
+    const seededAiFieldEvent = mergedEvents.find(
+      (e) => (e.event?.type as string) === "AI_FIELD_READY",
+    );
+    if (seededAiFieldEvent) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const aiField = (seededAiFieldEvent.event as any)?.ai_field;
+      if (aiField) {
+        const draft: AiFieldDraft = {
+          fieldId: aiField.fieldId ?? aiField.field_id ?? null,
+          workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
+          name: aiField.name ?? "",
+          displayName: aiField.displayName ?? aiField.display_name,
+          description: aiField.description ?? "",
+          objectType: (aiField.objectType ??
+            aiField.object_type ??
+            "opportunity") as AiFieldObjectType,
+          columnsToGenerate:
+            aiField.columnsToGenerate ??
+            aiField.columns_to_generate ??
+            (aiField.columnsGenerated ?? aiField.columns_generated ?? []).map(
+              (name: string) => ({ name, description: "", type: "string" }),
+            ),
+          columnsGenerated:
+            aiField.columnsGenerated ?? aiField.columns_generated ?? [],
+          sources: aiField.sources ?? [],
+          opportunityFilter:
+            aiField.opportunityFilter ?? aiField.opportunity_filter ?? null,
+          displayFilter: aiField.displayFilter ?? aiField.display_filter,
+          matchCount: aiField.matchCount ?? aiField.match_count ?? null,
+          totalRecords: aiField.totalRecords ?? aiField.total_records ?? null,
+          sampleOpportunities:
+            aiField.sampleOpportunities ?? aiField.sample_opportunities,
+          conversationId:
+            aiField.conversationId ?? aiField.conversation_id ?? null,
+        };
+        useAiFieldsStore.getState().setDraftAiField(draft);
+        setAiFieldReady({
+          runId,
+          fieldId: draft.workflowId || "draft",
+          name: draft.displayName ?? draft.name,
+        });
+      }
+    }
+
     eventsRef.current.set(runId, mergedEvents);
 
     const isPusherAlreadyTracking = timerIsTrackingRun(runId);
@@ -919,7 +1096,7 @@ export function useV2EventProcessor(
     timerSeedFromServer,
   ]);
 
-  // Bind/unbind AGUI events when channel changes
+  // Bind/unbind AGUI events + AI_FIELD_CREATED when channel changes
   useEffect(() => {
     if (!channel) return;
 
@@ -961,6 +1138,7 @@ export function useV2EventProcessor(
     liveDashboardKey,
     executionId,
     isDashboardBuilderMode,
+    aiFieldReady,
     markStopped,
     clearPendingStop,
     resumeTimer: timerOnApprovalResumed,

@@ -1,32 +1,31 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import useVonAiFieldsStore from "../store/vonAiFieldsStore";
-import { useUpdateIqColumn } from "../hooks/useVonAiFields";
-import type { IqColumn } from "../types/vonAiFields";
-import { DotsThreeIcon } from "@phosphor-icons/react";
-
-function formatTimeAgo(dateStr: string): string {
-  const now = Date.now();
-  const then = new Date(dateStr).getTime();
-  if (Number.isNaN(then)) return "—";
-  const diffMs = now - then;
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin} min ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} hr ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return "1 day ago";
-  return `${diffDay} days ago`;
-}
+import { useNavigate } from "react-router-dom";
+import useAiFieldsStore from "../store/vonAiFieldsStore";
+import {
+  useActivateField,
+  useDisableField,
+  useAiFieldConversations,
+} from "../hooks/useVonAiFields";
+import type { AiField } from "../types/vonAiFields";
+import { formatTimeAgo } from "../utils/formatTimeAgo";
+import { DotsThreeIcon, CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
 
 interface VonAiFieldRowProps {
-  column: IqColumn;
+  field: AiField;
+  onRowClick: (fieldId: string) => void;
 }
 
-export function VonAiFieldRow({ column }: VonAiFieldRowProps) {
-  const { setPaneMode, setDeletingColumnId } = useVonAiFieldsStore();
-  const updateMutation = useUpdateIqColumn();
+export function VonAiFieldRow({ field, onRowClick }: VonAiFieldRowProps) {
+  const navigate = useNavigate();
+  const { setDeletingFieldId } = useAiFieldsStore();
+  const activateMutation = useActivateField();
+  const disableMutation = useDisableField();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [subMenuOpen, setSubMenuOpen] = useState(false);
+  const { data: convoData } = useAiFieldConversations(
+    menuOpen ? field.fieldId : null,
+  );
+  const conversations = convoData?.data ?? [];
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
     null,
   );
@@ -68,147 +67,157 @@ export function VonAiFieldRow({ column }: VonAiFieldRowProps) {
   }, [menuOpen]);
 
   const handleActivate = () => {
-    updateMutation.mutate({
-      columnId: column.column_id,
-      data: { status: "active" },
-    });
+    activateMutation.mutate(field.fieldId);
   };
 
-  const handlePause = () => {
-    updateMutation.mutate({
-      columnId: column.column_id,
-      data: { status: "archived" },
-    });
+  const handleDisable = () => {
+    disableMutation.mutate(field.fieldId);
   };
 
-  const handleMoveToDraft = () => {
-    updateMutation.mutate({
-      columnId: column.column_id,
-      data: { status: "draft" },
-    });
-    setMenuOpen(false);
+  const isMutating = activateMutation.isPending || disableMutation.isPending;
+
+  const isLive = field.status === "live";
+  const isDraft = field.status === "draft";
+
+  const handleToggle = () => {
+    if (isMutating) return;
+    if (isLive) handleDisable();
+    else handleActivate();
   };
 
-  const statusCell = () => {
-    if (column.status === "active") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-green-700 border border-green-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Active
-        </span>
-      );
-    }
-    if (column.status === "archived") {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-600 border border-gray-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-          Paused
-        </span>
-      );
-    }
-    // Draft — show activate dropdown
-    return (
-      <button
-        onClick={handleActivate}
-        disabled={updateMutation.isPending}
-        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-white bg-green-700 hover:bg-green-800 cursor-pointer disabled:opacity-50 transition-colors"
-      >
-        Activate ▾
-      </button>
-    );
-  };
-
-  const lastRun = column.updated_at ? formatTimeAgo(column.updated_at) : "—";
+  const lastRun = field.lastRunAt ? formatTimeAgo(field.lastRunAt) : "\u2014";
 
   return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      {/* Question */}
-      <td className="px-6 py-4">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900 m-0">
-            {column.name}
-          </p>
-          <p className="text-xs text-gray-500 m-0 mt-0.5 truncate max-w-md font-mono">
-            {column.prompt}
-          </p>
-        </div>
+    <tr
+      className="hover:bg-gray-50/80 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0"
+      onClick={() => onRowClick(field.fieldId)}
+    >
+      {/* AI Field */}
+      <td className="px-4 py-4">
+        <p className="text-sm font-medium text-gray-900 m-0 leading-snug max-w-[200px]">
+          {field.displayName ?? field.name}
+        </p>
+      </td>
+
+      {/* Created by */}
+      <td className="px-4 py-4">
+        <span className="text-sm text-gray-900">
+          {field.createdByName ?? (field.createdBy || "\u2014")}
+        </span>
+      </td>
+
+      {/* Last Run */}
+      <td className="px-4 py-4">
+        <span className="text-xs text-gray-500 whitespace-nowrap">
+          {isDraft ? "\u2014" : lastRun}
+        </span>
       </td>
 
       {/* Status */}
-      <td className="px-4 py-4">{statusCell()}</td>
-
-      {/* Matched */}
-      <td className="px-4 py-4 text-right text-sm text-gray-700">—</td>
-
-      {/* Completed */}
-      <td className="px-4 py-4 text-right text-sm text-gray-700">—</td>
-
-      {/* Last Run */}
-      <td className="px-4 py-4 text-sm text-gray-500">
-        {column.status === "draft" ? "—" : lastRun}
+      <td className="px-4 py-4">
+        <span
+          className={`inline-flex items-center gap-1.5 text-xs font-medium ${isLive ? "text-gray-900" : "text-gray-400"}`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-green-500" : "bg-gray-300"}`}
+          />
+          {isLive ? "Live" : isDraft ? "Draft" : "Disabled"}
+        </span>
       </td>
 
-      {/* Actions overflow */}
-      <td className="px-4 py-4">
+      {/* Action: toggle centered */}
+      <td
+        className="px-4 py-4 text-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {!isDraft && (
+          <button
+            onClick={handleToggle}
+            disabled={isMutating}
+            className={`relative inline-block w-[34px] h-[19px] rounded-full transition-colors shrink-0 cursor-pointer disabled:opacity-50 ${isLive ? "bg-green-600" : "bg-gray-300"}`}
+            title={isLive ? "Disable" : "Enable"}
+          >
+            <span
+              className={`absolute top-[2px] left-[2px] w-[15px] h-[15px] rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,.18),0_1px_1px_rgba(0,0,0,.06)] transition-transform ${isLive ? "translate-x-[15px]" : "translate-x-0"}`}
+            />
+          </button>
+        )}
+      </td>
+
+      {/* Kebab menu */}
+      <td className="px-2 py-4" onClick={(e) => e.stopPropagation()}>
         <div ref={menuRef}>
           <button
             ref={btnRef}
             onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
-            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+            className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
           >
             <DotsThreeIcon size={20} weight="bold" />
           </button>
 
           {menuOpen && menuPos && (
             <div
-              className="fixed w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50 py-1"
+              className="fixed w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1"
               style={{ top: menuPos.top, left: menuPos.left }}
             >
-              <button
-                onClick={() => {
-                  setPaneMode("edit", column.column_id);
-                  setMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+              {/* Edit in chat — with submenu */}
+              <div
+                className="relative"
+                onMouseEnter={() => setSubMenuOpen(true)}
+                onMouseLeave={() => setSubMenuOpen(false)}
               >
-                Edit
-              </button>
-              {column.status === "active" && (
-                <button
-                  onClick={() => {
-                    handlePause();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
-                >
-                  Pause
+                <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer">
+                  Edit in chat
+                  <CaretRightIcon size={12} className="text-gray-400" />
                 </button>
-              )}
-              {column.status === "archived" && (
-                <button
-                  onClick={() => {
-                    handleActivate();
-                    setMenuOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
-                >
-                  Activate
-                </button>
-              )}
-              {column.status !== "draft" && (
-                <button
-                  onClick={handleMoveToDraft}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
-                >
-                  Move to draft
-                </button>
-              )}
+
+                {subMenuOpen && (
+                  <div className="absolute top-0 right-full mr-1 w-[280px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1">
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
+                      Recent conversations
+                    </div>
+                    {conversations.length > 0 ? (
+                      conversations.slice(0, 5).map((c) => (
+                        <button
+                          key={c.conversationId}
+                          onClick={() => {
+                            navigate(
+                              `/chat/${c.conversationId}?aiFieldId=${field.fieldId}`,
+                            );
+                            setMenuOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer truncate"
+                        >
+                          {c.title}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-gray-400">
+                        No conversations yet
+                      </div>
+                    )}
+                    <div className="h-px bg-gray-100 my-1" />
+                    <button
+                      onClick={() => {
+                        navigate(`/chat?aiFieldId=${field.fieldId}`);
+                        setMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer"
+                    >
+                      <PlusIcon size={12} />
+                      New chat about this field
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="h-px bg-gray-100 my-1" />
               <button
                 onClick={() => {
-                  setDeletingColumnId(column.column_id);
+                  setDeletingFieldId(field.fieldId);
                   setMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer"
               >
                 Delete
               </button>

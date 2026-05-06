@@ -1,112 +1,119 @@
 import { apiClient } from "./apiClient";
 import type {
-  IqColumn,
-  IqColumnsListResponse,
-  CreateIqColumnRequest,
-  UpdateIqColumnRequest,
-  DryRunRequest,
-  DryRunResponse,
-  ExecuteResponse,
-  Execution,
-  IqColumnResults,
-  IqScheduleConfigRequest,
-  IqScheduleResponse,
-  OpportunitySearchResponse,
+  AiField,
+  AiFieldActionResponse,
+  AiFieldListResponse,
+  AiFieldStatus,
+  CreateAiFieldRequest,
+  CreateAiFieldResponse,
+  OpportunitySearchResult,
+  PlaygroundRequest,
+  RunHistoryResponse,
+  AiFieldConversationsResponse,
 } from "../types/vonAiFields";
 
-const BASE = "/api/v1/iq-columns";
+const BASE = "/api/v1/ai-fields";
 
-class VonAiFieldsService {
-  // ─── Opportunity Search ───────────────────────────────────
-  async searchOpportunities(
-    search: string,
+class AiFieldsService {
+  // ─── List / Detail ────────────────────────────────────────
+  async listFields(
+    status?: AiFieldStatus,
     page = 1,
-    pageSize = 20,
-  ): Promise<OpportunitySearchResponse> {
+    limit = 20,
+  ): Promise<AiFieldListResponse> {
     const params = new URLSearchParams({
       page: String(page),
-      page_size: String(pageSize),
+      limit: String(limit),
     });
-    if (search) params.set("search", search);
-    return apiClient.get<OpportunitySearchResponse>(
-      `${BASE}/opportunities?${params}`,
+    if (status) params.set("status", status);
+    return apiClient.get<AiFieldListResponse>(`${BASE}?${params}`);
+  }
+
+  async findByName(name: string): Promise<AiFieldListResponse> {
+    const params = new URLSearchParams({
+      name,
+      page: "1",
+      limit: "1",
+    });
+    return apiClient.get<AiFieldListResponse>(`${BASE}?${params}`);
+  }
+
+  async getField(fieldId: string): Promise<AiField> {
+    return apiClient.get<AiField>(`${BASE}/${fieldId}`);
+  }
+
+  // ─── Create ───────────────────────────────────────────────
+  async createField(
+    data: CreateAiFieldRequest,
+  ): Promise<CreateAiFieldResponse> {
+    return apiClient.post<CreateAiFieldResponse>(BASE, data);
+  }
+
+  // ─── Delete ───────────────────────────────────────────────
+  async deleteField(fieldId: string): Promise<void> {
+    return apiClient.delete<void>(`${BASE}/${fieldId}`);
+  }
+
+  // ─── Activate / Disable ───────────────────────────────────
+  async activateField(fieldId: string): Promise<AiFieldActionResponse> {
+    return apiClient.post<AiFieldActionResponse>(`${BASE}/${fieldId}/activate`);
+  }
+
+  async disableField(fieldId: string): Promise<AiField> {
+    return apiClient.post<AiField>(`${BASE}/${fieldId}/disable`);
+  }
+
+  // ─── Playground ────────────────────────────────────────────
+  async runPlayground(data: PlaygroundRequest): Promise<AiFieldActionResponse> {
+    return apiClient.post<AiFieldActionResponse>(`${BASE}/playground`, data);
+  }
+
+  // ─── Opportunity Search ───────────────────────────────────
+  async searchOpportunities(
+    query: string,
+    limit = 10,
+    opportunityFilter?: string | null,
+  ): Promise<OpportunitySearchResult[]> {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (query) params.set("q", query);
+    if (opportunityFilter) params.set("opportunityFilter", opportunityFilter);
+    return apiClient.get<OpportunitySearchResult[]>(
+      `${BASE}/opportunities/search?${params}`,
     );
   }
 
-  // ─── Column CRUD ──────────────────────────────────────────
-  async listColumns(status?: string): Promise<IqColumnsListResponse> {
-    const qs = status ? `?${new URLSearchParams({ status })}` : "";
-    return apiClient.get<IqColumnsListResponse>(`${BASE}${qs}`);
+  // ─── Run History ──────────────────────────────────────────
+  async getRunHistory(
+    fieldId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<RunHistoryResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    return apiClient.get<RunHistoryResponse>(
+      `${BASE}/${fieldId}/runs?${params}`,
+    );
   }
 
-  async getColumn(columnId: string): Promise<IqColumn> {
-    return apiClient.get<IqColumn>(`${BASE}/${columnId}`);
-  }
-
-  async createColumn(data: CreateIqColumnRequest): Promise<IqColumn> {
-    return apiClient.post<IqColumn>(BASE, data);
-  }
-
-  async updateColumn(
-    columnId: string,
-    data: UpdateIqColumnRequest,
-  ): Promise<IqColumn> {
-    return apiClient.put<IqColumn>(`${BASE}/${columnId}`, data);
-  }
-
-  async deleteColumn(columnId: string): Promise<void> {
-    return apiClient.delete<void>(`${BASE}/${columnId}`);
-  }
-
-  // ─── Execution ────────────────────────────────────────────
-  async dryRun(data: DryRunRequest): Promise<DryRunResponse> {
-    return apiClient.post<DryRunResponse>(`${BASE}/dry-run`, data);
-  }
-
-  async execute(): Promise<ExecuteResponse> {
-    return apiClient.post<ExecuteResponse>(`${BASE}/execute`);
-  }
-
-  async listExecutions(limit = 20): Promise<Execution[]> {
-    return apiClient.get<Execution[]>(`${BASE}/executions?limit=${limit}`);
-  }
-
-  async getExecution(executionId: string): Promise<Execution> {
-    return apiClient.get<Execution>(`${BASE}/executions/${executionId}`);
-  }
-
-  async getResults(executionId: string): Promise<IqColumnResults> {
-    return apiClient.get<IqColumnResults>(`${BASE}/results/${executionId}`);
-  }
-
-  // ─── Schedule ─────────────────────────────────────────────
-  async getSchedule(): Promise<IqScheduleResponse> {
-    return apiClient.get<IqScheduleResponse>(`${BASE}/schedule`);
-  }
-
-  async createSchedule(
-    config: IqScheduleConfigRequest,
-  ): Promise<IqScheduleResponse> {
-    return apiClient.post<IqScheduleResponse>(`${BASE}/schedule`, config);
-  }
-
-  async updateSchedule(
-    config: IqScheduleConfigRequest,
-  ): Promise<IqScheduleResponse> {
-    return apiClient.put<IqScheduleResponse>(`${BASE}/schedule`, config);
-  }
-
-  async pauseSchedule(): Promise<IqScheduleResponse> {
-    return apiClient.post<IqScheduleResponse>(`${BASE}/schedule/pause`);
-  }
-
-  async resumeSchedule(): Promise<IqScheduleResponse> {
-    return apiClient.post<IqScheduleResponse>(`${BASE}/schedule/resume`);
-  }
-
-  async deleteSchedule(): Promise<void> {
-    return apiClient.delete<void>(`${BASE}/schedule`);
+  // ─── Associated Conversations ─────────────────────────────
+  async getConversations(
+    fieldId: string,
+    page = 1,
+    limit = 50,
+  ): Promise<AiFieldConversationsResponse> {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+    return apiClient.get<AiFieldConversationsResponse>(
+      `${BASE}/${fieldId}/conversations?${params}`,
+    );
   }
 }
 
-export const vonAiFieldsService = new VonAiFieldsService();
+export const aiFieldsService = new AiFieldsService();
+
+/** @deprecated Use `aiFieldsService` instead. */
+export const vonAiFieldsService = aiFieldsService;

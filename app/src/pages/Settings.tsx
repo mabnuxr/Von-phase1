@@ -25,6 +25,7 @@ import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
 import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
+import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
 import { AddTeamMembersPane } from "../components/AddTeamMembersPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
@@ -45,6 +46,10 @@ const Settings = () => {
     isMemoryV2Enabled,
   } = useFeatureFlag();
 
+  const isAdmin =
+    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const showVonAiFields = isVonAiFieldsEnabled && isAdmin;
+
   // Get initial tab from URL query parameter or default to integrations.
   // Under V2 the legacy `memory` deep-link lands on the Org Memory sub-page
   // (V2 splits the tab into memory-org/memory-user children); under V1 the
@@ -54,6 +59,9 @@ const Settings = () => {
     isMemoryV2Enabled && tabFromUrl === "memory" ? "memory-org" : tabFromUrl;
   const initialTab = normalizedTab || "integrations";
   const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
+  const [detailFieldId, setDetailFieldId] = useState<string | null>(
+    searchParams.get("fieldId"),
+  );
 
   // Set default tab in URL if not present, and rewrite the legacy "memory" tab
   // when V2 is on.
@@ -65,9 +73,20 @@ const Settings = () => {
     }
   }, [tabFromUrl, navigate, isMemoryV2Enabled]);
 
+  // Sync fieldId from URL (e.g., navigating from chat "View in Settings")
+  useEffect(() => {
+    const fieldIdFromUrl = searchParams.get("fieldId");
+    const tabFromParams = searchParams.get("tab");
+    if (fieldIdFromUrl && tabFromParams === "custom-iq") {
+      setSelectedSettingId("custom-iq");
+      setDetailFieldId(fieldIdFromUrl);
+    }
+  }, [searchParams]);
+
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
     setSelectedSettingId(tabId);
+    setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
   };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -187,7 +206,7 @@ const Settings = () => {
             label: "Memory",
             icon: <BrainIcon size={20} weight="regular" />,
           },
-      ...(isVonAiFieldsEnabled
+      ...(showVonAiFields
         ? [
             {
               id: "custom-iq",
@@ -247,7 +266,16 @@ const Settings = () => {
           <OrgContextTabV2 view="user" />
         ) : null;
       case "custom-iq":
-        return isVonAiFieldsEnabled ? <VonAiFieldsTab /> : null;
+        if (!showVonAiFields) return null;
+        if (detailFieldId) {
+          return (
+            <VonAiFieldDetailPane
+              fieldId={detailFieldId}
+              onBack={() => setDetailFieldId(null)}
+            />
+          );
+        }
+        return <VonAiFieldsTab onRowClick={(id) => setDetailFieldId(id)} />;
       case "usage":
         return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:
@@ -261,11 +289,10 @@ const Settings = () => {
         {/* Field Detail Pane - Global */}
         <FieldDetailPane />
 
-        {/* Von AI Field Detail Pane - Global */}
-        {isVonAiFieldsEnabled && <VonAiFieldDetailPane />}
-
         {/* Add Team Members Pane - Global (Individual + Bulk import tabs) */}
         <AddTeamMembersPane />
+        {/* Von AI Field Run History - Global */}
+        {showVonAiFields && <AIFieldRunHistory />}
 
         {/* Edit Team Member Pane - Global */}
         <EditTeamMemberPane />

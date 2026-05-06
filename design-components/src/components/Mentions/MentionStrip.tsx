@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChartBarIcon, X } from '@phosphor-icons/react';
+import { ChartBarIcon, LightningIcon, X } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
 
 export interface MentionStripProps {
@@ -7,10 +7,17 @@ export interface MentionStripProps {
   onRemove: () => void;
 }
 
+function getChipIcon(item: MentionItem) {
+  if (item.type === 'ai_field') {
+    return <LightningIcon size={14} weight="fill" className="text-indigo-500 shrink-0" />;
+  }
+  return <ChartBarIcon size={14} weight="regular" className="text-indigo-500 shrink-0" />;
+}
+
 export const MentionStrip: React.FC<MentionStripProps> = ({ item, onRemove }) => {
   return (
     <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1">
-      <ChartBarIcon size={14} weight="regular" className="text-indigo-500 shrink-0" />
+      {getChipIcon(item)}
       <span className="text-sm text-gray-900 truncate">{item.name}</span>
       <button
         type="button"
