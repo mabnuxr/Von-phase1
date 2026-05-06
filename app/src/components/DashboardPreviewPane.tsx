@@ -23,7 +23,10 @@ import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 import { DrilldownPanel, DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
 import { EditModeBanner } from "./Analytics/EditModeBanner";
-import { rowDescentFilters } from "../utils/drilldownFilters";
+import {
+  getLevelColumnMaps,
+  rowDescentFilters,
+} from "../utils/drilldownFilters";
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -317,6 +320,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
                   ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
                   : "Drilldown"
               }
+              levelColumnMaps={getLevelColumnMaps(
+                drillV2.panelId
+                  ? dashboard.widgets?.[drillV2.panelId]
+                  : undefined,
+              )}
               onRowDrill={handleV2RowDrill}
             />
           )}

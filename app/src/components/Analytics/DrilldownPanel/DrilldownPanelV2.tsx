@@ -42,7 +42,10 @@ import type {
   DropdownItem,
 } from "@vonlabs/design-components";
 import type { UseDrilldownV2Return } from "../../../hooks/useDrilldownV2";
-import type { DrilldownV2VariantSummary } from "../../../types/dashboard";
+import type {
+  DrilldownV2ColumnMapping,
+  DrilldownV2VariantSummary,
+} from "../../../types/dashboard";
 import { DrilldownPagination } from "./DrilldownPagination";
 import "./drilldown-panel.css";
 
@@ -99,6 +102,17 @@ export interface DrilldownPanelV2Props {
    */
   widgetTitle?: string;
   /**
+   * Per-depth column_map slices, indexed by chain depth. Used by the breadcrumb
+   * to (a) order filter pieces by column_map declaration (not insertion order),
+   * (b) resolve display titles per data_key (`column_map.title || formatLabel`),
+   * and (c) apply pipe formatting (e.g. `pipe: "timestamp"` + `value_format`)
+   * so the breadcrumb shows "Week: 2026-04-27" instead of the raw epoch-ms the
+   * FE captured from `point.x`. Pass the panel's drilldown_v2 levels' column_map
+   * arrays in order; the breadcrumb only reads up to `chain.length` so missing
+   * deeper indices are tolerated.
+   */
+  levelColumnMaps?: DrilldownV2ColumnMapping[][];
+  /**
    * Called when the user clicks any cell in a row, while `hasNextLevel` is
    * true. The parent issues `drill.pushLevel(...)` with the row's grouping-key
    * dict as the new filter contribution — whole-row descent.
@@ -109,6 +123,7 @@ export interface DrilldownPanelV2Props {
 export function DrilldownPanelV2({
   drill,
   widgetTitle,
+  levelColumnMaps,
   onRowDrill,
 }: DrilldownPanelV2Props) {
   // Close on ESC
@@ -189,6 +204,7 @@ export function DrilldownPanelV2({
           <Breadcrumb
             widgetTitle={widgetTitle ?? drill.title ?? "Drilldown"}
             chain={drill.clickChain}
+            levelColumnMaps={levelColumnMaps}
             onPopToLevel={drill.popToLevel}
           />
           <div className="dd-v2-header-actions">
@@ -277,10 +293,12 @@ export function DrilldownPanelV2({
 function Breadcrumb({
   widgetTitle,
   chain,
+  levelColumnMaps,
   onPopToLevel,
 }: {
   widgetTitle: string;
   chain: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode[];
+  levelColumnMaps?: DrilldownV2ColumnMapping[][];
   onPopToLevel: (depth: number) => void;
 }) {
   return (
@@ -289,7 +307,12 @@ function Breadcrumb({
         {widgetTitle || "Drilldown"}
       </span>
       {chain.map((node, idx) => {
-        const label = formatSegment(node);
+        const label = formatSegment(node, levelColumnMaps?.[idx]);
+        // A null label indicates a panel-level click with no filters (e.g.
+        // KPI tile click, chart drilldown-icon click). The widget title alone
+        // already conveys the context — emitting "Drill" added noise without
+        // signal, so we skip the chevron + segment entirely.
+        if (label === null) return null;
         return (
           <span key={`seg-${idx}`} className="dd-v2-breadcrumb-seg">
             <CaretRightIcon
@@ -311,26 +334,102 @@ function Breadcrumb({
   );
 }
 
+/**
+ * Build the breadcrumb segment label for one click node.
+ *
+ * Returns null for empty panel-level clicks (no filters, no columnPath) so
+ * the caller can drop the segment + separator entirely — the widget title
+ * is enough context for those.
+ *
+ * When filters exist, each filter is rendered as `{title}: {formatted_value}`,
+ * with title/format pulled from the level's column_map when available:
+ * - `column_map.title` (or a formatted data_key) → label
+ * - `column_map.pipe` + `column_map.value_format` → reverse-format the click
+ *   value (e.g. epoch-ms `1777248000000` → `2026-04-27` for `pipe="timestamp"`)
+ *
+ * Filters are emitted in column_map declaration order (so a chart click that
+ * captures both `point.x` and `series.name` shows them in the order the agent
+ * declared, not the order the FE happened to insert them in the dict).
+ */
 function formatSegment(
   node: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode,
-): string {
-  const pathLabel = node.columnPath.length
-    ? node.columnPath[node.columnPath.length - 1]
-    : "";
-  const firstFilter = Object.entries(node.filters)[0];
-  if (pathLabel) {
-    if (firstFilter)
-      return `${formatLabel(pathLabel)}: ${String(firstFilter[1])}`;
-    return formatLabel(pathLabel);
+  columnMap: DrilldownV2ColumnMapping[] | undefined,
+): string | null {
+  const filterEntries = Object.entries(node.filters);
+  if (filterEntries.length === 0) {
+    if (node.columnPath.length === 0) {
+      // Panel-level drill (KPI / icon click). Nothing to show.
+      return null;
+    }
+    return formatLabel(node.columnPath[node.columnPath.length - 1]);
   }
-  if (firstFilter)
-    return `${formatLabel(stripPrefix(firstFilter[0]))}: ${String(firstFilter[1])}`;
-  return "Drill";
+
+  const cmByKey = new Map<string, DrilldownV2ColumnMapping>();
+  (columnMap ?? []).forEach((e) => cmByKey.set(e.data_key, e));
+
+  // Emit in column_map order; append any unmapped filter at the end so we
+  // never silently drop a filter the user contributed.
+  const seen = new Set<string>();
+  const ordered: Array<[string, unknown]> = [];
+  (columnMap ?? []).forEach((e) => {
+    const match = filterEntries.find(([k]) => k === e.data_key);
+    if (match) {
+      ordered.push(match);
+      seen.add(match[0]);
+    }
+  });
+  filterEntries.forEach(([k, v]) => {
+    if (!seen.has(k)) ordered.push([k, v]);
+  });
+
+  return ordered
+    .map(([key, val]) => {
+      const entry = cmByKey.get(key);
+      const label = entry?.title || formatLabel(stripPrefix(key));
+      return `${label}: ${formatFilterValue(val, entry)}`;
+    })
+    .join(", ");
 }
 
 function stripPrefix(dataKey: string): string {
   const dot = dataKey.indexOf(".");
   return dot >= 0 ? dataKey.slice(dot + 1) : dataKey;
+}
+
+/**
+ * Format a click-captured filter value for display in the breadcrumb.
+ *
+ * Mirrors the small subset of pipe/format reversal the backend does in
+ * `_translate_v2_drill_filters` so the user sees the same string in the
+ * breadcrumb as appears in the resolved drill SQL. Only `pipe="timestamp"`
+ * is implemented here — that's the only pipe in active use. Strings with
+ * no pipe pass through verbatim.
+ */
+function formatFilterValue(
+  rawValue: unknown,
+  entry: DrilldownV2ColumnMapping | undefined,
+): string {
+  if (
+    entry?.pipe === "timestamp" &&
+    (typeof rawValue === "number" || typeof rawValue === "string")
+  ) {
+    const ts = typeof rawValue === "string" ? Number(rawValue) : rawValue;
+    if (Number.isFinite(ts)) {
+      return strftimeLite(new Date(ts), entry.value_format ?? "%Y-%m-%d");
+    }
+  }
+  return String(rawValue);
+}
+
+function strftimeLite(d: Date, fmt: string): string {
+  const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+  return fmt
+    .replace(/%Y/g, String(d.getUTCFullYear()))
+    .replace(/%m/g, pad(d.getUTCMonth() + 1))
+    .replace(/%d/g, pad(d.getUTCDate()))
+    .replace(/%H/g, pad(d.getUTCHours()))
+    .replace(/%M/g, pad(d.getUTCMinutes()))
+    .replace(/%S/g, pad(d.getUTCSeconds()));
 }
 
 /**

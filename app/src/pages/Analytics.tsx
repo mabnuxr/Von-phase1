@@ -43,7 +43,10 @@ import {
   dashboardAssociatedChatsKeys,
   useDashboardAssociatedChats,
 } from "../hooks/useDashboardAssociatedChats";
-import { rowDescentFilters } from "../utils/drilldownFilters";
+import {
+  getLevelColumnMaps,
+  rowDescentFilters,
+} from "../utils/drilldownFilters";
 
 interface DashboardCanvasProps {
   dashboardId: string;
@@ -347,6 +350,9 @@ function DashboardCanvas({
               ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
               : "Drilldown"
           }
+          levelColumnMaps={getLevelColumnMaps(
+            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+          )}
           onRowDrill={handleV2RowDrill}
         />
       )}
