@@ -181,14 +181,27 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   );
   const handleV2RowDrill = useCallback(
     (_rowIndex: number, rowData: Record<string, unknown>) => {
-      const filters = rowDescentFilters(rowData);
+      // Mirror of pages/Analytics.tsx::handleV2RowDrill — feed the next
+      // level's column_map (and the current level's, for the diff) so each
+      // chain entry only carries axes newly introduced at its depth. See
+      // `rowDescentFilters` for the cumulative-filter rationale.
+      const widget = drillV2.panelId
+        ? dashboard?.widgets?.[drillV2.panelId]
+        : undefined;
+      const levelColumnMaps = getLevelColumnMaps(widget);
+      const currentDepth = drillV2.clickChain.length;
+      const filters = rowDescentFilters(
+        rowData,
+        levelColumnMaps[currentDepth] ?? [],
+        levelColumnMaps[currentDepth - 1] ?? [],
+      );
       const breadcrumbSeg =
-        Object.keys(filters)[0] ?? `L${drillV2.clickChain.length}`;
-      const topChainNode = drillV2.clickChain[drillV2.clickChain.length - 1];
+        Object.keys(filters)[0] ?? `L${currentDepth}`;
+      const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
       drillV2.pushLevel(nextPath, filters);
     },
-    [drillV2],
+    [drillV2, dashboard],
   );
 
   const handleExpand = useCallback(() => {

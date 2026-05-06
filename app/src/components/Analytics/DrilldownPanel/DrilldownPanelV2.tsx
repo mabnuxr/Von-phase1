@@ -367,8 +367,12 @@ function formatSegment(
   const cmByKey = new Map<string, DrilldownV2ColumnMapping>();
   (columnMap ?? []).forEach((e) => cmByKey.set(e.data_key, e));
 
-  // Emit in column_map order; append any unmapped filter at the end so we
-  // never silently drop a filter the user contributed.
+  // Emit in column_map declaration order. Filters are pre-narrowed to the
+  // level's column_map at descent time (see rowDescentFilters), so any
+  // ``filterEntries`` key that doesn't match the column_map at this depth
+  // is residual noise from an older shape — surface it as a fallback so we
+  // never silently drop a filter the user contributed, but in practice the
+  // ordered loop covers everything.
   const seen = new Set<string>();
   const ordered: Array<[string, unknown]> = [];
   (columnMap ?? []).forEach((e) => {
