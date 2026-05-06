@@ -301,17 +301,39 @@ function Breadcrumb({
   levelColumnMaps?: DrilldownV2ColumnMapping[][];
   onPopToLevel: (depth: number) => void;
 }) {
+  // The widget title is the breadcrumb's "home" — clicking it pops to depth
+  // 0, returning the user to the first drill view (L1). This is the only
+  // way to reach L1 when chain[0] is a panel-level click (KPI tile / drill
+  // icon), because formatSegment returns null for an empty-filters,
+  // empty-columnPath chain entry and we skip rendering its segment. Without
+  // a clickable title, the user could navigate back to L2/L3 via segment
+  // buttons but had no affordance to return to L1 itself.
+  //
+  // The title button is interactive only when there's somewhere to go — at
+  // chain length <= 1 the user is already at L1 (or before), so we render a
+  // plain span to avoid a misleading hover affordance and a no-op click.
+  const isInteractive = chain.length > 1;
   return (
     <div className="dd-v2-breadcrumb">
-      <span className="dd-v2-breadcrumb-widget" title={widgetTitle}>
-        {widgetTitle || "Drilldown"}
-      </span>
+      {isInteractive ? (
+        <button
+          className="dd-v2-breadcrumb-widget dd-v2-breadcrumb-btn"
+          title={`${widgetTitle} — back to first drill view`}
+          onClick={() => onPopToLevel(0)}
+        >
+          {widgetTitle || "Drilldown"}
+        </button>
+      ) : (
+        <span className="dd-v2-breadcrumb-widget" title={widgetTitle}>
+          {widgetTitle || "Drilldown"}
+        </span>
+      )}
       {chain.map((node, idx) => {
         const label = formatSegment(node, levelColumnMaps?.[idx]);
         // A null label indicates a panel-level click with no filters (e.g.
-        // KPI tile click, chart drilldown-icon click). The widget title alone
-        // already conveys the context — emitting "Drill" added noise without
-        // signal, so we skip the chevron + segment entirely.
+        // KPI tile click, chart drilldown-icon click). The widget title above
+        // already absorbs the click target for that depth — emitting a
+        // "Drill" segment here added noise without signal.
         if (label === null) return null;
         return (
           <span key={`seg-${idx}`} className="dd-v2-breadcrumb-seg">
