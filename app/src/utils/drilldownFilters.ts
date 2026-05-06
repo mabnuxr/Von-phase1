@@ -1,3 +1,8 @@
+import type {
+  DrilldownV2ColumnMapping,
+  WidgetConfig,
+} from "../types/dashboard";
+
 /**
  * Build the cumulative-filter dict for V2 drilldown row descent.
  *
@@ -26,4 +31,28 @@ export function rowDescentFilters(
     // Skip arrays / objects — they aren't meaningful filter contributions.
   }
   return filters;
+}
+
+/**
+ * Pick each level's default-variant column_map from a widget's V2 drilldown
+ * config and return them in level order.
+ *
+ * Used by both ``pages/Analytics.tsx`` and ``components/DashboardPreviewPane.tsx``
+ * to feed the breadcrumb its per-depth label/format hints. Picks the
+ * default variant per level (with first-variant fallback) — this matches
+ * the active-variant resolution rule in `useDrilldownV2`, so the
+ * breadcrumb's title/pipe formatting stays consistent with what the user
+ * sees in the table. Centralised here so a future change to that rule
+ * (e.g. honoring `currentVariantId`) only needs to land once.
+ */
+export function getLevelColumnMaps(
+  widget: WidgetConfig | undefined,
+): DrilldownV2ColumnMapping[][] {
+  return (
+    widget?.drilldown_v2?.levels?.map(
+      (lvl) =>
+        (lvl.variants.find((v) => v.is_default) ?? lvl.variants[0])
+          ?.column_map ?? [],
+    ) ?? []
+  );
 }
