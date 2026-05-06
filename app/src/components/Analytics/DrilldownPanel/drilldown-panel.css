@@ -219,8 +219,14 @@
    Drilldown V2 — bottom-sheet styles (feature-flagged via drilldown_v2)
    ------------------------------------------------------------------ */
 
+/* Scrim + sheet are positioned absolute against the closest positioned
+   ancestor (the dashboard pane wrapper in pages/Analytics.tsx:582 and the
+   `position: relative` wrapper at the top of DashboardPreviewPane). This
+   keeps the bottom-sheet inside the dashboard view's width — the chat
+   sidebar / nav remain visible and untinted. Previously these used
+   ``position: fixed`` which spilled across the entire viewport. */
 .dd-v2-scrim {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
   z-index: 60;
@@ -228,11 +234,11 @@
 }
 
 .dd-v2-sheet {
-  position: fixed;
+  position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 95vh;
+  height: 95%;
   background: #fff;
   border-radius: 12px 12px 0 0;
   box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.25);
