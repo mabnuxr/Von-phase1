@@ -177,9 +177,13 @@ function DashboardCanvas({
   );
 
   const handleWidgetDrillDown = useCallback(
-    (panelId: string) => {
+    (panelId: string, metricValue?: unknown) => {
       if (shouldUseV2(panelId)) {
-        drillV2.openPanelDrilldown(panelId, [], {});
+        // ``metricValue`` is set when the panel is a KPI tile — the
+        // resolved numeric the tile rendered. Surfaced in the
+        // breadcrumb's parenthesized suffix. Chart drill-icon clicks
+        // pass undefined (no single value to drill into).
+        drillV2.openPanelDrilldown(panelId, [], {}, metricValue);
         return;
       }
       openDrilldown(panelId);
@@ -192,15 +196,24 @@ function DashboardCanvas({
       panelId: string,
       filters: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       if (shouldUseV2(panelId)) {
         // V2: column_path empty = default target; filters pass through as-is
         // (FE assumes the parent click handler already prefixed with the right
         // data_key convention — e.g. point.name, series.name). metricValue
         // carries the clicked point's numeric value (chart) or the clicked
-        // cell's value (table) — surfaced in the breadcrumb's parenthesized
-        // suffix.
-        drillV2.openPanelDrilldown(panelId, [], filters, metricValue);
+        // cell's value (table); metricLabel carries the column label for
+        // table sources so the breadcrumb shows "(Opp Count: 47)" — chart
+        // sources leave it null since the axis is already in the segment's
+        // main label.
+        drillV2.openPanelDrilldown(
+          panelId,
+          [],
+          filters,
+          metricValue,
+          metricLabel,
+        );
         return;
       }
       openPointDrilldown(panelId, filters);
@@ -213,6 +226,7 @@ function DashboardCanvas({
       _rowIndex: number,
       rowData: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       // Pyramid model: every click descends to the next level (when one
       // exists). Each chain entry captures ONLY the axes newly introduced at
@@ -237,7 +251,7 @@ function DashboardCanvas({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters, metricValue);
+      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel);
     },
     [drillV2, dashboard],
   );

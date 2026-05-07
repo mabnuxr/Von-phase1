@@ -320,13 +320,24 @@ export interface WidgetRendererProps {
   widget: WidgetConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   isTableLoading?: boolean;
-  /** Callback when a widget's drilldown icon is clicked (chart-level) */
-  onDrillDown?: (panelId: string) => void;
-  /** Callback when a chart data point is clicked (point-level drilldown).
-   *  ``metricValue`` carries the clicked point's numeric value
-   *  (``point.y``/``weight``/``value``) so the drill breadcrumb can render
-   *  it as a parenthesized suffix (e.g. "Stage: Negotiation (47)"). */
-  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters, metricValue?: unknown) => void;
+  /** Callback when a widget's drilldown icon is clicked (chart-level), or
+   *  when a KPI tile is clicked. The optional ``metricValue`` carries the
+   *  KPI's resolved numeric so the drill breadcrumb can render it as a
+   *  parenthesized suffix (chart drill icon leaves it null since charts
+   *  don't have a single "value" to drill into). */
+  onDrillDown?: (panelId: string, metricValue?: unknown) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown)
+   *  or a table cell is clicked. ``metricValue`` carries the clicked
+   *  point/cell's numeric value; ``metricLabel`` carries the column's
+   *  display label for table-style sources (renders "label: value" in
+   *  the breadcrumb suffix); chart sources leave it null since the axis
+   *  is already in the segment's main label. */
+  onPointDrillDown?: (
+    panelId: string,
+    drillFilters: DrillFilters,
+    metricValue?: unknown,
+    metricLabel?: string
+  ) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state for this table widget */
@@ -354,13 +365,24 @@ export interface DashboardGridProps {
   gridConfig: GridConfig;
   onTablePageChange?: (panelId: string, page: number) => void;
   loadingTablePanels?: Set<string>;
-  /** Callback when a widget's drilldown icon is clicked (chart-level) */
-  onDrillDown?: (panelId: string) => void;
-  /** Callback when a chart data point is clicked (point-level drilldown).
-   *  ``metricValue`` carries the clicked point's numeric value
-   *  (``point.y``/``weight``/``value``) so the drill breadcrumb can render
-   *  it as a parenthesized suffix (e.g. "Stage: Negotiation (47)"). */
-  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters, metricValue?: unknown) => void;
+  /** Callback when a widget's drilldown icon is clicked (chart-level), or
+   *  when a KPI tile is clicked. The optional ``metricValue`` carries the
+   *  KPI's resolved numeric so the drill breadcrumb can render it as a
+   *  parenthesized suffix (chart drill icon leaves it null since charts
+   *  don't have a single "value" to drill into). */
+  onDrillDown?: (panelId: string, metricValue?: unknown) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown)
+   *  or a table cell is clicked. ``metricValue`` carries the clicked
+   *  point/cell's numeric value; ``metricLabel`` carries the column's
+   *  display label for table-style sources (renders "label: value" in
+   *  the breadcrumb suffix); chart sources leave it null since the axis
+   *  is already in the segment's main label. */
+  onPointDrillDown?: (
+    panelId: string,
+    drillFilters: DrillFilters,
+    metricValue?: unknown,
+    metricLabel?: string
+  ) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state per panel */

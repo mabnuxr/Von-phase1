@@ -151,14 +151,15 @@ export interface DrilldownPanelV2Props {
    * Called when the user clicks any cell in a row, while `hasNextLevel` is
    * true. The parent issues `drill.pushLevel(...)` with the row's grouping-key
    * dict as the new filter contribution — whole-row descent. The optional
-   * third arg ``metricValue`` carries the clicked cell's value so deeper
-   * breadcrumb segments can include the parenthesized suffix matching
-   * the panel-widget click affordance.
+   * ``metricValue`` + ``metricLabel`` args carry the clicked cell's value
+   * and column label so deeper breadcrumb segments can render the
+   * "Column Name: value" parenthesized suffix.
    */
   onRowDrill?: (
     rowIndex: number,
     rowData: Record<string, unknown>,
     metricValue?: unknown,
+    metricLabel?: string,
   ) => void;
   /**
    * Per-depth drillable-column whitelists indexed by chain depth (same
@@ -245,20 +246,22 @@ export function DrilldownPanelV2({
       const rowIndex = Array.prototype.indexOf.call(tbody.children, tr);
       if (rowIndex < 0 || rowIndex >= drill.data.length) return;
 
-      // Look up the clicked cell's value so deeper-level breadcrumb
-      // segments can also show the parenthesized metric suffix. Map td
-      // position → column id from the rendered headers, then read
-      // ``rowData[colId]``. Falling back to ``td.textContent`` is
-      // possible but loses type info (numbers come back as strings) — the
+      // Look up the clicked cell's value AND the column's display label so
+      // deeper-level breadcrumb segments can render "Column Name: value".
+      // Map td position → column id from the rendered headers, then read
+      // ``rowData[colId]`` for the value and ``columns[colIdx].label`` for
+      // the user-facing label. Falling back to ``td.textContent`` for the
+      // value would lose type info (numbers come back as strings) — the
       // rowData lookup keeps the value usable as-is by the FE formatter.
       const cells = Array.from(tr.children);
       const colIdx = cells.indexOf(td);
       const rowData = drill.data[rowIndex] as Record<string, unknown>;
-      const colId = columns[colIdx]?.id;
-      const metricValue = colId != null ? (rowData[colId] ?? null) : null;
+      const col = columns[colIdx];
+      const metricValue = col?.id != null ? (rowData[col.id] ?? null) : null;
+      const metricLabel = col?.label;
 
       e.stopPropagation();
-      onRowDrill(rowIndex, rowData, metricValue);
+      onRowDrill(rowIndex, rowData, metricValue, metricLabel);
     },
     [
       drill.data,
@@ -476,14 +479,14 @@ function formatSegment(
   node: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode,
   columnMap: DrilldownV2ColumnMapping[] | undefined,
 ): string | null {
-  const filterEntries = Object.entries(node.filters);
   // Append the clicked metric value as a parenthesized suffix when present
-  // (e.g. " (47)" for a chart bar of height 47, or a SUM(arr) cell of $47k).
-  // Captured at click time by the chart point handler / table cell handler;
-  // null for panel-level icon clicks where there's no specific value to
-  // surface. Numbers render via toLocaleString for thousands separators;
-  // booleans / strings pass through verbatim.
-  const metricSuffix = formatMetricSuffix(node.metricValue);
+  // (e.g. " (47)" for a chart bar of height 47). For table widget cells +
+  // drill-view cells, also include the column label so the user knows WHICH
+  // metric they clicked: " (Opp Count: 40)". Captured at click time; null
+  // for panel-level icon clicks. Numbers render via toLocaleString for
+  // thousands separators; booleans / strings pass through verbatim.
+  const filterEntries = Object.entries(node.filters);
+  const metricSuffix = formatMetricSuffix(node.metricValue, node.metricLabel);
   if (filterEntries.length === 0) {
     if (node.columnPath.length === 0) {
       // Panel-level drill (KPI / icon click). Nothing to show.
@@ -525,9 +528,15 @@ function formatSegment(
 }
 
 /**
- * Render the clicked metric value as a " (value)" suffix for the
- * breadcrumb segment, or empty string when no metric is captured.
+ * Render the clicked metric value as a " (value)" or " (label: value)"
+ * suffix for the breadcrumb segment, or empty string when no metric is
+ * captured.
  *
+ * - When ``metricLabel`` is set (table widget / drill-view cell click), the
+ *   suffix renders as ``(Opp Count: 40)`` so the user can see WHICH column's
+ *   value they drilled into. Chart point clicks and KPI tile clicks leave
+ *   ``metricLabel`` unset because the breadcrumb's main segment label
+ *   already conveys the dimension (chart axis) or the widget title (KPI).
  * - Numbers → ``toLocaleString`` for thousands separators (`1234` → "1,234").
  * - Non-empty strings → verbatim. An empty string `""` (which CASE WHEN
  *   expressions or coalesced cells can produce) is treated as "no
@@ -535,18 +544,23 @@ function formatSegment(
  * - Booleans → verbatim.
  * - null / undefined → empty (no suffix at all).
  */
-function formatMetricSuffix(metricValue: unknown): string {
+function formatMetricSuffix(
+  metricValue: unknown,
+  metricLabel?: string,
+): string {
   if (metricValue === null || metricValue === undefined) return "";
+  let formatted: string;
   if (typeof metricValue === "number" && Number.isFinite(metricValue)) {
-    return ` (${metricValue.toLocaleString()})`;
+    formatted = metricValue.toLocaleString();
+  } else if (typeof metricValue === "string") {
+    if (metricValue.length === 0) return "";
+    formatted = metricValue;
+  } else if (typeof metricValue === "boolean") {
+    formatted = String(metricValue);
+  } else {
+    return "";
   }
-  if (typeof metricValue === "string") {
-    return metricValue.length > 0 ? ` (${metricValue})` : "";
-  }
-  if (typeof metricValue === "boolean") {
-    return ` (${String(metricValue)})`;
-  }
-  return "";
+  return metricLabel ? ` (${metricLabel}: ${formatted})` : ` (${formatted})`;
 }
 
 function stripPrefix(dataKey: string): string {

@@ -37,17 +37,45 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     isEditMode,
   }) => {
     const handleDrillDown = useCallback(() => {
-      onDrillDown?.(widget.id);
-    }, [onDrillDown, widget.id]);
+      // For KPI tiles, surface the resolved numeric to the drill chain so
+      // the breadcrumb can render "(value)" — same affordance the chart
+      // and table widgets already provide. CounterWidgetConfig.value is
+      // the post-resolution numeric (or null for "no data" KPIs); pass
+      // null/undefined through unchanged so the breadcrumb suppresses
+      // the suffix on empty KPIs. For non-counter widgets (chart drill
+      // icon, table drill icon) there's no single "value" to surface, so
+      // we pass undefined and the breadcrumb stays bare.
+      let metricValue: unknown;
+      if (widget.type === 'counter') {
+        metricValue = (widget.config as CounterWidgetConfig | undefined)?.value;
+      }
+      onDrillDown?.(widget.id, metricValue);
+    }, [onDrillDown, widget.id, widget.type, widget.config]);
 
     const drillDownHandler = onDrillDown ? handleDrillDown : undefined;
 
     const handlePointDrillDown = useCallback(
       (filters: DrillFilters, metricValue?: unknown) => {
+        // Chart point clicks pass through with metricValue but no
+        // metricLabel — the chart's axis label is already in the
+        // segment's main label, so a "(label: value)" suffix would
+        // duplicate context. Table cell clicks plumb their own label
+        // via ``handleTableCellClick`` below.
         onPointDrillDown?.(widget.id, filters, metricValue);
       },
       [onPointDrillDown, widget.id]
     );
+
+    // Convert a SQL column id to the user-facing label the table header
+    // renders. Mirrors the formatLabel heuristic used by DrilldownPanelV2's
+    // columnsFromData (the drill-view side) so the breadcrumb suffix shows
+    // the same casing on both surfaces. ``opp_count`` → ``Opp Count``.
+    const formatColumnLabel = useCallback((columnId: string): string => {
+      return columnId
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    }, []);
 
     const handleAddToChat = useCallback(() => {
       onAddToChat?.({ id: widget.id, title: widget.title, type: widget.type });
@@ -114,14 +142,16 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           }
         }
         if (Object.keys(drillFilters).length === 0) return;
-        // ``cellValue`` is the metric value the user clicked on (e.g. 47
-        // for a SUM(arr) cell, 12.5 for a ratio cell). Surface it as the
-        // optional metricValue arg so the drill breadcrumb can render it
-        // as a parenthesized suffix on the chain segment, matching the
-        // chart-click affordance.
-        onPointDrillDown(widget.id, drillFilters, cellValue ?? null);
+        // ``cellValue`` is the metric value the user clicked (e.g. 47 for
+        // a SUM(arr) cell). Surface it AND the column's display label so
+        // the drill breadcrumb renders ``(Opp Count: 47)`` rather than
+        // bare ``(47)`` — without the column context, two metric columns
+        // on the same row look identical in the breadcrumb. Charts pass
+        // through with no label since their axis is already in the main
+        // segment label.
+        onPointDrillDown(widget.id, drillFilters, cellValue ?? null, formatColumnLabel(columnId));
       },
-      [onPointDrillDown, widget.id, widget.drilldown_v2, drillableColumns]
+      [onPointDrillDown, widget.id, widget.drilldown_v2, drillableColumns, formatColumnLabel]
     );
 
     // Gate the cell-click handler on the panel actually having a usable
