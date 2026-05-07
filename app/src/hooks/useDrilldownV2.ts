@@ -56,11 +56,22 @@ export interface DrilldownV2ClickNode {
   /**
    * Numeric metric value behind the clicked element — chart point's
    * ``y``/``weight``/``value`` for chart clicks, the cell's value for
-   * table cell clicks. Surfaced in the breadcrumb as a parenthesized
-   * suffix (e.g. "Stage: Negotiation (47)") so the user can see what
-   * value they drilled into. Backend ignores this; FE-only.
+   * table cell clicks, the KPI's resolved numeric for tile clicks.
+   * Surfaced in the breadcrumb as a parenthesized suffix (e.g.
+   * "Stage: Negotiation (47)") so the user can see what value they
+   * drilled into. Backend ignores this; FE-only.
    */
   metricValue?: unknown;
+  /**
+   * Optional column label for table-style click sources. When set, the
+   * breadcrumb suffix renders as ``(label: value)`` rather than bare
+   * ``(value)``. Set for table widget cell clicks and drill-view cell
+   * clicks (where the column the user clicked is meaningful context);
+   * left null for chart point clicks (the axis label is already in
+   * the segment's main label) and KPI tile clicks (the widget title
+   * already conveys what the value represents).
+   */
+  metricLabel?: string;
 }
 
 export interface UseDrilldownV2Return {
@@ -87,6 +98,7 @@ export interface UseDrilldownV2Return {
     columnPath: string[],
     filters: Record<string, unknown>,
     metricValue?: unknown,
+    metricLabel?: string,
   ) => void;
   /**
    * Descend one level. ``columnPath`` extends the parent's path by one segment
@@ -94,12 +106,14 @@ export interface UseDrilldownV2Return {
    * for breadcrumb display only). ``filters`` is the cumulative filter
    * contribution from THIS click; combined with shallower-level filters at
    * fetch time. Optional ``metricValue`` carries the clicked-cell / clicked-
-   * point numeric value for breadcrumb display.
+   * point numeric value for breadcrumb display; ``metricLabel`` carries the
+   * column label for table-style sources (renders as "label: value").
    */
   pushLevel: (
     columnPath: string[],
     filters: Record<string, unknown>,
     metricValue?: unknown,
+    metricLabel?: string,
   ) => void;
   popToLevel: (depth: number) => void;
   closeDrilldown: () => void;
@@ -188,10 +202,13 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       columnPath: string[],
       filters: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       setState({
         panelId,
-        chain: [{ columnPath, variantId: null, filters, metricValue }],
+        chain: [
+          { columnPath, variantId: null, filters, metricValue, metricLabel },
+        ],
         page: 1,
         sort: null,
       });
@@ -204,6 +221,7 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       columnPath: string[],
       filters: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       setState((prev) => {
         if (!prev) return prev;
@@ -215,7 +233,7 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
           ...prev,
           chain: [
             ...prev.chain,
-            { columnPath, variantId: null, filters, metricValue },
+            { columnPath, variantId: null, filters, metricValue, metricLabel },
           ],
           page: 1,
           sort: null,

@@ -161,9 +161,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     [isDrilldownV2Enabled, dashboard?.widgets],
   );
   const handleWidgetDrillDown = useCallback(
-    (panelId: string) => {
+    (panelId: string, metricValue?: unknown) => {
       if (shouldUseV2(panelId)) {
-        drillV2.openPanelDrilldown(panelId, [], {});
+        // KPI tile clicks pass the resolved numeric as ``metricValue``;
+        // chart drill-icon clicks pass undefined.
+        drillV2.openPanelDrilldown(panelId, [], {}, metricValue);
         return;
       }
       openDrilldown(panelId);
@@ -175,9 +177,16 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       panelId: string,
       filters: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       if (shouldUseV2(panelId)) {
-        drillV2.openPanelDrilldown(panelId, [], filters, metricValue);
+        drillV2.openPanelDrilldown(
+          panelId,
+          [],
+          filters,
+          metricValue,
+          metricLabel,
+        );
         return;
       }
       openPointDrilldown(panelId, filters);
@@ -189,6 +198,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       _rowIndex: number,
       rowData: Record<string, unknown>,
       metricValue?: unknown,
+      metricLabel?: string,
     ) => {
       // Mirror of pages/Analytics.tsx::handleV2RowDrill — feed the next
       // level's column_map (and the current level's, for the diff) so each
@@ -207,7 +217,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters, metricValue);
+      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel);
     },
     [drillV2, dashboard],
   );
