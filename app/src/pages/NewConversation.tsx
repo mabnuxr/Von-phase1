@@ -316,19 +316,20 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
-  const userRole = !user?.roles?.length
-    ? null
-    : user.roles.some((r) => r.toLowerCase() === "admin")
-      ? "Admin"
-      : "Member";
-
-  const basePostHogProps = {
-    company: user?.tenant ?? null,
-    company_id: user?.tenantId ?? null,
-    user_id: user?.id ?? null,
-    user_email: user?.email ?? null,
-    user_role: userRole,
-  };
+  const basePostHogProps = useMemo(
+    () => ({
+      company: user?.tenant ?? null,
+      company_id: user?.tenantId ?? null,
+      user_id: user?.id ?? null,
+      user_email: user?.email ?? null,
+      user_role: !user?.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    }),
+    [user],
+  );
 
   const handleTemplateCategoryClick = useCallback(
     (category: string) => {
@@ -337,7 +338,7 @@ const NewConversation = () => {
         category_name: category,
       });
     },
-    [posthog, user],
+    [posthog, basePostHogProps],
   );
 
   const handleTemplateClick = useCallback(
@@ -349,7 +350,7 @@ const NewConversation = () => {
         prompt_position: position,
       });
     },
-    [posthog, user],
+    [posthog, basePostHogProps],
   );
 
   const handleTemplateArrowClick = useCallback(
@@ -359,7 +360,7 @@ const NewConversation = () => {
         category_name: activeCategory,
       });
     },
-    [posthog, user],
+    [posthog, basePostHogProps],
   );
 
   const banner = isTenantDisabled ? (

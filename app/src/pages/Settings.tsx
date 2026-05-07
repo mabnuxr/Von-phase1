@@ -1,4 +1,11 @@
-import { useState, useRef, useEffect, useCallback, Profiler } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  Profiler,
+} from "react";
 import { usePostHog } from "@posthog/react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
@@ -34,6 +41,18 @@ import usePreferencesStore from "../store/preferencesStore";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { reportRenderTiming } from "../lib/datadog";
 
+const TAB_LABELS: Record<string, string> = {
+  integrations: "Integrations",
+  fields: "Fields",
+  memory: "Memory",
+  "memory-org": "Org Memory",
+  "memory-user": "User Memory",
+  "custom-iq": "Von AI Fields",
+  email: "Email",
+  team: "Manage Team",
+  usage: "Usage",
+};
+
 const Settings = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -48,19 +67,20 @@ const Settings = () => {
     isMemoryV2Enabled,
   } = useFeatureFlag();
 
-  const userRole = !user?.roles?.length
-    ? null
-    : user.roles.some((r) => r.toLowerCase() === "admin")
-      ? "Admin"
-      : "Member";
-
-  const basePostHogProps = {
-    company: user?.tenant ?? null,
-    company_id: user?.tenantId ?? null,
-    user_id: user?.id ?? null,
-    user_email: user?.email ?? null,
-    user_role: userRole,
-  };
+  const basePostHogProps = useMemo(
+    () => ({
+      company: user?.tenant ?? null,
+      company_id: user?.tenantId ?? null,
+      user_id: user?.id ?? null,
+      user_email: user?.email ?? null,
+      user_role: !user?.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    }),
+    [user],
+  );
 
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
@@ -99,10 +119,10 @@ const Settings = () => {
     }
   }, [searchParams]);
 
-  const getTabLabel = (tabId: string) => {
-    const allItems = Object.values(settingsItems).flat();
-    return allItems.find((item) => item.id === tabId)?.label ?? tabId;
-  };
+  const getTabLabel = useCallback(
+    (tabId: string) => TAB_LABELS[tabId] ?? tabId,
+    [],
+  );
 
   const pageViewCaptured = useRef(false);
   useEffect(() => {
@@ -112,7 +132,7 @@ const Settings = () => {
       entry_point: "Settings option in chat bottom-left menu",
     });
     pageViewCaptured.current = true;
-  }, [user, posthog]);
+  }, [user, posthog, basePostHogProps]);
 
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
@@ -164,14 +184,14 @@ const Settings = () => {
       current_tab: getTabLabel(selectedSettingId),
     });
     navigate("/chat");
-  }, [posthog, user, selectedSettingId, navigate]);
+  }, [posthog, basePostHogProps, selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {
     posthog?.capture("Settings - Help Docs Clicked", {
       ...basePostHogProps,
       current_tab: getTabLabel(selectedSettingId),
     });
-  }, [posthog, user, selectedSettingId]);
+  }, [posthog, basePostHogProps, selectedSettingId, getTabLabel]);
 
   // Handle Logout click
   const handleLogoutClick = async () => {
