@@ -81,7 +81,10 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   editingCommand,
   isSaving = false,
   readOnly = false,
-  isAdmin = false,
+  // Currently unused — see the Sharing section below for the rationale.
+  // The public prop type still exposes `isAdmin` so call sites (and a
+  // future RBAC re-introduction) don't need to change.
+  isAdmin: _isAdmin = false,
   onUploadFile,
   onRequestFilePreviewUrl,
   onBack,
@@ -310,9 +313,12 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           {/* Sharing — collapsible */}
           <Accordion title="Sharing" summary={sharingLabel}>
             <div className="flex items-center gap-1.5">
-              {(['private', 'org'] as const)
-                .filter((scope) => scope === 'private' || isAdmin)
-                .map((scope) => (
+              {/* Both scopes are shown to every role until proper RBAC
+                  ships for Resource.QUICK_COMMAND. The `isAdmin` prop is
+                  kept on this component so the gate can be re-introduced
+                  later (e.g. `.filter(s => s === 'private' || isAdmin)`)
+                  without changing the call-site contract. */}
+              {(['private', 'org'] as const).map((scope) => (
                   <button
                     key={scope}
                     type="button"
