@@ -80,11 +80,42 @@
  * win at the same or higher selector specificity. */
 .table-widget-root.clickable-cells .hcg-table tbody td.drillable-cell {
   cursor: pointer;
-  /* Bump font weight by 100 across the column so users can scan which
-   * values are drillable without hovering each cell. Stacks cleanly with
-   * the renderer-defined cellClasses (longtext_expand, etc.) — no rule
-   * conflict because no other sibling sets font-weight on td. */
-  font-weight: 500;
+  font-weight: 700;
+}
+
+/* Tint drillable values gray-700 + bold. Cell values are rendered via
+ * ``createCellFormatter`` / ``applyColumnFormats`` (reportTableUtils.ts)
+ * which wraps the value in ``<span style="color:#111827">…</span>``.
+ * Inline styles beat external rules at normal cascade, so override the
+ * inner span with ``!important``. Scope is confined to drillable cells —
+ * non-drillable cells keep the inline gray-900. */
+.table-widget-root.clickable-cells .hcg-table tbody td.drillable-cell,
+.table-widget-root.clickable-cells .hcg-table tbody td.drillable-cell span {
+  color: #374151 !important;
+}
+
+/* Trailing ↳ glyph after every drillable cell value. Pseudo-element
+ * keeps the change CSS-only (no formatter chain mutation, no DOM
+ * wrapping). Inherits color from the td (gray-700); opacity 0.5 makes
+ * it secondary to the value itself. font-size 10px keeps it visually
+ * subordinate. Numeric (right-aligned) cells render the arrow tight
+ * against the value because the whole content line right-aligns
+ * together. */
+.table-widget-root.clickable-cells .hcg-table tbody td.drillable-cell::after {
+  content: '\21B3'; /* ↳ U+21B3 — Downwards Arrow With Tip Rightwards */
+  margin-left: 5px;
+  opacity: 0.5;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Drillable column headers — same gray-700 tint as the cells. No arrow
+ * glyph on headers (the per-cell glyph already carries the affordance
+ * row by row, and a header-level glyph adds visual noise). Tagged via a
+ * post-render effect (Grid Lite owns thead rendering and doesn't expose
+ * a header className API on the column config). */
+.table-widget-root.clickable-cells .hcg-table thead th.drillable-header {
+  color: #374151;
 }
 
 /* Specificity bump — adding ``.hcg-container`` qualifier between the root
@@ -105,8 +136,8 @@
   tbody
   tr.hcg-row-even
   td.drillable-cell:hover {
-  background-color: #ede9fe; /* violet-100 — same token as variant pill */
-  font-weight: 600;
+  background-color: #f3f4f6; /* gray-100 — neutral hover */
+  font-weight: 700;
 }
 
 /* ─── Server Pagination (matches HCG pagination style) ──────────── */

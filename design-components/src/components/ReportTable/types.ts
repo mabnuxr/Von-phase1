@@ -76,10 +76,17 @@ export interface ReportTableProps {
   /** Current server sort state (reserved for future initial-sort sync) */
   sortState?: ServerSortState | null;
   /** Called when a table body cell is clicked — provides column ID, raw cell
-   *  value, and the full row dict (column_id → value) so callers that need
-   *  multi-column context (e.g. V2 drilldown column_map) can extract every
-   *  data_key from the row, not just the clicked cell. */
-  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
+   *  value, the full row dict (column_id → value), and the cell's
+   *  rendered display text (the formatted string the user actually saw,
+   *  e.g. ``"$1,096,367"`` rather than ``1096366.67``). The display text
+   *  is what the V2 drilldown breadcrumb surfaces in its
+   *  ``(label: value)`` suffix so the breadcrumb matches what was clicked. */
+  onCellClick?: (
+    columnId: string,
+    cellValue: unknown,
+    rowData: Record<string, unknown>,
+    displayText?: string
+  ) => void;
   /** Disable the built-in truncation tooltip (e.g. when using a custom expand popover) */
   disableTooltip?: boolean;
   /** Compact display mode — smaller fonts and tighter padding (used in dashboard widgets) */

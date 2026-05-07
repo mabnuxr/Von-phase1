@@ -39,7 +39,12 @@ interface UseCellInteractionsResult {
 export function useCellInteractions(
   options: GridOptions,
   onCellClick:
-    | ((columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void)
+    | ((
+        columnId: string,
+        cellValue: unknown,
+        rowData: Record<string, unknown>,
+        displayText?: string
+      ) => void)
     | undefined
 ): UseCellInteractionsResult {
   const [popover, setPopover] = useState<AIReasoningPopoverState | null>(null);
@@ -103,7 +108,14 @@ export function useCellInteractions(
         }
       }
 
-      onCellClick(columnId, rawValue, rowData);
+      // Capture the cell's rendered text — the actually-formatted string
+      // (e.g. ``"$1,096,367"``) that the user visually clicked. The cell
+      // body is wrapped in a ``<span style="color:#111827">…</span>`` by
+      // ``createCellFormatter``; ``td.textContent`` reads through that
+      // wrapper so we get the same string the user saw. Falls back to
+      // the rawValue stringified when the cell is empty.
+      const displayText = td.textContent?.trim() || String(rawValue ?? '');
+      onCellClick(columnId, rawValue, rowData, displayText);
     },
     [onCellClick, options.dataTable, options.columns]
   );

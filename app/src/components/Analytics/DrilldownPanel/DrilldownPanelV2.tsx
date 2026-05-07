@@ -22,7 +22,7 @@
  * - Advisory banner when click-chain depth >= 8 (deep drilling — suggests
  *   switching to chat if the user is lost).
  */
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   XIcon,
@@ -218,6 +218,13 @@ export function DrilldownPanelV2({
     return levelDrillableColumns?.[depth - 1] ?? null;
   }, [drill.clickChain.length, levelDrillableColumns]);
 
+  // Wrapper ref for the post-render effect that tags drillable headers
+  // and writes the title attribute on drillable td's. Grid Lite owns
+  // thead rendering and doesn't expose a header className API on the
+  // column config, so we tag from the DOM instead. Mirror of the
+  // equivalent effect in TableWidget.tsx.
+  const gridWrapRef = useRef<HTMLDivElement>(null);
+
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || drill.data.length === 0) return null;
     const opts = buildGridOptions(columns, drill.data, {
@@ -230,6 +237,46 @@ export function DrilldownPanelV2({
     // TableWidget applies via ``applyDrillableCellClass``.
     return applyDrillableCellClass(opts, currentDrillableColumns ?? null);
   }, [columns, drill.data, currentDrillableColumns]);
+
+  // Drillable affordance — post-render DOM tagging.
+  //
+  // Grid Lite exposes ``cells.className`` on the column config (used by
+  // ``applyDrillableCellClass`` above) but not a parallel
+  // ``header.className`` — to tint matching column headers we tag the
+  // ``<th>`` elements after Grid Lite commits its DOM. Same effect adds
+  // the ``title="Click to drill deeper"`` native tooltip to drillable
+  // td's (Grid Lite has no per-cell attributes API beyond className).
+  //
+  // Re-runs on every gridOptions identity change so it survives variant
+  // / page / sort cycles. Mirror of the equivalent effect in
+  // ``design-components/.../TableWidget.tsx``.
+  useEffect(() => {
+    const el = gridWrapRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      const table = el.querySelector(".hcg-table");
+      if (!table) return;
+      const firstRow = table.querySelector(
+        "tbody tr:not(.hcg-mocked-row)",
+      ) as HTMLTableRowElement | null;
+      if (!firstRow) return;
+      const drillableIdxs = new Set<number>();
+      Array.from(firstRow.children).forEach((cell, i) => {
+        if ((cell as HTMLElement).classList.contains("drillable-cell")) {
+          drillableIdxs.add(i);
+        }
+      });
+      const ths = table.querySelectorAll("thead th");
+      ths.forEach((th, i) => {
+        th.classList.toggle("drillable-header", drillableIdxs.has(i));
+      });
+      const tds = table.querySelectorAll("tbody td.drillable-cell");
+      tds.forEach((td) => {
+        (td as HTMLElement).title = "Click to drill deeper";
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [gridOptions]);
 
   // Whole-row descent: clicking a drillable cell descends to the next
   // level when ``hasNextLevel === true``. We DON'T discriminate at the
@@ -263,15 +310,20 @@ export function DrilldownPanelV2({
       // Look up the clicked cell's value AND the column's display label so
       // deeper-level breadcrumb segments can render "Column Name: value".
       // Map td position → column id from the rendered headers, then read
-      // ``rowData[colId]`` for the value and ``columns[colIdx].label`` for
-      // the user-facing label. Falling back to ``td.textContent`` for the
-      // value would lose type info (numbers come back as strings) — the
-      // rowData lookup keeps the value usable as-is by the FE formatter.
+      // ``td.textContent`` for the FORMATTED string the user clicked
+      // (e.g. ``"$1,096,367"`` rather than the raw ``1096366.67`` from
+      // rowData[col.id]). The breadcrumb suffix is a display-only
+      // affordance — surfacing the formatted value matches what the
+      // user clicked, mirroring the KPI/chart pattern. Falls back to
+      // the raw rowData value when the cell has no rendered text
+      // (empty / null cells).
       const cells = Array.from(tr.children);
       const colIdx = cells.indexOf(td);
       const rowData = drill.data[rowIndex] as Record<string, unknown>;
       const col = columns[colIdx];
-      const metricValue = col?.id != null ? (rowData[col.id] ?? null) : null;
+      const rawValue = col?.id != null ? (rowData[col.id] ?? null) : null;
+      const displayText = td.textContent?.trim() ?? "";
+      const metricValue = displayText.length > 0 ? displayText : rawValue;
       const metricLabel = col?.label;
       // Route to a specific next-level variant when the active variant's
       // ``column_variant_map`` declares one for the clicked column. Without
@@ -385,6 +437,7 @@ export function DrilldownPanelV2({
             </div>
           ) : (
             <div
+              ref={gridWrapRef}
               className={`dd-v2-grid-wrap${drill.hasNextLevel ? " dd-v2-grid-wrap-drillable" : ""}`}
               onClick={handleGridClick}
             >

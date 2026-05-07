@@ -519,9 +519,34 @@ button.dd-v2-breadcrumb-widget:hover {
  * specificity. */
 .dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell {
   cursor: pointer;
-  /* +100 over the default 400 so users can scan drillable columns at a
-   * glance — even before hovering. Hover bumps a further step. */
-  font-weight: 500;
+  font-weight: 700;
+}
+
+/* Tint drillable values gray-700 + bold — see table-widget.css for the
+ * same rationale (inline-style override on the inner span produced by
+ * createCellFormatter). */
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell,
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell span {
+  color: #374151 !important;
+}
+
+/* Trailing ↳ glyph after every drillable cell value. Pure CSS — no
+ * formatter chain mutation. Inherits gray-700 color from the td;
+ * opacity 0.5 + 10px size keeps it subordinate to the value. */
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell::after {
+  content: "\21B3"; /* ↳ U+21B3 */
+  margin-left: 5px;
+  opacity: 0.5;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Drillable column headers — gray-700 tint, no arrow. Tagged via a
+ * post-render effect (Grid Lite doesn't expose header className on the
+ * column config). Per-cell glyph below already carries the row-by-row
+ * affordance; a header glyph would just add noise. */
+.dd-v2-grid-wrap-drillable .hcg-table thead th.drillable-header {
+  color: #374151;
 }
 
 /* Specificity matters here. Empirically (verified via DevTools cascade
@@ -548,6 +573,6 @@ button.dd-v2-breadcrumb-widget:hover {
   tbody
   tr.hcg-row-even
   td.drillable-cell:hover {
-  background-color: #ede9fe; /* violet-100 — same token as variant pill */
-  font-weight: 600;
+  background-color: #f3f4f6; /* gray-100 — neutral hover */
+  font-weight: 700;
 }
