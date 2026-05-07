@@ -718,6 +718,16 @@ export interface DrilldownV2Variant {
    * per-cell hover affordance + cell-click handler.
    */
   drillable_columns?: string[] | null;
+  /**
+   * Optional column → next-level variant routing. When the user clicks a
+   * drillable cell of THIS variant's drill output and descends, the FE
+   * looks up the clicked column id here; if present, the next level
+   * opens with the mapped variant id (instead of its is_default).
+   * Columns NOT in the map fall back to the next level's default. Use
+   * when a clickable column corresponds 1:1 to a specific next-level
+   * variant. Ignored for leaf-level variants (no next level).
+   */
+  column_variant_map?: Record<string, string> | null;
 }
 
 export interface DrilldownV2Level {
@@ -747,6 +757,15 @@ export interface PanelDrilldownV2Config {
    * for non-table panels.
    */
   drillable_columns?: string[] | null;
+  /**
+   * Optional column → L1 variant routing for table panels. When the user
+   * clicks a panel cell and opens the drill view (L0 → L1), the FE looks
+   * up the clicked column id here; if present, L1 opens with the mapped
+   * variant id (instead of L1's is_default). Columns NOT in the map fall
+   * back to L1's default. Use when a clickable panel column corresponds
+   * 1:1 to a specific L1 variant.
+   */
+  column_variant_map?: Record<string, string> | null;
 }
 
 export interface DrilldownV2Request {
