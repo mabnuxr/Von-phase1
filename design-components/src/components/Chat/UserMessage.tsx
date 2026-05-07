@@ -113,6 +113,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({
                 onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 hasContentBelow={!!(content || (attachments && attachments.length > 0))}
                 disableFileAttachments={disableCommandFiles}
+                onMentionClick={onMentionClick}
               />
             )}
             {attachments && attachments.length > 0 && (

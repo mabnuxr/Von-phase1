@@ -14,13 +14,15 @@
 
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChartBarIcon } from '@phosphor-icons/react';
 import type { Command } from './types';
 import { CommandChip } from './CommandChip';
 import { TiptapViewer } from '../TiptapEditor';
 import { useVisibilityToggle } from '../../hooks';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { FileIconStack } from '../FileChip';
+import { MentionPreview } from '../Chat/FileAttachment/MentionPreview';
+import type { MentionItem } from '../Mentions/types';
+import { MentionItemType } from '../Mentions/constants';
 
 export interface CommandPreviewProps {
   command: Command;
@@ -33,6 +35,13 @@ export interface CommandPreviewProps {
   hasContentBelow?: boolean;
   /** When true, the command preview is disabled and the command is not rendered. */
   disableFileAttachments?: boolean;
+  /**
+   * Called when a tagged dashboard pill is clicked. The MentionItem shape
+   * matches what `UserMessage` already passes to its inline mention chips,
+   * so hosts can route both through the same handler (typically navigating
+   * to the dashboard).
+   */
+  onMentionClick?: (mention: MentionItem) => void;
 }
 
 export const CommandPreview: React.FC<CommandPreviewProps> = ({
@@ -40,6 +49,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
   onRequestFilePreviewUrl,
   hasContentBelow = true,
   disableFileAttachments = false,
+  onMentionClick,
 }) => {
   const { isVisible: isExpanded, toggleVisibility: onToggle } = useVisibilityToggle();
   const filesPanel = useVisibilityToggle();
@@ -113,16 +123,31 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
           >
             {dashboardRefs.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {dashboardRefs.map((r) => (
-                  <span
-                    key={r.context.dashboardId}
-                    title={r.context.dashboardName}
-                    className="inline-flex items-center gap-1.5 max-w-[240px] px-2.5 py-1 rounded-xl border border-gray-200/60 bg-white shadow-xs text-[13px] text-gray-700"
-                  >
-                    <ChartBarIcon size={13} weight="regular" className="text-gray-500 shrink-0" />
-                    <span className="truncate">{r.context.dashboardName}</span>
-                  </span>
-                ))}
+                {dashboardRefs.map((r) => {
+                  const mention: MentionItem = {
+                    id: r.context.dashboardId,
+                    name: r.context.dashboardName,
+                    type: MentionItemType.Dashboard,
+                    version: r.context.dashboardVersion,
+                  };
+                  return (
+                    <div
+                      key={r.context.dashboardId}
+                      onClick={
+                        onMentionClick
+                          ? (e) => {
+                              // Don't toggle the surrounding CommandPreview's expand state.
+                              e.stopPropagation();
+                              onMentionClick(mention);
+                            }
+                          : undefined
+                      }
+                      className={onMentionClick ? 'cursor-pointer' : undefined}
+                    >
+                      <MentionPreview mention={mention} removable={false} />
+                    </div>
+                  );
+                })}
               </div>
             )}
 
