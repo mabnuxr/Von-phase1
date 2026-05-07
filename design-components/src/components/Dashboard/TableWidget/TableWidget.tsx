@@ -31,6 +31,13 @@ interface TableWidgetProps {
    *  multiple data_keys from a single click (e.g. cohort cells need both
    *  account_name AND week_label regardless of which column was clicked). */
   onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
+  /** Whitelist of column ids that should receive the drillable-cell hover
+   *  affordance + register clicks. When provided, only those columns get
+   *  `td.drillable-cell` painted (hover background + pointer cursor).
+   *  ``null``/``undefined`` (default) → back-compat: every cell is treated
+   *  as drillable, preserving behaviour of dashboards predating the
+   *  per-column drilldown contract. ``[]`` → no cells drillable. */
+  drillableColumns?: string[] | null;
 }
 
 const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons
@@ -125,6 +132,34 @@ function applyRowDataTemplates(options: GridOptions): GridOptions {
   return { ...options, columns: mapped };
 }
 
+// Append ``drillable-cell`` to ``column.cells.className`` for each column
+// id in ``drillableColumns`` (or for every column when the list is null,
+// preserving back-compat for dashboards predating the per-column contract).
+// The CSS in ``drilldown-panel.css`` (and the panel-widget hover rule in the
+// app CSS bundle) targets ``.clickable-cells td.drillable-cell:hover`` so
+// only tagged cells get the violet hover background + pointer cursor.
+function applyDrillableCellClass(
+  options: GridOptions,
+  drillableColumns: string[] | null
+): GridOptions {
+  const cols = options.columns;
+  if (!cols) return options;
+  const allowAll = drillableColumns === null;
+  const allow = new Set(drillableColumns ?? []);
+  const mapped = cols.map((col) => {
+    const c = col as { id?: string; cells?: { className?: string } };
+    const id = c.id;
+    if (!id) return col;
+    if (!allowAll && !allow.has(id)) return col;
+    const existing = typeof c.cells?.className === 'string' ? c.cells.className : '';
+    const next = existing.includes('drillable-cell')
+      ? existing
+      : [existing, 'drillable-cell'].filter(Boolean).join(' ');
+    return { ...col, cells: { ...(c.cells ?? {}), className: next } };
+  });
+  return { ...options, columns: mapped };
+}
+
 const TableWidget: React.FC<TableWidgetProps> = ({
   panelId,
   config,
@@ -133,6 +168,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   onSortChange,
   sortState,
   onCellClick,
+  drillableColumns,
 }) => {
   const { serverPagination } = config;
   const hasServerPagination = !!serverPagination;
@@ -153,12 +189,18 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     const applied = applyColumnRenderers(
       hasServerPagination ? { ...base, pagination: { enabled: false } } : base
     );
-    const finalOptions = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    const withFormatters = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    // Tag the body cells of drillable columns with a ``drillable-cell``
+    // className so the per-cell hover CSS only paints those columns. When
+    // ``drillableColumns`` is null/undefined we fall back to "every cell
+    // gets the class" so legacy dashboards predating the per-column
+    // contract keep their existing whole-table hover behaviour.
+    const finalOptions = applyDrillableCellClass(withFormatters, drillableColumns ?? null);
     return {
       options: finalOptions,
       autoHeight: base.autoHeight === true || applied.hasWrapColumn,
     };
-  }, [base, hasServerPagination]);
+  }, [base, hasServerPagination, drillableColumns]);
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {

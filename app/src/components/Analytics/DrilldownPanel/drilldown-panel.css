@@ -499,21 +499,29 @@ button.dd-v2-breadcrumb-widget:hover {
   position: relative;
 }
 
-/* Drillable cell affordance — pointer cursor on every clickable row, and
- * a light-violet bg on the SPECIFIC hovered cell (cell-level, not
+/* Drillable cell affordance — pointer cursor + slightly bolder font on
+ * cells whose column the active variant marked drillable, and a
+ * light-violet bg on the SPECIFIC hovered cell (cell-level, not
  * row-level). The ``dd-v2-grid-wrap-drillable`` class is toggled by
  * DrilldownPanelV2 based on ``drill.hasNextLevel``: present when cell
  * clicks descend, absent at the floor of the pyramid where rows are
- * inert. Same violet token as the dashboard's TableWidget cell hover so
- * the visual language matches across both views.
+ * inert. The per-cell ``td.drillable-cell`` class is appended by
+ * ``applyDrillableCellClass`` for the columns the active variant's
+ * ``drillable_columns`` whitelist named (or every column when null,
+ * back-compat for legacy variants). Same violet token + +100 font
+ * weight as the dashboard's TableWidget so the visual language matches
+ * across both views.
  *
  * Cell-level scoping (``td:hover``) is intentional — the affordance is
  * "this cell triggers a drill," and the hover should land where the
  * cursor is, not light up the entire row. The duplicated selector
  * handles Grid Lite's even-row zebra stripes (opaque td bg) at matching
  * specificity. */
-.dd-v2-grid-wrap-drillable tbody tr {
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell {
   cursor: pointer;
+  /* +100 over the default 400 so users can scan drillable columns at a
+   * glance — even before hovering. Hover bumps a further step. */
+  font-weight: 500;
 }
 
 /* Specificity matters here. Empirically (verified via DevTools cascade
@@ -522,17 +530,24 @@ button.dd-v2-breadcrumb-widget:hover {
  * for ``background-color`` even when source-order tiebreaker should favor
  * us — outline-only properties from the same selector DO apply, so the
  * issue is specifically a competing bg declaration somewhere in the
- * Grid Lite cascade. Bumping to (0,4,3) by adding the ``.hcg-container``
+ * Grid Lite cascade. Bumping to (0,4,4) by adding the ``.hcg-container``
  * class qualifier (which is on a Grid-Lite-internal wrapper between our
- * wrap and the table) wins reliably for both zebra-stripe variants
- * (odd + even rows). The ``hcg-row-even`` branch stays for parity with
- * Grid Lite's zebra rules that paint the even-row td bg directly. */
-.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr td:hover,
+ * wrap and the table) AND scoping to ``td.drillable-cell`` wins reliably
+ * for both zebra-stripe variants (odd + even rows). The ``hcg-row-even``
+ * branch stays for parity with Grid Lite's zebra rules that paint the
+ * even-row td bg directly. */
+.dd-v2-grid-wrap-drillable
+  .hcg-container
+  .hcg-table
+  tbody
+  tr
+  td.drillable-cell:hover,
 .dd-v2-grid-wrap-drillable
   .hcg-container
   .hcg-table
   tbody
   tr.hcg-row-even
-  td:hover {
+  td.drillable-cell:hover {
   background-color: #ede9fe; /* violet-100 — same token as variant pill */
+  font-weight: 600;
 }

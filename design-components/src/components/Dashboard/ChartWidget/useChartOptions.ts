@@ -237,7 +237,7 @@ function injectDrilldown(
   options: Highcharts.Options,
   drilldown: DrilldownConfig | null | undefined,
   drilldownV2: PanelDrilldownV2 | null | undefined,
-  onPointClick: ((drillFilters: DrillFilters) => void) | undefined
+  onPointClick: ((drillFilters: DrillFilters, metricValue?: unknown) => void) | undefined
 ): Highcharts.Options {
   const columnMap = resolveEffectiveColumnMap(drilldown, drilldownV2);
   if (!columnMap.length || !onPointClick) return options;
@@ -313,7 +313,22 @@ function injectDrilldown(
                 }
               }
               if (Object.keys(filters).length > 0) {
-                onPointClick(filters);
+                // Capture the metric value behind this point so the drill
+                // breadcrumb can show "Stage: Negotiation (47)" instead of
+                // just "Stage: Negotiation". Highcharts stores the numeric
+                // value at ``point.y`` for cartesian + pie series; Sankey
+                // and similar weighted-edge series surface it as
+                // ``point.weight``. We pull whichever is non-null and pass
+                // it through as the second arg of ``onPointClick`` (kept
+                // separate from ``filters`` so the wire payload stays
+                // unchanged — only the FE breadcrumb consumes it).
+                const pointAny = this as unknown as {
+                  y?: unknown;
+                  weight?: unknown;
+                  value?: unknown;
+                };
+                const metricValue = pointAny.y ?? pointAny.weight ?? pointAny.value ?? null;
+                onPointClick(filters, metricValue);
               }
             },
           },

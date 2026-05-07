@@ -86,6 +86,13 @@ export interface DrilldownV2Variant {
   id: string;
   is_default?: boolean;
   column_map?: DrilldownV2ColumnMapping[];
+  /**
+   * Optional whitelist of column ids in this variant's drill output that
+   * are clickable for further descent. Aggregated metric columns only —
+   * GROUP BY dimensions are excluded. ``null``/``undefined`` = back-compat
+   * (every cell clickable). Used by the drill-view bottom-sheet table.
+   */
+  drillable_columns?: string[] | null;
   // The remaining fields (label, description, justification_template,
   // query_ref) aren't read here — the widget only needs column_map for
   // point-click filter extraction.
@@ -102,6 +109,14 @@ export interface PanelDrilldownV2 {
    * reaches raw entity rows. Empty list = panel is non-drillable (raw rows).
    */
   levels: DrilldownV2Level[];
+  /**
+   * Optional whitelist of column ids in the panel's main query output that
+   * are clickable to open the drill view. Aggregated metric columns only —
+   * GROUP BY dimensions are excluded. ``null``/``undefined`` = back-compat
+   * (every cell clickable). Used by the dashboard table widget; ignored
+   * for non-table panels.
+   */
+  drillable_columns?: string[] | null;
 }
 
 // ─── Query Info ──────────────────────────────────────────────────
@@ -307,8 +322,11 @@ export interface WidgetRendererProps {
   isTableLoading?: boolean;
   /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
-  /** Callback when a chart data point is clicked (point-level drilldown) */
-  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown).
+   *  ``metricValue`` carries the clicked point's numeric value
+   *  (``point.y``/``weight``/``value``) so the drill breadcrumb can render
+   *  it as a parenthesized suffix (e.g. "Stage: Negotiation (47)"). */
+  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters, metricValue?: unknown) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state for this table widget */
@@ -338,8 +356,11 @@ export interface DashboardGridProps {
   loadingTablePanels?: Set<string>;
   /** Callback when a widget's drilldown icon is clicked (chart-level) */
   onDrillDown?: (panelId: string) => void;
-  /** Callback when a chart data point is clicked (point-level drilldown) */
-  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters) => void;
+  /** Callback when a chart data point is clicked (point-level drilldown).
+   *  ``metricValue`` carries the clicked point's numeric value
+   *  (``point.y``/``weight``/``value``) so the drill breadcrumb can render
+   *  it as a parenthesized suffix (e.g. "Stage: Negotiation (47)"). */
+  onPointDrillDown?: (panelId: string, drillFilters: DrillFilters, metricValue?: unknown) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current sort state per panel */
