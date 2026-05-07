@@ -197,6 +197,7 @@ const NewConversation = () => {
     commands,
     isLoadingCommands,
     isSavingCommand,
+    availableDashboards,
     handleSaveCommand,
     handleUploadFile,
     handleRequestFilePreviewUrl,
@@ -367,6 +368,7 @@ const NewConversation = () => {
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
+        availableDashboards={availableDashboards}
         teamMembers={teamMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}

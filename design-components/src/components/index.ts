@@ -373,6 +373,9 @@ export {
 export type {
   Command,
   CommandAttachment,
+  CommandReference,
+  CommandDashboardReference,
+  DashboardOption,
   CommandSchedule,
   ScheduleRecipient,
   CommandsState,

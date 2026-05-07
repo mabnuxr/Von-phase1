@@ -62,6 +62,26 @@ export interface CommandDataSources {
   s3Key: string;
 }
 
+/** Dashboard reference tagged onto a command. Mirrors the backend DashboardReference shape. */
+export interface CommandDashboardReference {
+  refId: string;
+  type: 'dashboard';
+  context: {
+    dashboardId: string;
+    dashboardVersion: number;
+    dashboardName: string;
+  };
+}
+
+export type CommandReference = CommandDashboardReference;
+
+/** Picker option presented to the user when tagging dashboards on a command. */
+export interface DashboardOption {
+  dashboardId: string;
+  dashboardName: string;
+  dashboardVersion: number;
+}
+
 /** UI-friendly attachment shape (populated by API mapping) */
 export interface CommandAttachment {
   id: string;
@@ -96,6 +116,7 @@ export interface Command {
   prompt: string;
   prefillText?: string;
   dataSources?: CommandAttachment[];
+  references?: CommandReference[];
   createdAt: string;
   updatedAt: string;
   // Fields populated when mapped from the API response

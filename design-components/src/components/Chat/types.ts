@@ -4,7 +4,7 @@
 
 import type { ConversationMode } from './StandardChatInput/types';
 import type { FileArtifact } from './ArtifactCards/types';
-import type { Command, ScheduleRecipient } from '../Commands/types';
+import type { Command, DashboardOption, ScheduleRecipient } from '../Commands/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { MentionItem } from '../Mentions/types';
 
@@ -1455,6 +1455,8 @@ export interface ChatProps {
 
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
+  /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
+  availableDashboards?: DashboardOption[];
   /** Team members available as schedule recipients */
   teamMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */

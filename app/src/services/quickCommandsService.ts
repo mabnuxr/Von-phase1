@@ -18,6 +18,19 @@ export interface CommandDataSource {
   s3Key: string;
 }
 
+/** Tagged dashboard reference (mirrors backend DashboardReference). */
+export interface QuickCommandDashboardReference {
+  refId: string;
+  type: "dashboard";
+  context: {
+    dashboardId: string;
+    dashboardVersion: number;
+    dashboardName: string;
+  };
+}
+
+export type QuickCommandReference = QuickCommandDashboardReference;
+
 /** Shape returned by the backend when reading a command's data sources */
 export interface CommandDataSourceResponse {
   fileId: string;
@@ -38,6 +51,7 @@ export interface QuickCommand {
   prefillText: string;
   accessLevel: "tenant" | "user";
   dataSources: CommandDataSourceResponse[];
+  references?: QuickCommandReference[];
   lastUsedAt: string | null;
   usageCount: number;
   isBookmarked: boolean;
@@ -97,6 +111,7 @@ export interface CreateQuickCommandInput {
   prefillText?: string;
   accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
+  references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig;
   deliveryConfig?: DeliveryConfig;
 }
@@ -107,6 +122,7 @@ export interface UpdateQuickCommandInput {
   prefillText?: string;
   accessLevel?: "tenant" | "user";
   dataSources?: CommandDataSource[];
+  references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig | null;
   deliveryConfig?: DeliveryConfig | null;
 }

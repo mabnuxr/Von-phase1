@@ -10,7 +10,13 @@
 
 import React, { useCallback } from 'react';
 import { X, PaperclipIcon, UploadSimple, ArrowLeft } from '@phosphor-icons/react';
-import type { Command, CommandAttachment, ScheduleRecipient } from './types';
+import type {
+  Command,
+  CommandAttachment,
+  CommandReference,
+  DashboardOption,
+  ScheduleRecipient,
+} from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { useFileDrop } from '../../hooks';
 import { Drawer } from '../Drawer';
@@ -19,6 +25,7 @@ import { FileChip } from '../FileChip';
 import { useCommandForm } from './useCommandForm';
 import { useCommandDataSources } from './useCommandDataSources';
 import { ScheduleSection } from './ScheduleSection';
+import { CommandPromptEditor } from './CommandPromptEditor';
 
 // ---------------------------------------------------------------------------
 // Public interface
@@ -34,10 +41,18 @@ export interface CommandDrawerProps {
    *                 `id` when creating a new command so a single API call suffices.
    */
   onSave: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
+    data: Pick<
+      Command,
+      'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+    >,
     dataSources: CommandAttachment[],
     commandId: string
   ) => void | Promise<void>;
+  /**
+   * Dashboards available to tag onto this command. When provided, a "Dashboards"
+   * section renders a chip picker. Omit to hide the section entirely.
+   */
+  availableDashboards?: DashboardOption[];
   /** Pre-populate the form when editing an existing command */
   editingCommand?: Command | null;
   /** Shows a spinner / disables the save button while the mutation is in-flight */
@@ -85,6 +100,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   teamMembers,
   currentUser,
   onSendTest,
+  availableDashboards,
 }) => {
   const { form, setForm, setField, commandId, isEditing, sharingLabel, setSchedule } =
     useCommandForm({
@@ -140,11 +156,22 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         prefillText: form.prefillText.trim() || undefined,
         sharingScope: form.sharingScope,
         schedule: form.schedule.enabled ? form.schedule : undefined,
+        references: form.references,
       },
       dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
       commandId
     );
   };
+
+  const setPromptText = useCallback(
+    (next: string) => setForm((v) => ({ ...v, prompt: next })),
+    [setForm]
+  );
+
+  const setReferences = useCallback(
+    (next: CommandReference[]) => setForm((v) => ({ ...v, references: next })),
+    [setForm]
+  );
 
   const canSave =
     form.name.trim().length > 0 && form.prompt.trim().length > 0 && !isAnyFileUploading;
@@ -205,22 +232,20 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
             <label className="block text-xs font-medium text-gray-800/80 mb-1.5">
               Prompt / Instructions {!readOnly && <span className="text-red-400">*</span>}
             </label>
-            <textarea
-              value={form.prompt}
-              onChange={setField('prompt')}
-              rows={6}
+            <CommandPromptEditor
+              isOpen={isOpen}
+              prompt={form.prompt}
+              onPromptChange={setPromptText}
+              references={form.references}
+              onReferencesChange={setReferences}
+              availableDashboards={availableDashboards}
               readOnly={readOnly}
               placeholder="Help me prep for my 1x1 with my direct report"
-              className={`w-full px-3 py-2 text-sm border border-gray-100 rounded-lg resize-none transition-all placeholder:text-gray-400 ${
-                readOnly
-                  ? 'bg-gray-50 text-gray-600 cursor-default focus:outline-none'
-                  : 'focus:outline-none focus:ring-1 focus:ring-gray-300 focus:border-gray-300'
-              }`}
             />
             {!readOnly && (
               <p className="mt-1.5 text-xs text-gray-500">
-                Commands can generate documents, slides, and sheets based on your prompt and data
-                sources.
+                Type @ to tag a dashboard. Commands can generate documents, slides, and sheets based
+                on your prompt and data sources.
               </p>
             )}
           </div>
