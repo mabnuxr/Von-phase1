@@ -529,7 +529,10 @@ function formatSegment(
  * breadcrumb segment, or empty string when no metric is captured.
  *
  * - Numbers → ``toLocaleString`` for thousands separators (`1234` → "1,234").
- * - Strings / booleans → verbatim.
+ * - Non-empty strings → verbatim. An empty string `""` (which CASE WHEN
+ *   expressions or coalesced cells can produce) is treated as "no
+ *   metric to show" rather than rendering as the awkward `" ()"`.
+ * - Booleans → verbatim.
  * - null / undefined → empty (no suffix at all).
  */
 function formatMetricSuffix(metricValue: unknown): string {
@@ -537,7 +540,10 @@ function formatMetricSuffix(metricValue: unknown): string {
   if (typeof metricValue === "number" && Number.isFinite(metricValue)) {
     return ` (${metricValue.toLocaleString()})`;
   }
-  if (typeof metricValue === "string" || typeof metricValue === "boolean") {
+  if (typeof metricValue === "string") {
+    return metricValue.length > 0 ? ` (${metricValue})` : "";
+  }
+  if (typeof metricValue === "boolean") {
     return ` (${String(metricValue)})`;
   }
   return "";
