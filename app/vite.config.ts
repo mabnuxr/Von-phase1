@@ -76,10 +76,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173, // always start on 5173
       strictPort: true, // fail if it's already in use
-      watch: {
-        // Watch design-components source so HMR picks up changes in the monorepo
-        ignored: ["!**/design-components/src/**"],
-      },
       proxy: {
         "/api": {
           target: env.VITE_API_BASE_URL || "http://localhost:4173",
@@ -113,7 +109,6 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ["@thesysai/genui-sdk", "@crayonai/react-ui"],
-      exclude: ["@vonlabs/design-components"],
     },
     test: {
       environment: "node",
