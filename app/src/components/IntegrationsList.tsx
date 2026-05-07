@@ -1,5 +1,12 @@
-import { useMemo, useState, useRef, useEffect } from "react";
-import { useDeleteMCPServer } from "../hooks/useMCPServers";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import {
+  useDeleteMCPServer,
+  useCreateMCPServer,
+  useMCPAuthorize,
+  useMCPCheckAuthStatus,
+  useDiscoverTools,
+} from "../hooks/useMCPServers";
+import { useToast } from "../hooks/useToast";
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -102,7 +109,106 @@ function MCPCatalogItem({
   onConnect: (entry: CatalogEntry) => void;
 }) {
   const deleteMutation = useDeleteMCPServer();
+  const createMutation = useCreateMCPServer();
+  const authorizeMutation = useMCPAuthorize();
+  const discoverMutation = useDiscoverTools();
+  const { showToast } = useToast();
+
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [createdServerId, setCreatedServerId] = useState<string | null>(null);
+  const [waitingForOAuth, setWaitingForOAuth] = useState(false);
+  const [discoverTriggered, setDiscoverTriggered] = useState(false);
+  const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const authStatusQuery = useMCPCheckAuthStatus(createdServerId, waitingForOAuth);
+
+  const finishOAuth = useCallback(
+    (serverId: string) => {
+      if (discoverTriggered) return;
+      setDiscoverTriggered(true);
+      setWaitingForOAuth(false);
+      oauthPopup?.close();
+      showToast({
+        message: `${entry.name} connected — discovering tools…`,
+        variant: "success",
+      });
+      discoverMutation.mutate(serverId);
+    },
+    [discoverTriggered, oauthPopup, entry.name, showToast, discoverMutation],
+  );
+
+  useEffect(() => {
+    if (!waitingForOAuth || !createdServerId) return;
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type !== "mcp_oauth_callback") return;
+      if (event.data.success) {
+        finishOAuth(createdServerId);
+      } else {
+        setWaitingForOAuth(false);
+        oauthPopup?.close();
+        setConnectError(
+          event.data.error || "OAuth authorization failed. Please try again.",
+        );
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup]);
+
+  useEffect(() => {
+    if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
+    const status = authStatusQuery.data?.authentication_status;
+    if (status === "AUTHENTICATED") {
+      finishOAuth(createdServerId);
+    } else if (status === "AUTHENTICATION_FAILED") {
+      setWaitingForOAuth(false);
+      oauthPopup?.close();
+      setConnectError("OAuth authorization failed. Please try again.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    authStatusQuery.data?.authentication_status,
+    waitingForOAuth,
+    createdServerId,
+    discoverTriggered,
+  ]);
+
+  const handleDirectOAuth = async () => {
+    setConnectError(null);
+    try {
+      const server = await createMutation.mutateAsync({
+        name: entry.name,
+        server_url: entry.server_url,
+        auth_type: entry.auth_type,
+        source: "catalog",
+        catalog_id: entry.catalog_id,
+      });
+      setCreatedServerId(server.id);
+      const authData = await authorizeMutation.mutateAsync(server.id);
+      const popup = window.open(
+        authData.authorization_url,
+        "mcp_oauth",
+        "popup,width=600,height=700",
+      );
+      setOauthPopup(popup);
+      setWaitingForOAuth(true);
+    } catch (err: unknown) {
+      setConnectError(
+        err && typeof err === "object" && "message" in err
+          ? (err as { message: string }).message
+          : "Failed to start authorization",
+      );
+    }
+  };
+
+  const handleConnectClick = () => {
+    if (entry.auth_type === "oauth2") {
+      handleDirectOAuth();
+    } else {
+      onConnect(entry);
+    }
+  };
 
   const isWorkspace = (entry.default_access_level ?? []).some(
     (l) => l === "tenant" || l === "workspace",
@@ -112,22 +218,23 @@ function MCPCatalogItem({
   );
   const isBoth = isWorkspace && isPersonal;
 
-  // If no authentication_status is set (legacy), treat as authenticated
   const isAuthenticated =
     !entry.authentication_status ||
     entry.authentication_status === "AUTHENTICATED";
 
   const chips: Array<"workspace" | "personal" | "connected"> = [];
   if (isWorkspace) chips.push("workspace");
-  // Show "personal" only when the user has actually connected their personal account,
-  // or when the entry is personal-only (not a workspace+personal combo).
   if (isPersonal && (!isBoth || entry.is_personal_connected))
     chips.push("personal");
   if (isAuthenticated) chips.push("connected");
 
-  // Disconnect is available whenever the user has a personal server connected
   const canDisconnectPersonal =
     !!entry.is_personal_connected && !!entry.personal_server_id;
+
+  const isConnecting =
+    createMutation.isPending ||
+    authorizeMutation.isPending ||
+    waitingForOAuth;
 
   return (
     <div>
@@ -136,10 +243,8 @@ function MCPCatalogItem({
         description={entry.description}
         integrationLogoPath={entry.logo_url ?? ""}
         chips={chips}
-        // Case 1: published personal-only, not yet connected — show Connect button
         isAvailable={!isAuthenticated}
-        onToggle={!isAuthenticated ? () => onConnect(entry) : undefined}
-        // Disconnect trash when personal is connected
+        onToggle={!isAuthenticated ? handleConnectClick : undefined}
         onDelete={
           isAuthenticated && canDisconnectPersonal
             ? () => setShowDisconnectConfirm(true)
@@ -149,13 +254,16 @@ function MCPCatalogItem({
           isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending
         }
         deleteTooltip="Remove personal connection"
-        disabled={deleteMutation.isPending}
+        disabled={deleteMutation.isPending || isConnecting}
       />
+      {connectError && (
+        <p className="px-18 py-1 text-xs text-red-600">{connectError}</p>
+      )}
       {/* Case 2: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
       {isAuthenticated && isBoth && !entry.is_personal_connected && (
         <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
           <button
-            onClick={() => onConnect(entry)}
+            onClick={handleConnectClick}
             className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
           >
             Connect your personal {entry.name}

@@ -106,7 +106,6 @@ export function useMCPAuthorize() {
 }
 
 export function useMCPCheckAuthStatus(id: string | null, enabled: boolean) {
-  const qc = useQueryClient();
   return useQuery({
     queryKey: ["mcp-auth-status", id],
     queryFn: () => mcpServerService.checkAuthStatus(id!),

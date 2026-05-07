@@ -6,7 +6,6 @@ import {
   CaretLeft,
   Plugs,
   ArrowSquareOut,
-  PencilSimple,
   Check,
   CaretDown,
   CaretUp,
@@ -22,7 +21,7 @@ import {
   useMCPCheckAuthStatus,
   usePublishServer,
 } from "../../hooks/useMCPServers";
-import type { CatalogEntry, MCPAuthType, MCPToolInfo } from "../../types/mcp";
+import type { CatalogEntry, MCPAuthType } from "../../types/mcp";
 import { useToast } from "../../hooks/useToast";
 import { useUser } from "../../hooks/useUser";
 

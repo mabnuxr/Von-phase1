@@ -251,6 +251,7 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
                     placeholder={`Enter your ${entry.credential_label || entry.name + " API key"}`}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
+                    autoFocus
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                   />
                   {entry.credential_hint_url && (
