@@ -97,6 +97,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      availableDashboards,
       enableActions = false,
       onConvertToDashboard,
       onTransparencyClick,
@@ -289,6 +290,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 onToggleFavorite={onToggleFavorite}
                 onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 onUploadFile={onUploadFile}
+                availableDashboards={availableDashboards}
                 banner={banner}
                 topBanner={topBanner}
                 useStandardInput={useStandardInput}
@@ -431,6 +433,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
+            availableDashboards={availableDashboards}
             placeholder={placeholder}
             onSend={handleSendMessage}
             onStop={handleStop}

@@ -14,6 +14,7 @@
 
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChartBarIcon } from '@phosphor-icons/react';
 import type { Command } from './types';
 import { CommandChip } from './CommandChip';
 import { TiptapViewer } from '../TiptapEditor';
@@ -81,6 +82,7 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
   );
 
   const attachmentCount = fileEntries.length;
+  const dashboardRefs = (command.references ?? []).filter((r) => r.type === 'dashboard');
 
   return (
     <div className="w-96">
@@ -109,6 +111,21 @@ export const CommandPreview: React.FC<CommandPreviewProps> = ({
             transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
+            {dashboardRefs.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {dashboardRefs.map((r) => (
+                  <span
+                    key={r.context.dashboardId}
+                    title={r.context.dashboardName}
+                    className="inline-flex items-center gap-1.5 max-w-[240px] px-2.5 py-1 rounded-xl border border-gray-200/60 bg-white shadow-xs text-[13px] text-gray-700"
+                  >
+                    <ChartBarIcon size={13} weight="regular" className="text-gray-500 shrink-0" />
+                    <span className="truncate">{r.context.dashboardName}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="mt-1.5 text-sm text-gray-700">
               <TiptapViewer content={command.prompt} />
             </div>

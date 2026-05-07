@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type {
   Command,
   CommandAttachment,
+  DashboardOption,
   ScheduleRecipient,
 } from "@vonlabs/design-components";
 import {
@@ -15,6 +16,7 @@ import {
   quickCommandsService,
   scheduleToApiConfigs,
 } from "../services/quickCommandsService";
+import { useDashboardList } from "./useDashboardList";
 import { useToast } from "./useToast";
 import { getErrorMessage } from "../utils/getErrorMessage";
 
@@ -34,6 +36,19 @@ export function useCommandsPanel(userId?: string) {
 
   const commands = commandsData?.data ?? [];
 
+  // Dashboards available to tag onto commands. Eagerly fetched (small list) so
+  // the picker has options the moment the drawer opens.
+  const { data: dashboardListData } = useDashboardList();
+  const availableDashboards: DashboardOption[] = useMemo(
+    () =>
+      (dashboardListData?.data ?? []).map((d) => ({
+        dashboardId: d.dashboard_id,
+        dashboardName: d.dashboard_name,
+        dashboardVersion: d.dashboard_version,
+      })),
+    [dashboardListData],
+  );
+
   const { mutateAsync: createCommand, isPending: isCreating } =
     useCreateQuickCommand();
   const { mutateAsync: updateCommand, isPending: isUpdating } =
@@ -45,7 +60,12 @@ export function useCommandsPanel(userId?: string) {
     async (
       data: Pick<
         Command,
-        "name" | "prompt" | "prefillText" | "sharingScope" | "schedule"
+        | "name"
+        | "prompt"
+        | "prefillText"
+        | "sharingScope"
+        | "schedule"
+        | "references"
       >,
       editingId?: string,
       dataSources?: CommandAttachment[],
@@ -76,6 +96,8 @@ export function useCommandsPanel(userId?: string) {
         ? scheduleToApiConfigs(data.schedule)
         : undefined;
 
+      const apiReferences = data.references ?? [];
+
       try {
         if (editingId) {
           await updateCommand({
@@ -86,6 +108,7 @@ export function useCommandsPanel(userId?: string) {
               prefillText: data.prefillText || undefined,
               accessLevel,
               dataSources: apiDataSources,
+              references: apiReferences,
               triggerConfig: scheduleConfigs?.triggerConfig ?? null,
               deliveryConfig: scheduleConfigs?.deliveryConfig ?? null,
             },
@@ -99,6 +122,7 @@ export function useCommandsPanel(userId?: string) {
             prefillText: data.prefillText || undefined,
             accessLevel,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
+            references: apiReferences.length > 0 ? apiReferences : undefined,
             ...(scheduleConfigs ?? {}),
           });
           showToast({ message: "Command created", variant: "success" });
@@ -247,6 +271,7 @@ export function useCommandsPanel(userId?: string) {
     commands,
     isLoadingCommands,
     isSavingCommand: isCreating || isUpdating,
+    availableDashboards,
     handleSaveCommand,
     handleUploadFile,
     handleRequestFilePreviewUrl,

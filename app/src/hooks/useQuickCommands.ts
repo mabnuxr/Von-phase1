@@ -66,6 +66,7 @@ export function apiCommandToUICommand(
         s3Key: ds.s3Key,
       };
     }),
+    references: cmd.references,
     actionType: "no_action",
     sharingScope: cmd.accessLevel === "tenant" ? "org" : "private",
     isFavorite: cmd.isBookmarked,

@@ -706,6 +706,7 @@ function ExistingChatInner(
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
+      availableDashboards={base.commands.availableDashboards}
       teamMembers={teamMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={
@@ -1003,6 +1004,7 @@ function NewChatInner(
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
+      availableDashboards={base.commands.availableDashboards}
       // Mentions
       enableMentions={enableMentions}
       mentionItems={mentionItems}

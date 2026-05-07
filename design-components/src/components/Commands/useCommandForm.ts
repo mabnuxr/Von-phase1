@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Command, CommandSchedule, ScheduleRecipient } from './types';
+import type { Command, CommandReference, CommandSchedule, ScheduleRecipient } from './types';
 import { generateCommandId, DEFAULT_SCHEDULE } from './types';
 import { toSlug } from './utils';
 
@@ -13,6 +13,7 @@ export interface FormValues {
   prefillText: string;
   sharingScope: 'private' | 'org';
   schedule: CommandSchedule;
+  references: CommandReference[];
 }
 
 const emptyForm: FormValues = {
@@ -21,6 +22,7 @@ const emptyForm: FormValues = {
   prefillText: '',
   sharingScope: 'private',
   schedule: { ...DEFAULT_SCHEDULE },
+  references: [],
 };
 
 function commandToForm(cmd: Command): FormValues {
@@ -30,6 +32,7 @@ function commandToForm(cmd: Command): FormValues {
     prefillText: cmd.prefillText ?? '',
     sharingScope: cmd.sharingScope ?? 'private',
     schedule: cmd.schedule ? { ...cmd.schedule } : { ...DEFAULT_SCHEDULE },
+    references: cmd.references ? [...cmd.references] : [],
   };
 }
 

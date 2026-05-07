@@ -1,0 +1,45 @@
+/* Styles for the Tiptap-based command prompt editor.
+ * Class is applied to the ProseMirror contenteditable via editorProps.
+ */
+
+.command-prompt-editor {
+  outline: none;
+  font-size: 0.875rem; /* matches text-sm */
+  color: #111827;
+  line-height: 1.55;
+  /* Fill the wrapper so the wrapper's max-height + scroll govern the editor. */
+  min-height: 100%;
+}
+
+.command-prompt-editor:focus,
+.command-prompt-editor:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.command-prompt-editor p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Placeholder — shown only when the editor is empty. */
+.command-prompt-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Mention chip styling — matches the chip used elsewhere in the app. */
+.command-prompt-editor .mention-chip {
+  display: inline-flex;
+  align-items: center;
+  background: #eef2ff;
+  color: #1e1b4b;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.85em;
+  white-space: nowrap;
+}

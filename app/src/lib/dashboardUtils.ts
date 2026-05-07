@@ -132,6 +132,7 @@ export function transformMessagesToChatFormat(
               category: ds.category,
               s3Key: ds.s3Key,
             })),
+            references: streamingMsg.command.references,
           }
         : undefined,
       // Integration write blocks (detected from message content)
