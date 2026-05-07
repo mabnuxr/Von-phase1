@@ -53,6 +53,14 @@ export interface DrilldownV2ClickNode {
    * typically the entire grouping-key dict from the clicked row.
    */
   filters: Record<string, unknown>;
+  /**
+   * Numeric metric value behind the clicked element — chart point's
+   * ``y``/``weight``/``value`` for chart clicks, the cell's value for
+   * table cell clicks. Surfaced in the breadcrumb as a parenthesized
+   * suffix (e.g. "Stage: Negotiation (47)") so the user can see what
+   * value they drilled into. Backend ignores this; FE-only.
+   */
+  metricValue?: unknown;
 }
 
 export interface UseDrilldownV2Return {
@@ -78,15 +86,21 @@ export interface UseDrilldownV2Return {
     panelId: string,
     columnPath: string[],
     filters: Record<string, unknown>,
+    metricValue?: unknown,
   ) => void;
   /**
    * Descend one level. ``columnPath`` extends the parent's path by one segment
    * (the segment value is opaque — usually the column name the user clicked,
    * for breadcrumb display only). ``filters`` is the cumulative filter
    * contribution from THIS click; combined with shallower-level filters at
-   * fetch time.
+   * fetch time. Optional ``metricValue`` carries the clicked-cell / clicked-
+   * point numeric value for breadcrumb display.
    */
-  pushLevel: (columnPath: string[], filters: Record<string, unknown>) => void;
+  pushLevel: (
+    columnPath: string[],
+    filters: Record<string, unknown>,
+    metricValue?: unknown,
+  ) => void;
   popToLevel: (depth: number) => void;
   closeDrilldown: () => void;
   changeVariant: (variantId: string | null) => void;
@@ -173,10 +187,11 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       panelId: string,
       columnPath: string[],
       filters: Record<string, unknown>,
+      metricValue?: unknown,
     ) => {
       setState({
         panelId,
-        chain: [{ columnPath, variantId: null, filters }],
+        chain: [{ columnPath, variantId: null, filters, metricValue }],
         page: 1,
         sort: null,
       });
@@ -185,7 +200,11 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
   );
 
   const pushLevel = useCallback(
-    (columnPath: string[], filters: Record<string, unknown>) => {
+    (
+      columnPath: string[],
+      filters: Record<string, unknown>,
+      metricValue?: unknown,
+    ) => {
       setState((prev) => {
         if (!prev) return prev;
         // Only descend when the server says another level exists. Otherwise
@@ -194,7 +213,10 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
         if (!data?.has_next_level) return prev;
         const next: DrilldownV2State = {
           ...prev,
-          chain: [...prev.chain, { columnPath, variantId: null, filters }],
+          chain: [
+            ...prev.chain,
+            { columnPath, variantId: null, filters, metricValue },
+          ],
           page: 1,
           sort: null,
         };

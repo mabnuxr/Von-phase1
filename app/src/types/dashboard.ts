@@ -710,12 +710,26 @@ export interface DrilldownV2Variant {
   query_ref: string;
   column_map: DrilldownV2ColumnMapping[];
   is_default: boolean;
+  /**
+   * Optional whitelist of column ids in this variant's drill output that
+   * are clickable for further descent. Aggregated metric columns only —
+   * GROUP BY dimensions are excluded. ``null``/``undefined`` = back-compat
+   * (every cell clickable). Drives the drill-view bottom-sheet table's
+   * per-cell hover affordance + cell-click handler.
+   */
+  drillable_columns?: string[] | null;
 }
 
 export interface DrilldownV2Level {
   description?: string | null;
   variants: DrilldownV2Variant[];
-  source_aggregate_query_id: string;
+  /**
+   * Lineage anchor — required for agent-generated configs, null for legacy
+   * V1→V2 migrated dashboards. See
+   * `agents-v2/tools/dashboard/schema_validator.py` for the validator
+   * regime split.
+   */
+  source_aggregate_query_id?: string | null;
 }
 
 export interface PanelDrilldownV2Config {
@@ -725,6 +739,14 @@ export interface PanelDrilldownV2Config {
    * count of aggregate-kind ancestors of panel.query_ref in the lineage DAG.
    */
   levels: DrilldownV2Level[];
+  /**
+   * Optional whitelist of column ids in the panel's main query output that
+   * are clickable to open the drill view. Aggregated metric columns only —
+   * GROUP BY dimensions are excluded. ``null``/``undefined`` = back-compat
+   * (every cell clickable). Used by the dashboard table widget; ignored
+   * for non-table panels.
+   */
+  drillable_columns?: string[] | null;
 }
 
 export interface DrilldownV2Request {

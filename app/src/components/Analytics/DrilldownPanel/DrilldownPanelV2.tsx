@@ -91,6 +91,41 @@ function columnsFromData(rows: Record<string, unknown>[]): ReportColumn[] {
   }));
 }
 
+/**
+ * Append ``drillable-cell`` to ``column.cells.className`` for each column
+ * id in ``drillableColumns`` (or for every column when the list is null,
+ * preserving back-compat for variants predating the per-column contract).
+ *
+ * Mirror of ``applyDrillableCellClass`` in ``TableWidget`` — kept inline
+ * here rather than imported because the helper isn't exported from
+ * design-components and the logic is small. The CSS in
+ * ``drilldown-panel.css`` keys on ``td.drillable-cell:hover`` so only
+ * tagged cells get the violet hover background + bold font + pointer
+ * cursor.
+ */
+function applyDrillableCellClass(
+  options: ReturnType<typeof buildGridOptions>,
+  drillableColumns: string[] | null,
+): ReturnType<typeof buildGridOptions> {
+  const cols = (options as { columns?: unknown[] }).columns;
+  if (!Array.isArray(cols)) return options;
+  const allowAll = drillableColumns === null;
+  const allow = new Set(drillableColumns ?? []);
+  const mapped = cols.map((col) => {
+    const c = col as { id?: string; cells?: { className?: string } };
+    const id = c.id;
+    if (!id) return col;
+    if (!allowAll && !allow.has(id)) return col;
+    const existing =
+      typeof c.cells?.className === "string" ? c.cells.className : "";
+    const next = existing.includes("drillable-cell")
+      ? existing
+      : [existing, "drillable-cell"].filter(Boolean).join(" ");
+    return { ...c, cells: { ...(c.cells ?? {}), className: next } };
+  });
+  return { ...options, columns: mapped } as ReturnType<typeof buildGridOptions>;
+}
+
 // ─── Component props ─────────────────────────────────────────────
 
 export interface DrilldownPanelV2Props {
@@ -115,9 +150,26 @@ export interface DrilldownPanelV2Props {
   /**
    * Called when the user clicks any cell in a row, while `hasNextLevel` is
    * true. The parent issues `drill.pushLevel(...)` with the row's grouping-key
-   * dict as the new filter contribution — whole-row descent.
+   * dict as the new filter contribution — whole-row descent. The optional
+   * third arg ``metricValue`` carries the clicked cell's value so deeper
+   * breadcrumb segments can include the parenthesized suffix matching
+   * the panel-widget click affordance.
    */
-  onRowDrill?: (rowIndex: number, rowData: Record<string, unknown>) => void;
+  onRowDrill?: (
+    rowIndex: number,
+    rowData: Record<string, unknown>,
+    metricValue?: unknown,
+  ) => void;
+  /**
+   * Per-depth drillable-column whitelists indexed by chain depth (same
+   * indexing convention as ``levelColumnMaps``). Sourced from the active
+   * variant at each level: ``levels[N].variants[active].drillable_columns``.
+   * When the entry at the current chain depth is a non-null list, only
+   * those column ids in the drill output get the ``drillable-cell`` class
+   * (hover affordance + click registration). null/undefined → back-compat
+   * (every cell drillable).
+   */
+  levelDrillableColumns?: (string[] | null | undefined)[];
 }
 
 export function DrilldownPanelV2({
@@ -125,6 +177,7 @@ export function DrilldownPanelV2({
   widgetTitle,
   levelColumnMaps,
   onRowDrill,
+  levelDrillableColumns,
 }: DrilldownPanelV2Props) {
   // Close on ESC
   useEffect(() => {
@@ -138,24 +191,52 @@ export function DrilldownPanelV2({
 
   const columns = useMemo(() => columnsFromData(drill.data), [drill.data]);
 
+  // Active variant's drillable_columns whitelist for the level the user is
+  // currently viewing. The drill view at chain depth N renders rows from
+  // ``levels[N-1].variants[active]``'s drill query, so its drillable
+  // columns live at index N-1 of ``levelDrillableColumns``. Anything
+  // beyond chain.length is unreachable; a null/undefined entry means
+  // back-compat (every cell drillable).
+  const currentDrillableColumns: string[] | null | undefined = useMemo(() => {
+    const depth = drill.clickChain.length;
+    if (depth <= 0) return null;
+    return levelDrillableColumns?.[depth - 1] ?? null;
+  }, [drill.clickChain.length, levelDrillableColumns]);
+
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || drill.data.length === 0) return null;
-    return buildGridOptions(columns, drill.data, {
+    const opts = buildGridOptions(columns, drill.data, {
       pageSize: drill.data.length,
       showPagination: false,
     });
-  }, [columns, drill.data]);
+    // Tag the body cells of drillable columns with ``drillable-cell`` so
+    // the per-cell hover CSS only paints those columns. null whitelist =
+    // every column gets the class (back-compat). Same rule the dashboard
+    // TableWidget applies via ``applyDrillableCellClass``.
+    return applyDrillableCellClass(opts, currentDrillableColumns ?? null);
+  }, [columns, drill.data, currentDrillableColumns]);
 
-  // Whole-row descent: clicking ANY cell in a row descends to the next level
-  // when `hasNextLevel === true`. We don't discriminate per column — semantically
-  // a click anywhere in row R means "show me what made up THIS row," and the
-  // entire row's grouping-key values become cumulative filters at the next level.
+  // Whole-row descent: clicking a drillable cell descends to the next
+  // level when ``hasNextLevel === true``. We DON'T discriminate at the
+  // SQL filter level (the entire row's grouping-key values still propagate
+  // — see ``rowDescentFilters``) but we DO gate which CELLS are clickable
+  // based on the active variant's ``drillable_columns`` whitelist, so the
+  // hover affordance + click registration only fire on aggregated metric
+  // columns. null whitelist = every cell clickable (back-compat).
   const handleGridClick = useCallback(
     (e: React.MouseEvent) => {
       if (!onRowDrill || !drill.hasNextLevel) return;
       const target = e.target as HTMLElement;
       const td = target.closest("td");
       if (!td) return;
+      // Per-column gate — the same ``drillable-cell`` className the CSS
+      // hover rule keys on. Cells not in the whitelist are non-interactive.
+      if (
+        currentDrillableColumns != null &&
+        !td.classList.contains("drillable-cell")
+      ) {
+        return;
+      }
       const tr = td.closest("tr");
       if (!tr) return;
 
@@ -164,10 +245,28 @@ export function DrilldownPanelV2({
       const rowIndex = Array.prototype.indexOf.call(tbody.children, tr);
       if (rowIndex < 0 || rowIndex >= drill.data.length) return;
 
+      // Look up the clicked cell's value so deeper-level breadcrumb
+      // segments can also show the parenthesized metric suffix. Map td
+      // position → column id from the rendered headers, then read
+      // ``rowData[colId]``. Falling back to ``td.textContent`` is
+      // possible but loses type info (numbers come back as strings) — the
+      // rowData lookup keeps the value usable as-is by the FE formatter.
+      const cells = Array.from(tr.children);
+      const colIdx = cells.indexOf(td);
+      const rowData = drill.data[rowIndex] as Record<string, unknown>;
+      const colId = columns[colIdx]?.id;
+      const metricValue = colId != null ? (rowData[colId] ?? null) : null;
+
       e.stopPropagation();
-      onRowDrill(rowIndex, drill.data[rowIndex]);
+      onRowDrill(rowIndex, rowData, metricValue);
     },
-    [drill.data, drill.hasNextLevel, onRowDrill],
+    [
+      drill.data,
+      drill.hasNextLevel,
+      onRowDrill,
+      currentDrillableColumns,
+      columns,
+    ],
   );
 
   // ServerSortState is ``{orderBy, orderByAsc}`` — same shape as the hook's
@@ -378,12 +477,21 @@ function formatSegment(
   columnMap: DrilldownV2ColumnMapping[] | undefined,
 ): string | null {
   const filterEntries = Object.entries(node.filters);
+  // Append the clicked metric value as a parenthesized suffix when present
+  // (e.g. " (47)" for a chart bar of height 47, or a SUM(arr) cell of $47k).
+  // Captured at click time by the chart point handler / table cell handler;
+  // null for panel-level icon clicks where there's no specific value to
+  // surface. Numbers render via toLocaleString for thousands separators;
+  // booleans / strings pass through verbatim.
+  const metricSuffix = formatMetricSuffix(node.metricValue);
   if (filterEntries.length === 0) {
     if (node.columnPath.length === 0) {
       // Panel-level drill (KPI / icon click). Nothing to show.
       return null;
     }
-    return formatLabel(node.columnPath[node.columnPath.length - 1]);
+    return (
+      formatLabel(node.columnPath[node.columnPath.length - 1]) + metricSuffix
+    );
   }
 
   const cmByKey = new Map<string, DrilldownV2ColumnMapping>();
@@ -408,13 +516,37 @@ function formatSegment(
     if (!seen.has(k)) ordered.push([k, v]);
   });
 
-  return ordered
-    .map(([key, val]) => {
-      const entry = cmByKey.get(key);
-      const label = entry?.title || formatLabel(stripPrefix(key));
-      return `${label}: ${formatFilterValue(val, entry)}`;
-    })
-    .join(", ");
+  const labels = ordered.map(([key, val]) => {
+    const entry = cmByKey.get(key);
+    const label = entry?.title || formatLabel(stripPrefix(key));
+    return `${label}: ${formatFilterValue(val, entry)}`;
+  });
+  return labels.join(", ") + metricSuffix;
+}
+
+/**
+ * Render the clicked metric value as a " (value)" suffix for the
+ * breadcrumb segment, or empty string when no metric is captured.
+ *
+ * - Numbers → ``toLocaleString`` for thousands separators (`1234` → "1,234").
+ * - Non-empty strings → verbatim. An empty string `""` (which CASE WHEN
+ *   expressions or coalesced cells can produce) is treated as "no
+ *   metric to show" rather than rendering as the awkward `" ()"`.
+ * - Booleans → verbatim.
+ * - null / undefined → empty (no suffix at all).
+ */
+function formatMetricSuffix(metricValue: unknown): string {
+  if (metricValue === null || metricValue === undefined) return "";
+  if (typeof metricValue === "number" && Number.isFinite(metricValue)) {
+    return ` (${metricValue.toLocaleString()})`;
+  }
+  if (typeof metricValue === "string") {
+    return metricValue.length > 0 ? ` (${metricValue})` : "";
+  }
+  if (typeof metricValue === "boolean") {
+    return ` (${String(metricValue)})`;
+  }
+  return "";
 }
 
 function stripPrefix(dataKey: string): string {

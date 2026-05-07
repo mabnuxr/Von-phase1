@@ -82,3 +82,24 @@ export function getLevelColumnMaps(
     ) ?? []
   );
 }
+
+/**
+ * Pick each level's default-variant ``drillable_columns`` whitelist in
+ * level order. The list at index N describes which display columns of
+ * level N's drill output are clickable for further descent — surfaced
+ * to ``DrilldownPanelV2`` so it can apply the per-cell ``drillable-cell``
+ * className (which gates hover affordance + click registration in CSS +
+ * JS). null/undefined entries fall back to "every cell drillable" in
+ * the panel's per-column gating logic.
+ */
+export function getLevelDrillableColumns(
+  widget: WidgetConfig | undefined,
+): (string[] | null | undefined)[] {
+  return (
+    widget?.drilldown_v2?.levels?.map(
+      (lvl) =>
+        (lvl.variants.find((v) => v.is_default) ?? lvl.variants[0])
+          ?.drillable_columns ?? null,
+    ) ?? []
+  );
+}

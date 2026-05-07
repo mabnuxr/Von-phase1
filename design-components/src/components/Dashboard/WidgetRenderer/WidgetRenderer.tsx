@@ -43,8 +43,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     const drillDownHandler = onDrillDown ? handleDrillDown : undefined;
 
     const handlePointDrillDown = useCallback(
-      (filters: DrillFilters) => {
-        onPointDrillDown?.(widget.id, filters);
+      (filters: DrillFilters, metricValue?: unknown) => {
+        onPointDrillDown?.(widget.id, filters, metricValue);
       },
       [onPointDrillDown, widget.id]
     );
@@ -55,13 +55,23 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
     const addToChatHandler = onAddToChat ? handleAddToChat : undefined;
 
+    // Resolve the explicit drillable-columns whitelist for this panel widget.
+    // ``panel.drilldown_v2.drillable_columns`` lists the column ids in the
+    // panel's main query output that the agent marked as clickable for drill
+    // — typically the aggregated metric columns only, never GROUP BY
+    // dimensions. When the agent authored it, we use it verbatim. When it's
+    // null (omitted) we fall back to "every cell clickable" so legacy
+    // dashboards predating this field keep their current drill behaviour.
+    const drillableColumns: string[] | null | undefined = widget.drilldown_v2?.drillable_columns;
+
     // Table cell-click → drilldown_v2 wiring. Mirror of the chart `onPointClick`
-    // path above (line 45–50) for table panels: when the user clicks any body
-    // cell, build drillFilters by reading every column_map.data_key from the
-    // clicked row, then fire onPointDrillDown — same shape the chart point
-    // handler sends. Without this wire-up, table panels rely solely on the
-    // corner drilldown icon (panel-level drill, no row context), which makes
-    // 2-D cohort/pivot cells effectively non-drillable even when
+    // path above (line 45–50) for table panels: when the user clicks a body
+    // cell whose column id is in ``drillable_columns`` (or any cell, when the
+    // field is null), build drillFilters by reading every column_map.data_key
+    // from the clicked row and fire onPointDrillDown — same shape the chart
+    // point handler sends. Without this wire-up, table panels rely solely on
+    // the corner drilldown icon (panel-level drill, no row context), which
+    // makes 2-D cohort/pivot cells effectively non-drillable even when
     // drilldown_v2 is correctly authored.
     //
     // Resolves drillFilters from the L0 default variant's column_map because
@@ -72,8 +82,14 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     // table-row data) and skip data_keys not present in the row to avoid
     // sending `undefined` drill_filter values.
     const handleTableCellClick = useCallback(
-      (_columnId: string, _cellValue: unknown, rowData: Record<string, unknown>) => {
+      (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => {
         if (!onPointDrillDown) return;
+        // Per-column gate: when the agent declared a drillable_columns
+        // whitelist, only those cells fire a drill. null whitelist =
+        // back-compat (every cell clickable).
+        if (drillableColumns != null && !drillableColumns.includes(columnId)) {
+          return;
+        }
         const v2 = widget.drilldown_v2;
         const defaultVariant =
           v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
@@ -98,9 +114,14 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           }
         }
         if (Object.keys(drillFilters).length === 0) return;
-        onPointDrillDown(widget.id, drillFilters);
+        // ``cellValue`` is the metric value the user clicked on (e.g. 47
+        // for a SUM(arr) cell, 12.5 for a ratio cell). Surface it as the
+        // optional metricValue arg so the drill breadcrumb can render it
+        // as a parenthesized suffix on the chain segment, matching the
+        // chart-click affordance.
+        onPointDrillDown(widget.id, drillFilters, cellValue ?? null);
       },
-      [onPointDrillDown, widget.id, widget.drilldown_v2]
+      [onPointDrillDown, widget.id, widget.drilldown_v2, drillableColumns]
     );
 
     // Gate the cell-click handler on the panel actually having a usable
@@ -112,15 +133,21 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     // cohort table whose lineage shape didn't qualify for drilldown_v2).
     //
     // Mirror the same usability check the handler does: at least one
-    // non-extract_from column_map entry on the L0 default variant is required
-    // for the click to produce drill_filters.
+    // non-extract_from column_map entry on the L0 default variant is
+    // required for the click to produce drill_filters. Plus, if the agent
+    // explicitly authored an empty drillable_columns list ([]), no cell is
+    // clickable — drop the hover affordance entirely (only the corner drill
+    // icon remains).
     const hasUsableDrilldownV2 = useMemo(() => {
       const v2 = widget.drilldown_v2;
       const defaultVariant =
         v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
       const columnMap = defaultVariant?.column_map ?? [];
-      return columnMap.some((cm) => !cm.extract_from);
-    }, [widget.drilldown_v2]);
+      const hasColumnMap = columnMap.some((cm) => !cm.extract_from);
+      // Empty whitelist explicitly disables cell clicks. null = back-compat.
+      const explicitlyEmpty = Array.isArray(drillableColumns) && drillableColumns.length === 0;
+      return hasColumnMap && !explicitlyEmpty;
+    }, [widget.drilldown_v2, drillableColumns]);
     const tableCellClickHandler =
       onPointDrillDown && hasUsableDrilldownV2 ? handleTableCellClick : undefined;
 
@@ -228,6 +255,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               }
               sortState={tableSortState}
               onCellClick={tableCellClickHandler}
+              drillableColumns={drillableColumns}
             />
           </WidgetShell>
         );

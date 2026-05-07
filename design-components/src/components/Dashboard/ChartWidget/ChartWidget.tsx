@@ -14,8 +14,13 @@ export interface ChartWidgetProps {
    * default target's default variant).
    */
   drilldownV2?: PanelDrilldownV2 | null;
-  /** Called when a chart data point is clicked and a column_map is available. */
-  onPointClick?: (drillFilters: DrillFilters) => void;
+  /** Called when a chart data point is clicked and a column_map is
+   *  available. The optional second arg carries the point's numeric
+   *  metric value (``point.y`` / ``weight`` / ``value``) so the drill
+   *  breadcrumb can render it as a parenthesized suffix on the chain
+   *  segment (e.g. "Stage: Negotiation (47)"). The drill SQL ignores it;
+   *  only the breadcrumb consumes it. */
+  onPointClick?: (drillFilters: DrillFilters, metricValue?: unknown) => void;
 }
 
 const ChartWidget: React.FC<ChartWidgetProps> = memo(

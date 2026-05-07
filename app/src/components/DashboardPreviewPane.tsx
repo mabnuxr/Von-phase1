@@ -25,6 +25,7 @@ import { DrilldownPanel, DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
 import { EditModeBanner } from "./Analytics/EditModeBanner";
 import {
   getLevelColumnMaps,
+  getLevelDrillableColumns,
   rowDescentFilters,
 } from "../utils/drilldownFilters";
 
@@ -170,9 +171,13 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     [shouldUseV2, drillV2, openDrilldown],
   );
   const handlePointDrillDown = useCallback(
-    (panelId: string, filters: Record<string, unknown>) => {
+    (
+      panelId: string,
+      filters: Record<string, unknown>,
+      metricValue?: unknown,
+    ) => {
       if (shouldUseV2(panelId)) {
-        drillV2.openPanelDrilldown(panelId, [], filters);
+        drillV2.openPanelDrilldown(panelId, [], filters, metricValue);
         return;
       }
       openPointDrilldown(panelId, filters);
@@ -180,7 +185,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     [shouldUseV2, drillV2, openPointDrilldown],
   );
   const handleV2RowDrill = useCallback(
-    (_rowIndex: number, rowData: Record<string, unknown>) => {
+    (
+      _rowIndex: number,
+      rowData: Record<string, unknown>,
+      metricValue?: unknown,
+    ) => {
       // Mirror of pages/Analytics.tsx::handleV2RowDrill — feed the next
       // level's column_map (and the current level's, for the diff) so each
       // chain entry only carries axes newly introduced at its depth. See
@@ -198,7 +207,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters);
+      drillV2.pushLevel(nextPath, filters, metricValue);
     },
     [drillV2, dashboard],
   );
@@ -333,6 +342,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
                   : "Drilldown"
               }
               levelColumnMaps={getLevelColumnMaps(
+                drillV2.panelId
+                  ? dashboard.widgets?.[drillV2.panelId]
+                  : undefined,
+              )}
+              levelDrillableColumns={getLevelDrillableColumns(
                 drillV2.panelId
                   ? dashboard.widgets?.[drillV2.panelId]
                   : undefined,

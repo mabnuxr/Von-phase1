@@ -45,6 +45,7 @@ import {
 } from "../hooks/useDashboardAssociatedChats";
 import {
   getLevelColumnMaps,
+  getLevelDrillableColumns,
   rowDescentFilters,
 } from "../utils/drilldownFilters";
 
@@ -187,12 +188,19 @@ function DashboardCanvas({
   );
 
   const handlePointDrillDown = useCallback(
-    (panelId: string, filters: Record<string, unknown>) => {
+    (
+      panelId: string,
+      filters: Record<string, unknown>,
+      metricValue?: unknown,
+    ) => {
       if (shouldUseV2(panelId)) {
         // V2: column_path empty = default target; filters pass through as-is
         // (FE assumes the parent click handler already prefixed with the right
-        // data_key convention — e.g. point.name, series.name).
-        drillV2.openPanelDrilldown(panelId, [], filters);
+        // data_key convention — e.g. point.name, series.name). metricValue
+        // carries the clicked point's numeric value (chart) or the clicked
+        // cell's value (table) — surfaced in the breadcrumb's parenthesized
+        // suffix.
+        drillV2.openPanelDrilldown(panelId, [], filters, metricValue);
         return;
       }
       openPointDrilldown(panelId, filters);
@@ -201,7 +209,11 @@ function DashboardCanvas({
   );
 
   const handleV2RowDrill = useCallback(
-    (_rowIndex: number, rowData: Record<string, unknown>) => {
+    (
+      _rowIndex: number,
+      rowData: Record<string, unknown>,
+      metricValue?: unknown,
+    ) => {
       // Pyramid model: every click descends to the next level (when one
       // exists). Each chain entry captures ONLY the axes newly introduced at
       // that depth — see `rowDescentFilters` doc — so the breadcrumb reads
@@ -225,7 +237,7 @@ function DashboardCanvas({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters);
+      drillV2.pushLevel(nextPath, filters, metricValue);
     },
     [drillV2, dashboard],
   );
@@ -360,6 +372,9 @@ function DashboardCanvas({
               : "Drilldown"
           }
           levelColumnMaps={getLevelColumnMaps(
+            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+          )}
+          levelDrillableColumns={getLevelDrillableColumns(
             drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
           )}
           onRowDrill={handleV2RowDrill}
