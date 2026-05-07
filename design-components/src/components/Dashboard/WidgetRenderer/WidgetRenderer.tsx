@@ -8,6 +8,7 @@ import { TableWidget } from '../TableWidget';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
 import { DragPill } from '../DragPill';
+import { formatKpiDisplay } from '../../../utils/formatKpiValue';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
@@ -37,17 +38,28 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     isEditMode,
   }) => {
     const handleDrillDown = useCallback(() => {
-      // For KPI tiles, surface the resolved numeric to the drill chain so
-      // the breadcrumb can render "(value)" — same affordance the chart
-      // and table widgets already provide. CounterWidgetConfig.value is
-      // the post-resolution numeric (or null for "no data" KPIs); pass
-      // null/undefined through unchanged so the breadcrumb suppresses
-      // the suffix on empty KPIs. For non-counter widgets (chart drill
-      // icon, table drill icon) there's no single "value" to surface, so
-      // we pass undefined and the breadcrumb stays bare.
+      // For KPI tiles, surface what the user actually saw on the tile to
+      // the drill chain so the breadcrumb renders the same string in
+      // parentheses. The tile renders via ``formatKpiDisplay(value,
+      // format, prefix, suffix)`` (CounterWidget.tsx) — e.g. a KPI with
+      // ``format: 'currency-millions', prefix: '$', suffix: 'M'`` shows
+      // ``$1.23M``, not the raw ``1234567``. Forward the same formatted
+      // string here so the breadcrumb matches what was clicked.
+      //
+      // Empty KPIs (``value === null`` → ``formatKpiDisplay`` returns
+      // ``"—"``) get pass-through ``undefined`` instead so the
+      // breadcrumb suppresses the suffix entirely — a "(—)" suffix
+      // would be noise.
+      //
+      // Non-counter widgets (chart drill icon, table drill icon) have
+      // no single "value" to surface, so we leave metricValue undefined
+      // and the breadcrumb stays bare.
       let metricValue: unknown;
       if (widget.type === 'counter') {
-        metricValue = (widget.config as CounterWidgetConfig | undefined)?.value;
+        const cfg = widget.config as CounterWidgetConfig | undefined;
+        if (cfg && cfg.value !== null && cfg.value !== undefined) {
+          metricValue = formatKpiDisplay(cfg.value, cfg.format, cfg.prefix, cfg.suffix);
+        }
       }
       onDrillDown?.(widget.id, metricValue);
     }, [onDrillDown, widget.id, widget.type, widget.config]);
