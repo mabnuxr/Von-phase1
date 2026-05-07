@@ -113,8 +113,6 @@ export interface ChatInputSelectorProps {
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
   isSavingCommand?: boolean;
-  /** When true, the "Org-wide" sharing option is available in the command drawer */
-  isAdmin?: boolean;
   /** Team members available as schedule recipients */
   teamMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
@@ -198,7 +196,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand = false,
-      isAdmin = false,
       teamMembers,
       currentUser,
       onToggleFavorite,
@@ -482,7 +479,6 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
-            isAdmin={isAdmin}
             teamMembers={teamMembers}
             currentUser={currentUser}
             onToggleFavorite={onToggleFavorite}

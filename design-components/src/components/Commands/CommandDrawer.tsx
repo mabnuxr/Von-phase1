@@ -44,8 +44,6 @@ export interface CommandDrawerProps {
   isSaving?: boolean;
   /** When true, all fields are read-only and the save button is hidden */
   readOnly?: boolean;
-  /** When false (default), the "Org-wide" sharing option is hidden — only admins may create org-wide commands */
-  isAdmin?: boolean;
   /**
    * Called immediately when the user picks a file — upload should happen here.
    * Returns the backend fileId and s3Key once the upload completes.
@@ -81,10 +79,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   editingCommand,
   isSaving = false,
   readOnly = false,
-  // Currently unused — see the Sharing section below for the rationale.
-  // The public prop type still exposes `isAdmin` so call sites (and a
-  // future RBAC re-introduction) don't need to change.
-  isAdmin: _isAdmin = false,
   onUploadFile,
   onRequestFilePreviewUrl,
   onBack,
@@ -313,11 +307,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           {/* Sharing — collapsible */}
           <Accordion title="Sharing" summary={sharingLabel}>
             <div className="flex items-center gap-1.5">
-              {/* Both scopes are shown to every role until proper RBAC
-                  ships for Resource.QUICK_COMMAND. The `isAdmin` prop is
-                  kept on this component so the gate can be re-introduced
-                  later (e.g. `.filter(s => s === 'private' || isAdmin)`)
-                  without changing the call-site contract. */}
               {(['private', 'org'] as const).map((scope) => (
                 <button
                   key={scope}

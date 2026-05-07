@@ -171,7 +171,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onSaveCommand={handleSaveCommand}
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
-        isAdmin={user?.roles?.some((r) => r.toLowerCase() === "admin")}
         teamMembers={teamMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}

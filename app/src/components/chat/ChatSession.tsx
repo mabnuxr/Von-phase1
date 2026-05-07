@@ -706,7 +706,6 @@ function ExistingChatInner(
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
-      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
       teamMembers={teamMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={
@@ -1004,7 +1003,6 @@ function NewChatInner(
       onToggleFavorite={base.commands.handleToggleFavorite}
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
-      isAdmin={base.user?.roles?.some((r) => r.toLowerCase() === "admin")}
       // Mentions
       enableMentions={enableMentions}
       mentionItems={mentionItems}

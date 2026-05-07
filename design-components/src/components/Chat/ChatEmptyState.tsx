@@ -134,8 +134,6 @@ export interface ChatEmptyStateProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
-  /** When true, the "Org-wide" sharing option is available in the command drawer */
-  isAdmin?: boolean;
   /** Team members available as schedule recipients */
   teamMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
@@ -214,7 +212,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSavingCommand,
-  isAdmin = false,
   teamMembers,
   currentUser,
   onSendTest,
@@ -414,7 +411,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onSaveCommand={onSaveCommand}
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
-          isAdmin={isAdmin}
           teamMembers={teamMembers}
           currentUser={currentUser}
           onSendTest={onSendTest}
