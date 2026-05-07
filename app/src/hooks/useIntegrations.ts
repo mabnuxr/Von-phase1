@@ -527,6 +527,84 @@ export function useSetSalesforceScope() {
 }
 
 /**
+ * Create a custom MCP server integration
+ */
+export function useCreateCustomMCP() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      name: string;
+      serverUrl: string;
+      description?: string;
+      authType: "oauth" | "bearer_token" | "api_key";
+      apiKey?: string;
+      iconUrl?: string;
+    }) =>
+      integrationsService.createIntegration({
+        type: "MCP_SERVER" as IntegrationType,
+        accessLevel: "tenant",
+        name: data.name,
+        config: {
+          server_url: data.serverUrl,
+          description: data.description || undefined,
+          auth_type: data.authType,
+          icon_url: data.iconUrl || undefined,
+        },
+        apiKey: data.apiKey,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useCreateCustomMCP] Error:", error);
+      }
+    },
+  });
+}
+
+/**
+ * Discover tools from a custom MCP server
+ */
+export function useDiscoverMCPTools() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (integrationId: string) =>
+      integrationsService.discoverMCPTools(integrationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useDiscoverMCPTools] Error:", error);
+      }
+    },
+  });
+}
+
+/**
+ * Refresh tool manifest for a custom MCP server
+ */
+export function useRefreshMCPTools() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (integrationId: string) =>
+      integrationsService.refreshMCPTools(integrationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+    },
+    onError: (error: Error) => {
+      if (import.meta.env.DEV) {
+        console.error("[useRefreshMCPTools] Error:", error);
+      }
+    },
+  });
+}
+
+/**
  * Delete an integration (soft delete)
  */
 export function useDeleteIntegration() {

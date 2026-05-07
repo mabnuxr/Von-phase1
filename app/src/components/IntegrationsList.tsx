@@ -1,10 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from "react";
-import { IntegrationCard } from "@vonlabs/design-components";
+import { useDeleteMCPServer } from "../hooks/useMCPServers";
+import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSetSalesforceScope } from "../hooks/useIntegrations";
 import { Resource, AuthenticationStatus } from "../services";
 import type { SalesforceWriteScope } from "../services";
+import type { CatalogEntry } from "../types/mcp";
 import {
   getAllIntegrations,
   canBeOrgLevel,
@@ -75,6 +77,112 @@ interface IntegrationsListProps {
     id: string,
     connectionType: "workspace" | "personal" | "both",
   ) => void;
+  mcpEntries?: CatalogEntry[];
+  onMCPConnect?: (entry: CatalogEntry) => void;
+}
+
+// Map catalog category_name → CATEGORY_ORDER key (best-effort)
+const CATALOG_CATEGORY_MAP: Record<string, string> = {
+  CRM: "CRM",
+  Calendar: "Calendar",
+  "Note Takers": "Note Takers",
+  "Knowledge Base": "Knowledge base",
+  "Knowledge base": "Knowledge base",
+  "Sales Engagement": "Sales Engagement",
+  "Data Warehouse": "Data Warehouse",
+  "Customer Support": "Customer Support",
+  Communication: "Communication",
+  "Call Recorder": "Call Recorder",
+  "Calls & Engagement": "Call Recorder",
+};
+
+function MCPCatalogItem({
+  entry,
+  onConnect,
+}: {
+  entry: CatalogEntry;
+  onConnect: (entry: CatalogEntry) => void;
+}) {
+  const deleteMutation = useDeleteMCPServer();
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+
+  const isWorkspace = (entry.default_access_level ?? []).some(
+    (l) => l === "tenant" || l === "workspace",
+  );
+  const isPersonal = (entry.default_access_level ?? []).some(
+    (l) => l === "user" || l === "personal",
+  );
+  const isBoth = isWorkspace && isPersonal;
+
+  // If no authentication_status is set (legacy), treat as authenticated
+  const isAuthenticated =
+    !entry.authentication_status ||
+    entry.authentication_status === "AUTHENTICATED";
+
+  const chips: Array<"workspace" | "personal" | "connected"> = [];
+  if (isWorkspace) chips.push("workspace");
+  // Show "personal" only when the user has actually connected their personal account,
+  // or when the entry is personal-only (not a workspace+personal combo).
+  if (isPersonal && (!isBoth || entry.is_personal_connected))
+    chips.push("personal");
+  if (isAuthenticated) chips.push("connected");
+
+  // Disconnect is available whenever the user has a personal server connected
+  const canDisconnectPersonal =
+    !!entry.is_personal_connected && !!entry.personal_server_id;
+
+  return (
+    <div>
+      <IntegrationCard
+        name={entry.name}
+        description={entry.description}
+        integrationLogoPath={entry.logo_url ?? ""}
+        chips={chips}
+        // Case 1: published personal-only, not yet connected — show Connect button
+        isAvailable={!isAuthenticated}
+        onToggle={!isAuthenticated ? () => onConnect(entry) : undefined}
+        // Disconnect trash when personal is connected
+        onDelete={
+          isAuthenticated && canDisconnectPersonal
+            ? () => setShowDisconnectConfirm(true)
+            : undefined
+        }
+        canDelete={
+          isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending
+        }
+        deleteTooltip="Remove personal connection"
+        disabled={deleteMutation.isPending}
+      />
+      {/* Case 2: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
+      {isAuthenticated && isBoth && !entry.is_personal_connected && (
+        <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
+          <button
+            onClick={() => onConnect(entry)}
+            className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
+          >
+            Connect your personal {entry.name}
+          </button>
+        </div>
+      )}
+      <ConfirmationModal
+        isOpen={showDisconnectConfirm}
+        title="Disconnect Integration"
+        message={
+          <>
+            Are you sure you want to disconnect <strong>{entry.name}</strong>?{" "}
+            This will remove your personal connection.
+          </>
+        }
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        onConfirm={() => {
+          setShowDisconnectConfirm(false);
+          deleteMutation.mutate(entry.personal_server_id!);
+        }}
+        onCancel={() => setShowDisconnectConfirm(false)}
+      />
+    </div>
+  );
 }
 
 interface IntegrationItemProps {
@@ -576,6 +684,8 @@ export function IntegrationsList({
   timedOutIntegrations,
   onConnect,
   onDelete,
+  mcpEntries = [],
+  onMCPConnect,
 }: IntegrationsListProps) {
   const {
     isGoogleDriveEnabled,
@@ -591,6 +701,7 @@ export function IntegrationsList({
     isDatabricksEnabled,
     isBoxEnabled,
     isBigQueryEnabled,
+    isMcpServersEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -650,6 +761,27 @@ export function IntegrationsList({
     });
   }, [allApps, integrations]);
 
+  // Group MCP catalog entries by mapped category
+  const mcpByCategory = useMemo(() => {
+    const grouped: Record<string, CatalogEntry[]> = {};
+    for (const entry of mcpEntries) {
+      const mapped =
+        CATALOG_CATEGORY_MAP[entry.category_name] ?? entry.category_name;
+      if (!grouped[mapped]) grouped[mapped] = [];
+      grouped[mapped].push(entry);
+    }
+    return grouped;
+  }, [mcpEntries]);
+
+  // Extra MCP categories not in CATEGORY_ORDER
+  const extraMCPCategories = useMemo(
+    () =>
+      Object.keys(mcpByCategory).filter(
+        (c) => !CATEGORY_ORDER.includes(c as never),
+      ),
+    [mcpByCategory],
+  );
+
   // Group by category, disabled (coming soon) items sorted to the bottom
   const byCategory = useMemo(() => {
     const grouped = mergedData.reduce(
@@ -673,7 +805,8 @@ export function IntegrationsList({
     <div className="space-y-2">
       {CATEGORY_ORDER.map((category) => {
         const items = byCategory[category];
-        if (!items?.length) return null;
+        const mcpItems = mcpByCategory[category] ?? [];
+        if (!items?.length && !mcpItems.length) return null;
 
         return (
           <div
@@ -689,7 +822,7 @@ export function IntegrationsList({
 
             {/* Items */}
             <div className="divide-y divide-gray-200">
-              {items.map((item) => (
+              {items?.map((item) => (
                 <IntegrationItem
                   key={item.id}
                   item={item}
@@ -701,10 +834,42 @@ export function IntegrationsList({
                   onDelete={onDelete}
                 />
               ))}
+              {isMcpServersEnabled &&
+                mcpItems.map((entry) => (
+                  <MCPCatalogItem
+                    key={entry.catalog_id}
+                    entry={entry}
+                    onConnect={onMCPConnect ?? (() => {})}
+                  />
+                ))}
             </div>
           </div>
         );
       })}
+
+      {/* Extra MCP categories not in CATEGORY_ORDER */}
+      {isMcpServersEnabled &&
+        extraMCPCategories.map((category) => (
+          <div
+            key={category}
+            className="bg-white rounded-lg border border-gray-200 overflow-visible"
+          >
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {category}
+              </h3>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {mcpByCategory[category].map((entry) => (
+                <MCPCatalogItem
+                  key={entry.catalog_id}
+                  entry={entry}
+                  onConnect={onMCPConnect ?? (() => {})}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
     </div>
   );
 }

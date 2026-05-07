@@ -331,6 +331,9 @@ function ExistingChatInner(
     return connected;
   }, [integrationsData]);
 
+  // ── Admin check ───────────────────────────────────────────────────
+  const isAdmin = base.user?.roles?.some((r) => r.toLowerCase() === "admin");
+
   const handleIntegrate = useCallback((integrationType: string) => {
     const frontendId = getFrontendIntegrationId(integrationType);
     const params = new URLSearchParams({
@@ -521,7 +524,7 @@ function ExistingChatInner(
     }
   }, [props.compact, chatV2.liveDashboardKey, handleDashboardPreview]);
 
-  // ── Banner with write-blocked ─────────────────────────────────────
+  // ── Banner: write-blocked ─────────────────────────────────────────
   const fullBanner = useMemo(
     () =>
       props.banner || chatV2.writeBlocked ? (

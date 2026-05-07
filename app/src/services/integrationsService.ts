@@ -18,6 +18,7 @@ export const IntegrationType = {
   BIGQUERY: "BIGQUERY",
   NOTION: "NOTION",
   JIMINNY: "JIMINNY",
+  MCP_SERVER: "MCP_SERVER",
 } as const;
 
 export type IntegrationType =
@@ -486,6 +487,43 @@ export class IntegrationsService {
    */
   async deleteIntegration(integrationId: string): Promise<void> {
     await apiClient.delete(`/api/v1/integrations/${integrationId}`);
+  }
+
+  /**
+   * Discover tools from a custom MCP server
+   * Connects to the MCP server URL and caches the tool manifest
+   */
+  async discoverMCPTools(integrationId: string): Promise<{
+    tools: { name: string; description: string }[];
+    manifestRefreshedAt: string;
+  }> {
+    const response = await apiClient.post<{
+      tools: { name: string; description: string }[];
+      manifest_refreshed_at: string;
+    }>(`/api/v1/integrations/${integrationId}/discover`);
+
+    return {
+      tools: response.tools,
+      manifestRefreshedAt: response.manifest_refreshed_at,
+    };
+  }
+
+  /**
+   * Refresh the tool manifest for a custom MCP server
+   */
+  async refreshMCPTools(integrationId: string): Promise<{
+    tools: { name: string; description: string }[];
+    manifestRefreshedAt: string;
+  }> {
+    const response = await apiClient.post<{
+      tools: { name: string; description: string }[];
+      manifest_refreshed_at: string;
+    }>(`/api/v1/integrations/${integrationId}/refresh-tools`);
+
+    return {
+      tools: response.tools,
+      manifestRefreshedAt: response.manifest_refreshed_at,
+    };
   }
 
   /**
