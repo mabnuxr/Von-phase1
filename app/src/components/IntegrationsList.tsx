@@ -121,7 +121,10 @@ function MCPCatalogItem({
   const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  const authStatusQuery = useMCPCheckAuthStatus(createdServerId, waitingForOAuth);
+  const authStatusQuery = useMCPCheckAuthStatus(
+    createdServerId,
+    waitingForOAuth,
+  );
 
   const finishOAuth = useCallback(
     (serverId: string) => {
@@ -232,9 +235,7 @@ function MCPCatalogItem({
     !!entry.is_personal_connected && !!entry.personal_server_id;
 
   const isConnecting =
-    createMutation.isPending ||
-    authorizeMutation.isPending ||
-    waitingForOAuth;
+    createMutation.isPending || authorizeMutation.isPending || waitingForOAuth;
 
   return (
     <div>
