@@ -44,8 +44,6 @@ export interface CommandDrawerProps {
   isSaving?: boolean;
   /** When true, all fields are read-only and the save button is hidden */
   readOnly?: boolean;
-  /** When false (default), the "Org-wide" sharing option is hidden — only admins may create org-wide commands */
-  isAdmin?: boolean;
   /**
    * Called immediately when the user picks a file — upload should happen here.
    * Returns the backend fileId and s3Key once the upload completes.
@@ -81,7 +79,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   editingCommand,
   isSaving = false,
   readOnly = false,
-  isAdmin = false,
   onUploadFile,
   onRequestFilePreviewUrl,
   onBack,
@@ -310,22 +307,20 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           {/* Sharing — collapsible */}
           <Accordion title="Sharing" summary={sharingLabel}>
             <div className="flex items-center gap-1.5">
-              {(['private', 'org'] as const)
-                .filter((scope) => scope === 'private' || isAdmin)
-                .map((scope) => (
-                  <button
-                    key={scope}
-                    type="button"
-                    onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
-                    className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
-                      form.sharingScope === scope
-                        ? 'border-gray-300 bg-gray-50 text-gray-900'
-                        : 'border-gray-100 text-gray-500'
-                    } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
-                  >
-                    {scope === 'private' ? 'Private' : 'Org-wide'}
-                  </button>
-                ))}
+              {(['private', 'org'] as const).map((scope) => (
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
+                  className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
+                    form.sharingScope === scope
+                      ? 'border-gray-300 bg-gray-50 text-gray-900'
+                      : 'border-gray-100 text-gray-500'
+                  } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
+                >
+                  {scope === 'private' ? 'Private' : 'Org-wide'}
+                </button>
+              ))}
             </div>
           </Accordion>
 
