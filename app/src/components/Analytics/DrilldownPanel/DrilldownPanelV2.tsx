@@ -415,6 +415,21 @@ function Breadcrumb({
   // chain length <= 1 the user is already at L1 (or before), so we render a
   // plain span to avoid a misleading hover affordance and a no-op click.
   const isInteractive = chain.length > 1;
+  // For panel-level clicks (KPI tile, chart/table drill icon) chain[0] has
+  // no filters and no columnPath, so formatSegment skips rendering a
+  // segment for it. KPI clicks DO carry a metricValue (the resolved
+  // numeric the tile rendered) — surface it as a suffix on the widget
+  // title since for a KPI the title IS the metric label. Only attach
+  // when the L0 click is truly panel-level (empty filters + empty
+  // columnPath) so we never double-render against a real L0 segment.
+  const root = chain[0];
+  const titleSuffix =
+    root &&
+    Object.keys(root.filters).length === 0 &&
+    root.columnPath.length === 0
+      ? formatMetricSuffix(root.metricValue, root.metricLabel)
+      : "";
+  const titleText = (widgetTitle || "Drilldown") + titleSuffix;
   return (
     <div className="dd-v2-breadcrumb">
       {isInteractive ? (
@@ -423,11 +438,11 @@ function Breadcrumb({
           title={`${widgetTitle} — back to first drill view`}
           onClick={() => onPopToLevel(0)}
         >
-          {widgetTitle || "Drilldown"}
+          {titleText}
         </button>
       ) : (
         <span className="dd-v2-breadcrumb-widget" title={widgetTitle}>
-          {widgetTitle || "Drilldown"}
+          {titleText}
         </span>
       )}
       {chain.map((node, idx) => {
