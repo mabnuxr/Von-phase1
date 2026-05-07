@@ -42,6 +42,18 @@ export interface ChatEmptyStateProps {
    */
   onDisabledClick?: () => void;
   /**
+   * Callback when a template category pill is clicked
+   */
+  onTemplateCategoryClick?: (category: TemplateCategory) => void;
+  /**
+   * Callback when a suggested prompt card is clicked (position is 1-based)
+   */
+  onTemplateClick?: (template: Template, position: number) => void;
+  /**
+   * Callback when the left/right arrow is clicked to scroll prompts
+   */
+  onTemplateArrowClick?: (direction: 'left' | 'right', activeCategory: TemplateCategory) => void;
+  /**
    * Placeholder text for the input
    */
   placeholder?: string;
@@ -191,6 +203,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   defaultValue = '',
   disabled = false,
   onDisabledClick,
+  onTemplateCategoryClick,
+  onTemplateClick,
+  onTemplateArrowClick,
   placeholder = 'Ask von anything',
   enableCommands = false,
   banner,
@@ -267,36 +282,45 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
     updateChevronVisibility();
   }, [updateChevronVisibility]);
 
-  const scrollBy = useCallback((direction: 'left' | 'right') => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    // Scroll 4 cards at once: 4 cards (w-48 = 192px each) + 3 gaps (gap-3 = 12px each) = 804px
-    const scrollAmount = 804;
-    container.scrollBy({
-      left: direction === 'left' ? -scrollAmount : scrollAmount,
-      behavior: 'smooth',
-    });
-  }, []);
+  const scrollBy = useCallback(
+    (direction: 'left' | 'right') => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      // Scroll 4 cards at once: 4 cards (w-48 = 192px each) + 3 gaps (gap-3 = 12px each) = 804px
+      const scrollAmount = 804;
+      container.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+      onTemplateArrowClick?.(direction, activeCategory);
+    },
+    [activeCategory, onTemplateArrowClick]
+  );
 
-  const handleCategoryChange = useCallback((category: TemplateCategory) => {
-    setActiveCategory(category);
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollLeft = 0;
-    }
-    setShowLeftChevron(false);
-    setShowRightChevron(true);
-  }, []);
+  const handleCategoryChange = useCallback(
+    (category: TemplateCategory) => {
+      setActiveCategory(category);
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollLeft = 0;
+      }
+      setShowLeftChevron(false);
+      setShowRightChevron(true);
+      onTemplateCategoryClick?.(category);
+    },
+    [onTemplateCategoryClick]
+  );
 
   const handleTemplateClick = useCallback(
-    (template: Template) => {
+    (template: Template, position: number) => {
       if (disabled) {
         onDisabledClick?.();
         return;
       }
       // Fill the input with the template prompt
       setInputValue(template.prompt);
+      onTemplateClick?.(template, position);
     },
-    [disabled, onDisabledClick]
+    [disabled, onDisabledClick, onTemplateClick]
   );
 
   const handleSend = useCallback(
@@ -507,10 +531,10 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             className="flex gap-3 overflow-x-auto px-1 py-1"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
-            {templates.map((template) => (
+            {templates.map((template, index) => (
               <button
                 key={template.id}
-                onClick={() => handleTemplateClick(template)}
+                onClick={() => handleTemplateClick(template, index + 1)}
                 className={`
                   flex-shrink-0 w-48 px-4 py-2.5
                   rounded-xl bg-white border border-gray-100

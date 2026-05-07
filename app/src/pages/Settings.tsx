@@ -1,4 +1,12 @@
-import { useState, useRef, useEffect, Profiler } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+  Profiler,
+} from "react";
+import { usePostHog } from "@posthog/react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -33,11 +41,24 @@ import usePreferencesStore from "../store/preferencesStore";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { reportRenderTiming } from "../lib/datadog";
 
+const TAB_LABELS: Record<string, string> = {
+  integrations: "Integrations",
+  fields: "Fields",
+  memory: "Memory",
+  "memory-org": "Org Memory",
+  "memory-user": "User Memory",
+  "custom-iq": "Von AI Fields",
+  email: "Email",
+  team: "Manage Team",
+  usage: "Usage",
+};
+
 const Settings = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
+  const posthog = usePostHog();
   const {
     isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
@@ -45,6 +66,21 @@ const Settings = () => {
     isVonAiFieldsEnabled,
     isMemoryV2Enabled,
   } = useFeatureFlag();
+
+  const basePostHogProps = useMemo(
+    () => ({
+      company: user?.tenant ?? null,
+      company_id: user?.tenantId ?? null,
+      user_id: user?.id ?? null,
+      user_email: user?.email ?? null,
+      user_role: !user?.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    }),
+    [user],
+  );
 
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
@@ -83,11 +119,30 @@ const Settings = () => {
     }
   }, [searchParams]);
 
+  const getTabLabel = useCallback(
+    (tabId: string) => TAB_LABELS[tabId] ?? tabId,
+    [],
+  );
+
+  const pageViewCaptured = useRef(false);
+  useEffect(() => {
+    if (!user || !posthog || pageViewCaptured.current) return;
+    posthog.capture("Settings - Page Viewed", {
+      ...basePostHogProps,
+      entry_point: "Settings option in chat bottom-left menu",
+    });
+    pageViewCaptured.current = true;
+  }, [user, posthog, basePostHogProps]);
+
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
     setSelectedSettingId(tabId);
     setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
+    posthog?.capture("Settings - Tab Clicked", {
+      ...basePostHogProps,
+      tab_name: getTabLabel(tabId),
+    });
   };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
@@ -123,8 +178,27 @@ const Settings = () => {
     navigate("/settings");
   };
 
+  const handleBackToHome = useCallback(() => {
+    posthog?.capture("Settings - Back to Home Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
+    navigate("/chat");
+  }, [posthog, basePostHogProps, selectedSettingId, navigate, getTabLabel]);
+
+  const handleHelpDocsClick = useCallback(() => {
+    posthog?.capture("Settings - Help Docs Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
+  }, [posthog, basePostHogProps, selectedSettingId, getTabLabel]);
+
   // Handle Logout click
   const handleLogoutClick = async () => {
+    posthog?.capture("Settings - Logout Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
     const { clearAllAuth } = await import("../lib/auth");
 
     if (import.meta.env.DEV) {
@@ -305,6 +379,7 @@ const Settings = () => {
           hideSettings
           onSettingsClick={handleSettingsClick}
           onLogoutClick={handleLogoutClick}
+          onHelpDocsClick={handleHelpDocsClick}
           triggerRect={avatarRect}
         />
 
@@ -329,7 +404,7 @@ const Settings = () => {
               userName={displayName}
               userEmail={user?.email}
               onAvatarClick={handleAvatarClick}
-              onBackToHome={() => navigate("/chat")}
+              onBackToHome={handleBackToHome}
             />
           </div>
 

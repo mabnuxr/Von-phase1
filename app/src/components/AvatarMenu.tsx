@@ -24,6 +24,11 @@ export interface AvatarMenuProps {
   onLogoutClick?: () => void;
 
   /**
+   * Callback when Help docs is clicked
+   */
+  onHelpDocsClick?: () => void;
+
+  /**
    * Hide the Settings menu item (e.g. when already on settings page)
    */
   hideSettings?: boolean;
@@ -65,6 +70,7 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
   userEmail,
   onSettingsClick,
   onLogoutClick,
+  onHelpDocsClick,
   hideSettings = false,
   isOpen,
   onClose,
@@ -152,7 +158,10 @@ export const AvatarMenu: React.FC<AvatarMenuProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-900 border-0 rounded-lg cursor-pointer w-full text-left bg-transparent hover:bg-gray-50 transition-colors duration-200"
-              onClick={onClose}
+              onClick={() => {
+                onHelpDocsClick?.();
+                onClose();
+              }}
             >
               <ArrowUpRight
                 size={20}
