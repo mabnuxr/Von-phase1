@@ -44,6 +44,7 @@ import {
   useDashboardAssociatedChats,
 } from "../hooks/useDashboardAssociatedChats";
 import {
+  getCurrentVariantColumnVariantMap,
   getLevelColumnMaps,
   getLevelDrillableColumns,
   rowDescentFilters,
@@ -197,6 +198,7 @@ function DashboardCanvas({
       filters: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId?: string | null,
     ) => {
       if (shouldUseV2(panelId)) {
         // V2: column_path empty = default target; filters pass through as-is
@@ -206,13 +208,16 @@ function DashboardCanvas({
         // cell's value (table); metricLabel carries the column label for
         // table sources so the breadcrumb shows "(Opp Count: 47)" — chart
         // sources leave it null since the axis is already in the segment's
-        // main label.
+        // main label. variantId routes table cell clicks to a specific L1
+        // variant via panel.drilldown_v2.column_variant_map (e.g. clicking
+        // "Won deals" opens the "won" variant); null = pick L1's default.
         drillV2.openPanelDrilldown(
           panelId,
           [],
           filters,
           metricValue,
           metricLabel,
+          variantId,
         );
         return;
       }
@@ -227,6 +232,7 @@ function DashboardCanvas({
       rowData: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId?: string | null,
     ) => {
       // Pyramid model: every click descends to the next level (when one
       // exists). Each chain entry captures ONLY the axes newly introduced at
@@ -238,6 +244,12 @@ function DashboardCanvas({
       // descent so server cache keys stay distinct across click paths that
       // happen to share depth; the segment value itself is opaque to routing
       // — we use the first scalar key as a breadcrumb hint.
+      //
+      // ``variantId`` (when set) routes the next level to a specific
+      // variant via the active variant's column_variant_map; null falls
+      // back to the next level's is_default. Resolution happens inside
+      // DrilldownPanelV2 because that's where the active variant + clicked
+      // column id are both known.
       const widget = drillV2.panelId
         ? dashboard?.widgets?.[drillV2.panelId]
         : undefined;
@@ -251,7 +263,7 @@ function DashboardCanvas({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel);
+      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel, variantId);
     },
     [drillV2, dashboard],
   );
@@ -390,6 +402,11 @@ function DashboardCanvas({
           )}
           levelDrillableColumns={getLevelDrillableColumns(
             drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+          )}
+          currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
+            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+            drillV2.clickChain.length,
+            drillV2.currentVariantId,
           )}
           onRowDrill={handleV2RowDrill}
         />

@@ -99,6 +99,7 @@ export interface UseDrilldownV2Return {
     filters: Record<string, unknown>,
     metricValue?: unknown,
     metricLabel?: string,
+    variantId?: string | null,
   ) => void;
   /**
    * Descend one level. ``columnPath`` extends the parent's path by one segment
@@ -108,12 +109,17 @@ export interface UseDrilldownV2Return {
    * fetch time. Optional ``metricValue`` carries the clicked-cell / clicked-
    * point numeric value for breadcrumb display; ``metricLabel`` carries the
    * column label for table-style sources (renders as "label: value").
+   * ``variantId`` is the next-level variant to open; pass null to fall back
+   * to the next level's is_default. Used by ``column_variant_map`` routing
+   * — the caller looks up the clicked column in the current variant's
+   * column_variant_map and forwards the mapped id (or null if unmapped).
    */
   pushLevel: (
     columnPath: string[],
     filters: Record<string, unknown>,
     metricValue?: unknown,
     metricLabel?: string,
+    variantId?: string | null,
   ) => void;
   popToLevel: (depth: number) => void;
   closeDrilldown: () => void;
@@ -203,12 +209,11 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       filters: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId: string | null = null,
     ) => {
       setState({
         panelId,
-        chain: [
-          { columnPath, variantId: null, filters, metricValue, metricLabel },
-        ],
+        chain: [{ columnPath, variantId, filters, metricValue, metricLabel }],
         page: 1,
         sort: null,
       });
@@ -222,6 +227,7 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       filters: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId: string | null = null,
     ) => {
       setState((prev) => {
         if (!prev) return prev;
@@ -233,7 +239,7 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
           ...prev,
           chain: [
             ...prev.chain,
-            { columnPath, variantId: null, filters, metricValue, metricLabel },
+            { columnPath, variantId, filters, metricValue, metricLabel },
           ],
           page: 1,
           sort: null,

@@ -69,10 +69,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     const handlePointDrillDown = useCallback(
       (filters: DrillFilters, metricValue?: unknown) => {
         // Chart point clicks pass through with metricValue but no
-        // metricLabel — the chart's axis label is already in the
-        // segment's main label, so a "(label: value)" suffix would
-        // duplicate context. Table cell clicks plumb their own label
-        // via ``handleTableCellClick`` below.
+        // metricLabel and no variantId — the chart's axis label is
+        // already in the segment's main label (so a "(label: value)"
+        // suffix would duplicate context), and chart points don't
+        // route to a specific variant (the chart represents one
+        // measure, not multiple variants per point). Table cell
+        // clicks plumb their own label + variantId via
+        // ``handleTableCellClick`` below.
         onPointDrillDown?.(widget.id, filters, metricValue);
       },
       [onPointDrillDown, widget.id]
@@ -161,7 +164,22 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
         // on the same row look identical in the breadcrumb. Charts pass
         // through with no label since their axis is already in the main
         // segment label.
-        onPointDrillDown(widget.id, drillFilters, cellValue ?? null, formatColumnLabel(columnId));
+        //
+        // ``column_variant_map`` lets the agent route a specific clicked
+        // column to a specific L1 variant — e.g. clicking "Won deals"
+        // opens the "won" variant rather than the default "all_deals".
+        // Columns NOT in the map fall back to L1's is_default; we
+        // forward null in that case so the backend resolver picks the
+        // default. Clamp to undefined when the map is absent so we
+        // pass through pre-existing call signatures cleanly.
+        const mappedVariantId = v2?.column_variant_map?.[columnId] ?? null;
+        onPointDrillDown(
+          widget.id,
+          drillFilters,
+          cellValue ?? null,
+          formatColumnLabel(columnId),
+          mappedVariantId
+        );
       },
       [onPointDrillDown, widget.id, widget.drilldown_v2, drillableColumns, formatColumnLabel]
     );

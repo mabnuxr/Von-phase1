@@ -93,6 +93,18 @@ export interface DrilldownV2Variant {
    * (every cell clickable). Used by the drill-view bottom-sheet table.
    */
   drillable_columns?: string[] | null;
+  /**
+   * Optional column → next-level variant routing. When the user clicks one
+   * of THIS variant's drillable cells in the drill view and descends to
+   * the next level, the FE looks up the clicked column id here; if
+   * present, the next level opens with the mapped variant id (instead of
+   * its is_default). Columns NOT in the map fall back to the next level's
+   * default. Use when a clickable column corresponds 1:1 to a specific
+   * next-level variant (e.g. clicking "Won deals" descends into the "won"
+   * variant rather than the default "all"). Ignored for leaf-level
+   * variants (no next level).
+   */
+  column_variant_map?: Record<string, string> | null;
   // The remaining fields (label, description, justification_template,
   // query_ref) aren't read here — the widget only needs column_map for
   // point-click filter extraction.
@@ -117,6 +129,16 @@ export interface PanelDrilldownV2 {
    * for non-table panels.
    */
   drillable_columns?: string[] | null;
+  /**
+   * Optional column → L1 variant routing for table panels. When the user
+   * clicks a panel cell and opens the drill view (L0 → L1), the FE looks
+   * up the clicked column id here; if present, L1 opens with the mapped
+   * variant id (instead of L1's is_default). Columns NOT in the map fall
+   * back to L1's default. Use when a clickable panel column corresponds
+   * 1:1 to a specific L1 variant (e.g. clicking the "Won deals" column
+   * opens the "won" variant rather than the default "all_deals").
+   */
+  column_variant_map?: Record<string, string> | null;
 }
 
 // ─── Query Info ──────────────────────────────────────────────────
@@ -331,12 +353,16 @@ export interface WidgetRendererProps {
    *  point/cell's numeric value; ``metricLabel`` carries the column's
    *  display label for table-style sources (renders "label: value" in
    *  the breadcrumb suffix); chart sources leave it null since the axis
-   *  is already in the segment's main label. */
+   *  is already in the segment's main label. ``variantId``: when the
+   *  panel's drilldown_v2.column_variant_map maps the clicked column to
+   *  a specific L1 variant id, that id is forwarded so the drill view
+   *  opens with the matched variant rather than L1's default. */
   onPointDrillDown?: (
     panelId: string,
     drillFilters: DrillFilters,
     metricValue?: unknown,
-    metricLabel?: string
+    metricLabel?: string,
+    variantId?: string | null
   ) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
@@ -376,12 +402,16 @@ export interface DashboardGridProps {
    *  point/cell's numeric value; ``metricLabel`` carries the column's
    *  display label for table-style sources (renders "label: value" in
    *  the breadcrumb suffix); chart sources leave it null since the axis
-   *  is already in the segment's main label. */
+   *  is already in the segment's main label. ``variantId``: when the
+   *  panel's drilldown_v2.column_variant_map maps the clicked column to
+   *  a specific L1 variant id, that id is forwarded so the drill view
+   *  opens with the matched variant rather than L1's default. */
   onPointDrillDown?: (
     panelId: string,
     drillFilters: DrillFilters,
     metricValue?: unknown,
-    metricLabel?: string
+    metricLabel?: string,
+    variantId?: string | null
   ) => void;
   /** Callback when a table column header is clicked for sorting */
   onTableSortChange?: (panelId: string, columnId: string, order: 'asc' | 'desc' | null) => void;
