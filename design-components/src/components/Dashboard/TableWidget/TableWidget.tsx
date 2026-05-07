@@ -30,7 +30,12 @@ interface TableWidgetProps {
    *  ID, raw cell value, and the full row dict so V2 drilldown can extract
    *  multiple data_keys from a single click (e.g. cohort cells need both
    *  account_name AND week_label regardless of which column was clicked). */
-  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
+  onCellClick?: (
+    columnId: string,
+    cellValue: unknown,
+    rowData: Record<string, unknown>,
+    displayText?: string
+  ) => void;
   /** Whitelist of column ids that should receive the drillable-cell hover
    *  affordance + register clicks. When provided, only those columns get
    *  `td.drillable-cell` painted (hover background + pointer cursor).
@@ -282,6 +287,55 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
   }, [stableOptions, measure]);
+
+  // Drillable affordance — post-render DOM tagging.
+  //
+  // Grid Lite's column config exposes ``cells.className`` (which we use in
+  // ``applyDrillableCellClass`` to mark body cells), but NOT a parallel
+  // ``header.className`` knob. To tint the column headers purple + emit the
+  // ↳ hint glyph above only the drillable columns, we tag matching
+  // ``<th>`` elements after Grid Lite commits its DOM. Body cells are
+  // already class-tagged via the column config; this effect adds the
+  // ``title="Click to drill deeper"`` attribute to those td's (Grid Lite
+  // doesn't have a per-cell attributes API, only className).
+  //
+  // Runs on every options-identity change so it survives sort / page /
+  // resize cycles that re-render the grid.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      const table = el.querySelector('.hcg-table');
+      if (!table) return;
+      // Find which column indices have drillable body cells. Reading from
+      // the first real (non-mocked) row keeps the lookup O(numCols).
+      const firstRow = table.querySelector(
+        'tbody tr:not(.hcg-mocked-row)'
+      ) as HTMLTableRowElement | null;
+      if (!firstRow) return;
+      const drillableIdxs = new Set<number>();
+      Array.from(firstRow.children).forEach((cell, i) => {
+        if ((cell as HTMLElement).classList.contains('drillable-cell')) {
+          drillableIdxs.add(i);
+        }
+      });
+
+      // Tag matching headers; clear any stale tags from prior renders so
+      // the set doesn't drift if the column ordering changes.
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th, i) => {
+        th.classList.toggle('drillable-header', drillableIdxs.has(i));
+      });
+
+      // Set the native browser tooltip on every drillable td. Idempotent
+      // — re-setting an attribute to the same value is a no-op.
+      const tds = table.querySelectorAll('tbody td.drillable-cell');
+      tds.forEach((td) => {
+        (td as HTMLElement).title = 'Click to drill deeper';
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [stableOptions]);
 
   // Row count used for both the fingerprint and the intrinsic height
   // calculation below.

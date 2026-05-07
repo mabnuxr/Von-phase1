@@ -125,7 +125,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     // table-row data) and skip data_keys not present in the row to avoid
     // sending `undefined` drill_filter values.
     const handleTableCellClick = useCallback(
-      (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => {
+      (
+        columnId: string,
+        cellValue: unknown,
+        rowData: Record<string, unknown>,
+        displayText?: string
+      ) => {
         if (!onPointDrillDown) return;
         // Per-column gate: when the agent declared a drillable_columns
         // whitelist, only those cells fire a drill. null whitelist =
@@ -157,13 +162,21 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           }
         }
         if (Object.keys(drillFilters).length === 0) return;
-        // ``cellValue`` is the metric value the user clicked (e.g. 47 for
-        // a SUM(arr) cell). Surface it AND the column's display label so
-        // the drill breadcrumb renders ``(Opp Count: 47)`` rather than
-        // bare ``(47)`` — without the column context, two metric columns
-        // on the same row look identical in the breadcrumb. Charts pass
-        // through with no label since their axis is already in the main
-        // segment label.
+        // ``cellValue`` is the RAW value behind the click (e.g. 1096367
+        // for a SUM(arr) cell). ``displayText`` is the formatted string
+        // the user actually saw in the cell (e.g. "$1,096,367" — d3
+        // formatted via applyColumnFormats). Forward the formatted
+        // string when present so the drill breadcrumb shows the same
+        // value the user clicked rather than the raw numeric. Falls
+        // back to cellValue when the cell renders without a formatted
+        // wrapper (rare).
+        //
+        // Surface the column's display label so the breadcrumb renders
+        // ``(Opp Count: $1,096,367)`` rather than bare
+        // ``($1,096,367)`` — without the column context, two metric
+        // columns on the same row look identical in the breadcrumb.
+        // Charts pass through with no label since their axis is
+        // already in the main segment label.
         //
         // ``column_variant_map`` lets the agent route a specific clicked
         // column to a specific L1 variant — e.g. clicking "Won deals"
@@ -173,10 +186,12 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
         // default. Clamp to undefined when the map is absent so we
         // pass through pre-existing call signatures cleanly.
         const mappedVariantId = v2?.column_variant_map?.[columnId] ?? null;
+        const metricValueForBreadcrumb =
+          displayText && displayText.length > 0 ? displayText : (cellValue ?? null);
         onPointDrillDown(
           widget.id,
           drillFilters,
-          cellValue ?? null,
+          metricValueForBreadcrumb,
           formatColumnLabel(columnId),
           mappedVariantId
         );

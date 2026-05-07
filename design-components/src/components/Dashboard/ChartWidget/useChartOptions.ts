@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type Highcharts from 'highcharts';
+import Highcharts from 'highcharts';
 import type {
   ChartWidgetConfig,
   DrilldownConfig,
@@ -144,6 +144,52 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
     gridLineColor: GRID_LINE_COLOR,
   };
 
+  // Smart tooltip: read each series' ``dataLabels.format`` and apply it
+  // to the hover value so the tooltip mirrors what's printed on the bar
+  // (e.g. "$447,500" rather than the raw "447500"). Highcharts'
+  // ``pointFormatter`` takes precedence over ``pointFormat`` when both
+  // are set, so this overrides any agent-authored
+  // ``tooltip.pointFormat: "<b>{point.y}</b>"`` template that ships
+  // raw values.
+  //
+  // Falls back to ``Number.toLocaleString()`` when no ``dataLabels.format``
+  // is declared on the series. Non-numeric ``point.y`` (categorical
+  // labels) passes through verbatim. Dot-glyph color matches Highcharts'
+  // default tooltip styling so the visual is unchanged besides the value.
+  const smartPointFormatter = function (
+    this: Highcharts.Point & {
+      series: Highcharts.Series & {
+        options: { dataLabels?: { format?: string } | Array<{ format?: string }> };
+      };
+    }
+  ): string {
+    const seriesName = this.series?.name ?? '';
+    const colorAny = (this as unknown as { color?: unknown }).color;
+    const color =
+      typeof colorAny === 'string'
+        ? colorAny
+        : (this.series as unknown as { color?: string })?.color || '#7c3aed';
+    const dl = this.series?.options?.dataLabels;
+    const dlFormat = Array.isArray(dl) ? dl[0]?.format : dl?.format;
+    let valueStr: string;
+    if (typeof this.y !== 'number' || !Number.isFinite(this.y)) {
+      valueStr = String(this.y ?? '');
+    } else if (dlFormat && typeof dlFormat === 'string') {
+      try {
+        valueStr = Highcharts.format(
+          dlFormat,
+          { point: this, series: this.series, value: this.y },
+          undefined
+        );
+      } catch {
+        valueStr = this.y.toLocaleString();
+      }
+    } else {
+      valueStr = this.y.toLocaleString();
+    }
+    return `<span style="color:${color}">●</span> ${seriesName}: <b>${valueStr}</b><br/>`;
+  };
+
   return {
     ...BASE_CHART_OPTIONS,
     ...raw,
@@ -152,6 +198,11 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
       ...(raw.chart ?? {}),
       animation: false,
       reflow: false,
+    },
+    tooltip: {
+      ...(BASE_CHART_OPTIONS.tooltip ?? {}),
+      ...((raw.tooltip ?? {}) as object),
+      pointFormatter: smartPointFormatter,
     },
     xAxis: Array.isArray(raw.xAxis)
       ? raw.xAxis.map((x) => ({ ...xAxisDefaults, ...(x as object) }))
@@ -314,20 +365,90 @@ function injectDrilldown(
               }
               if (Object.keys(filters).length > 0) {
                 // Capture the metric value behind this point so the drill
-                // breadcrumb can show "Stage: Negotiation (47)" instead of
-                // just "Stage: Negotiation". Highcharts stores the numeric
-                // value at ``point.y`` for cartesian + pie series; Sankey
-                // and similar weighted-edge series surface it as
-                // ``point.weight``. We pull whichever is non-null and pass
-                // it through as the second arg of ``onPointClick`` (kept
-                // separate from ``filters`` so the wire payload stays
-                // unchanged — only the FE breadcrumb consumes it).
-                const pointAny = this as unknown as {
+                // breadcrumb can show "Stage: Negotiation ($47K)" instead
+                // of just "Stage: Negotiation". Highcharts stores the
+                // numeric value at ``point.y`` for cartesian + pie series;
+                // Sankey and similar weighted-edge series surface it as
+                // ``point.weight``. We pull whichever is non-null.
+                //
+                // Format the numeric so the breadcrumb mirrors what the
+                // user actually sees on the chart — matching the
+                // KPI/table affordance.
+                //
+                // Highcharts charts expose three different formatting
+                // templates, each with different reach:
+                //   - ``series.dataLabels.format`` — what the per-bar /
+                //     per-point labels render. Templates like
+                //     ``"${point.y:,.0f}"`` produce ``"$80,000"``. When
+                //     the agent enabled data labels, this is the most
+                //     user-visible format because the bar literally
+                //     shows it.
+                //   - ``yAxis.labels.format`` — y-axis tick labels
+                //     (e.g. ``"200k"``). Often unset; Highcharts uses
+                //     k/M auto-abbreviation by default.
+                //   - ``tooltip.pointFormat`` — hover tooltip body.
+                //     Often ``<b>{point.y}</b>`` (raw), which is why
+                //     the tooltip can show an unformatted value while
+                //     the bar shows a formatted one.
+                //
+                // Resolution order: dataLabels.format → yAxis labels
+                // (string format or function formatter) → toLocaleString.
+                // ``Highcharts.format`` evaluates the template string
+                // against ``{point, series, value}`` so both
+                // ``{point.y:,.0f}`` and ``{value:,.0f}`` resolve.
+                //
+                // Non-numeric points (categorical labels) pass through
+                // verbatim.
+                const point = this as unknown as {
                   y?: unknown;
                   weight?: unknown;
                   value?: unknown;
+                  series?: {
+                    options?: {
+                      dataLabels?: { format?: string } | Array<{ format?: string }>;
+                    };
+                    yAxis?: {
+                      options?: {
+                        labels?: {
+                          format?: string;
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter?: (this: any) => string;
+                        };
+                      };
+                    };
+                  };
                 };
-                const metricValue = pointAny.y ?? pointAny.weight ?? pointAny.value ?? null;
+                const rawValue = point.y ?? point.weight ?? point.value ?? null;
+                let metricValue: unknown = rawValue;
+                if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+                  const dl = point.series?.options?.dataLabels;
+                  const dlFormat = Array.isArray(dl) ? dl[0]?.format : dl?.format;
+                  const axisLabels = point.series?.yAxis?.options?.labels;
+                  try {
+                    if (dlFormat && typeof dlFormat === 'string') {
+                      metricValue = Highcharts.format(
+                        dlFormat,
+                        { point, series: point.series, value: rawValue },
+                        undefined
+                      );
+                    } else if (axisLabels?.format && typeof axisLabels.format === 'string') {
+                      metricValue = Highcharts.format(
+                        axisLabels.format,
+                        { value: rawValue },
+                        undefined
+                      );
+                    } else if (typeof axisLabels?.formatter === 'function') {
+                      metricValue = axisLabels.formatter.call({
+                        value: rawValue,
+                        axis: point.series?.yAxis,
+                      });
+                    } else {
+                      metricValue = rawValue.toLocaleString();
+                    }
+                  } catch {
+                    metricValue = rawValue.toLocaleString();
+                  }
+                }
                 onPointClick(filters, metricValue);
               }
             },
