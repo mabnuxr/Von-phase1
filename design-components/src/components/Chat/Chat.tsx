@@ -77,6 +77,9 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       disableSubmit = false,
       examplePromptsDisabled = false,
       onExamplePromptDisabledClick,
+      onTemplateCategoryClick,
+      onTemplateClick,
+      onTemplateArrowClick,
       onInputWhileDisabled,
       onApprove,
       onReject,
@@ -277,6 +280,9 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 onSendMessage={handleSendMessage}
                 disabled={examplePromptsDisabled}
                 onDisabledClick={onExamplePromptDisabledClick}
+                onTemplateCategoryClick={onTemplateCategoryClick}
+                onTemplateClick={onTemplateClick}
+                onTemplateArrowClick={onTemplateArrowClick}
                 enableCommands={enableCommands}
                 commands={commands}
                 isLoadingCommands={isLoadingCommands}

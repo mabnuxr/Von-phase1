@@ -316,6 +316,52 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
+  const userRole = !user?.roles?.length
+    ? null
+    : user.roles.some((r) => r.toLowerCase() === "admin")
+      ? "Admin"
+      : "Member";
+
+  const basePostHogProps = {
+    company: user?.tenant ?? null,
+    company_id: user?.tenantId ?? null,
+    user_id: user?.id ?? null,
+    user_email: user?.email ?? null,
+    user_role: userRole,
+  };
+
+  const handleTemplateCategoryClick = useCallback(
+    (category: string) => {
+      posthog?.capture("Chat - Template Category Clicked", {
+        ...basePostHogProps,
+        category_name: category,
+      });
+    },
+    [posthog, user],
+  );
+
+  const handleTemplateClick = useCallback(
+    (template: { prompt: string; category: string }, position: number) => {
+      posthog?.capture("Chat - Suggested Prompt Clicked", {
+        ...basePostHogProps,
+        prompt_text: template.prompt,
+        category_name: template.category,
+        prompt_position: position,
+      });
+    },
+    [posthog, user],
+  );
+
+  const handleTemplateArrowClick = useCallback(
+    (_direction: string, activeCategory: string) => {
+      posthog?.capture("Chat - Suggested Prompt Arrow Clicked", {
+        ...basePostHogProps,
+        category_name: activeCategory,
+      });
+    },
+    [posthog, user],
+  );
+
   const banner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
@@ -376,6 +422,9 @@ const NewConversation = () => {
         onMentionsActivated={handleMentionsActivated}
         widgetMentions={preloadedWidgetMentions}
         onWidgetMentionRemoved={handleWidgetMentionRemoved}
+        onTemplateCategoryClick={handleTemplateCategoryClick}
+        onTemplateClick={handleTemplateClick}
+        onTemplateArrowClick={handleTemplateArrowClick}
       />
     </Profiler>
   );

@@ -3,6 +3,7 @@
  */
 
 import type { ConversationMode } from './StandardChatInput/types';
+import type { Template, TemplateCategory } from '../Templates/types';
 import type { FileArtifact } from './ArtifactCards/types';
 import type { Command, ScheduleRecipient } from '../Commands/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -1365,6 +1366,12 @@ export interface ChatProps {
    * Callback when a disabled example prompt is clicked
    */
   onExamplePromptDisabledClick?: () => void;
+  /** Callback when a template category pill is clicked */
+  onTemplateCategoryClick?: (category: TemplateCategory) => void;
+  /** Callback when a suggested prompt card is clicked (position is 1-based) */
+  onTemplateClick?: (template: Template, position: number) => void;
+  /** Callback when the left/right arrow is clicked to scroll prompts */
+  onTemplateArrowClick?: (direction: 'left' | 'right', activeCategory: TemplateCategory) => void;
 
   /**
    * Callback when user types in input while submit is disabled

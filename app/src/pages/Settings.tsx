@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, Profiler } from "react";
+import { useState, useRef, useEffect, useCallback, Profiler } from "react";
+import { usePostHog } from "@posthog/react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -38,6 +39,7 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
+  const posthog = usePostHog();
   const {
     isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
@@ -45,6 +47,20 @@ const Settings = () => {
     isVonAiFieldsEnabled,
     isMemoryV2Enabled,
   } = useFeatureFlag();
+
+  const userRole = !user?.roles?.length
+    ? null
+    : user.roles.some((r) => r.toLowerCase() === "admin")
+      ? "Admin"
+      : "Member";
+
+  const basePostHogProps = {
+    company: user?.tenant ?? null,
+    company_id: user?.tenantId ?? null,
+    user_id: user?.id ?? null,
+    user_email: user?.email ?? null,
+    user_role: userRole,
+  };
 
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
@@ -83,11 +99,30 @@ const Settings = () => {
     }
   }, [searchParams]);
 
+  const getTabLabel = (tabId: string) => {
+    const allItems = Object.values(settingsItems).flat();
+    return allItems.find((item) => item.id === tabId)?.label ?? tabId;
+  };
+
+  const pageViewCaptured = useRef(false);
+  useEffect(() => {
+    if (!user || !posthog || pageViewCaptured.current) return;
+    posthog.capture("Settings - Page Viewed", {
+      ...basePostHogProps,
+      entry_point: "Settings option in chat bottom-left menu",
+    });
+    pageViewCaptured.current = true;
+  }, [user, posthog]);
+
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
     setSelectedSettingId(tabId);
     setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
+    posthog?.capture("Settings - Tab Clicked", {
+      ...basePostHogProps,
+      tab_name: getTabLabel(tabId),
+    });
   };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
@@ -123,8 +158,27 @@ const Settings = () => {
     navigate("/settings");
   };
 
+  const handleBackToHome = useCallback(() => {
+    posthog?.capture("Settings - Back to Home Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
+    navigate("/chat");
+  }, [posthog, user, selectedSettingId, navigate]);
+
+  const handleHelpDocsClick = useCallback(() => {
+    posthog?.capture("Settings - Help Docs Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
+  }, [posthog, user, selectedSettingId]);
+
   // Handle Logout click
   const handleLogoutClick = async () => {
+    posthog?.capture("Settings - Logout Clicked", {
+      ...basePostHogProps,
+      current_tab: getTabLabel(selectedSettingId),
+    });
     const { clearAllAuth } = await import("../lib/auth");
 
     if (import.meta.env.DEV) {
@@ -305,6 +359,7 @@ const Settings = () => {
           hideSettings
           onSettingsClick={handleSettingsClick}
           onLogoutClick={handleLogoutClick}
+          onHelpDocsClick={handleHelpDocsClick}
           triggerRect={avatarRect}
         />
 
@@ -329,7 +384,7 @@ const Settings = () => {
               userName={displayName}
               userEmail={user?.email}
               onAvatarClick={handleAvatarClick}
-              onBackToHome={() => navigate("/chat")}
+              onBackToHome={handleBackToHome}
             />
           </div>
 
