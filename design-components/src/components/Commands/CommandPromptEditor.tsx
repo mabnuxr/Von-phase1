@@ -278,14 +278,11 @@ export const CommandPromptEditor: React.FC<CommandPromptEditorProps> = ({
     }
   }, [editor, prompt]);
 
-  const removeReference = useCallback(
-    (id: string) => {
-      onReferencesChangeRef.current(
-        referencesRef.current.filter((r) => r.context.dashboardId !== id)
-      );
-    },
-    []
-  );
+  const removeReference = useCallback((id: string) => {
+    onReferencesChangeRef.current(
+      referencesRef.current.filter((r) => r.context.dashboardId !== id)
+    );
+  }, []);
 
   return (
     <div className="space-y-2">
