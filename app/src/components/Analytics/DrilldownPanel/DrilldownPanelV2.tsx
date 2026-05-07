@@ -153,13 +153,17 @@ export interface DrilldownPanelV2Props {
    * dict as the new filter contribution — whole-row descent. The optional
    * ``metricValue`` + ``metricLabel`` args carry the clicked cell's value
    * and column label so deeper breadcrumb segments can render the
-   * "Column Name: value" parenthesized suffix.
+   * "Column Name: value" parenthesized suffix. ``variantId`` carries the
+   * next-level variant id resolved from the current variant's
+   * ``column_variant_map`` for the clicked column; null = next level uses
+   * its is_default.
    */
   onRowDrill?: (
     rowIndex: number,
     rowData: Record<string, unknown>,
     metricValue?: unknown,
     metricLabel?: string,
+    variantId?: string | null,
   ) => void;
   /**
    * Per-depth drillable-column whitelists indexed by chain depth (same
@@ -171,6 +175,15 @@ export interface DrilldownPanelV2Props {
    * (every cell drillable).
    */
   levelDrillableColumns?: (string[] | null | undefined)[];
+  /**
+   * The currently-viewed variant's ``column_variant_map`` at the active
+   * drill depth. Resolved by the parent because it can read drill state
+   * (``currentVariantId`` + chain length) before passing in. null/undefined
+   * means no map declared → every clicked column descends into the next
+   * level's is_default variant. See ``getCurrentVariantColumnVariantMap``
+   * in utils/drilldownFilters.ts for resolution rules.
+   */
+  currentLevelColumnVariantMap?: Record<string, string> | null;
 }
 
 export function DrilldownPanelV2({
@@ -179,6 +192,7 @@ export function DrilldownPanelV2({
   levelColumnMaps,
   onRowDrill,
   levelDrillableColumns,
+  currentLevelColumnVariantMap,
 }: DrilldownPanelV2Props) {
   // Close on ESC
   useEffect(() => {
@@ -259,9 +273,16 @@ export function DrilldownPanelV2({
       const col = columns[colIdx];
       const metricValue = col?.id != null ? (rowData[col.id] ?? null) : null;
       const metricLabel = col?.label;
+      // Route to a specific next-level variant when the active variant's
+      // ``column_variant_map`` declares one for the clicked column. Without
+      // a match, fall back to the next level's is_default by passing null.
+      const mappedVariantId =
+        col?.id != null
+          ? (currentLevelColumnVariantMap?.[col.id] ?? null)
+          : null;
 
       e.stopPropagation();
-      onRowDrill(rowIndex, rowData, metricValue, metricLabel);
+      onRowDrill(rowIndex, rowData, metricValue, metricLabel, mappedVariantId);
     },
     [
       drill.data,
@@ -269,6 +290,7 @@ export function DrilldownPanelV2({
       onRowDrill,
       currentDrillableColumns,
       columns,
+      currentLevelColumnVariantMap,
     ],
   );
 

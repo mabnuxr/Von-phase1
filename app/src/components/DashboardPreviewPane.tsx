@@ -24,6 +24,7 @@ import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
 import { DrilldownPanel, DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
 import { EditModeBanner } from "./Analytics/EditModeBanner";
 import {
+  getCurrentVariantColumnVariantMap,
   getLevelColumnMaps,
   getLevelDrillableColumns,
   rowDescentFilters,
@@ -178,6 +179,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       filters: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId?: string | null,
     ) => {
       if (shouldUseV2(panelId)) {
         drillV2.openPanelDrilldown(
@@ -186,6 +188,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
           filters,
           metricValue,
           metricLabel,
+          variantId,
         );
         return;
       }
@@ -199,11 +202,14 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       rowData: Record<string, unknown>,
       metricValue?: unknown,
       metricLabel?: string,
+      variantId?: string | null,
     ) => {
       // Mirror of pages/Analytics.tsx::handleV2RowDrill — feed the next
       // level's column_map (and the current level's, for the diff) so each
       // chain entry only carries axes newly introduced at its depth. See
-      // `rowDescentFilters` for the cumulative-filter rationale.
+      // `rowDescentFilters` for the cumulative-filter rationale. ``variantId``
+      // routes the next level via the active variant's column_variant_map;
+      // null falls back to the next level's is_default.
       const widget = drillV2.panelId
         ? dashboard?.widgets?.[drillV2.panelId]
         : undefined;
@@ -217,7 +223,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
       const topChainNode = drillV2.clickChain[currentDepth - 1];
       const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
-      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel);
+      drillV2.pushLevel(nextPath, filters, metricValue, metricLabel, variantId);
     },
     [drillV2, dashboard],
   );
@@ -360,6 +366,13 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
                 drillV2.panelId
                   ? dashboard.widgets?.[drillV2.panelId]
                   : undefined,
+              )}
+              currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
+                drillV2.panelId
+                  ? dashboard.widgets?.[drillV2.panelId]
+                  : undefined,
+                drillV2.clickChain.length,
+                drillV2.currentVariantId,
               )}
               onRowDrill={handleV2RowDrill}
             />
