@@ -1,0 +1,14 @@
+Revenue OS Frontend has been deployed.
+
+Release:   {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+Chart:     {{ .Chart.Name }}-{{ .Chart.Version }}
+Image:     {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+
+Verify the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "revenue-os-frontend.fullname" . }}
+
+The frontend is exposed via the following hosts:
+{{- range .Values.ingress.hosts }}
+  - http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+{{- end }}

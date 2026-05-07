@@ -1,0 +1,131 @@
+name: ArgoCD Deploy
+
+# Reusable: pin the ArgoCD Application atomically to a specific commit.
+# Renders argocd/application.yaml with the real values (replacing the
+# bootstrap placeholders) and applies it:
+#   - spec.source.targetRevision   -> chart OCI version `<base>-sha-<short>`
+#   - spec.source.helm.parameters  -> image.tag = sha-<short>
+# Then waits for the Application to reach Synced + Healthy.
+#
+# Chart is pulled from oci://.../helm-charts/revenue-os-frontend, image
+# from .../revenue-os-frontend. Both pinned to the same commit SHA so
+# chart, values, and image roll together atomically.
+#
+# Triggered two ways:
+#   - workflow_call from deploy-ecr after image + chart land in ECR
+#   - workflow_dispatch for manual deploys / rollbacks (input: commit SHA)
+
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        description: "Full commit SHA to deploy (40 hex chars)"
+        required: true
+        type: string
+      image_tag_suffix:
+        description: "Suffix appended to the SHA-based image tag (e.g. '-ui')"
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Full commit SHA to deploy (40 hex chars)"
+        required: true
+        type: string
+      image_tag_suffix:
+        description: "Suffix appended to the SHA-based image tag (e.g. '-ui')"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-west-2
+  IAM_ROLE_ARN: arn:aws:iam::814314855241:role/vonlabs-prod-github-actions-backend
+  EKS_CLUSTER_NAME: vonlabs-workloads
+  ARGOCD_APP: revenue-os-frontend
+  ARGOCD_NS: argocd
+
+jobs:
+  deploy:
+    name: Patch ArgoCD Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout chart for version resolution
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - name: Resolve chart version and image tag
+        id: tag
+        run: |
+          SHA="${{ inputs.commit_sha }}"
+          if ! echo "${SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "ERROR: commit_sha must be a full 40-char hex SHA (got '${SHA}')" >&2
+            exit 1
+          fi
+          CHART_BASE=$(grep -E '^version:' charts/revenue-os-frontend/Chart.yaml | awk '{print $2}' | tr -d '"')
+          SUFFIX="${{ inputs.image_tag_suffix }}"
+          echo "chart_version=${CHART_BASE}-${SHA}" >> $GITHUB_OUTPUT
+          echo "image_tag=${SHA}${SUFFIX}"          >> $GITHUB_OUTPUT
+          echo "Deploying chart ${CHART_BASE}-${SHA} (image tag ${SHA}${SUFFIX})"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_ROLE_ARN }}
+          role-session-name: github-actions-argocd-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.35.0
+
+      - name: Configure kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name "${EKS_CLUSTER_NAME}" --region "${AWS_REGION}"
+          kubectl config current-context
+
+      - name: Apply Application
+        run: |
+          sed \
+            -e "s|0.1.0-bootstrap|${{ steps.tag.outputs.chart_version }}|" \
+            -e "s|value: bootstrap|value: ${{ steps.tag.outputs.image_tag }}|" \
+            argocd/application.yaml \
+            | kubectl apply -f -
+
+      - name: Refresh and wait for Synced + Healthy
+        run: |
+          kubectl -n "${ARGOCD_NS}" annotate application "${ARGOCD_APP}" \
+            argocd.argoproj.io/refresh=hard --overwrite
+
+          for i in $(seq 1 60); do
+            SYNC=$(kubectl -n "${ARGOCD_NS}" get application "${ARGOCD_APP}" \
+              -o jsonpath='{.status.sync.status}')
+            HEALTH=$(kubectl -n "${ARGOCD_NS}" get application "${ARGOCD_APP}" \
+              -o jsonpath='{.status.health.status}')
+            echo "[$i] sync=${SYNC} health=${HEALTH}"
+            if [ "${SYNC}" = "Synced" ] && [ "${HEALTH}" = "Healthy" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Timed out waiting for Synced + Healthy" >&2
+          kubectl -n "${ARGOCD_NS}" get application "${ARGOCD_APP}" -o yaml | tail -80
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## ArgoCD deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application:**   \`${ARGOCD_APP}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart version:** \`${{ steps.tag.outputs.chart_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image tag:**     \`${{ steps.tag.outputs.image_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Git commit:**    \`${{ inputs.commit_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cluster:**       \`${EKS_CLUSTER_NAME}\`" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: revenue-os-frontend
+description: Helm chart for the Revenue OS Frontend
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - revenue-os
+  - frontend
+  - nginx
+  - spa
+  - vonlabs
+maintainers:
+  - name: Vonlabs AI
+    email: engineering@vonlabs.ai
+sources:
+  - https://github.com/Vonlabs-ai/revenue-os-frontend

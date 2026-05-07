@@ -1,0 +1,11 @@
+# Production overrides for revenue-os-frontend.
+# Used by ArgoCD via the Application manifest at argocd/application.yaml.
+
+ingress:
+  annotations:
+    alb.ingress.kubernetes.io/group.name: revenue-os-frontend-prod
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:814314855241:certificate/382ff526-3e7c-42f5-877f-9a1989d9991a
+  tls:
+    - hosts:
+        - app-v3.vonlabs.ai
+        - app.vonlabs.ai
