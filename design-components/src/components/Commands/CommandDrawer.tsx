@@ -319,19 +319,19 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   later (e.g. `.filter(s => s === 'private' || isAdmin)`)
                   without changing the call-site contract. */}
               {(['private', 'org'] as const).map((scope) => (
-                  <button
-                    key={scope}
-                    type="button"
-                    onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
-                    className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
-                      form.sharingScope === scope
-                        ? 'border-gray-300 bg-gray-50 text-gray-900'
-                        : 'border-gray-100 text-gray-500'
-                    } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
-                  >
-                    {scope === 'private' ? 'Private' : 'Org-wide'}
-                  </button>
-                ))}
+                <button
+                  key={scope}
+                  type="button"
+                  onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
+                  className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
+                    form.sharingScope === scope
+                      ? 'border-gray-300 bg-gray-50 text-gray-900'
+                      : 'border-gray-100 text-gray-500'
+                  } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
+                >
+                  {scope === 'private' ? 'Private' : 'Org-wide'}
+                </button>
+              ))}
             </div>
           </Accordion>
 
