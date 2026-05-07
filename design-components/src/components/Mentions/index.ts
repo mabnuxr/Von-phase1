@@ -4,6 +4,7 @@ export type {
   DashboardVariant,
   WidgetMentionContext,
   WidgetMentionType,
+  AiFieldMentionContext,
 } from './types';
 export { MentionsList } from './MentionsList';
 export type { MentionsListProps } from './MentionsList';

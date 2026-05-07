@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Channel } from "pusher-js";
-import { chatSidebarKeys } from "./useChatSidebar";
+import { folderKeys } from "./folders";
 import {
   UserChannelEvents,
   type ConversationTitleUpdatedEvent,
@@ -50,12 +50,10 @@ export function useTitleAnimation({ userChannel }: UseTitleAnimationParams) {
         title: data.title,
       });
 
-      // Invalidate both V1 and V2 sidebar caches so the real title is fetched
-      // before the animation overlay is removed
+      // Invalidate the conversation list and every folders v2 cache so the
+      // real title is fetched before the animation overlay is removed.
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({
-        queryKey: chatSidebarKeys.sidebar(),
-      });
+      queryClient.invalidateQueries({ queryKey: folderKeys.all });
     };
 
     userChannel.bind(

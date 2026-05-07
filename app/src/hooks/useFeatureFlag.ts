@@ -13,7 +13,6 @@ export const FEATURE_FLAGS = {
   ACTIONS: "enableDashboards",
   /** @deprecated permanently enabled — kept for reference only */
   DEEP_LINKS: "enableDeepLinks",
-  SIDE_BAR_V2: "sidebarV2",
   AGENT_V2: "agentsV2",
   /** @deprecated permanently enabled — kept for reference only */
   USER_MEMORY: "enableUserMemory",
@@ -44,6 +43,18 @@ export const FEATURE_FLAGS = {
   // (`FeatureFlagClient().is_enabled("enable-dashboard-filters-v2", …)`),
   // so a single toggle in LaunchDarkly flips both sides in sync.
   DASHBOARD_FILTERS_V2: "enableDashboardFiltersV2",
+  // LaunchDarkly key: `enable-dashboard-drag-drop` (auto-camelCased to
+  // `enableDashboardDragDrop` for `useFlags()` access). Gates the manual
+  // drag-and-drop / resize affordance in dashboard edit mode. When off,
+  // edit mode still works for filters / rename / save, but widgets stay
+  // pinned to their configured layout.
+  DASHBOARD_DRAG_DROP: "enableDashboardDragDrop",
+  // LaunchDarkly flag is registered as `drilldown_v2` on the LD platform —
+  // that's the key the backend reads via the server SDK
+  // (`app/api/v1/dashboard.py::DRILLDOWN_V2_FLAG`). The React client SDK
+  // camelCases keys via `lodash.camelcase` by default (hyphens AND
+  // underscores), so `useFlags()` exposes it as `drilldownV2`.
+  DRILLDOWN_V2: "drilldownV2",
   // Gates the "Share chat" entry points (header button + sidebar
   // context-menu item). The recipient `/shared/:token` route stays
   // reachable so already-generated links continue to work.
@@ -52,6 +63,10 @@ export const FEATURE_FLAGS = {
   VON_AI_FIELDS: "enableVonAiFields",
   CUSTOM_MCP: "enableCustomMcp",
   MCP_SERVERS: "enableMcpServers",
+  // Gates the redesigned memory pages (org/user split tabs, inline editor,
+  // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
+  // returns the legacy single-pane memory tab.
+  MEMORY_V2: "enableMemoryV2",
 } as const;
 
 /**
@@ -107,13 +122,8 @@ export function useFeatureFlag() {
     isDeepLinksEnabled: true,
 
     /**
-     * Controls if we need to show new sidebar UI experience
-     */
-    isSidebarV2: flags[FEATURE_FLAGS.SIDE_BAR_V2] === true,
-
-    /**
      * Controls whether the new TimelineThinkingProcess v2 component is used
-     * instead of the legacy ThinkingBlock component
+     * instead of the legacy ThinkingBlock component. Permanently enabled.
      */
     isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
 
@@ -121,6 +131,13 @@ export function useFeatureFlag() {
      * User memory — permanently enabled, no longer behind a feature flag
      */
     isUserMemoryEnabled: true,
+
+    /**
+     * Memory V2 — gates the redesigned memory pages (split Org/User tabs,
+     * inline editor, pick-time S3 uploads, bulk-import side pane). Off
+     * shows the legacy single-pane memory tab.
+     */
+    isMemoryV2Enabled: flags[FEATURE_FLAGS.MEMORY_V2] === true,
 
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
@@ -219,6 +236,24 @@ export function useFeatureFlag() {
      */
     isDashboardFiltersV2Enabled:
       flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+
+    /**
+     * Controls whether dashboard widgets can be rearranged via drag-and-drop
+     * and resized in edit mode. When false, widgets stay pinned to their
+     * configured layout — edit mode still works for filters / rename / save.
+     */
+    isDashboardDragDropEnabled:
+      flags[FEATURE_FLAGS.DASHBOARD_DRAG_DROP] === true,
+
+    /**
+     * Controls whether the V2 drilldown UI is wired — bottom-sheet panel,
+     * variants UI, V2 endpoint routing, whole-row descent through the
+     * pyramid model. When OFF, panels with `drilldown_v2` from the backend
+     * fall through to the legacy V1 wiring (which is a no-op for V2-only
+     * panels — acceptable since V2-built dashboards are only served to
+     * flagged users in practice).
+     */
+    isDrilldownV2Enabled: flags[FEATURE_FLAGS.DRILLDOWN_V2] === true,
 
     /**
      * Controls whether the chat sharing feature is enabled

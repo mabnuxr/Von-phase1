@@ -6,8 +6,6 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
-  longTextExpandFormatter,
-  handleLongTextHover,
   escapeHtml,
 } from './reportTableUtils';
 export type {
@@ -32,3 +30,8 @@ export {
 export { SourcePopover, VonLogoButton } from './SourcePopover';
 export { LongTextPopover } from './LongTextPopover';
 export type { ExpandPopoverState } from './LongTextPopover';
+export {
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
+} from './markdownCell';

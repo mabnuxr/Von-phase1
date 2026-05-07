@@ -15,7 +15,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import type { Command, ScheduleRecipient } from './types';
+import type { Command, DashboardOption, ScheduleRecipient } from './types';
 import { CommandDrawer } from './CommandDrawer';
 import { CommandsList } from './CommandsList';
 import { ManageCommandsDrawer } from './ManageCommandsDrawer';
@@ -47,7 +47,10 @@ export interface CommandsOverlayProps {
    *                as `id` when creating a new command for a single-call create.
    */
   onSaveCommand: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
+    data: Pick<
+      Command,
+      'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+    >,
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
     commandId?: string
@@ -62,8 +65,6 @@ export interface CommandsOverlayProps {
   slashRect?: { left: number; top: number; bottom: number } | null;
   /** Disables the save button while a mutation is in-flight */
   isSaving?: boolean;
-  /** When true, the "Org-wide" sharing option is available in the command drawer */
-  isAdmin?: boolean;
   /** Called when the bookmark/favorite icon is toggled on a command */
   onToggleFavorite?: (command: Command) => void;
   /**
@@ -86,6 +87,8 @@ export interface CommandsOverlayProps {
     dataSources: import('./types').CommandAttachment[],
     recipients: ScheduleRecipient[]
   ) => Promise<void>;
+  /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
+  availableDashboards?: DashboardOption[];
 
   // ---------------------------------------------------------------------------
   // Legacy props — accepted for backwards compatibility with older consumers
@@ -137,13 +140,13 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSaving = false,
-  isAdmin = false,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
   teamMembers,
   currentUser,
   onSendTest,
+  availableDashboards,
   highlightedIndex = -1,
   onHoverIndex,
   slashRect,
@@ -201,7 +204,10 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
 
   const handleSave = useCallback(
     async (
-      data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
+      data: Pick<
+        Command,
+        'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+      >,
       dataSources: import('./types').CommandAttachment[],
       commandId: string
     ) => {
@@ -261,13 +267,13 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         editingCommand={editingCommand}
         isSaving={isSaving}
         readOnly={isReadOnly}
-        isAdmin={isAdmin}
         onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
         onBack={openedFromManage ? handleBackToManage : undefined}
         teamMembers={teamMembers}
         currentUser={currentUser}
         onSendTest={onSendTest}
+        availableDashboards={availableDashboards}
       />
 
       {/* Manage drawer */}

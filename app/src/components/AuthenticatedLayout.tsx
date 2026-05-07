@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
+import { identifyPosthogUser } from "../lib/posthog";
 import { LaunchDarklyIdentityContext } from "./LaunchDarkly";
 import { GlobalChatProvider } from "../providers/GlobalChat";
 
@@ -17,7 +18,7 @@ export function AuthenticatedLayout() {
   useEffect(() => {
     identifyUser();
 
-    // Identify user in Datadog RUM from JWT claims (synchronous, no API call)
+    // Identify user in observability tools from JWT claims (synchronous, no API call)
     const userContext = getUserContextFromToken();
     if (userContext) {
       identifyDatadogUser(
@@ -25,6 +26,10 @@ export function AuthenticatedLayout() {
         userContext.email,
         userContext.tenantId,
       );
+      identifyPosthogUser(userContext.userId, {
+        email: userContext.email,
+        tenantId: userContext.tenantId,
+      });
     }
   }, [identifyUser]);
 

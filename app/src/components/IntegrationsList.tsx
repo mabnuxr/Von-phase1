@@ -36,20 +36,18 @@ function getBackendUserId(): string | null {
 const CATEGORY_ORDER: Array<
   | "CRM"
   | "Calendar"
-  | "Call Recorder"
+  | "Calls & Engagement"
   | "Note Takers"
   | "Knowledge base"
-  | "Sales Engagement"
   | "Data Warehouse"
   | "Customer Support"
   | "Communication"
 > = [
   "CRM",
   "Calendar",
-  "Call Recorder",
+  "Calls & Engagement",
   "Note Takers",
   "Knowledge base",
-  "Sales Engagement",
   "Data Warehouse",
   "Customer Support",
   "Communication",
@@ -451,12 +449,6 @@ function IntegrationItem({
     if (canBeOrgLevel(item.id)) availableChips.push("workspace");
     if (canBeUserLevel(item.id)) availableChips.push("personal");
 
-    // Gong Engage and Salesloft Recorder share credentials with their parent
-    // integrations (Gong, Salesloft), so they show "Available" instead of a
-    // Connect button — they are enabled automatically when the parent connects.
-    const isStaticAvailable =
-      item.id === "gongengage" || item.id === "salesloft_recorder";
-
     return (
       <IntegrationCard
         name={item.name}
@@ -465,10 +457,9 @@ function IntegrationItem({
         isAvailable={true}
         disabled={item.disabled}
         chips={availableChips}
-        statusText={isStaticAvailable ? "Available" : undefined}
         note={item.note}
         onToggle={
-          item.disabled || isStaticAvailable
+          item.disabled
             ? undefined
             : () => {
                 const accessLevel = canBeOrgLevel(item.id) ? "tenant" : "user";
@@ -693,7 +684,6 @@ export function IntegrationsList({
     isSnowflakeEnabled,
     isGmailEnabled,
     isGranolaEnabled,
-    isGongEngageEnabled,
     isNotionEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
@@ -707,12 +697,25 @@ export function IntegrationsList({
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
     return apps.filter((app) => {
+      // Hide piggyback child entries — each shares creds with a parent
+      // integration in the same category, so surfacing them as separate
+      // "Available" cards just duplicates the parent. Their metadata
+      // entries stay registered for BE↔FE id translation.
+      //   gong            ← gongengage
+      //   outreachengage  ← outreach_kaia
+      //   salesloft_engagement ← salesloft_recorder
+      if (
+        app.id === "gongengage" ||
+        app.id === "outreach_kaia" ||
+        app.id === "salesloft_recorder"
+      ) {
+        return false;
+      }
       if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
       if (app.id === "zendesk" && !isZendeskEnabled) return false;
       if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
       if (app.id === "gmail" && !isGmailEnabled) return false;
       if (app.id === "granola" && !isGranolaEnabled) return false;
-      if (app.id === "gongengage" && !isGongEngageEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
       if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
@@ -730,7 +733,6 @@ export function IntegrationsList({
     isGmailEnabled,
     isGranolaEnabled,
     isNotionEnabled,
-    isGongEngageEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,

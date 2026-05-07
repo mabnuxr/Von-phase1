@@ -91,13 +91,13 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand,
-      isAdmin = false,
       teamMembers,
       currentUser,
       onSendTest,
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
+      availableDashboards,
       enableActions = false,
       onConvertToDashboard,
       onTransparencyClick,
@@ -284,13 +284,13 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 onSaveCommand={onSaveCommand}
                 onDeleteCommand={onDeleteCommand}
                 isSavingCommand={isSavingCommand}
-                isAdmin={isAdmin}
                 teamMembers={teamMembers}
                 currentUser={currentUser}
                 onSendTest={onSendTest}
                 onToggleFavorite={onToggleFavorite}
                 onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                 onUploadFile={onUploadFile}
+                availableDashboards={availableDashboards}
                 banner={banner}
                 topBanner={topBanner}
                 useStandardInput={useStandardInput}
@@ -427,13 +427,13 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             onSaveCommand={onSaveCommand}
             onDeleteCommand={onDeleteCommand}
             isSavingCommand={isSavingCommand}
-            isAdmin={isAdmin}
             teamMembers={teamMembers}
             currentUser={currentUser}
             onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
+            availableDashboards={availableDashboards}
             placeholder={placeholder}
             onSend={handleSendMessage}
             onStop={handleStop}

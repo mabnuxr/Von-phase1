@@ -12,7 +12,7 @@ import {
 import type { BuildMode } from './StandardChatInput/types';
 import type { ConversationMode } from './StandardChatInput/types';
 import type { FileAttachment } from './FileAttachment/types';
-import type { Command } from '../Commands';
+import type { Command, DashboardOption } from '../Commands';
 import type { MentionItem } from '../Mentions';
 
 export interface ChatEmptyStateProps {
@@ -134,8 +134,8 @@ export interface ChatEmptyStateProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** Eagerly uploads a file when the user picks it in the command drawer */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
-  /** When true, the "Org-wide" sharing option is available in the command drawer */
-  isAdmin?: boolean;
+  /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
+  availableDashboards?: DashboardOption[];
   /** Team members available as schedule recipients */
   teamMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
@@ -214,13 +214,13 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSavingCommand,
-  isAdmin = false,
   teamMembers,
   currentUser,
   onSendTest,
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
+  availableDashboards,
   availableAgentModes,
   enableMentions,
   mentionItems,
@@ -414,13 +414,13 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onSaveCommand={onSaveCommand}
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
-          isAdmin={isAdmin}
           teamMembers={teamMembers}
           currentUser={currentUser}
           onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}
           onRequestFilePreviewUrl={onRequestFilePreviewUrl}
           onUploadFile={onUploadFile}
+          availableDashboards={availableDashboards}
           placeholder={placeholder}
           onSend={handleSend}
           disabled={disabled}

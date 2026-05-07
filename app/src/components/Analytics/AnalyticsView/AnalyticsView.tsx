@@ -17,6 +17,7 @@ import {
   DashboardGrid,
   ErrorBoundary,
   Tooltip,
+  AutoFitContext,
 } from "@vonlabs/design-components";
 import { DashboardFilterBarV2 } from "../AnalyticsFilters/DashboardFilterBarV2";
 import { DataSourcesSlot } from "./DataSourcesSlot";
@@ -25,6 +26,9 @@ import type { ActiveFilter } from "../../../hooks/useDashboardFilters";
 import { StatusLine } from "./StatusLine";
 import { SaveButton } from "./SaveButton";
 import { useCreatorName } from "../../../hooks/useCreatorName";
+import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
+import { useDashboardAutoFit } from "../../../hooks/useDashboardAutoFit";
+import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -128,6 +132,13 @@ interface AnalyticsViewProps {
   onRename?: (newName: string) => void;
   /** Hide the "Created by" chip in the header */
   hideCreatorChip?: boolean;
+  /**
+   * True when rendered inside the chat-side preview pane. Auto-fit only
+   * runs when this is true AND edit mode is on AND the drag-and-drop flag
+   * is enabled — the full dashboard page never auto-fits, regardless of
+   * mode/flag.
+   */
+  isPreview?: boolean;
   /** Schedule state and handlers (required when dashboard.isOwner) */
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
@@ -245,6 +256,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   tableSortStates,
   onRename,
   hideCreatorChip,
+  isPreview,
   schedule,
   isScheduled,
   isSchedulePaused,
@@ -269,6 +281,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     string,
     WidgetConfig
   >;
+
+  // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
+  // can roll the manual-layout feature out per tenant. Edit mode itself
+  // (filters, rename, save) stays available regardless.
+  const { isDashboardDragDropEnabled } = useFeatureFlag();
+
+  const { handleLayoutChange: saveLayoutChange } = useLayoutAutoSave(
+    dashboard.id,
+    dashboard.isEditable,
+    layout,
+  );
+  const { controller: autoFitController, handleLayoutChange } =
+    useDashboardAutoFit({
+      layout,
+      onLayoutChange: saveLayoutChange,
+      // Auto-fit runs only in the preview pane, only when in edit mode,
+      // only when the drag-drop flag is on. All three required.
+      isEnabled:
+        !!isPreview && dashboard.isEditable && isDashboardDragDropEnabled,
+    });
 
   const variablesByWidget = useMemo(
     () =>
@@ -674,24 +706,28 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         </AnimatePresence>
 
         <ErrorBoundary>
-          <DashboardGrid
-            layout={layout}
-            widgets={widgets}
-            gridConfig={gridConfig}
-            onTablePageChange={onTablePageChange}
-            loadingTablePanels={loadingTablePanels}
-            onDrillDown={onDrillDown}
-            onPointDrillDown={onPointDrillDown}
-            onAddToChat={onAddWidgetToChat}
-            onTableSortChange={onTableSortChange}
-            tableSortStates={tableSortStates}
-            isEditMode={isEditMode}
-            isLoading={isRefetchingData || isRefreshing}
-            variablesByWidget={variablesByWidget}
-            // Widget-level filter UI hidden until panel-filter designs are ready
-            // widgetAppliedFilters={widgetAppliedFilters}
-            // widgetFilterSlot={widgetFilterSlot}
-          />
+          <AutoFitContext.Provider value={autoFitController}>
+            <DashboardGrid
+              layout={layout}
+              widgets={widgets}
+              gridConfig={gridConfig}
+              onTablePageChange={onTablePageChange}
+              loadingTablePanels={loadingTablePanels}
+              onDrillDown={onDrillDown}
+              onPointDrillDown={onPointDrillDown}
+              onAddToChat={onAddWidgetToChat}
+              onTableSortChange={onTableSortChange}
+              tableSortStates={tableSortStates}
+              isEditMode={isEditMode}
+              isDragDropEnabled={isDashboardDragDropEnabled}
+              isLoading={isRefetchingData || isRefreshing}
+              variablesByWidget={variablesByWidget}
+              onLayoutChange={handleLayoutChange}
+              // Widget-level filter UI hidden until panel-filter designs are ready
+              // widgetAppliedFilters={widgetAppliedFilters}
+              // widgetFilterSlot={widgetFilterSlot}
+            />
+          </AutoFitContext.Provider>
         </ErrorBoundary>
 
         {/* Edit mode banner — full-width sticky bottom (hidden when drilldown is open; parent renders its own) */}

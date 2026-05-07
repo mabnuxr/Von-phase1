@@ -78,11 +78,15 @@ export type { TextProps } from './Text';
 
 // File Attachment Types & Components
 export type { FileAttachment, FileCategory } from './Chat/FileAttachment';
+export { FilePreview } from './Chat/FileAttachment';
+export type { FilePreviewProps } from './Chat/FileAttachment';
 export { FilePreviewModal } from './Chat/FileAttachment';
 export type { FilePreviewModalProps } from './Chat/FileAttachment';
 export {
   getFileInfo,
   generateFileId,
+  getAcceptString,
+  formatFileSize,
   FILE_SIZE_LIMIT_MB,
   FILE_SIZE_LIMIT_BYTES,
   MAX_FILES,
@@ -261,29 +265,29 @@ export type { ConversationSearchRendererProps } from './Chat/ConversationSearchR
 export { TopBar } from './TopBar';
 export type { TopBarProps, Tab } from './TopBar';
 
-// ChatSidebar Organism (uses: Search + List, manages chat history)
+// ChatSidebar Organism (Folders v2 — sectioned + nested A2 layout, supports
+// dashboards + chats inside folders).
 export { ChatSidebar } from './ChatSidebar';
-export type { ChatSidebarProps, ChatItem } from './ChatSidebar';
-
-// ChatSidebarV2 Organism (uses: Folders + Search + List, supports folder organization)
-export { ChatSidebar as ChatSidebarV2 } from './ChatSidebarV2';
 export type {
-  ChatSidebarProps as ChatSidebarV2Props,
+  ChatSidebarProps,
   SidebarItem,
   Folder,
   ItemType,
   ItemStatus,
   ApprovalState,
   FolderItemsMap,
+  FolderDashboardsMap,
   FolderLoadingMap,
   DashboardSidebarItem,
   DashboardItemState,
   DashboardItemVisibility,
-} from './ChatSidebarV2';
-export { ApprovalDot } from './ChatSidebarV2';
-export type { ApprovalDotProps } from './ChatSidebarV2';
-export { ApprovalPill } from './ChatSidebarV2';
-export type { ApprovalPillProps } from './ChatSidebarV2';
+  SectionShowMoreMap,
+  FolderItemType,
+} from './ChatSidebar';
+export { ApprovalDot } from './ChatSidebar';
+export type { ApprovalDotProps } from './ChatSidebar';
+export { ApprovalPill } from './ChatSidebar';
+export type { ApprovalPillProps } from './ChatSidebar';
 
 // ============================================================================
 // FILES PREVIEW (Generic slide-in panel for previewing one or more files)
@@ -369,6 +373,9 @@ export {
 export type {
   Command,
   CommandAttachment,
+  CommandReference,
+  CommandDashboardReference,
+  DashboardOption,
   CommandSchedule,
   ScheduleRecipient,
   CommandsState,
@@ -456,8 +463,9 @@ export {
   rowsToDataTableColumns,
   createCellFormatter,
   formatValue,
-  longTextExpandFormatter,
-  handleLongTextHover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
   escapeHtml,
   LongTextPopover,
 } from './ReportTable';
@@ -549,6 +557,9 @@ export type {
   TeamMemberOption,
 } from './popups';
 
+export { DeleteConfirmationPopup } from './popups';
+export type { DeleteConfirmationPopupProps, DeleteItemType } from './popups';
+
 // ============================================================================
 // DATA TABLES (Jan17Demo - kept for reference, use DeepResearchDataTablesDrawer for production)
 // ============================================================================
@@ -606,6 +617,8 @@ export {
   TextWidget,
   DashboardLayout,
   DataSources,
+  AutoFitContext,
+  useAutoFit,
 } from './Dashboard';
 export type {
   DashboardGridProps,
@@ -627,4 +640,6 @@ export type {
   DataSource,
   DataSourceIcon,
   WidgetAddToChatPayload,
+  AutoFitController,
+  AutoFitReport,
 } from './Dashboard';

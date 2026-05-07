@@ -8,16 +8,12 @@
 export const ConversationChannelEvents = {
   ARTIFACT_CREATED: "artifact_created",
   INTEGRATION_WRITE_BLOCKED: "integration.write_blocked",
+  AI_FIELD_CREATED: "AI_FIELD_CREATED",
 } as const;
 
 export type ConversationChannelEventName =
   (typeof ConversationChannelEvents)[keyof typeof ConversationChannelEvents];
 
-/**
- * Sent in two phases:
- * 1. status="processing" — emitted before RUN_FINISHED with file names only (seeds skeletons)
- * 2. status="completed"  — emitted after S3 upload + FileMetadata insert (real metadata)
- */
 export type WriteBlockCode =
   | "org_read_only"
   | "admin_disabled"
@@ -30,13 +26,35 @@ export interface AgentWriteBlockedPayload {
   idempotency_key: string;
 }
 
+export interface AiFieldEventPayload {
+  type: "ai_field";
+  fieldId: string;
+  name: string;
+  status: "draft" | "live" | "disabled";
+  description?: string;
+  columnsToGenerate?: Array<{
+    name: string;
+    description: string;
+    type: string;
+  }>;
+  sources?: string[];
+  opportunityFilter?: string;
+  conversationId?: string;
+}
+
+/**
+ * Emitted by `fulfill_artifact` after the S3 upload + FileMetadata atomic
+ * `processing → completed` transition succeeds. Skeletons render off the
+ * `processing` Mongo rows registered before RUN_FINISHED — there is no
+ * separate processing-phase Pusher event.
+ */
 export interface ArtifactCreatedEventPayload {
   type: "artifact_created";
-  status?: "processing" | "completed";
+  status?: "completed";
   runId: string;
   conversationId: string;
   artifacts: Array<{
-    id?: string;
+    id: string;
     file_name: string;
     artifact_type?: string;
     mime_type?: string;

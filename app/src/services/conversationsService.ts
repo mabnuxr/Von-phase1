@@ -10,11 +10,6 @@ import type {
   MessageCommand,
   MessageReference,
 } from "../types/conversation";
-import type {
-  ChatSidebarResponse,
-  CreateFolderResponse,
-  FolderConversationsResponse,
-} from "../types/chatSidebar";
 import type { DashboardAssociatedChatsResponse } from "../types/dashboardAssociatedChats";
 
 /**
@@ -277,19 +272,6 @@ class ConversationsService {
   }
 
   /**
-   * Fetch chat sidebar data with folders and unfiled conversations
-   * Used for ChatSidebarV2 component
-   */
-  async getChatSidebar(
-    unfiledPage: number = 1,
-    unfiledLimit: number = 20,
-  ): Promise<ChatSidebarResponse> {
-    return apiClient.get<ChatSidebarResponse>(
-      `/api/v1/chat/sidebar?unfiledPage=${unfiledPage}&unfiledLimit=${unfiledLimit}`,
-    );
-  }
-
-  /**
    * Fetch chats associated with a specific dashboard — either created in that
    * chat or containing an @[dashboardId] mention. Sorted server-side by
    * lastMessageAt DESC. See frontend-handoff.md.
@@ -301,82 +283,6 @@ class ConversationsService {
   ): Promise<DashboardAssociatedChatsResponse> {
     return apiClient.get<DashboardAssociatedChatsResponse>(
       `/api/v1/chat/dashboard/${encodeURIComponent(dashboardId)}?page=${page}&limit=${limit}`,
-    );
-  }
-
-  /**
-   * Create a new folder for organizing conversations
-   * Backend expects: { name: string }
-   */
-  async createFolder(name: string): Promise<CreateFolderResponse> {
-    return apiClient.post<CreateFolderResponse>(`/api/v1/folders`, { name });
-  }
-
-  /**
-   * Delete a folder by ID
-   */
-  async deleteFolder(folderId: string): Promise<void> {
-    return apiClient.delete<void>(`/api/v1/folders/${folderId}`);
-  }
-
-  /**
-   * Rename a folder
-   * Backend expects: { name: string }
-   */
-  async renameFolder(folderId: string, name: string): Promise<void> {
-    return apiClient.patch<void>(`/api/v1/folders/${folderId}`, { name });
-  }
-
-  /**
-   * Update a folder's display order (used for pinning/unpinning)
-   * Pin: displayOrder = 0, Unpin: displayOrder = 100 (default)
-   */
-  async updateFolderDisplayOrder(
-    folderId: string,
-    displayOrder: number,
-  ): Promise<void> {
-    return apiClient.patch<void>(`/api/v1/folders/${folderId}`, {
-      displayOrder,
-    });
-  }
-
-  /**
-   * Fetch conversations within a folder
-   * Returns folder details and list of conversations
-   */
-  async getFolderConversations(
-    folderId: string,
-  ): Promise<FolderConversationsResponse> {
-    return apiClient.get<FolderConversationsResponse>(
-      `/api/v1/folders/${folderId}/conversations`,
-    );
-  }
-
-  /**
-   * Add a conversation to a folder
-   * @param folderId - Target folder ID
-   * @param conversationId - The conversation to add
-   */
-  async addConversationToFolder(
-    folderId: string,
-    conversationId: string,
-  ): Promise<void> {
-    return apiClient.post<void>(`/api/v1/folders/${folderId}/conversations`, {
-      conversation_id: conversationId,
-    });
-  }
-
-  /**
-   * Remove a conversation from a folder
-   * @param folderId - Folder ID to remove from
-   * @param conversationId - The conversation to remove
-   */
-  async removeConversationFromFolder(
-    folderId: string,
-    conversationId: string,
-  ): Promise<void> {
-    return apiClient.delete<void>(
-      `/api/v1/folders/${folderId}/conversations/${conversationId}`,
     );
   }
 

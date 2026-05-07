@@ -15,12 +15,18 @@ import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
+import { useDrilldownV2 } from "../hooks/useDrilldownV2";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
-import { DrilldownPanel } from "./Analytics/DrilldownPanel";
+import { DrilldownPanel, DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
 import { EditModeBanner } from "./Analytics/EditModeBanner";
+import {
+  getLevelColumnMaps,
+  rowDescentFilters,
+} from "../utils/drilldownFilters";
 
 interface DashboardPreviewPaneProps {
   dashboardId: string;
@@ -136,6 +142,67 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId);
 
+  // V2 drilldown wiring — exact mirror of pages/Analytics.tsx so preview
+  // mode and full mode produce byte-identical drill requests. Without this,
+  // V2-built panels (which only have ``drilldown_v2`` config, no V1
+  // ``drilldown.query_ref``) fall through to the V1 endpoint in preview
+  // mode and the backend 500s because the panel has no V1 drilldown to
+  // execute. Per ``feedback_preview_parity.md``: preview must mirror full
+  // mode changes — V2 drilldown is one of those changes.
+  const { isDrilldownV2Enabled } = useFeatureFlag();
+  const drillV2 = useDrilldownV2(dashboardId);
+  const shouldUseV2 = useCallback(
+    (panelId: string) => {
+      if (!isDrilldownV2Enabled) return false;
+      const widget = dashboard?.widgets?.[panelId];
+      return !!widget?.drilldown_v2;
+    },
+    [isDrilldownV2Enabled, dashboard?.widgets],
+  );
+  const handleWidgetDrillDown = useCallback(
+    (panelId: string) => {
+      if (shouldUseV2(panelId)) {
+        drillV2.openPanelDrilldown(panelId, [], {});
+        return;
+      }
+      openDrilldown(panelId);
+    },
+    [shouldUseV2, drillV2, openDrilldown],
+  );
+  const handlePointDrillDown = useCallback(
+    (panelId: string, filters: Record<string, unknown>) => {
+      if (shouldUseV2(panelId)) {
+        drillV2.openPanelDrilldown(panelId, [], filters);
+        return;
+      }
+      openPointDrilldown(panelId, filters);
+    },
+    [shouldUseV2, drillV2, openPointDrilldown],
+  );
+  const handleV2RowDrill = useCallback(
+    (_rowIndex: number, rowData: Record<string, unknown>) => {
+      // Mirror of pages/Analytics.tsx::handleV2RowDrill — feed the next
+      // level's column_map (and the current level's, for the diff) so each
+      // chain entry only carries axes newly introduced at its depth. See
+      // `rowDescentFilters` for the cumulative-filter rationale.
+      const widget = drillV2.panelId
+        ? dashboard?.widgets?.[drillV2.panelId]
+        : undefined;
+      const levelColumnMaps = getLevelColumnMaps(widget);
+      const currentDepth = drillV2.clickChain.length;
+      const filters = rowDescentFilters(
+        rowData,
+        levelColumnMaps[currentDepth] ?? [],
+        levelColumnMaps[currentDepth - 1] ?? [],
+      );
+      const breadcrumbSeg = Object.keys(filters)[0] ?? `L${currentDepth}`;
+      const topChainNode = drillV2.clickChain[currentDepth - 1];
+      const nextPath = [...(topChainNode?.columnPath ?? []), breadcrumbSeg];
+      drillV2.pushLevel(nextPath, filters);
+    },
+    [drillV2, dashboard],
+  );
+
   const handleExpand = useCallback(() => {
     navigate(
       `/redirecting?to=${encodeURIComponent(`/dashboard/${dashboardId}?conversationId=${conversationId}`)}`,
@@ -159,6 +226,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       ) : (
         <>
           <AnalyticsView
+            isPreview
             dashboard={dashboard}
             refreshInfo={refreshInfo}
             filterDefinitions={filterDefinitions}
@@ -186,8 +254,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onTablePageChange={handlePageChange}
             loadingTablePanels={loadingPanels}
             paginatedWidgets={mergedWidgets}
-            onDrillDown={openDrilldown}
-            onPointDrillDown={openPointDrilldown}
+            onDrillDown={handleWidgetDrillDown}
+            onPointDrillDown={handlePointDrillDown}
             onAddWidgetToChat={handleAddWidgetToChat}
             onTableSortChange={handleSortChange}
             tableSortStates={activeSorts}
@@ -206,7 +274,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             editModePhase={editModePhase}
             isRefetchingData={isFetching && !isLoading}
             isRefreshing={isRefreshing}
-            isDrilldownOpen={isDrilldownOpen}
+            isDrilldownOpen={isDrilldownOpen || drillV2.isOpen}
             panelFilterState={panelFilterState}
             lockedFilterState={lockedFilterState}
             getEffectivePanelState={getEffectivePanelState}
@@ -222,9 +290,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             canLockPanelFilter={canLockPanelFilter}
             lockedPanelFilterState={lockedPanelFilterState}
           />
-          {/* Edit mode banner — floats above drilldown panel when both are active */}
+          {/* Edit mode banner — floats above drilldown panel when either V1 or V2 drill is open */}
           <EditModeBanner
-            visible={dashboard.isEditable && isDrilldownOpen}
+            visible={
+              dashboard.isEditable && (isDrilldownOpen || drillV2.isOpen)
+            }
             className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
           />
           <DrilldownPanel
@@ -250,6 +320,26 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onSortChange={changeDrilldownSort}
             sortState={drilldownSort}
           />
+          {/* V2 drilldown panel — mounted in parallel with V1, gated on the
+              ``drilldown_v2`` LD flag so V1-only users never see V2 chrome.
+              The handlers above route per-panel based on widget config; the
+              panel itself only opens when one of those handlers fires. */}
+          {isDrilldownV2Enabled && (
+            <DrilldownPanelV2
+              drill={drillV2}
+              widgetTitle={
+                drillV2.panelId
+                  ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
+                  : "Drilldown"
+              }
+              levelColumnMaps={getLevelColumnMaps(
+                drillV2.panelId
+                  ? dashboard.widgets?.[drillV2.panelId]
+                  : undefined,
+              )}
+              onRowDrill={handleV2RowDrill}
+            />
+          )}
         </>
       )}
     </div>

@@ -2,8 +2,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import useChatStore from "../store/chatStore";
-import { chatSidebarKeys } from "./useChatSidebar";
-import type { ChatSidebarResponse } from "../types/chatSidebar";
+import { folderKeys } from "./folders";
+import type {
+  FolderConversationRow,
+  FolderItemsResponse,
+} from "../types/chatSidebar";
 import type {
   MessageWithStreaming,
   MessageFileAttachment,
@@ -208,17 +211,21 @@ export function useSendMessage() {
         }
       }
 
-      // Silently invalidate sidebar cache if this conversation isn't already
-      // the most recent one, so the sort order stays fresh.
+      // Silently invalidate the unfiled chats cache if this conversation
+      // isn't already at the top, so the sidebar's sort order stays fresh.
       if (context) {
-        const sidebarData = queryClient.getQueryData<
-          InfiniteData<ChatSidebarResponse>
-        >(chatSidebarKeys.sidebar());
+        const unfiledData = queryClient.getQueryData<
+          InfiniteData<FolderItemsResponse<FolderConversationRow>>
+        >(folderKeys.unfiled("conversation"));
         const topConversationId =
-          sidebarData?.pages[0]?.unfiled.conversations[0]?.conversationId;
-        if (sidebarData && topConversationId !== context.conversationId) {
+          unfiledData?.pages[0]?.items[0]?.conversation_id;
+        if (unfiledData && topConversationId !== context.conversationId) {
           queryClient.invalidateQueries({
-            queryKey: chatSidebarKeys.sidebar(),
+            queryKey: folderKeys.unfiled("conversation"),
+          });
+          // Folder contents may also need a refresh — same reason.
+          queryClient.invalidateQueries({
+            queryKey: [...folderKeys.all, "contents"],
           });
         }
       }

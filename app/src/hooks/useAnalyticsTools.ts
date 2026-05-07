@@ -4,7 +4,7 @@ import { useVisibilityToggle } from "@vonlabs/design-components";
 import { dashboardService } from "../services/dashboardService";
 import { ApiError } from "../services/apiClient";
 import { dashboardKeys } from "./useDashboardQuery";
-import { sidebarDashboardKeys } from "./useSidebarDashboards";
+import { folderKeys } from "./folders";
 import { useMutationPhase } from "./useMutationPhase";
 import { useToast } from "./useToast";
 
@@ -36,8 +36,14 @@ export function useAnalyticsTools(dashboardId: string) {
       });
     },
     onSuccess: () => {
+      // Refresh the sidebar's unfiled-dashboards + every folder's contents
+      // since publishing a dashboard can flip its `status` (draft → published)
+      // and that can change which subset surfaces.
       queryClient.invalidateQueries({
-        queryKey: sidebarDashboardKeys.all,
+        queryKey: folderKeys.unfiled("dashboard"),
+      });
+      queryClient.invalidateQueries({
+        queryKey: [...folderKeys.all, "contents"],
       });
     },
     onMutate: async () => {

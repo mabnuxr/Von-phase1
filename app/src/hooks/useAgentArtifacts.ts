@@ -2,9 +2,14 @@
  * useAgentArtifacts - React Query hook for agent-generated file artifacts
  *
  * Fetches FileMetadata per runId using parallel queries (useQueries).
- * Each assistant message's runId gets its own cached query. Artifacts are
- * immutable once created, so staleTime is Infinity — only Pusher events
- * (via useArtifactCreatedEvent) trigger refetches for specific runs.
+ * Each assistant message's runId gets its own cached query.
+ *
+ * Backend pipeline guarantees that by the time RUN_FINISHED fires, every
+ * artifact this turn produced has a FileMetadata row in `processing` (or
+ * `completed`). The list endpoint returns those rows directly — no Redis
+ * fallback needed. Skeletons are rendered for `processing` rows and
+ * refetchInterval polls until they flip to `completed`. Pusher
+ * `artifact_created(completed)` events provide a low-latency override.
  */
 
 import { useMemo } from "react";
@@ -17,70 +22,69 @@ import {
   fileUploadService,
   type FileMetadataResponse,
 } from "../services/fileUploadService";
+import { recordArtifactDelivered } from "../lib/realtimeFileDeliveryObservability";
 
-/** Query key factory for agent artifact queries */
+/** Query key factory. `forConversation` is a prefix matching every
+ *  per-run query — pass to `invalidateQueries` to refresh all runs at once. */
 export const agentArtifactKeys = {
   all: ["agent-artifacts"] as const,
+  forConversation: (conversationId: string) =>
+    ["agent-artifacts", conversationId] as const,
   run: (conversationId: string, runId: string) =>
     ["agent-artifacts", conversationId, runId] as const,
 };
+
+/** `isTerminal` mirrors the parent message status; when false, polling
+ *  continues on empty data so a too-early initial fetch can't disarm us. */
+export interface AgentArtifactTurn {
+  runId: string;
+  isTerminal: boolean;
+}
 
 /**
  * Fetches agent-generated artifacts per run, returning a Map<runId, artifacts[]>.
  *
  * @param conversationId - The conversation these runs belong to
- * @param runIds - Unique runIds extracted from assistant messages
+ * @param turns - Per-turn { runId, isTerminal } extracted from assistant messages
  */
 export function useAgentArtifacts(
   conversationId: string | null,
-  runIds: string[],
+  turns: AgentArtifactTurn[],
 ) {
   const queries = useQueries({
-    queries: runIds.map((runId) => ({
-      queryKey: agentArtifactKeys.run(conversationId ?? "", runId),
+    queries: turns.map((turn) => ({
+      queryKey: agentArtifactKeys.run(conversationId ?? "", turn.runId),
       queryFn: async (): Promise<FileMetadataResponse[]> => {
         if (!conversationId) return [];
-
-        // 1. MongoDB first (existing call, unchanged)
         const response = await fileUploadService.listFiles(
           conversationId,
           1,
           100,
           "agent_generated",
-          runId,
+          turn.runId,
         );
-        if (response.data.length > 0) return response.data;
-
-        // 2. MongoDB empty → check Redis for in-flight artifacts
-        const inflight = await fileUploadService.getInflightArtifacts(
+        recordArtifactDelivered(
           conversationId,
-          runId,
+          turn.runId,
+          response.data,
+          "api",
         );
-        if (!inflight) return []; // no Redis key → genuinely no artifacts
-
-        // 3. Artifacts in flight → return placeholders
-        return inflight.artifacts.map((a) => ({
-          id: `pending:${runId}:${a.file_name}`,
-          fileName: a.file_name,
-          mimeType: "application/octet-stream",
-          sizeBytes: 0,
-          status: "processing",
-          source: "agent_generated",
-          createdAt: new Date().toISOString(),
-          artifactType: a.artifact_type ?? "document",
-          runId,
-          isPending: true,
-        }));
+        return response.data;
       },
       enabled: !!conversationId,
-      staleTime: Infinity,
+      staleTime: 0,
+      // Tab-refocus recovery for missed RUN_FINISHED.
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
       refetchInterval: (query: {
         state: { data?: FileMetadataResponse[]; dataUpdateCount: number };
       }) => {
-        const data = query.state.data;
-        if (!data || data.length === 0) return false;
         if (query.state.dataUpdateCount >= ARTIFACT_INFLIGHT_MAX_POLLS)
           return false;
+        const data = query.state.data;
+        if (!data || data.length === 0) {
+          return turn.isTerminal ? false : ARTIFACT_INFLIGHT_POLL_INTERVAL_MS;
+        }
         if (data.some((a) => a.status !== "completed"))
           return ARTIFACT_INFLIGHT_POLL_INTERVAL_MS;
         return false;
@@ -91,14 +95,14 @@ export function useAgentArtifacts(
   // Combine per-run query results into a single Map<runId, FileMetadataResponse[]>
   const agentArtifactsByRunId = useMemo(() => {
     const map = new Map<string, FileMetadataResponse[]>();
-    for (let i = 0; i < runIds.length; i++) {
+    for (let i = 0; i < turns.length; i++) {
       const result = queries[i];
       if (result?.data && result.data.length > 0) {
-        map.set(runIds[i], result.data);
+        map.set(turns[i].runId, result.data);
       }
     }
     return map;
-  }, [runIds, queries]);
+  }, [turns, queries]);
 
   return agentArtifactsByRunId;
 }

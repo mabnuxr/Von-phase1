@@ -1,4 +1,5 @@
 import type { ConversationMode } from "@vonlabs/design-components";
+import type { QuickCommandReference } from "../services/quickCommandsService";
 
 // Re-export for consumers that import from this file
 export type { ConversationMode } from "@vonlabs/design-components";
@@ -76,6 +77,8 @@ export interface MessageCommand {
   slug?: string;
   prompt: string;
   dataSources?: CommandDataSource[];
+  /** Tagged entity references (e.g., dashboards) snapshotted at send time */
+  references?: QuickCommandReference[];
   /** 'tenant' = org-level (public), 'user' = private. Sent at message-creation time. */
   accessLevel?: string;
 }
@@ -105,6 +108,11 @@ export interface WidgetReferenceContext {
   dashboardName: string;
 }
 
+export interface AiFieldReferenceContext {
+  aiFieldId: string;
+  aiFieldName?: string;
+}
+
 export type MessageReference =
   | {
       /** Frontend tracking ID (opaque, client-generated) */
@@ -116,6 +124,11 @@ export type MessageReference =
       refId: string;
       type: typeof ReferenceType.Widget;
       context: WidgetReferenceContext;
+    }
+  | {
+      refId: string;
+      type: typeof ReferenceType.AiField;
+      context: AiFieldReferenceContext;
     };
 
 /**

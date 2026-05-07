@@ -67,7 +67,11 @@ export function useConversationInit(urlConversationId?: string) {
       }
 
       // Navigate with replace to avoid back button issues
-      navigate(`/chat/new`, { replace: true });
+      // Preserve aiFieldId query param if present (from settings "Edit in chat")
+      const params = new URLSearchParams(window.location.search);
+      const aiFieldId = params.get("aiFieldId");
+      const qs = aiFieldId ? `?aiFieldId=${aiFieldId}` : "";
+      navigate(`/chat/new${qs}`, { replace: true });
       return;
     }
 

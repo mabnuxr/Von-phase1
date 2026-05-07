@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import { dashboardKeys } from "./useDashboardQuery";
 import { dashboardListKeys } from "./useDashboardList";
-import { sidebarDashboardKeys } from "./useSidebarDashboards";
+import { folderKeys } from "./folders";
 import { useToast } from "./useToast";
 
 /**
@@ -25,8 +25,14 @@ export function useSidebarDashboardDelete(
       queryClient.invalidateQueries({
         queryKey: dashboardListKeys.all,
       });
+      // The dashboard might have been filed — invalidate every folder cache
+      // that could be displaying it, plus the top-level unfiled list.
       queryClient.invalidateQueries({
-        queryKey: sidebarDashboardKeys.all,
+        queryKey: folderKeys.unfiled("dashboard"),
+      });
+      queryClient.invalidateQueries({ queryKey: folderKeys.list() });
+      queryClient.invalidateQueries({
+        queryKey: [...folderKeys.all, "contents"],
       });
       showToast({
         message: "Dashboard deleted",

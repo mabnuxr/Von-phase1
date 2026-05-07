@@ -18,7 +18,7 @@ import {
   SpinnerGapIcon,
   WarningCircleIcon,
 } from '@phosphor-icons/react';
-import { StorageExportButton, buildStorageServices } from './StorageExportButton';
+import { StorageExportButton, buildStorageServices } from './StorageExport';
 import { useHorizontalResize } from '../ArtifactViewer/hooks/useHorizontalResize';
 import { useArtifactContent } from './hooks/useArtifactContent';
 import { TextViewer } from './viewers/TextViewer';

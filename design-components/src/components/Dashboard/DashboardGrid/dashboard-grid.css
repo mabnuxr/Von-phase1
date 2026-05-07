@@ -1,0 +1,187 @@
+/* ============================================================================
+   Edit-mode canvas
+   --------------------------------------------------------------------------
+   Soft off-white tint behind the grid + dotted backdrop sized to the actual
+   react-grid-layout cells. The CSS variables `--grid-col-step` /
+   `--grid-row-step` / `--grid-pad-x` / `--grid-pad-y` are computed in JS so
+   the dots line up with where widgets snap.
+
+   Negative inset on the wrapper extends the canvas tint past the dashboard
+   inner padding so the grid feels edge-to-edge instead of a tinted box
+   floating inside white.
+   ========================================================================== */
+.dashboard-grid-canvas {
+  position: relative;
+}
+
+.dashboard-grid-canvas::before {
+  content: '';
+  position: absolute;
+  /* Extend the backdrop past the parent canvas's padding so the dotted
+     pattern reads as edge-to-edge instead of a tinted box floating inside
+     a white frame. DashboardLayout.Canvas adds px-4 py-4 (16px) on every
+     side, so we offset by -16px on every side to cover that gap. */
+  inset: -16px;
+  background-color: rgb(247, 248, 250);
+  background-image: radial-gradient(circle, rgba(15, 23, 42, 0.32) 1px, transparent 1.4px);
+  background-size: var(--grid-col-step) var(--grid-row-step);
+  background-position: var(--grid-pad-x) var(--grid-pad-y);
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Children of the canvas (the GridLayout itself) sit above the backdrop. */
+.dashboard-grid-canvas > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================================================================
+   Drag-cursor states
+   --------------------------------------------------------------------------
+   The DragPill itself sets cursor: grab via Tailwind. While a drag is
+   actually in progress react-grid-layout adds .react-draggable-dragging on
+   the grid item — switch to grabbing globally so the cursor stays correct
+   even when it leaves the pill mid-drag.
+   ========================================================================== */
+.widget-drag-handle {
+  cursor: grab;
+}
+
+.widget-drag-handle:active {
+  cursor: grabbing;
+}
+
+.react-grid-item.react-draggable-dragging {
+  z-index: 10;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.18),
+    0 2px 6px rgba(15, 23, 42, 0.1);
+  transition: box-shadow 120ms ease-in-out;
+  cursor: grabbing !important;
+}
+
+/* ============================================================================
+   Drop placeholder
+   --------------------------------------------------------------------------
+   The "where it will land" rectangle react-grid-layout renders during a
+   drag. Library default is solid red — soften to a blue-accent fill with
+   dashed border so it reads as a target hint, not an error.
+   ========================================================================== */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+  opacity: 1 !important;
+  transition-duration: 100ms;
+}
+
+/* ============================================================================
+   Resize handles
+   --------------------------------------------------------------------------
+   Use the library's default chevron markers (visible on widget hover only)
+   but reposition the hit-zones from corners-only to all eight directions
+   (n/s/e/w + nw/ne/sw/se), with full-width/height edge strips so the resize
+   cursor shows along the entire edge.
+
+   The library's corner/edge rules use TWO classes
+   (`.react-resizable-handle.react-resizable-handle-nw`, specificity 0,3,0)
+   so our overrides must stack the same two classes — a bare
+   `.react-resizable-handle-nw` would lose to the library's defaults.
+   ========================================================================== */
+
+/* Edge hit-zones: thin strips along each side. We stretch them to full width
+   or height so the resize cursor shows along the entire edge — but that
+   breaks the library's chevron `::after` (anchored at bottom-right) and SVG
+   background-image (stretched across the strip), so we suppress both for
+   edges. Corners keep the library chevron. */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w {
+  background-image: none;
+  transform: none;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e::after,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w::after {
+  content: none;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-n {
+  top: -4px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  margin: 0;
+  cursor: ns-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-s {
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  margin: 0;
+  cursor: ns-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-e {
+  right: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  margin: 0;
+  cursor: ew-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-w {
+  left: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  margin: 0;
+  cursor: ew-resize;
+}
+
+/* Corner hit-zones: small squares overlapping the edge zones for diagonal
+   resize. Stacked above the edge handles so corners take precedence. */
+.react-grid-item > .react-resizable-handle.react-resizable-handle-nw,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-ne,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-sw,
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+  width: 14px;
+  height: 14px;
+  z-index: 1;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
+}
+
+.react-grid-item > .react-resizable-handle.react-resizable-handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: nwse-resize;
+}
+
+.react-grid-item.resizing {
+  z-index: 10;
+}

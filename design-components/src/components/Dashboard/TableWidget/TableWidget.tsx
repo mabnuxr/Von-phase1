@@ -2,17 +2,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import {
   ReportTable,
-  longTextExpandFormatter,
-  handleLongTextHover,
   LongTextPopover,
+  markdownCellFormatter,
+  handleMarkdownCellHover,
+  createMarkdownCellClickHandler,
+  escapeHtml,
 } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
 import type { GridOptions } from '@highcharts/grid-lite-react';
 import type { TableWidgetConfig, TablePaginationInfo } from '../types';
 import { ServerPagination } from './ServerPagination';
+import { applyColumnRenderers } from './columnRenderers';
+import { useContentHeightFit } from '../useContentHeightFit';
 import './table-widget.css';
 
 interface TableWidgetProps {
+  /** Panel id used by auto-fit coordination. */
+  panelId?: string;
   config: TableWidgetConfig;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
@@ -20,9 +26,21 @@ interface TableWidgetProps {
   onSortChange?: (columnId: string, order: 'asc' | 'desc' | null) => void;
   /** Current server sort state */
   sortState?: ServerSortState | null;
-  /** Called when a table body cell is clicked for drilldown */
-  onCellClick?: (columnId: string, cellValue: unknown) => void;
+  /** Called when a table body cell is clicked for drilldown — provides column
+   *  ID, raw cell value, and the full row dict so V2 drilldown can extract
+   *  multiple data_keys from a single click (e.g. cohort cells need both
+   *  account_name AND week_label regardless of which column was clicked). */
+  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
 }
+
+const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons
+const TABLE_PADDING_PX = 16; // .table-widget-root padding 8px × 2
+// WidgetShell title bar: 53px content + 1px bottom border.
+const WIDGET_SHELL_HEADER_PX = 54;
+// Native horizontal scrollbar height when columns overflow — added to the
+// reported height only when overflow is actually present so the last row
+// doesn't get clipped by the scrollbar.
+const HORIZONTAL_SCROLLBAR_PX = 16;
 
 /** Identify text column ids by checking data values */
 function findTextColumnIds(options: GridOptions): Set<string> {
@@ -42,24 +60,73 @@ function findTextColumnIds(options: GridOptions): Set<string> {
   return ids;
 }
 
-/** Override text column formatters with the longtext expand variant */
-function applyLongTextFormatters(options: GridOptions): GridOptions {
+// Auto-assign markdownCellFormatter to text columns. Existing per-column
+// formatters or formats (backend- or config-supplied, including those set
+// by applyColumnRenderers via cell variants) win — Grid Lite returns an
+// empty cell when BOTH `cells.format` and `cells.formatter` are non-default,
+// so we must leave columns that already carry a `format` template untouched.
+// Disabled columns are also skipped since they don't render at all.
+function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
   const textIds = findTextColumnIds(options);
   if (textIds.size === 0) return options;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cols = options.columns as any[] | undefined;
+  const cols = options.columns;
   if (!cols) return options;
   return {
     ...options,
-    columns: cols.map((col) =>
-      textIds.has(col.id) && !col.cells?.formatter
-        ? { ...col, cells: { ...col.cells, formatter: longTextExpandFormatter } }
-        : col
-    ),
+    columns: cols.map((col) => {
+      if (!textIds.has(col.id)) return col;
+      if (col.enabled === false) return col;
+      if (col.cells?.formatter) return col;
+      if (col.cells?.format) return col; // backend template (e.g. <a> link)
+      return { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } };
+    }),
   };
 }
 
+// Grid Lite's built-in `cells.format` templating resolves `{key}` against the
+// cell only — `{value}` works, but `{account_link}` (or any other row-sibling
+// column) returns empty. When the empty value lands in `<a href="">`, AST
+// rejects the href and the link becomes unclickable. Replace such templates
+// with a formatter that substitutes from `cell.row.data`.
+const ROW_TEMPLATE_VAR = /\{([a-zA-Z_][\w.]*)\}/g;
+
+function applyRowDataTemplates(options: GridOptions): GridOptions {
+  const cols = options.columns;
+  if (!cols) return options;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapped = (cols as any[]).map((col: any) => {
+    const template: unknown = col.cells?.format;
+    if (typeof template !== 'string') return col;
+    if (col.cells?.formatter) return col;
+    // Skip if the template only references {value} (Grid Lite handles it natively).
+    let needsRowData = false;
+    template.replace(ROW_TEMPLATE_VAR, (_m, key) => {
+      if (key !== 'value') needsRowData = true;
+      return _m;
+    });
+    if (!needsRowData) return col;
+    const tmpl = template;
+    return {
+      ...col,
+      cells: {
+        ...col.cells,
+        format: undefined,
+        formatter(this: { value: unknown; row?: { data?: Record<string, unknown> } }) {
+          const value = this.value;
+          const data = this.row?.data ?? {};
+          return tmpl.replace(ROW_TEMPLATE_VAR, (_m: string, key: string) => {
+            const v = key === 'value' ? value : data[key];
+            return v == null ? '' : escapeHtml(String(v));
+          });
+        },
+      },
+    };
+  });
+  return { ...options, columns: mapped };
+}
+
 const TableWidget: React.FC<TableWidgetProps> = ({
+  panelId,
   config,
   onPageChange,
   isLoading,
@@ -76,12 +143,22 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   // (which is exactly what we want — headers stay, shimmer covers rows).
   const lastOptionsRef = useRef<GridOptions | null>(null);
 
-  const base = config.gridOptions as GridOptions;
-  // Only disable client-side pagination for server-paginated tables;
-  // non-server-paginated tables keep their existing pagination config.
-  const options: GridOptions = applyLongTextFormatters(
-    hasServerPagination ? { ...base, pagination: { enabled: false } } : base
-  );
+  const base = config.gridOptions as GridOptions & { autoHeight?: boolean };
+  // Variant-based renderers run first (they may set formatters/cellClasses
+  // and tell us whether any column wraps). Markdown + row-data templates
+  // then fill in formatters for columns the variant pass left untouched.
+  // Memoized so popover open/close (setPopover → re-render) doesn't rebuild
+  // the columns array and force Grid Lite to re-run every formatter.
+  const { options, autoHeight } = useMemo<{ options: GridOptions; autoHeight: boolean }>(() => {
+    const applied = applyColumnRenderers(
+      hasServerPagination ? { ...base, pagination: { enabled: false } } : base
+    );
+    const finalOptions = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    return {
+      options: finalOptions,
+      autoHeight: base.autoHeight === true || applied.hasWrapColumn,
+    };
+  }, [base, hasServerPagination]);
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
@@ -93,52 +170,128 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   const handlePageChange = useCallback((page: number) => onPageChange?.(page), [onPageChange]);
 
-  /** Click handler — detect expand-button clicks via DOM traversal */
-  const handleGridClick = useCallback((e: React.MouseEvent) => {
-    const btn = (e.target as HTMLElement).closest('.dt-expand-btn') as HTMLElement;
-    if (!btn) return;
-    e.stopPropagation();
-
-    const td = btn.closest('td');
-    if (!td) return;
-
-    const span = td.querySelector('.dt-longtext-wrap > span');
-    const fullText = span?.textContent ?? '';
-    if (fullText) {
-      setPopover({ text: fullText, rect: td.getBoundingClientRect() });
-    }
-  }, []);
+  const handleGridClick = useMemo(() => createMarkdownCellClickHandler(setPopover), []);
 
   const skeletonRows = serverPagination?.limit ?? 10;
   const containerRef = useRef<HTMLDivElement>(null);
   const [theadHeight, setTheadHeight] = useState(40);
   const [tableHeight, setTableHeight] = useState(0);
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
   const [colWidths, setColWidths] = useState<number[]>([]);
 
-  // Measure the actual thead/table height and column widths once the grid renders.
-  // stableOptions is the dependency because a new grid (with potentially
-  // different header content) is created whenever options change.
+  const measure = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const thead = el.querySelector('.hcg-table thead');
+    if (thead) {
+      const next = Math.round(thead.getBoundingClientRect().height);
+      setTheadHeight((prev) => (prev === next ? prev : next));
+    }
+    const table = el.querySelector('.hcg-table') as HTMLElement | null;
+    if (!table) return;
+
+    // Grid Lite injects empty filler rows (`.hcg-mocked-row`) to fill the
+    // scroll container's visible area. Reading `table.offsetHeight` directly
+    // captures those filler rows and would feed an ever-growing measurement
+    // back to auto-fit, since each grow lets Grid Lite inject more fillers.
+    // Measure only thead + real (non-mocked) tbody rows so the reported
+    // height is the table's intrinsic content height, independent of the
+    // container.
+    const theadEl = table.querySelector('thead') as HTMLElement | null;
+    const realRows = table.querySelectorAll(
+      'tbody tr:not(.hcg-mocked-row)'
+    ) as NodeListOf<HTMLElement>;
+    let intrinsicH = 0;
+    if (theadEl) intrinsicH += theadEl.offsetHeight;
+    realRows.forEach((row) => {
+      intrinsicH += row.offsetHeight;
+    });
+    const nextTableH = Math.round(intrinsicH > 0 ? intrinsicH : table.offsetHeight);
+    setTableHeight((prev) => (prev === nextTableH ? prev : nextTableH));
+    // Horizontal overflow lives on the scroll container Grid Lite wraps the
+    // table in. When columns are wider than the available width its
+    // scrollWidth exceeds its clientWidth and a horizontal scrollbar
+    // appears at the bottom — we add 16px to measuredPx in that case so
+    // the last row isn't clipped by the scrollbar.
+    const scrollEl = el.querySelector('.hcg-scrollable-content') as HTMLElement | null;
+    if (scrollEl) {
+      setHasHorizontalOverflow(scrollEl.scrollWidth > scrollEl.clientWidth);
+    }
+    const ths = table.querySelectorAll('thead th');
+    const widths: number[] = [];
+    ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
+    setColWidths(widths);
+  }, []);
+
+  // Container-size changes (viewport resize, widget drag/resize in edit
+  // mode, post-save re-renders) re-measure filler rows and header widths.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    // Grid Lite initializes asynchronously, so the thead may not exist yet.
-    // Use requestAnimationFrame to measure after the next paint.
-    const raf = requestAnimationFrame(() => {
-      const thead = el.querySelector('.hcg-table thead');
-      if (thead) {
-        setTheadHeight(thead.getBoundingClientRect().height);
-      }
-      const table = el.querySelector('.hcg-table') as HTMLElement | null;
-      if (table) {
-        setTableHeight(table.offsetHeight);
-        const ths = table.querySelectorAll('thead th');
-        const widths: number[] = [];
-        ths.forEach((th) => widths.push((th as HTMLElement).offsetWidth));
-        setColWidths(widths);
-      }
-    });
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+
+  // Re-measure when Grid Lite swaps its internal table after a data change.
+  // stableOptions identity changes on every render of fresh data; the RAF
+  // defers the read until after Grid Lite has committed its DOM update.
+  useEffect(() => {
+    const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
+  }, [stableOptions, measure]);
+
+  // Row count used for both the fingerprint and the intrinsic height
+  // calculation below.
+  const rowCount = useMemo(() => {
+    const opts = stableOptions as {
+      data?: { columns?: Record<string, unknown[]> };
+      dataTable?: { columns?: Record<string, unknown[]> };
+    };
+    const dataCols = opts.data?.columns ?? opts.dataTable?.columns;
+    return dataCols ? ((Object.values(dataCols)[0] as unknown[] | undefined)?.length ?? 0) : 0;
   }, [stableOptions]);
+
+  // Fingerprint for auto-fit. Changes when the agent/user changes column
+  // structure, formatters, row count, autoHeight, or pagination page —
+  // anything that could plausibly change the rendered height.
+  const fingerprint = useMemo(() => {
+    type RawCol = {
+      id: string;
+      enabled?: boolean;
+      cells?: { variant?: string; format?: string };
+      format?: string;
+    };
+    const cols = ((stableOptions as { columns?: RawCol[] }).columns ?? []) as RawCol[];
+    const colSig = cols
+      .map(
+        (c) =>
+          `${c.id}:${c.enabled !== false ? 1 : 0}:${c.cells?.variant ?? ''}:${c.cells?.format ?? c.format ?? ''}`
+      )
+      .join('|');
+    const page = serverPagination?.page ?? 0;
+    return `${colSig}#${rowCount}#${autoHeight ? 'a' : 's'}#${page}`;
+  }, [stableOptions, autoHeight, serverPagination?.page, rowCount]);
+
+  // Auto-fit's `measuredPx` is the rendered table height read from the DOM,
+  // plus the surrounding chrome we know about. We add `HORIZONTAL_SCROLLBAR_PX`
+  // ONLY when the columns actually overflow horizontally — when a scrollbar
+  // is present, the last row would otherwise be clipped beneath it.
+  const measuredPx =
+    tableHeight > 0
+      ? tableHeight +
+        (hasHorizontalOverflow ? HORIZONTAL_SCROLLBAR_PX : 0) +
+        (hasServerPagination ? SERVER_PAGINATION_PX : 0) +
+        TABLE_PADDING_PX
+      : null;
+
+  useContentHeightFit({
+    panelId: panelId ?? '',
+    fingerprint,
+    measuredPx,
+    chromePx: WIDGET_SHELL_HEADER_PX,
+    enabled: !!panelId,
+  });
 
   // Derive column count from gridOptions so skeleton matches the real table
   const skeletonColCount = useMemo(() => {
@@ -148,13 +301,18 @@ const TableWidget: React.FC<TableWidgetProps> = ({
 
   return (
     <div
-      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}`}
+      // ``clickable-cells`` is the styling hook for the drillable hover state
+      // (light-violet td bg + pointer cursor). Gated on whether the parent
+      // wired ``onCellClick`` — that's the same gate ``useCellInteractions``
+      // uses to decide whether to fire a click — so the visual affordance and
+      // the actual click behaviour stay in lockstep.
+      className={`h-full w-full table-widget-root flex flex-col${hasServerPagination ? ' server-paginated' : ''}${autoHeight ? ' auto-height' : ''}${onCellClick ? ' clickable-cells' : ''}`}
     >
       <div
         ref={containerRef}
         className="flex-1 min-h-0 overflow-hidden relative"
         onClick={handleGridClick}
-        onMouseOver={handleLongTextHover}
+        onMouseOver={handleMarkdownCellHover}
       >
         <ReportTable
           options={stableOptions}
@@ -164,28 +322,6 @@ const TableWidget: React.FC<TableWidgetProps> = ({
           onCellClick={onCellClick}
           disableTooltip
         />
-
-        {/* Empty filler rows below data — spreadsheet look */}
-        {tableHeight > 0 && !isLoading && (
-          <table aria-hidden className="table-filler" style={{ top: tableHeight }}>
-            {colWidths.length > 0 && (
-              <colgroup>
-                {colWidths.map((w, i) => (
-                  <col key={i} style={{ width: w }} />
-                ))}
-              </colgroup>
-            )}
-            <tbody>
-              {Array.from({ length: 50 }).map((_, i) => (
-                <tr key={i}>
-                  {Array.from({ length: colWidths.length || skeletonColCount }).map((_, j) => (
-                    <td key={j} />
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
 
         {/* Shimmer covers body rows while headers stay visible */}
         {isLoading && (

@@ -15,7 +15,7 @@ import type { FileAttachment } from './FileAttachment/types';
 import type { ConversationMode } from './StandardChatInput/types';
 import type { SendMessageOptions } from './types';
 import { CommandsOverlay } from '../Commands';
-import type { Command } from '../Commands';
+import type { Command, DashboardOption } from '../Commands';
 import { CommandStrip } from './CommandStrip';
 
 // Re-export SendMessageOptions for consumers who import from this file
@@ -113,8 +113,6 @@ export interface ChatInputSelectorProps {
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
   isSavingCommand?: boolean;
-  /** When true, the "Org-wide" sharing option is available in the command drawer */
-  isAdmin?: boolean;
   /** Team members available as schedule recipients */
   teamMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
@@ -131,6 +129,8 @@ export interface ChatInputSelectorProps {
     dataSources: import('../Commands/types').CommandAttachment[],
     recipients: import('../Commands/types').ScheduleRecipient[]
   ) => Promise<void>;
+  /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
+  availableDashboards?: DashboardOption[];
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
   // -------------------------------------------------------------------------
@@ -198,13 +198,13 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand = false,
-      isAdmin = false,
       teamMembers,
       currentUser,
       onToggleFavorite,
       onRequestFilePreviewUrl,
       onUploadFile,
       onSendTest,
+      availableDashboards,
       availableAgentModes,
       // Mention props
       enableMentions = false,
@@ -482,13 +482,13 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
-            isAdmin={isAdmin}
             teamMembers={teamMembers}
             currentUser={currentUser}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}
             onUploadFile={onUploadFile}
             onSendTest={onSendTest}
+            availableDashboards={availableDashboards}
             highlightedIndex={highlightedIndex}
             onHoverIndex={setHighlightedIndex}
             slashRect={slashRect}

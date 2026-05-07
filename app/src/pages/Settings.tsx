@@ -20,11 +20,13 @@ import { FieldsTab } from "../components/tabs/FieldsTab";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
+import { OrgContextTabV2 } from "../components/tabs/OrgContextTabV2";
 import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
 import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
 import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
-import { AddTeamMemberPane } from "../components/AddTeamMemberPane";
+import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
+import { AddTeamMembersPane } from "../components/AddTeamMembersPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
@@ -39,24 +41,52 @@ const Settings = () => {
   const {
     isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
+    isUserMemoryEnabled,
     isVonAiFieldsEnabled,
+    isMemoryV2Enabled,
   } = useFeatureFlag();
 
-  // Get initial tab from URL query parameter or default to integrations
-  const tabFromUrl = searchParams.get("tab");
-  const initialTab = tabFromUrl || "integrations";
-  const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
+  const isAdmin =
+    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const showVonAiFields = isVonAiFieldsEnabled && isAdmin;
 
-  // Set default tab in URL if not present
+  // Get initial tab from URL query parameter or default to integrations.
+  // Under V2 the legacy `memory` deep-link lands on the Org Memory sub-page
+  // (V2 splits the tab into memory-org/memory-user children); under V1 the
+  // single `memory` tab is the only one so we leave the URL alone.
+  const tabFromUrl = searchParams.get("tab");
+  const normalizedTab =
+    isMemoryV2Enabled && tabFromUrl === "memory" ? "memory-org" : tabFromUrl;
+  const initialTab = normalizedTab || "integrations";
+  const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
+  const [detailFieldId, setDetailFieldId] = useState<string | null>(
+    searchParams.get("fieldId"),
+  );
+
+  // Set default tab in URL if not present, and rewrite the legacy "memory" tab
+  // when V2 is on.
   useEffect(() => {
     if (!tabFromUrl) {
       navigate(`/settings?tab=integrations`, { replace: true });
+    } else if (isMemoryV2Enabled && tabFromUrl === "memory") {
+      navigate(`/settings?tab=memory-org`, { replace: true });
     }
-  }, [tabFromUrl, navigate]);
+  }, [tabFromUrl, navigate, isMemoryV2Enabled]);
+
+  // Sync fieldId from URL (e.g., navigating from chat "View in Settings")
+  useEffect(() => {
+    const fieldIdFromUrl = searchParams.get("fieldId");
+    const tabFromParams = searchParams.get("tab");
+    if (fieldIdFromUrl && tabFromParams === "custom-iq") {
+      setSelectedSettingId("custom-iq");
+      setDetailFieldId(fieldIdFromUrl);
+    }
+  }, [searchParams]);
 
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
     setSelectedSettingId(tabId);
+    setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
   };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
@@ -158,12 +188,25 @@ const Settings = () => {
         label: "Fields",
         icon: <RowsIcon size={20} weight="regular" />,
       },
-      {
-        id: "memory",
-        label: "Memory",
-        icon: <BrainIcon size={20} weight="regular" />,
-      },
-      ...(isVonAiFieldsEnabled
+      // Memory V2 splits into Org/User children; legacy V1 is a single tab.
+      isMemoryV2Enabled
+        ? {
+            id: "memory",
+            label: "Memory",
+            icon: <BrainIcon size={20} weight="regular" />,
+            children: [
+              { id: "memory-org", label: "Org Memory" },
+              ...(isUserMemoryEnabled
+                ? [{ id: "memory-user", label: "User Memory" }]
+                : []),
+            ],
+          }
+        : {
+            id: "memory",
+            label: "Memory",
+            icon: <BrainIcon size={20} weight="regular" />,
+          },
+      ...(showVonAiFields
         ? [
             {
               id: "custom-iq",
@@ -214,9 +257,25 @@ const Settings = () => {
       case "team":
         return <ManageUsersTab />;
       case "memory":
-        return <OrgContextTab />;
+        // V1 only — V2 routes through the memory-org/memory-user children.
+        return isMemoryV2Enabled ? null : <OrgContextTab />;
+      case "memory-org":
+        return isMemoryV2Enabled ? <OrgContextTabV2 view="org" /> : null;
+      case "memory-user":
+        return isMemoryV2Enabled && isUserMemoryEnabled ? (
+          <OrgContextTabV2 view="user" />
+        ) : null;
       case "custom-iq":
-        return isVonAiFieldsEnabled ? <VonAiFieldsTab /> : null;
+        if (!showVonAiFields) return null;
+        if (detailFieldId) {
+          return (
+            <VonAiFieldDetailPane
+              fieldId={detailFieldId}
+              onBack={() => setDetailFieldId(null)}
+            />
+          );
+        }
+        return <VonAiFieldsTab onRowClick={(id) => setDetailFieldId(id)} />;
       case "usage":
         return isUsageMetricsEnabled ? <UsageTab /> : null;
       default:
@@ -230,11 +289,10 @@ const Settings = () => {
         {/* Field Detail Pane - Global */}
         <FieldDetailPane />
 
-        {/* Von AI Field Detail Pane - Global */}
-        {isVonAiFieldsEnabled && <VonAiFieldDetailPane />}
-
-        {/* Add Team Member Pane - Global */}
-        <AddTeamMemberPane />
+        {/* Add Team Members Pane - Global (Individual + Bulk import tabs) */}
+        <AddTeamMembersPane />
+        {/* Von AI Field Run History - Global */}
+        {showVonAiFields && <AIFieldRunHistory />}
 
         {/* Edit Team Member Pane - Global */}
         <EditTeamMemberPane />
