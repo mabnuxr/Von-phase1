@@ -138,24 +138,36 @@ function applyRowDataTemplates(options: GridOptions): GridOptions {
 }
 
 // Append ``drillable-cell`` to ``column.cells.className`` for each column
-// id in ``drillableColumns`` (or for every column when the list is null,
-// preserving back-compat for dashboards predating the per-column contract).
-// The CSS in ``drilldown-panel.css`` (and the panel-widget hover rule in the
-// app CSS bundle) targets ``.clickable-cells td.drillable-cell:hover`` so
-// only tagged cells get the violet hover background + pointer cursor.
+// id in ``drillableColumns``. ``null`` means the agent didn't author a
+// whitelist — paint NO cells as drillable in that case (no highlight,
+// no pointer cursor, no ↳ glyph). Click handlers still gate on the same
+// ``null`` value to allow clicks through anywhere, since legacy
+// V1→V2-migrated panels can still benefit from cell-clicks even
+// without a whitelist.
+//
+// The previous back-compat ("null = every cell clickable + highlighted")
+// produced misleading affordance on agent-authored panels where the
+// agent simply forgot to populate the whitelist — every dimension
+// column appeared drillable. The validator now rejects null on
+// agent-authored configs (see schema_validator
+// ``_validate_v2_drillable_columns_required``); this FE change drops
+// the matching back-compat so legacy migrations and accidental nulls
+// fail closed visually.
 function applyDrillableCellClass(
   options: GridOptions,
   drillableColumns: string[] | null
 ): GridOptions {
   const cols = options.columns;
   if (!cols) return options;
-  const allowAll = drillableColumns === null;
-  const allow = new Set(drillableColumns ?? []);
+  // null whitelist → don't tag any column. Click still works (the per-cell
+  // click handler treats null as "no gate"); just no visual affordance.
+  if (drillableColumns === null) return options;
+  const allow = new Set(drillableColumns);
   const mapped = cols.map((col) => {
     const c = col as { id?: string; cells?: { className?: string } };
     const id = c.id;
     if (!id) return col;
-    if (!allowAll && !allow.has(id)) return col;
+    if (!allow.has(id)) return col;
     const existing = typeof c.cells?.className === 'string' ? c.cells.className : '';
     const next = existing.includes('drillable-cell')
       ? existing

@@ -93,15 +93,25 @@ function columnsFromData(rows: Record<string, unknown>[]): ReportColumn[] {
 
 /**
  * Append ``drillable-cell`` to ``column.cells.className`` for each column
- * id in ``drillableColumns`` (or for every column when the list is null,
- * preserving back-compat for variants predating the per-column contract).
+ * id in ``drillableColumns``. ``null`` whitelist means the variant didn't
+ * author one — paint NO cells as drillable (no highlight, no pointer
+ * cursor, no ↳ glyph). The bottom-sheet click handler still passes
+ * through clicks on null (see ``handleGridClick``), so legacy
+ * V1→V2-migrated variants without a whitelist still respond to clicks
+ * even though the visual affordance is suppressed.
  *
  * Mirror of ``applyDrillableCellClass`` in ``TableWidget`` — kept inline
  * here rather than imported because the helper isn't exported from
- * design-components and the logic is small. The CSS in
- * ``drilldown-panel.css`` keys on ``td.drillable-cell:hover`` so only
- * tagged cells get the violet hover background + bold font + pointer
- * cursor.
+ * design-components and the logic is small.
+ *
+ * Removed the previous "null = every cell clickable + highlighted"
+ * back-compat. It produced misleading affordance on agent-authored
+ * variants where the agent simply omitted the whitelist — every
+ * dimension column appeared drillable. The validator now rejects null
+ * on agent-authored configs
+ * (``_validate_v2_drillable_columns_required``); this FE change drops
+ * the matching visual back-compat so legacy migrations + accidental
+ * nulls fail closed visually.
  */
 function applyDrillableCellClass(
   options: ReturnType<typeof buildGridOptions>,
@@ -109,13 +119,16 @@ function applyDrillableCellClass(
 ): ReturnType<typeof buildGridOptions> {
   const cols = (options as { columns?: unknown[] }).columns;
   if (!Array.isArray(cols)) return options;
-  const allowAll = drillableColumns === null;
-  const allow = new Set(drillableColumns ?? []);
+  // null whitelist → don't tag any column. Click still works (the
+  // per-cell click handler treats null as "no gate"); just no visual
+  // affordance.
+  if (drillableColumns === null) return options;
+  const allow = new Set(drillableColumns);
   const mapped = cols.map((col) => {
     const c = col as { id?: string; cells?: { className?: string } };
     const id = c.id;
     if (!id) return col;
-    if (!allowAll && !allow.has(id)) return col;
+    if (!allow.has(id)) return col;
     const existing =
       typeof c.cells?.className === "string" ? c.cells.className : "";
     const next = existing.includes("drillable-cell")
