@@ -152,14 +152,22 @@ function MCPCatalogItem({
         if (createdServerId) deleteMutation.mutate(createdServerId);
         setCreatedServerId(null);
         showToast({
-          message: event.data.error || "OAuth authorization failed. Please try again.",
+          message:
+            event.data.error || "OAuth authorization failed. Please try again.",
           variant: "error",
         });
       }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup, deleteMutation, showToast]);
+  }, [
+    waitingForOAuth,
+    createdServerId,
+    finishOAuth,
+    oauthPopup,
+    deleteMutation,
+    showToast,
+  ]);
 
   useEffect(() => {
     if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
@@ -248,14 +256,19 @@ function MCPCatalogItem({
     isWorkspace &&
     entry.is_connected &&
     (!isBoth || entry.connected_server_id !== entry.personal_server_id);
-  const isPersonalActuallyConnected = isPersonal && !!entry.is_personal_connected;
+  const isPersonalActuallyConnected =
+    isPersonal && !!entry.is_personal_connected;
   const isOnlyPersonalConnected =
     isBoth && isPersonalActuallyConnected && !isWorkspaceActuallyConnected;
 
   const chips: Array<"workspace" | "personal" | "connected"> = [];
   if (isWorkspaceActuallyConnected) chips.push("workspace");
   if (isPersonalActuallyConnected) chips.push("personal");
-  if (!isWorkspaceActuallyConnected && !isPersonalActuallyConnected && isWorkspace)
+  if (
+    !isWorkspaceActuallyConnected &&
+    !isPersonalActuallyConnected &&
+    isWorkspace
+  )
     chips.push("workspace"); // unconnected workspace-only app
   if (isAuthenticated) chips.push("connected");
 

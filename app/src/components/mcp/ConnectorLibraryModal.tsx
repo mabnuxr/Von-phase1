@@ -380,7 +380,9 @@ function ConnectorDetailView({
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [showPermissions, setShowPermissions] = useState<"personal" | null>(null);
+  const [showPermissions, setShowPermissions] = useState<"personal" | null>(
+    null,
+  );
   const [splitOpen, setSplitOpen] = useState(false);
   const [orgMemory, setOrgMemory] = useState("");
   const splitRef = useRef<HTMLDivElement>(null);
@@ -503,7 +505,8 @@ function ConnectorDetailView({
   );
   const workspaceServer = entryServers.find(
     (s) =>
-      s.access_level === "tenant" && s.authentication_status === "AUTHENTICATED",
+      s.access_level === "tenant" &&
+      s.authentication_status === "AUTHENTICATED",
   );
   const personalServer = entryServers.find(
     (s) =>
@@ -751,7 +754,9 @@ function ConnectorDetailView({
                 >
                   Remove from Workspace
                 </button>
-              ) : !entry.is_connected && isAdmin && (isPersonalOnly || isBothLevels) ? (
+              ) : !entry.is_connected &&
+                isAdmin &&
+                (isPersonalOnly || isBothLevels) ? (
                 /* Split button for personal-only or workspace+personal apps */
                 <div ref={splitRef} className="relative flex shrink-0">
                   <button
@@ -815,7 +820,8 @@ function ConnectorDetailView({
             <p className="text-sm text-gray-700 mb-4">{entry.description}</p>
 
             {/* ── Connected state ── */}
-            {(entry.is_connected || isOnlyPersonalConnected) && !isAddedForTeam ? (
+            {(entry.is_connected || isOnlyPersonalConnected) &&
+            !isAddedForTeam ? (
               <>
                 {/* Connected status banner */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-lg mb-5">
@@ -992,9 +998,9 @@ function ConnectorDetailView({
             <p className="text-sm text-gray-600 mb-6">
               {isAddedForTeam ? (
                 <>
-                  Are you sure you want to disable{" "}
-                  <strong>{entry.name}</strong> for your team? Members won't be
-                  able to connect their personal accounts.
+                  Are you sure you want to disable <strong>{entry.name}</strong>{" "}
+                  for your team? Members won't be able to connect their personal
+                  accounts.
                 </>
               ) : isOnlyPersonalConnected ? (
                 <>
@@ -1003,9 +1009,8 @@ function ConnectorDetailView({
                 </>
               ) : (
                 <>
-                  Are you sure you want to remove{" "}
-                  <strong>{entry.name}</strong> from workspace? This will remove
-                  the workspace connection.
+                  Are you sure you want to remove <strong>{entry.name}</strong>{" "}
+                  from workspace? This will remove the workspace connection.
                 </>
               )}
             </p>
