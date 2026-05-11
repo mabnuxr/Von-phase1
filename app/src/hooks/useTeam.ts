@@ -299,7 +299,10 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
       // Each mutation toggles exactly one key — pick whichever was set.
       let message = "Permissions updated";
-      if (permissions.sfdc_write !== undefined && permissions.sfdc_write !== null) {
+      if (
+        permissions.sfdc_write !== undefined &&
+        permissions.sfdc_write !== null
+      ) {
         message = permissions.sfdc_write
           ? "Salesforce updates enabled for this user"
           : "Salesforce updates disabled for this user";

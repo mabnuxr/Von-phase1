@@ -10,7 +10,14 @@ export type StepType = 'reasoning' | 'tool_call' | 'code_execution' | 'output' |
 /**
  * Source type for tool calls
  */
-export type SourceType = 'salesforce' | 'hubspot' | 'gong' | 'email' | 'voniq' | 'calendar' | 'generic';
+export type SourceType =
+  | 'salesforce'
+  | 'hubspot'
+  | 'gong'
+  | 'email'
+  | 'voniq'
+  | 'calendar'
+  | 'generic';
 
 /**
  * event category
