@@ -1,13 +1,14 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import {
   DotsThreeVerticalIcon,
   PencilSimpleIcon,
   TrashIcon,
-  ArrowBendUpRightIcon,
+  FolderSimpleIcon,
 } from "@phosphor-icons/react";
+import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useChatSidebar } from "../../hooks/useChatSidebar";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
-import { MoveToFolderModal } from "./MoveToFolderModal";
+import { ManageFoldersModal } from "./ManageFoldersModal";
 
 interface ConversationMoreMenuProps {
   conversationId: string | null;
@@ -20,68 +21,52 @@ export function ConversationMoreMenu({
   onDeleted,
   onStartRename,
 }: ConversationMoreMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isPendingDelete, setIsPendingDelete] = useState(false);
-  const [isPendingAddToFolder, setIsPendingAddToFolder] = useState(false);
-  const [isMoving, setIsMoving] = useState(false);
+  const {
+    isVisible: isMenuOpen,
+    hide: closeMenu,
+    toggleVisibility: toggleMenu,
+  } = useVisibilityToggle();
+  const {
+    isVisible: isPendingDelete,
+    show: openDelete,
+    hide: closeDelete,
+  } = useVisibilityToggle();
+  const {
+    isVisible: isManageFoldersOpen,
+    show: openManageFolders,
+    hide: closeManageFolders,
+  } = useVisibilityToggle();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const {
-    unfiledConversations,
-    folders,
-    deleteConversation,
-    moveItemToFolder,
-    createFolderForItem,
-  } = useChatSidebar();
+  const { unfiledConversations, deleteConversation } = useChatSidebar();
 
   const conversation = unfiledConversations.find(
     (c) => c.conversation_id === conversationId,
   );
   const conversationTitle = conversation?.title?.trim() ?? "this chat";
 
-  const close = () => setIsOpen(false);
-
   // Close dropdown on outside click
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isMenuOpen) return;
     const handler = (e: MouseEvent) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        close();
+        closeMenu();
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen]);
+  }, [isMenuOpen, closeMenu]);
 
   const handleDeleteConfirm = () => {
     if (conversationId) {
       deleteConversation(conversationId);
       onDeleted();
     }
-    setIsPendingDelete(false);
+    closeDelete();
   };
-
-  const handleFolderConfirm = (config: {
-    folderId: string;
-    isNewFolder: boolean;
-    newFolderName?: string;
-  }) => {
-    if (!conversationId || isMoving) return;
-    setIsMoving(true);
-    if (config.isNewFolder && config.newFolderName) {
-      createFolderForItem(conversationId, config.newFolderName);
-    } else {
-      moveItemToFolder(conversationId, config.folderId);
-    }
-    setIsPendingAddToFolder(false);
-    setIsMoving(false);
-  };
-
-  // Map folders to the shape MoveToFolderModal expects
-  const folderOptions = folders.map((f) => ({ id: f.id, label: f.label }));
 
   return (
     <>
@@ -89,7 +74,7 @@ export function ConversationMoreMenu({
         <button
           onClick={() => {
             if (!conversationId) return;
-            setIsOpen((v) => !v);
+            toggleMenu();
           }}
           disabled={!conversationId}
           className="inline-flex items-center justify-center w-7 h-7 text-gray-800 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -98,11 +83,11 @@ export function ConversationMoreMenu({
           <DotsThreeVerticalIcon size={16} weight="bold" />
         </button>
 
-        {isOpen && (
+        {isMenuOpen && (
           <div className="absolute top-full right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden p-1 min-w-[10rem]">
             <button
               onClick={() => {
-                close();
+                closeMenu();
                 onStartRename();
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
@@ -116,12 +101,12 @@ export function ConversationMoreMenu({
             </button>
             <button
               onClick={() => {
-                close();
-                setIsPendingAddToFolder(true);
+                closeMenu();
+                openManageFolders();
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <ArrowBendUpRightIcon
+              <FolderSimpleIcon
                 size={14}
                 weight="regular"
                 className="flex-shrink-0"
@@ -130,8 +115,8 @@ export function ConversationMoreMenu({
             </button>
             <button
               onClick={() => {
-                close();
-                setIsPendingDelete(true);
+                closeMenu();
+                openDelete();
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
@@ -146,16 +131,18 @@ export function ConversationMoreMenu({
         isOpen={isPendingDelete}
         itemLabel={conversationTitle}
         onConfirm={handleDeleteConfirm}
-        onCancel={() => setIsPendingDelete(false)}
+        onCancel={closeDelete}
       />
 
-      <MoveToFolderModal
-        isOpen={isPendingAddToFolder}
-        itemName={conversationTitle}
-        folders={folderOptions}
-        onConfirm={handleFolderConfirm}
-        onCancel={() => setIsPendingAddToFolder(false)}
-      />
+      {conversationId && (
+        <ManageFoldersModal
+          isOpen={isManageFoldersOpen}
+          itemName={conversationTitle}
+          itemType="conversation"
+          itemId={conversationId}
+          onClose={closeManageFolders}
+        />
+      )}
     </>
   );
 }
