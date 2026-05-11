@@ -159,7 +159,7 @@ function MCPCatalogItem({
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup]);
+  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup, deleteMutation, showToast]);
 
   useEffect(() => {
     if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
@@ -176,12 +176,15 @@ function MCPCatalogItem({
         variant: "error",
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     authStatusQuery.data?.authentication_status,
     waitingForOAuth,
     createdServerId,
     discoverTriggered,
+    deleteMutation,
+    showToast,
+    oauthPopup,
+    finishOAuth,
   ]);
 
   const handleDirectOAuth = async (accessLevel: "tenant" | "user" = "user") => {
