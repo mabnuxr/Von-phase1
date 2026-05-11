@@ -184,12 +184,18 @@ export interface UseChatSidebarReturn {
   deleteConversation: (conversationId: string) => void;
   isDeletingConversation: boolean;
 
-  // Item membership mutations (generic over chat + dashboard)
-  moveItemToFolder: (
+  // Item membership mutations (generic over chat + dashboard).
+  //
+  // `setItemFolders` is the canonical write path for multi-folder membership:
+  // the modal sends the full target set and the server diffs against current.
+  // `createFolderForItem` is a composition helper used by the inline
+  // "+ Create New Folder" flow. `removeItemFromFolder` is the single-DELETE
+  // "Remove from this folder" action.
+  setItemFolders: (
+    itemType: FolderItemType,
     itemId: string,
-    targetFolderId: string,
-    itemType?: FolderItemType,
-  ) => void;
+    folderIds: string[],
+  ) => Promise<void>;
   createFolderForItem: (
     itemId: string,
     folderName: string,
@@ -461,16 +467,16 @@ export function useChatSidebar(): UseChatSidebarReturn {
   // ── Mutations ──────────────────────────────────────────────────────────
   const {
     createFolder: createFolderRaw,
-    createFolderAsync,
     isCreatingFolder,
     renameFolder,
     isRenamingFolder,
     deleteFolder,
     isDeletingFolder,
     pinFolder,
-    addItemToFolder,
+    setItemFoldersAsync,
     removeItemFromFolder: removeItemFromFolderRaw,
-    isAddingItem,
+    createFolderForItem: createFolderForItemRaw,
+    isSettingFolders,
     isRemovingItem,
   } = useFolderMutations();
 
@@ -495,8 +501,8 @@ export function useChatSidebar(): UseChatSidebarReturn {
     [deleteConversationMutation],
   );
 
-  // Source-folder lookup — used so move/remove/createFolderForItem can
-  // invalidate the source folder's contents alongside the target's.
+  // Source-folder lookup — only needed by removeItemFromFolder, which still
+  // operates on a single (folder, item) pair via the DELETE endpoint.
   const findSourceFolderId = useCallback(
     (itemId: string, itemType: FolderItemType): string | null => {
       const map = itemType === "conversation" ? folderItems : folderDashboards;
@@ -508,21 +514,15 @@ export function useChatSidebar(): UseChatSidebarReturn {
     [folderItems, folderDashboards],
   );
 
-  const moveItemToFolder = useCallback(
-    (
+  const setItemFolders = useCallback(
+    async (
+      itemType: FolderItemType,
       itemId: string,
-      targetFolderId: string,
-      itemType: FolderItemType = "conversation",
-    ) => {
-      const sourceFolderId = findSourceFolderId(itemId, itemType);
-      addItemToFolder({
-        folderId: targetFolderId,
-        itemType,
-        itemId,
-        sourceFolderId,
-      });
+      folderIds: string[],
+    ): Promise<void> => {
+      await setItemFoldersAsync({ itemType, itemId, folderIds });
     },
-    [addItemToFolder, findSourceFolderId],
+    [setItemFoldersAsync],
   );
 
   const removeItemFromFolder = useCallback(
@@ -540,19 +540,10 @@ export function useChatSidebar(): UseChatSidebarReturn {
       folderName: string,
       itemType: FolderItemType = "conversation",
     ) => {
-      const sourceFolderId = findSourceFolderId(itemId, itemType);
-      // Compose: create then file. createFolderAsync resolves with the new folder.
-      createFolderAsync({ name: folderName }).then((folder) => {
-        if (!folder) return;
-        addItemToFolder({
-          folderId: folder.folderId,
-          itemType,
-          itemId,
-          sourceFolderId,
-        });
-      });
+      // Fire-and-forget; the mutation handles toasts on its own.
+      void createFolderForItemRaw({ name: folderName, itemType, itemId });
     },
-    [addItemToFolder, createFolderAsync, findSourceFolderId],
+    [createFolderForItemRaw],
   );
 
   const refetch = useCallback(() => {
@@ -616,9 +607,9 @@ export function useChatSidebar(): UseChatSidebarReturn {
     deleteConversation,
     isDeletingConversation,
 
-    moveItemToFolder,
+    setItemFolders,
     createFolderForItem,
     removeItemFromFolder,
-    isMovingItem: isAddingItem || isRemovingItem,
+    isMovingItem: isSettingFolders || isRemovingItem,
   };
 }

@@ -30,6 +30,7 @@ import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
 import { useDashboardAutoFit } from "../../../hooks/useDashboardAutoFit";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
+import { DashboardMoreMenu } from "../DashboardMoreMenu";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
 import type {
@@ -621,6 +622,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   sharePhase={sharePhase}
                   onShare={onShare}
                   onCopyLink={handleCopyLink}
+                />
+
+                <DashboardMoreMenu
+                  dashboardId={dashboard.id}
+                  dashboardName={dashboard.title}
                 />
 
                 {/* Edit / Save toggle */}

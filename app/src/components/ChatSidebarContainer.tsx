@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChatSidebar } from "@vonlabs/design-components";
+import { ChatSidebar, ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
+import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
+import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useShareStatus } from "../hooks/useShareStatus";
@@ -138,8 +140,6 @@ export function ChatSidebarContainer({
     toggleFolderExpanded,
     deleteConversation,
     renameConversation,
-    moveItemToFolder,
-    createFolderForItem,
     removeItemFromFolder,
     unfiledConversations,
   } = useChatSidebar();
@@ -219,18 +219,64 @@ export function ChatSidebarContainer({
     [deleteConversation, currentConversationId, navigate],
   );
 
-  const handleMoveDashboardToFolder = useCallback(
-    (id: string, folderId: string) =>
-      moveItemToFolder(id, folderId, "dashboard"),
-    [moveItemToFolder],
+  const [manageFoldersState, setManageFoldersState] = useState<
+    | {
+        open: true;
+        itemType: FolderItemType;
+        itemId: string;
+        itemName: string;
+      }
+    | { open: false }
+  >({ open: false });
+
+  // Precomputed (type, id) → label maps. Replaces the previous per-callback
+  // O(folders × items) scans with O(1) lookups. Two maps so ids that collide
+  // across types (rare but legal) stay separated; each is recomputed only
+  // when its underlying source list changes.
+  const chatLabelById = useMemo<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const it of items) map.set(it.id, it.label);
+    for (const list of Object.values(folderItems)) {
+      for (const it of list) map.set(it.id, it.label);
+    }
+    return map;
+  }, [items, folderItems]);
+
+  const dashboardLabelById = useMemo<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const d of dashboards) map.set(d.id, d.label);
+    for (const list of Object.values(folderDashboards)) {
+      for (const d of list) map.set(d.id, d.label);
+    }
+    return map;
+  }, [dashboards, folderDashboards]);
+
+  // Unified callback for both chats and dashboards. The design-component
+  // forwards the row's `ItemType`; we translate to the API's vocabulary and
+  // resolve the display name from the precomputed map.
+  const handleManageItemFolders = useCallback(
+    (itemId: string, itemType: ItemType) => {
+      const folderItemType = toFolderItemType(itemType);
+      const itemName =
+        folderItemType === FolderItemType.Dashboard
+          ? (dashboardLabelById.get(itemId) ?? "this dashboard")
+          : (chatLabelById.get(itemId) ?? "this chat");
+      setManageFoldersState({
+        open: true,
+        itemType: folderItemType,
+        itemId,
+        itemName,
+      });
+    },
+    [chatLabelById, dashboardLabelById],
   );
-  const handleCreateFolderAndMoveDashboard = useCallback(
-    (id: string, folderName: string) =>
-      createFolderForItem(id, folderName, "dashboard"),
-    [createFolderForItem],
-  );
-  const handleRemoveDashboardFromFolder = useCallback(
-    (id: string) => removeItemFromFolder(id, "dashboard"),
+
+  // Single unfile callback; forwards the design-component's `ItemType` to the
+  // app's `removeItemFromFolder`, which expects `FolderItemType`.
+  const handleRemoveItemFromFolder = useCallback(
+    (itemId: string, itemType: ItemType) => {
+      removeItemFromFolder(itemId, toFolderItemType(itemType));
+    },
     [removeItemFromFolder],
   );
 
@@ -260,60 +306,67 @@ export function ChatSidebarContainer({
   }, [currentConversationId, items, folderItems, unfiledConversations]);
 
   return (
-    <ChatSidebar
-      items={decoratedItems}
-      folders={folders}
-      folderItems={decoratedFolderItems}
-      folderDashboards={folderDashboards}
-      folderSectionTotals={folderSectionTotals}
-      folderLoadingMap={folderLoadingMap}
-      isLoading={isLoading}
-      selectedItemId={currentConversationId || undefined}
-      onItemClick={handleChatClick}
-      onNewChatClick={onNewChatClick}
-      onNewChatFolderClick={createFolder}
-      onRenameItem={renameConversation}
-      onShareItem={isChatSharingEnabled ? openShareModal : undefined}
-      onContextMenuOpen={
-        isChatSharingEnabled ? handleContextMenuOpen : undefined
-      }
-      contextMenuShareInfo={contextMenuShareInfo}
-      onDeleteItem={handleDeleteItem}
-      onDeleteFolder={deleteFolder}
-      onRenameFolder={renameFolder}
-      onPinFolder={pinFolder}
-      onFolderToggle={toggleFolderExpanded}
-      onMoveItemToFolder={moveItemToFolder}
-      onCreateFolderAndMoveItem={createFolderForItem}
-      onRemoveItemFromFolder={removeItemFromFolder}
-      sectionShowMore={sectionShowMore}
-      onRevealMoreInSection={revealMoreInSection}
-      onCollapseSection={collapseSection}
-      isCollapsed={isCollapsed}
-      onToggleCollapse={onToggleCollapse}
-      loadMoreRef={loadMoreRef}
-      isFetchingMore={isFetchingNextPage}
-      hasMoreChats={hasNextPage}
-      onLoadMoreChats={fetchNextPage}
-      avatarSrc={avatarSrc}
-      avatarLabel={avatarLabel}
-      userName={displayName}
-      userEmail={user?.email}
-      onSignOutClick={onLogoutClick}
-      onSettingsClick={onSettingsClick}
-      isNewChatActive={isNewChatActive}
-      isDashboardsEnabled={isDeepResearchEnabled}
-      dashboards={dashboards}
-      selectedDashboardId={dashboardId}
-      hasMoreDashboards={hasNextDashboardPage}
-      onLoadMoreDashboards={fetchNextDashboardPage}
-      isLoadingMoreDashboards={isFetchingNextDashboardPage}
-      onRenameDashboard={renameDashboard}
-      onDeleteDashboard={deleteDashboard}
-      onMoveDashboardToFolder={handleMoveDashboardToFolder}
-      onCreateFolderAndMoveDashboard={handleCreateFolderAndMoveDashboard}
-      onRemoveDashboardFromFolder={handleRemoveDashboardFromFolder}
-      onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
-    />
+    <>
+      <ChatSidebar
+        items={decoratedItems}
+        folders={folders}
+        folderItems={decoratedFolderItems}
+        folderDashboards={folderDashboards}
+        folderSectionTotals={folderSectionTotals}
+        folderLoadingMap={folderLoadingMap}
+        isLoading={isLoading}
+        selectedItemId={currentConversationId || undefined}
+        onItemClick={handleChatClick}
+        onNewChatClick={onNewChatClick}
+        onNewChatFolderClick={createFolder}
+        onRenameItem={renameConversation}
+        onShareItem={isChatSharingEnabled ? openShareModal : undefined}
+        onContextMenuOpen={
+          isChatSharingEnabled ? handleContextMenuOpen : undefined
+        }
+        contextMenuShareInfo={contextMenuShareInfo}
+        onDeleteItem={handleDeleteItem}
+        onDeleteFolder={deleteFolder}
+        onRenameFolder={renameFolder}
+        onPinFolder={pinFolder}
+        onFolderToggle={toggleFolderExpanded}
+        onRemoveItemFromFolder={handleRemoveItemFromFolder}
+        onManageItemFolders={handleManageItemFolders}
+        sectionShowMore={sectionShowMore}
+        onRevealMoreInSection={revealMoreInSection}
+        onCollapseSection={collapseSection}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        loadMoreRef={loadMoreRef}
+        isFetchingMore={isFetchingNextPage}
+        hasMoreChats={hasNextPage}
+        onLoadMoreChats={fetchNextPage}
+        avatarSrc={avatarSrc}
+        avatarLabel={avatarLabel}
+        userName={displayName}
+        userEmail={user?.email}
+        onSignOutClick={onLogoutClick}
+        onSettingsClick={onSettingsClick}
+        isNewChatActive={isNewChatActive}
+        isDashboardsEnabled={isDeepResearchEnabled}
+        dashboards={dashboards}
+        selectedDashboardId={dashboardId}
+        hasMoreDashboards={hasNextDashboardPage}
+        onLoadMoreDashboards={fetchNextDashboardPage}
+        isLoadingMoreDashboards={isFetchingNextDashboardPage}
+        onRenameDashboard={renameDashboard}
+        onDeleteDashboard={deleteDashboard}
+        onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
+      />
+      {manageFoldersState.open && (
+        <ManageFoldersModal
+          isOpen
+          itemName={manageFoldersState.itemName}
+          itemType={manageFoldersState.itemType}
+          itemId={manageFoldersState.itemId}
+          onClose={() => setManageFoldersState({ open: false })}
+        />
+      )}
+    </>
   );
 }

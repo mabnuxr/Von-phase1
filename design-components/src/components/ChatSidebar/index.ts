@@ -1,9 +1,11 @@
-export { ChatSidebar } from './ChatSidebar';
+// `ItemType` is a const-object + matching type alias; re-export it as a
+// value so it works in both value position (`ItemType.Dashboard`) and type
+// position (`(t: ItemType) => …`) for consumers.
+export { ChatSidebar, ItemType } from './ChatSidebar';
 export type {
   ChatSidebarProps,
   SidebarItem,
   Folder,
-  ItemType,
   ItemStatus,
   ApprovalState,
   FolderItemsMap,

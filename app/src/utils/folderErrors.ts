@@ -69,6 +69,13 @@ const APP_ERROR_MAP: Record<string, FolderErrorMapping> = {
     message: "That item is no longer available.",
     variant: "error",
   },
+  APP_FOLDER_SET_FAILED: {
+    action: "toast",
+    message:
+      "Couldn't update folders — some are full or no longer available. " +
+      "Adjust your selection and try again.",
+    variant: "warning",
+  },
 };
 
 /**

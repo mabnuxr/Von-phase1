@@ -23,7 +23,17 @@ const VON_COMBINATION_MARK_URL =
 // Types
 // ============================================================================
 
-export type ItemType = 'chat' | 'dashboard';
+/**
+ * Sidebar item vocabulary. Note this is *display-side* — the host app's
+ * Folders v2 API uses `'conversation' | 'dashboard'`. Mapping `'chat' ⇄
+ * 'conversation'` happens at the app boundary, not here.
+ */
+export const ItemType = {
+  Chat: 'chat',
+  Dashboard: 'dashboard',
+} as const;
+
+export type ItemType = (typeof ItemType)[keyof typeof ItemType];
 export type ItemStatus = 'idle' | 'running' | 'complete';
 
 /**
@@ -137,7 +147,14 @@ export interface ChatSidebarProps {
   onDeleteItem?: (id: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
-  onRemoveItemFromFolder?: (itemId: string) => void;
+  /** Unfile any sidebar row (chat or dashboard) from its folder. The
+   *  `itemType` is forwarded from the row so the host app doesn't need a
+   *  per-type callback pair. */
+  onRemoveItemFromFolder?: (itemId: string, itemType: ItemType) => void;
+  /** Open the host app's multi-folder picker for any sidebar row. The
+   *  `itemType` is forwarded from the row so the host app routes by type
+   *  without parallel callbacks per item kind. */
+  onManageItemFolders?: (itemId: string, itemType: ItemType) => void;
   /** Per-section reveal-count map keyed by `${folderId}:${itemType}`. */
   sectionShowMore?: SectionShowMoreMap;
   /** Reveal the next page of items in a section ("Show 5 more"). */
@@ -193,8 +210,6 @@ export interface ChatSidebarProps {
   onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
   /** Create a new folder and file the dashboard into it */
   onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
-  /** Unfile a dashboard from its current folder */
-  onRemoveDashboardFromFolder?: (dashboardId: string) => void;
   /** Currently-selected conversation/dashboard ID — used by in-folder dashboard rows. */
   selectedDashboardIdInFolders?: string;
 }
@@ -342,6 +357,10 @@ interface DashboardSectionProps {
   onDeleteDashboard?: (id: string) => void;
   onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
   onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
+  /** Unified manage-folders callback. The dashboard section always forwards
+   *  `ItemType.Dashboard` so the host can route by type without a separate
+   *  per-type prop. */
+  onManageItemFolders?: (itemId: string, itemType: ItemType) => void;
   hasMoreDashboards?: boolean;
   onLoadMoreDashboards?: () => void;
   isLoadingMoreDashboards?: boolean;
@@ -356,6 +375,7 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
   onDeleteDashboard,
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
+  onManageItemFolders,
   hasMoreDashboards,
   onLoadMoreDashboards,
   isLoadingMoreDashboards = false,
@@ -436,8 +456,8 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
           if (!dash) return;
           if (menuItem.id === 'rename' && dash.isOwner) {
             setEditingId(dash.id);
-          } else if (menuItem.id === 'move') {
-            setMoveToFolderState({ isOpen: true, dashboard: dash });
+          } else if (menuItem.id === 'manage-folders') {
+            onManageItemFolders?.(dash.id, ItemType.Dashboard);
           } else if (menuItem.id === 'delete' && dash.isOwner) {
             setDeleteConfirmation({ isOpen: true, dashboard: dash });
           }
@@ -512,6 +532,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onMoveItemToFolder,
   onCreateFolderAndMoveItem,
   onRemoveItemFromFolder,
+  onManageItemFolders,
   sectionShowMore,
   onRevealMoreInSection,
   onCollapseSection,
@@ -544,7 +565,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isLoadingMoreDashboards,
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
-  onRemoveDashboardFromFolder,
 }) => {
   // Use the sidebar state hook
   const {
@@ -638,7 +658,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onDeleteDashboard,
     onMoveDashboardToFolder,
     onCreateFolderAndMoveDashboard,
-    onRemoveDashboardFromFolder,
   });
 
   // Wrap context menu handler to notify container (for share status fetch)
@@ -836,6 +855,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onDeleteDashboard={onDeleteDashboard}
                         onMoveDashboardToFolder={onMoveDashboardToFolder}
                         onCreateFolderAndMoveDashboard={onCreateFolderAndMoveDashboard}
+                        onManageItemFolders={onManageItemFolders}
                         hasMoreDashboards={hasMoreDashboards}
                         onLoadMoreDashboards={onLoadMoreDashboards}
                         isLoadingMoreDashboards={isLoadingMoreDashboards}
@@ -943,8 +963,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
         onItemClick={(menuItem) => {
           if (menuItem.id === 'rename' && contextMenu.item) {
             handleStartRename(contextMenu.item);
-          } else if (menuItem.id === 'move' && contextMenu.item) {
-            handleShowMoveToFolder(contextMenu.item);
+          } else if (menuItem.id === 'manage-folders' && contextMenu.item) {
+            // Unified callback — the host app routes on `itemType`.
+            onManageItemFolders?.(contextMenu.item.id, contextMenu.item.type);
           } else if (menuItem.id === 'share' && contextMenu.item) {
             onShareItem?.(contextMenu.item.id);
           } else if (menuItem.id === 'remove-from-folder' && contextMenu.item) {
