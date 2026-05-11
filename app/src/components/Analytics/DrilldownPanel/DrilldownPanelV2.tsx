@@ -394,6 +394,8 @@ export function DrilldownPanelV2({
             widgetTitle={widgetTitle ?? drill.title ?? "Drilldown"}
             chain={drill.clickChain}
             levelColumnMaps={levelColumnMaps}
+            variants={drill.variants}
+            currentVariantId={drill.currentVariantId}
             onPopToLevel={drill.popToLevel}
           />
           <div className="dd-v2-header-actions">
@@ -484,11 +486,15 @@ function Breadcrumb({
   widgetTitle,
   chain,
   levelColumnMaps,
+  variants,
+  currentVariantId,
   onPopToLevel,
 }: {
   widgetTitle: string;
   chain: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode[];
   levelColumnMaps?: DrilldownV2ColumnMapping[][];
+  variants: DrilldownV2VariantSummary[];
+  currentVariantId: string | null;
   onPopToLevel: (depth: number) => void;
 }) {
   // The widget title is the breadcrumb's "home" — clicking it pops to depth
@@ -503,6 +509,31 @@ function Breadcrumb({
   // chain length <= 1 the user is already at L1 (or before), so we render a
   // plain span to avoid a misleading hover affordance and a no-op click.
   const isInteractive = chain.length > 1;
+  // The variant control acts on the CURRENT (deepest) view. When the user
+  // picks a variant different from what the click originally routed to, the
+  // parenthesized suffix on the segment representing that depth swaps from
+  // the captured metric value to the variant label. "Originally routed"
+  // means: the variant id passed at click-time (for table-cell clicks this
+  // comes from ``column_variant_map``; for KPI / chart clicks it's null,
+  // meaning "use is_default"). Comparing against the routed variant — not
+  // the level's ``is_default`` — keeps the value visible when the column-
+  // routed initial variant happens to be non-default (e.g. clicking
+  // open_pipeline_arr routes to the "open" variant even though the level's
+  // is_default is "all").
+  const topIdx = chain.length - 1;
+  const topNode = chain[topIdx];
+  const activeVariant = currentVariantId
+    ? (variants.find((v) => v.id === currentVariantId) ?? null)
+    : null;
+  const isOnRoutedVariant =
+    topNode == null
+      ? true
+      : topNode.initialVariantId === null
+        ? (activeVariant?.is_default ?? false)
+        : topNode.initialVariantId === currentVariantId;
+  const variantLabelOverride =
+    activeVariant && !isOnRoutedVariant ? activeVariant.label : null;
+
   // For panel-level clicks (KPI tile, chart/table drill icon) chain[0] has
   // no filters and no columnPath, so formatSegment skips rendering a
   // segment for it. KPI clicks DO carry a metricValue (the resolved
@@ -510,13 +541,19 @@ function Breadcrumb({
   // title since for a KPI the title IS the metric label. Only attach
   // when the L0 click is truly panel-level (empty filters + empty
   // columnPath) so we never double-render against a real L0 segment.
+  // When chain.length === 1 and the root is panel-level, the title
+  // suffix IS the active depth's suffix — so the variant-label override
+  // applies here too.
   const root = chain[0];
-  const titleSuffix =
-    root &&
+  const rootIsPanelLevel =
+    !!root &&
     Object.keys(root.filters).length === 0 &&
-    root.columnPath.length === 0
-      ? formatMetricSuffix(root.metricValue, root.metricLabel)
-      : "";
+    root.columnPath.length === 0;
+  const titleSuffix = rootIsPanelLevel
+    ? chain.length === 1 && variantLabelOverride
+      ? ` (${variantLabelOverride})`
+      : formatMetricSuffix(root.metricValue, root.metricLabel)
+    : "";
   const titleText = (widgetTitle || "Drilldown") + titleSuffix;
   return (
     <div className="dd-v2-breadcrumb">
@@ -534,7 +571,13 @@ function Breadcrumb({
         </span>
       )}
       {chain.map((node, idx) => {
-        const label = formatSegment(node, levelColumnMaps?.[idx]);
+        const segmentVariantOverride =
+          idx === topIdx ? variantLabelOverride : null;
+        const label = formatSegment(
+          node,
+          levelColumnMaps?.[idx],
+          segmentVariantOverride,
+        );
         // A null label indicates a panel-level click with no filters (e.g.
         // KPI tile click, chart drilldown-icon click). The widget title above
         // already absorbs the click target for that depth — emitting a
@@ -581,6 +624,7 @@ function Breadcrumb({
 function formatSegment(
   node: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode,
   columnMap: DrilldownV2ColumnMapping[] | undefined,
+  variantLabelOverride: string | null,
 ): string | null {
   // Append the clicked metric value as a parenthesized suffix when present
   // (e.g. " (47)" for a chart bar of height 47). For table widget cells +
@@ -588,8 +632,14 @@ function formatSegment(
   // metric they clicked: " (Opp Count: 40)". Captured at click time; null
   // for panel-level icon clicks. Numbers render via toLocaleString for
   // thousands separators; booleans / strings pass through verbatim.
+  //
+  // When the user picked a non-default variant on this depth, the suffix
+  // swaps to the variant label — the variant choice is more informative than
+  // the original click value once the view's slice has changed.
   const filterEntries = Object.entries(node.filters);
-  const metricSuffix = formatMetricSuffix(node.metricValue, node.metricLabel);
+  const metricSuffix = variantLabelOverride
+    ? ` (${variantLabelOverride})`
+    : formatMetricSuffix(node.metricValue, node.metricLabel);
   if (filterEntries.length === 0) {
     if (node.columnPath.length === 0) {
       // Panel-level drill (KPI / icon click). Nothing to show.

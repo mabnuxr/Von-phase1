@@ -48,6 +48,15 @@ export interface DrilldownV2ClickNode {
   /** null => use this level's is_default variant. */
   variantId: string | null;
   /**
+   * The variant id this node was originally clicked into — captured at
+   * push/open time and never mutated by ``changeVariant``. Lets the
+   * breadcrumb tell "user is still on the routed-to variant" from "user
+   * manually switched to a different variant". For ``column_variant_map``
+   * routing this is the mapped id; for KPI / chart clicks where no
+   * routing applies it stays null (meaning "fall back to is_default").
+   */
+  initialVariantId: string | null;
+  /**
    * Filter contributions originating at THIS click. Keyed by SQL column name;
    * latest-wins across the chain when merged. For whole-row descent, this is
    * typically the entire grouping-key dict from the clicked row.
@@ -213,7 +222,16 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
     ) => {
       setState({
         panelId,
-        chain: [{ columnPath, variantId, filters, metricValue, metricLabel }],
+        chain: [
+          {
+            columnPath,
+            variantId,
+            initialVariantId: variantId,
+            filters,
+            metricValue,
+            metricLabel,
+          },
+        ],
         page: 1,
         sort: null,
       });
@@ -239,7 +257,14 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
           ...prev,
           chain: [
             ...prev.chain,
-            { columnPath, variantId, filters, metricValue, metricLabel },
+            {
+              columnPath,
+              variantId,
+              initialVariantId: variantId,
+              filters,
+              metricValue,
+              metricLabel,
+            },
           ],
           page: 1,
           sort: null,
