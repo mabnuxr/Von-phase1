@@ -297,12 +297,21 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
     onSuccess: (_data, { permissions }) => {
       if (!tenantId) return;
       queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
-      showToast({
-        message: permissions.sfdc_write
+      // Each mutation toggles exactly one key — pick whichever was set.
+      let message = "Permissions updated";
+      if (permissions.sfdc_write !== undefined && permissions.sfdc_write !== null) {
+        message = permissions.sfdc_write
           ? "Salesforce updates enabled for this user"
-          : "Salesforce updates disabled for this user",
-        variant: "success",
-      });
+          : "Salesforce updates disabled for this user";
+      } else if (
+        permissions.hubspot_write !== undefined &&
+        permissions.hubspot_write !== null
+      ) {
+        message = permissions.hubspot_write
+          ? "HubSpot updates enabled for this user"
+          : "HubSpot updates disabled for this user";
+      }
+      showToast({ message, variant: "success" });
     },
 
     onError: (err) => {

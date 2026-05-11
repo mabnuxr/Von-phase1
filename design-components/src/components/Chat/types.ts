@@ -3,7 +3,6 @@
  */
 
 import type { ConversationMode } from './StandardChatInput/types';
-import type { Template, TemplateCategory } from '../Templates/types';
 import type { FileArtifact } from './ArtifactCards/types';
 import type { Command, DashboardOption, ScheduleRecipient } from '../Commands/types';
 import type { FileAttachment } from './FileAttachment/types';
@@ -881,6 +880,8 @@ export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
+    toolName === 'hubspot_write' ||
+    toolName === 'hubspot_bulk_write' ||
     toolName === 'create_command' ||
     OUTREACH_APPROVAL_TOOLS.has(toolName) ||
     SALESLOFT_APPROVAL_TOOLS.has(toolName)
@@ -1366,12 +1367,6 @@ export interface ChatProps {
    * Callback when a disabled example prompt is clicked
    */
   onExamplePromptDisabledClick?: () => void;
-  /** Callback when a template category pill is clicked */
-  onTemplateCategoryClick?: (category: TemplateCategory) => void;
-  /** Callback when a suggested prompt card is clicked (position is 1-based) */
-  onTemplateClick?: (template: Template, position: number) => void;
-  /** Callback when the left/right arrow is clicked to scroll prompts */
-  onTemplateArrowClick?: (direction: 'left' | 'right', activeCategory: TemplateCategory) => void;
 
   /**
    * Callback when user types in input while submit is disabled

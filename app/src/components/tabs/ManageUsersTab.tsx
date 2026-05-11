@@ -14,6 +14,7 @@ import {
   useUpdateMemberPermissions,
 } from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
 import { Banner, Tooltip } from "@vonlabs/design-components";
@@ -35,6 +36,8 @@ export function ManageUsersTab() {
 
   // Get permissions for team resource
   const { data: teamPermissions } = usePermissions(Resource.TEAM);
+
+  const { isHubspotEnabled } = useFeatureFlag();
 
   // Check if user can create/delete team members
   const canCreateTeamMember = teamPermissions?.create ?? false;
@@ -127,6 +130,46 @@ export function ManageUsersTab() {
       permissions: { sfdc_write: !currentValue },
     });
   };
+
+  const handleToggleHubspotWrite = (member: (typeof filteredUsers)[number]) => {
+    const currentValue = member.permissions?.hubspot_write ?? true;
+    updatePermissionsMutation.mutate({
+      userId: member.id,
+      permissions: { hubspot_write: !currentValue },
+    });
+  };
+
+  // Per-member permission toggles, keyed by member.id for O(1) lookup in JSX.
+  // Adding another integration's permission = one entry in this array per member.
+  // HubSpot toggle is gated on the enable-hubspot FF (matches the BE gate).
+  const memberPermissionToggles = useMemo(
+    () =>
+      Object.fromEntries(
+        filteredUsers.map((m) => [
+          m.id,
+          [
+            {
+              key: "sfdc_write",
+              label: "Salesforce Updates",
+              value: m.permissions?.sfdc_write ?? true,
+              onToggle: () => handleToggleSfdcWrite(m),
+            },
+            ...(isHubspotEnabled
+              ? [
+                  {
+                    key: "hubspot_write",
+                    label: "HubSpot Updates",
+                    value: m.permissions?.hubspot_write ?? true,
+                    onToggle: () => handleToggleHubspotWrite(m),
+                  },
+                ]
+              : []),
+          ],
+        ]),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filteredUsers, isHubspotEnabled],
+  );
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
@@ -465,34 +508,37 @@ export function ManageUsersTab() {
                                   {/* Permissions Submenu */}
                                   {showPermissionsSubmenu && (
                                     <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
-                                      <div className="flex items-center justify-between rounded-xl px-3 py-2">
-                                        <span className="text-sm text-gray-900 whitespace-nowrap">
-                                          Salesforce Updates
-                                        </span>
-                                        <button
-                                          onClick={() =>
-                                            handleToggleSfdcWrite(member)
-                                          }
-                                          disabled={
-                                            updatePermissionsMutation.isPending
-                                          }
-                                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
-                                            (member.permissions?.sfdc_write ??
-                                            true)
-                                              ? "bg-green-500"
-                                              : "bg-gray-200"
-                                          }`}
-                                        >
-                                          <span
-                                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                              (member.permissions?.sfdc_write ??
-                                              true)
-                                                ? "translate-x-4"
-                                                : "translate-x-0"
-                                            }`}
-                                          />
-                                        </button>
-                                      </div>
+                                      {memberPermissionToggles[member.id]?.map(
+                                        (toggle) => (
+                                          <div
+                                            key={toggle.key}
+                                            className="flex items-center justify-between rounded-xl px-3 py-2"
+                                          >
+                                            <span className="text-sm text-gray-900 whitespace-nowrap">
+                                              {toggle.label}
+                                            </span>
+                                            <button
+                                              onClick={toggle.onToggle}
+                                              disabled={
+                                                updatePermissionsMutation.isPending
+                                              }
+                                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                toggle.value
+                                                  ? "bg-green-500"
+                                                  : "bg-gray-200"
+                                              }`}
+                                            >
+                                              <span
+                                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                  toggle.value
+                                                    ? "translate-x-4"
+                                                    : "translate-x-0"
+                                                }`}
+                                              />
+                                            </button>
+                                          </div>
+                                        ),
+                                      )}
                                       <p
                                         className="px-3 pb-2"
                                         style={{

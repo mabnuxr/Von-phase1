@@ -32,6 +32,7 @@ export const FEATURE_FLAGS = {
   GONG_ENGAGE: "enableGongEngage",
   GRANOLA: "enableGranola",
   NOTION: "enableNotion",
+  HUBSPOT: "enableHubspot",
   BOX: "enableBox",
   OUTREACH_ENGAGE: "enableOutreachEngage",
   SALESLOFT_ENGAGEMENT: "enableSalesloftEngagement",
@@ -279,6 +280,11 @@ export function useFeatureFlag() {
      * Controls whether catalog MCP servers are shown on the integrations page
      */
     isMcpServersEnabled: flags[FEATURE_FLAGS.MCP_SERVERS] === true,
+
+    /**
+     * Controls whether Hubspot integration is visible
+     */
+    isHubspotEnabled: flags[FEATURE_FLAGS.HUBSPOT] === true,
 
     /**
      * Raw flags object for advanced usage

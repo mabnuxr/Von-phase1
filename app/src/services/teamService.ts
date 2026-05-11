@@ -12,6 +12,7 @@ export interface TeamMemberUsage {
 
 export interface TeamMemberPermissions {
   sfdc_write: boolean;
+  hubspot_write?: boolean;
 }
 
 export interface TeamMember {
@@ -195,13 +196,15 @@ export interface UpdateMemberResponse {
 }
 
 export interface UpdateMemberPermissionsRequest {
-  sfdc_write: boolean | null;
+  sfdc_write?: boolean | null;
+  hubspot_write?: boolean | null;
 }
 
 export interface UpdateMemberPermissionsResponse {
   user_id: string;
   permissions: {
-    sfdc_write: boolean;
+    sfdc_write?: boolean;
+    hubspot_write?: boolean;
   };
   message: string;
 }
