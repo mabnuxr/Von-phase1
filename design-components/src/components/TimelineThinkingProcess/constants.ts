@@ -14,6 +14,7 @@ export const CONTAINER_HEIGHT = 500;
  */
 export const SOURCE_LABELS: Record<SourceType, string> = {
   salesforce: 'Salesforce',
+  hubspot: 'HubSpot',
   gong: 'Gong',
   email: 'Email',
   voniq: 'VonIQ',

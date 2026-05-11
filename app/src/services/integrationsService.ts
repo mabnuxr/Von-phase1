@@ -537,6 +537,18 @@ export class IntegrationsService {
       { scope },
     );
   }
+
+  /**
+   * Set the org-level HubSpot write scope
+   */
+  async setHubspotScope(
+    scope: HubspotWriteScope,
+  ): Promise<HubspotScopeResponse> {
+    return apiClient.patch<HubspotScopeResponse>(
+      "/api/v1/integrations/hubspot/scope",
+      { scope },
+    );
+  }
 }
 
 /**
@@ -550,6 +562,18 @@ export type SalesforceWriteScope =
 export interface SalesforceScopeResponse {
   integration_id: string;
   scope: SalesforceWriteScope;
+  message: string;
+}
+
+/**
+ * HubSpot write scope values — same shape as Salesforce; the BE endpoint
+ * is generic over integration_type.
+ */
+export type HubspotWriteScope = SalesforceWriteScope;
+
+export interface HubspotScopeResponse {
+  integration_id: string;
+  scope: HubspotWriteScope;
   message: string;
 }
 

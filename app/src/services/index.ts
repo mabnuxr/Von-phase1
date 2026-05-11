@@ -16,6 +16,8 @@ export type {
   IntegrationListResponse,
   SalesforceWriteScope,
   SalesforceScopeResponse,
+  HubspotWriteScope,
+  HubspotScopeResponse,
 } from "./integrationsService";
 export {
   IntegrationType,

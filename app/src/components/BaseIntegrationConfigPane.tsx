@@ -702,6 +702,7 @@ export function BaseIntegrationConfigPane({
             <div className="space-y-6">
               {/* OAuth Authentication Info - for OAuth integrations */}
               {(integrationId === "salesforce" ||
+                integrationId === "hubspot" ||
                 integrationId === "googlecalendar" ||
                 integrationId === "googledrive" ||
                 integrationId === "box" ||

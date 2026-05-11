@@ -8,7 +8,11 @@ import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { integrationsService } from "../services";
-import type { IntegrationType, SalesforceWriteScope } from "../services";
+import type {
+  HubspotWriteScope,
+  IntegrationType,
+  SalesforceWriteScope,
+} from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
   OAUTH_POLLING_INTERVAL_MS,
@@ -520,6 +524,38 @@ export function useSetSalesforceScope() {
     onError: () => {
       showToast({
         message: "Failed to update Salesforce scope",
+        variant: "error",
+      });
+    },
+  });
+}
+
+/**
+ * Set the org-level HubSpot write scope
+ */
+export function useSetHubspotScope() {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  return useMutation({
+    mutationFn: (scope: HubspotWriteScope) =>
+      integrationsService.setHubspotScope(scope),
+    onSuccess: (_data, scope) => {
+      queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      const label =
+        scope === "full_access"
+          ? "Read & Write"
+          : scope === "user_level_write"
+            ? "Write with Personal Login"
+            : "Read Only";
+      showToast({
+        message: `HubSpot scope updated to ${label}`,
+        variant: "success",
+      });
+    },
+    onError: () => {
+      showToast({
+        message: "Failed to update HubSpot scope",
         variant: "error",
       });
     },

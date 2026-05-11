@@ -881,6 +881,8 @@ export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
+    toolName === 'hubspot_write' ||
+    toolName === 'hubspot_bulk_write' ||
     toolName === 'create_command' ||
     OUTREACH_APPROVAL_TOOLS.has(toolName) ||
     SALESLOFT_APPROVAL_TOOLS.has(toolName)
