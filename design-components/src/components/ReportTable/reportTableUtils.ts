@@ -373,8 +373,12 @@ export function applyColumnFormats(options: GridOptions): GridOptions {
     const escapedTemplate = cellTemplate ? escapeHtml(cellTemplate) : undefined;
     const hasPlaceholder = escapedTemplate?.includes(ESCAPED_VALUE_PLACEHOLDER) ?? false;
 
+    // Drop `cells.format` once we own the formatter — Grid Lite renders an
+    // empty cell when BOTH `cells.format` and `cells.formatter` are set, and
+    // our formatter already weaves the template (via `escapedTemplate`).
     col.cells = {
       ...col.cells,
+      format: undefined,
       formatter: function (this: { value: unknown }): string {
         const value = this.value;
         if (value === null || value === undefined) return CELL_NULL_HTML;
