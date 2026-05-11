@@ -222,7 +222,16 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
     ) => {
       setState({
         panelId,
-        chain: [{ columnPath, variantId, initialVariantId: variantId, filters, metricValue, metricLabel }],
+        chain: [
+          {
+            columnPath,
+            variantId,
+            initialVariantId: variantId,
+            filters,
+            metricValue,
+            metricLabel,
+          },
+        ],
         page: 1,
         sort: null,
       });
@@ -248,7 +257,14 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
           ...prev,
           chain: [
             ...prev.chain,
-            { columnPath, variantId, initialVariantId: variantId, filters, metricValue, metricLabel },
+            {
+              columnPath,
+              variantId,
+              initialVariantId: variantId,
+              filters,
+              metricValue,
+              metricLabel,
+            },
           ],
           page: 1,
           sort: null,

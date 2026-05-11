@@ -523,13 +523,13 @@ function Breadcrumb({
   const topIdx = chain.length - 1;
   const topNode = chain[topIdx];
   const activeVariant = currentVariantId
-    ? variants.find((v) => v.id === currentVariantId) ?? null
+    ? (variants.find((v) => v.id === currentVariantId) ?? null)
     : null;
   const isOnRoutedVariant =
     topNode == null
       ? true
       : topNode.initialVariantId === null
-        ? activeVariant?.is_default ?? false
+        ? (activeVariant?.is_default ?? false)
         : topNode.initialVariantId === currentVariantId;
   const variantLabelOverride =
     activeVariant && !isOnRoutedVariant ? activeVariant.label : null;
@@ -571,7 +571,8 @@ function Breadcrumb({
         </span>
       )}
       {chain.map((node, idx) => {
-        const segmentVariantOverride = idx === topIdx ? variantLabelOverride : null;
+        const segmentVariantOverride =
+          idx === topIdx ? variantLabelOverride : null;
         const label = formatSegment(
           node,
           levelColumnMaps?.[idx],
