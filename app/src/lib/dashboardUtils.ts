@@ -15,7 +15,46 @@ import { detectIntegrationBlocks } from "../utils/integrationBlockDetector";
 import type {
   MessageWithStreaming,
   DashboardMetadata,
+  MessageReference,
 } from "../types/conversation";
+import { ReferenceType } from "../types/constants";
+
+type Mention = NonNullable<ChatMessage["mentions"]>[number];
+
+function messageReferenceToMention(ref: MessageReference): Mention {
+  switch (ref.type) {
+    case ReferenceType.AiField:
+      return {
+        id: ref.context.aiFieldId,
+        name: ref.context.aiFieldName ?? ref.context.aiFieldId,
+        type: ReferenceType.AiField,
+        version: 0,
+        aiFieldContext: { aiFieldId: ref.context.aiFieldId },
+      };
+    case ReferenceType.Widget:
+      return {
+        id: ref.context.widgetId,
+        name: ref.context.widgetTitle,
+        type: ReferenceType.Widget,
+        version: ref.context.dashboardVersion,
+        widgetContext: {
+          widgetId: ref.context.widgetId,
+          widgetTitle: ref.context.widgetTitle,
+          widgetType: ref.context.widgetType,
+          dashboardId: ref.context.dashboardId,
+          dashboardVersion: ref.context.dashboardVersion,
+          dashboardName: ref.context.dashboardName,
+        },
+      };
+    case ReferenceType.Dashboard:
+      return {
+        id: ref.context.dashboardId,
+        name: ref.context.dashboardName,
+        type: ReferenceType.Dashboard,
+        version: ref.context.dashboardVersion,
+      };
+  }
+}
 
 // Existing utilities
 import { replayAguiEvents } from "../utils/replayAguiEvents";
@@ -96,24 +135,7 @@ export function transformMessagesToChatFormat(
           | "image",
       })),
       mentions: streamingMsg.references
-        ?.map((ref) => {
-          if (ref.type === "ai_field") {
-            return {
-              id: ref.context.aiFieldId,
-              name: ref.context.aiFieldName ?? ref.context.aiFieldId,
-              type: "ai_field" as const,
-              version: 0,
-              aiFieldContext: { aiFieldId: ref.context.aiFieldId },
-            };
-          }
-          const ctx = ref.context;
-          return {
-            id: ctx.dashboardId,
-            name: ctx.dashboardName,
-            type: ref.type,
-            version: ctx.dashboardVersion,
-          };
-        })
+        ?.map(messageReferenceToMention)
         .filter((m) => m.id),
       // Map the quick command so ChatMessage can render CommandPreview
       command: streamingMsg.command
