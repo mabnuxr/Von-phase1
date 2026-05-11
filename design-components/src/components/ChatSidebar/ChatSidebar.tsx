@@ -628,8 +628,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     handleCancelFolderDelete,
     handlePinFolder,
 
-    // Move handlers
-    handleShowMoveToFolder,
+    // Move handlers — the unified context menu no longer dispatches the
+    // legacy single-select `'move'` action, so `handleShowMoveToFolder` is
+    // intentionally omitted. The bundled <MoveToFolderModal/> remains
+    // mounted (still wired to confirm/cancel) but is unreachable until the
+    // dead-code cleanup follow-up lands.
     handleConfirmMoveToFolder,
     handleCancelMoveToFolder,
     handleRemoveFromFolder,
