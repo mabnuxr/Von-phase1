@@ -186,12 +186,19 @@ const NewConversation = () => {
     removeFile,
     fileErrorMessage,
     dismissFileError,
+    restoredInput,
   } = useCreateAndSendMessage({
     agentVersion: isAgentV2Flag ? "v2" : "v1",
     isAgentV2: isAgentV2Flag,
     title: "",
     navigateOnCreate: true,
   });
+
+  // When a send fails, the hook surfaces the user's unsent text via
+  // `restoredInput`. ChatEmptyState remounts whenever the message list
+  // toggles between empty and non-empty (and reads `defaultInputValue` only
+  // on mount), so substituting it here is enough to repopulate the input.
+  const defaultInputValue = restoredInput ?? initialInputRef.current;
 
   const {
     commands,
@@ -390,7 +397,7 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
-        defaultInputValue={initialInputRef.current}
+        defaultInputValue={defaultInputValue}
         placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"

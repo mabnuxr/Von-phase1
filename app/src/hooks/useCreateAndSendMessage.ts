@@ -26,6 +26,7 @@ import { useSendMessage } from "./useSendMessage";
 import { useFileUploadPipeline } from "./useFileUploadPipeline";
 import type { MessageFileAttachment } from "./useFileUploadPipeline";
 import { fileUploadService } from "../services/fileUploadService";
+import { ApiError } from "../services/apiClient";
 import { transformConversationMessages } from "../lib/dashboardUtils";
 import { buildMentionReferences } from "../lib/messageReferenceUtils";
 import type {
@@ -34,6 +35,58 @@ import type {
   MessageCommand,
 } from "../types/conversation";
 import useChatStore from "../store/chatStore";
+import { useToast } from "./useToast";
+
+/** Which awaited step in the send pipeline threw. Drives the error toast wording. */
+type SendStep = "create" | "upload" | "send";
+
+/**
+ * Wrap an awaited step so the catch block knows which one failed without
+ * sprinkling `failedStep =` markers through the happy path. The thrown
+ * `StepError.cause` preserves the original error for message extraction.
+ */
+class StepError extends Error {
+  step: SendStep;
+  cause: unknown;
+  constructor(step: SendStep, cause: unknown) {
+    super(`[${step}] step failed`);
+    this.name = "StepError";
+    this.step = step;
+    this.cause = cause;
+  }
+}
+
+async function runStep<T>(step: SendStep, fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    throw new StepError(step, error);
+  }
+}
+
+/**
+ * Build a user-facing error toast in the form:
+ *   "<what happened>: <server error>. <what to do>."
+ * Network failures surface as ApiError with statusCode 0; unknown errors
+ * skip the middle clause rather than leaking "[object Object]" to the user.
+ */
+function buildSendErrorMessage(step: SendStep, cause: unknown): string {
+  const headline: Record<SendStep, string> = {
+    create: "Couldn't start a new chat",
+    upload: "Couldn't upload your attachments",
+    send: "Couldn't send your message",
+  };
+  const remedy = "Please try again.";
+
+  if (cause instanceof ApiError) {
+    const detail = cause.statusCode === 0 ? "Network error" : cause.message;
+    return `${headline[step]}, ${detail}. ${remedy}`;
+  }
+  if (cause instanceof Error && cause.message) {
+    return `${headline[step]}, ${cause.message}. ${remedy}`;
+  }
+  return `${headline[step]}. ${remedy}`;
+}
 
 export interface UseCreateAndSendMessageOptions {
   /**
@@ -82,6 +135,7 @@ export function useCreateAndSendMessage({
 }: UseCreateAndSendMessageOptions = {}) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const { mutateAsync: createConversation } = useCreateConversation();
   const { mutateAsync: sendMessage } = useSendMessage();
@@ -91,6 +145,12 @@ export function useCreateAndSendMessage({
   const [pendingMessages, setPendingMessages] = useState<
     MessageWithStreaming[] | null
   >(null);
+  // Surfaces the last unsent message back to the input so the user doesn't
+  // lose their draft when the create/send round-trip fails.
+  const [restoredInput, setRestoredInput] = useState<string | null>(null);
+  const clearRestoredInput = useCallback(() => {
+    setRestoredInput(null);
+  }, []);
   const [fileErrorMessage, setFileErrorMessage] = useState<string | null>(null);
   const fileErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleFileError = useCallback((_errorCode: string, message: string) => {
@@ -128,6 +188,9 @@ export function useCreateAndSendMessage({
       if (isCreatingRef.current) return;
       isCreatingRef.current = true;
       setIsCreating(true);
+      // Clear any prior restored draft now that a fresh send is in flight —
+      // if this one also fails, we'll repopulate with the new content.
+      clearRestoredInput();
 
       // Show user message + thinking indicator immediately, before any API call.
       // Build command early so it's visible in the pending message.
@@ -198,14 +261,18 @@ export function useCreateAndSendMessage({
 
       try {
         // 1. Create the conversation (always auto mode)
-        const res = await createConversation({ title, agentVersion });
+        const res = await runStep("create", () =>
+          createConversation({ title, agentVersion }),
+        );
         newId = res.conversation.conversationId;
 
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
         queryClient.setQueryData(["conversation", newId], res.conversation);
 
         // 3. Upload any pending file attachments now that we have a conversation ID
-        uploadedFiles = await uploadPendingFiles(newId);
+        uploadedFiles = await runStep("upload", () =>
+          uploadPendingFiles(newId!),
+        );
 
         // 4. Seed chatStore synchronously before transitioning so the receiving
         //    component (Conversation.tsx / ChatSession) sees messages
@@ -282,17 +349,19 @@ export function useCreateAndSendMessage({
             ? [...(references ?? []), ...mentionRefs]
             : references;
 
-        await sendMessage({
-          conversationId: newId,
-          content,
-          ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
-          ...(allReferences?.length ? { references: allReferences } : {}),
-          ...(command ? { command } : {}),
-          preSeededOptimisticIds: {
-            userId: optimisticUserId,
-            assistantId: optimisticAssistantId,
-          },
-        });
+        await runStep("send", () =>
+          sendMessage({
+            conversationId: newId!,
+            content,
+            ...(uploadedFiles.length ? { fileAttachments: uploadedFiles } : {}),
+            ...(allReferences?.length ? { references: allReferences } : {}),
+            ...(command ? { command } : {}),
+            preSeededOptimisticIds: {
+              userId: optimisticUserId,
+              assistantId: optimisticAssistantId,
+            },
+          }),
+        );
 
         clearFiles();
 
@@ -317,9 +386,10 @@ export function useCreateAndSendMessage({
           onCreated?.(newId);
         }
       } catch (error) {
+        const stepError = error instanceof StepError ? error : null;
         console.error(
-          "[useCreateAndSendMessage] Failed to create conversation:",
-          error,
+          `[useCreateAndSendMessage] Failed at step "${stepError?.step ?? "unknown"}":`,
+          stepError?.cause ?? error,
         );
         // Best-effort: delete any files already uploaded to the failed conversation
         // so stale file IDs don't leak into a retry on a new conversation.
@@ -329,6 +399,16 @@ export function useCreateAndSendMessage({
           });
         }
         clearFiles();
+        // Restore the user's draft so it isn't lost when the optimistic
+        // messages are rolled back below, and tell them why.
+        setRestoredInput(content);
+        showToast({
+          message: buildSendErrorMessage(
+            stepError?.step ?? "send",
+            stepError?.cause ?? error,
+          ),
+          variant: "error",
+        });
       } finally {
         isCreatingRef.current = false;
         setIsCreating(false);
@@ -344,6 +424,7 @@ export function useCreateAndSendMessage({
     [
       agentVersion,
       clearFiles,
+      clearRestoredInput,
       createConversation,
       navigate,
       navigateOnCreate,
@@ -351,6 +432,7 @@ export function useCreateAndSendMessage({
       queryClient,
       references,
       sendMessage,
+      showToast,
       title,
       uploadPendingFiles,
     ],
@@ -371,5 +453,7 @@ export function useCreateAndSendMessage({
       if (fileErrorTimerRef.current) clearTimeout(fileErrorTimerRef.current);
       setFileErrorMessage(null);
     },
+    // Last unsent message
+    restoredInput,
   };
 }

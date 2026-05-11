@@ -980,6 +980,7 @@ function NewChatInner(
       messages={createFlow.transformedMessages}
       onSendMessage={createFlow.handleSendMessage}
       isLoading={false}
+      defaultInputValue={createFlow.restoredInput ?? undefined}
       compact={props.compact}
       height="100%"
       width="100%"
