@@ -24,11 +24,11 @@ import {
 import type { Integration } from "./IntegrationsPanel";
 import { getUserContext } from "../lib/auth";
 import {
-  DotsThreeVertical,
-  CaretRight,
-  TrashSimple,
-  ShieldCheck,
-  Check,
+  DotsThreeVerticalIcon,
+  CaretRightIcon,
+  TrashSimpleIcon,
+  ShieldCheckIcon,
+  CheckIcon,
 } from "@phosphor-icons/react";
 
 /**
@@ -119,7 +119,6 @@ function MCPCatalogItem({
   const [waitingForOAuth, setWaitingForOAuth] = useState(false);
   const [discoverTriggered, setDiscoverTriggered] = useState(false);
   const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
-  const [connectError, setConnectError] = useState<string | null>(null);
 
   const authStatusQuery = useMCPCheckAuthStatus(
     createdServerId,
@@ -150,9 +149,12 @@ function MCPCatalogItem({
       } else {
         setWaitingForOAuth(false);
         oauthPopup?.close();
-        setConnectError(
-          event.data.error || "OAuth authorization failed. Please try again.",
-        );
+        if (createdServerId) deleteMutation.mutate(createdServerId);
+        setCreatedServerId(null);
+        showToast({
+          message: event.data.error || "OAuth authorization failed. Please try again.",
+          variant: "error",
+        });
       }
     };
     window.addEventListener("message", handleMessage);
@@ -167,7 +169,12 @@ function MCPCatalogItem({
     } else if (status === "AUTHENTICATION_FAILED") {
       setWaitingForOAuth(false);
       oauthPopup?.close();
-      setConnectError("OAuth authorization failed. Please try again.");
+      if (createdServerId) deleteMutation.mutate(createdServerId);
+      setCreatedServerId(null);
+      showToast({
+        message: "OAuth authorization failed. Please try again.",
+        variant: "error",
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -177,8 +184,8 @@ function MCPCatalogItem({
     discoverTriggered,
   ]);
 
-  const handleDirectOAuth = async () => {
-    setConnectError(null);
+  const handleDirectOAuth = async (accessLevel: "tenant" | "user" = "user") => {
+    let newServerId: string | null = null;
     try {
       const server = await createMutation.mutateAsync({
         name: entry.name,
@@ -186,7 +193,9 @@ function MCPCatalogItem({
         auth_type: entry.auth_type,
         source: "catalog",
         catalog_id: entry.catalog_id,
+        access_level: accessLevel,
       });
+      newServerId = server.id;
       setCreatedServerId(server.id);
       const authData = await authorizeMutation.mutateAsync(server.id);
       const popup = window.open(
@@ -197,11 +206,17 @@ function MCPCatalogItem({
       setOauthPopup(popup);
       setWaitingForOAuth(true);
     } catch (err: unknown) {
-      setConnectError(
-        err && typeof err === "object" && "message" in err
-          ? (err as { message: string }).message
-          : "Failed to start authorization",
-      );
+      if (newServerId) {
+        deleteMutation.mutate(newServerId);
+        setCreatedServerId(null);
+      }
+      showToast({
+        message:
+          err && typeof err === "object" && "message" in err
+            ? (err as { message: string }).message
+            : "Failed to start authorization",
+        variant: "error",
+      });
     }
   };
 
@@ -225,10 +240,20 @@ function MCPCatalogItem({
     !entry.authentication_status ||
     entry.authentication_status === "AUTHENTICATED";
 
+  // For both-levels apps, only show chips for levels that are actually connected
+  const isWorkspaceActuallyConnected =
+    isWorkspace &&
+    entry.is_connected &&
+    (!isBoth || entry.connected_server_id !== entry.personal_server_id);
+  const isPersonalActuallyConnected = isPersonal && !!entry.is_personal_connected;
+  const isOnlyPersonalConnected =
+    isBoth && isPersonalActuallyConnected && !isWorkspaceActuallyConnected;
+
   const chips: Array<"workspace" | "personal" | "connected"> = [];
-  if (isWorkspace) chips.push("workspace");
-  if (isPersonal && (!isBoth || entry.is_personal_connected))
-    chips.push("personal");
+  if (isWorkspaceActuallyConnected) chips.push("workspace");
+  if (isPersonalActuallyConnected) chips.push("personal");
+  if (!isWorkspaceActuallyConnected && !isPersonalActuallyConnected && isWorkspace)
+    chips.push("workspace"); // unconnected workspace-only app
   if (isAuthenticated) chips.push("connected");
 
   const canDisconnectPersonal =
@@ -257,8 +282,20 @@ function MCPCatalogItem({
         deleteTooltip="Remove personal connection"
         disabled={deleteMutation.isPending || isConnecting}
       />
-      {connectError && (
-        <p className="px-18 py-1 text-xs text-red-600">{connectError}</p>
+      {/* Case: personal connected but workspace not yet */}
+      {isAuthenticated && isOnlyPersonalConnected && (
+        <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
+          <button
+            onClick={() =>
+              entry.auth_type === "oauth2"
+                ? handleDirectOAuth("tenant")
+                : onConnect(entry)
+            }
+            className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
+          >
+            Set as workspace integration
+          </button>
+        </div>
       )}
       {/* Case 2: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
       {isAuthenticated && isBoth && !entry.is_personal_connected && (
@@ -381,7 +418,7 @@ function SalesforceScopeMenu({
         }`}
         aria-label="Open settings"
       >
-        <DotsThreeVertical size={18} weight="bold" />
+        <DotsThreeVerticalIcon size={18} weight="bold" />
       </button>
 
       {isOpen && (
@@ -395,10 +432,10 @@ function SalesforceScopeMenu({
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <ShieldCheck size={14} className="text-gray-800" />
+                <ShieldCheckIcon size={14} className="text-gray-800" />
                 <span>Access Permissions</span>
               </div>
-              <CaretRight size={14} className="text-gray-400" />
+              <CaretRightIcon size={14} className="text-gray-400" />
             </button>
 
             {/* Scope Submenu */}
@@ -426,7 +463,7 @@ function SalesforceScopeMenu({
                         {option.label}
                       </span>
                       {option.value === currentScope && (
-                        <Check
+                        <CheckIcon
                           size={14}
                           weight="bold"
                           className="text-green-600 shrink-0"
@@ -457,7 +494,7 @@ function SalesforceScopeMenu({
               }}
               className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer"
             >
-              <TrashSimple size={14} />
+              <TrashSimpleIcon size={14} />
               <span>Remove Connection</span>
             </button>
           )}

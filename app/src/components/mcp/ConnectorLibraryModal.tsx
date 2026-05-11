@@ -1,21 +1,22 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   MagnifyingGlass,
   X,
-  Plus,
   CaretLeft,
   Plugs,
   ArrowSquareOut,
   Check,
   CaretDown,
-  CaretUp,
+  User,
+  ArrowsLeftRight,
 } from "@phosphor-icons/react";
+import vonFilledLogo from "../../assets/von-filled-logo.svg";
 import { Input, Banner } from "@vonlabs/design-components";
 import {
   useMCPCatalog,
+  useMCPServers,
   useCreateMCPServer,
   useDeleteMCPServer,
-  useMCPServer,
   useDiscoverTools,
   useMCPAuthorize,
   useMCPCheckAuthStatus,
@@ -265,6 +266,12 @@ function ConnectedAppCard({
     .map((l) => (l === "workspace" ? "Workspace" : "Personal"))
     .join(" · ");
 
+  const hasPersonalLevel = entry.default_access_level.some(
+    (l) => l === "user" || l === "personal",
+  );
+  const badge =
+    hasPersonalLevel && !entry.is_personal_connected ? "Added" : "Connected";
+
   return (
     <div
       onClick={onClick}
@@ -289,19 +296,10 @@ function ConnectedAppCard({
                 {entry.name}
               </span>
               <span className="text-[11px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded shrink-0">
-                Connected
+                {badge}
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">{accessLabel}</p>
-          </div>
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            className="w-6 h-6 rounded-full bg-gray-900 flex items-center justify-center shrink-0 mt-0.5 hover:bg-gray-700 transition-colors cursor-pointer"
-          >
-            <X size={10} weight="bold" className="text-white" />
           </div>
         </div>
         <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
@@ -348,9 +346,6 @@ function AppCard({
             </p>
             <p className="text-xs text-gray-400 mt-0.5">{accessLabel}</p>
           </div>
-          <div className="w-6 h-6 rounded-full border border-gray-200 flex items-center justify-center shrink-0 mt-0.5">
-            <Plus size={12} className="text-gray-500" />
-          </div>
         </div>
         <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
           {entry.description}
@@ -372,6 +367,7 @@ function ConnectorDetailView({
   onBack: () => void;
   onClose: () => void;
 }) {
+  const { data: allServers } = useMCPServers();
   const createMutation = useCreateMCPServer();
   const publishMutation = usePublishServer();
   const deleteMutation = useDeleteMCPServer();
@@ -379,18 +375,26 @@ function ConnectorDetailView({
   const authorizeMutation = useMCPAuthorize();
   const { showToast } = useToast();
 
-  // Fetch live tool manifest from the connected server record
-  const { data: connectedServer } = useMCPServer(
-    entry.is_connected ? entry.connected_server_id : null,
-  );
-  const liveTools = connectedServer?.tool_manifest ?? entry.tool_manifest ?? [];
-
   const authTypes: MCPAuthType[] = [entry.auth_type];
   const [selectedAuth, setSelectedAuth] = useState<MCPAuthType>(authTypes[0]);
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [toolsExpanded, setToolsExpanded] = useState(true);
+  const [showPermissions, setShowPermissions] = useState<"personal" | null>(null);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [orgMemory, setOrgMemory] = useState("");
+  const splitRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!splitOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (splitRef.current && !splitRef.current.contains(e.target as Node)) {
+        setSplitOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [splitOpen]);
 
   // OAuth flow state
   const [createdServerId, setCreatedServerId] = useState<string | null>(null);
@@ -483,7 +487,31 @@ function ConnectorDetailView({
   const isWorkspaceConnector = (entry.default_access_level ?? []).some(
     (l) => l === "tenant" || l === "workspace",
   );
+  const isPersonalSupported = (entry.default_access_level ?? []).some(
+    (l) => l === "user" || l === "personal",
+  );
   const isPersonalOnly = !isWorkspaceConnector;
+  const isBothLevels = isWorkspaceConnector && isPersonalSupported;
+  // Personal-only app enabled for team but current user hasn't personally connected
+  const isAddedForTeam =
+    isPersonalOnly &&
+    entry.is_connected &&
+    entry.authentication_status !== "AUTHENTICATED";
+  // Derive real connection state from server list (catalog fields are unreliable)
+  const entryServers = (allServers ?? []).filter(
+    (s) => s.catalog_id === entry.catalog_id,
+  );
+  const workspaceServer = entryServers.find(
+    (s) =>
+      s.access_level === "tenant" && s.authentication_status === "AUTHENTICATED",
+  );
+  const personalServer = entryServers.find(
+    (s) =>
+      s.access_level === "user" && s.authentication_status === "AUTHENTICATED",
+  );
+  // Both-levels app where personal is connected but workspace is not yet
+  const isOnlyPersonalConnected =
+    isBothLevels && !!personalServer && !workspaceServer;
 
   const authTypeLabel =
     entry.auth_type === "oauth2"
@@ -492,18 +520,26 @@ function ConnectorDetailView({
         ? "API Key"
         : "No auth";
 
-  const handleDisconnect = () => {
-    if (!entry.connected_server_id) return;
-    deleteMutation.mutate(entry.connected_server_id, {
-      onSuccess: () => {
-        showToast({
-          message: `${entry.name} disconnected`,
-          variant: "success",
-        });
-        onBack();
-      },
-      onError: () => setError("Failed to disconnect. Please try again."),
-    });
+  const handleDisconnect = async () => {
+    setError(null);
+    try {
+      if (isOnlyPersonalConnected) {
+        if (!personalServer) return;
+        await deleteMutation.mutateAsync(personalServer.id);
+      } else {
+        const wsId = workspaceServer?.id ?? entry.connected_server_id;
+        if (!wsId) return;
+        await deleteMutation.mutateAsync(wsId);
+        // Cascade: remove personal server too so the entry fully disappears
+        if (personalServer) {
+          await deleteMutation.mutateAsync(personalServer.id);
+        }
+      }
+      showToast({ message: `${entry.name} disconnected`, variant: "success" });
+      onBack();
+    } catch {
+      setError("Failed to disconnect. Please try again.");
+    }
   };
 
   // Personal-only: register the server and publish it so members can connect
@@ -516,6 +552,7 @@ function ConnectorDetailView({
         auth_type: entry.auth_type,
         source: "catalog",
         catalog_id: entry.catalog_id,
+        access_level: "tenant",
       });
       await publishMutation.mutateAsync({
         id: server.id,
@@ -535,7 +572,7 @@ function ConnectorDetailView({
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = async (accessLevel?: "tenant" | "user") => {
     if (selectedAuth === "api_key" && !apiKey.trim()) {
       setError(`${entry.credential_label || "API Key"} is required`);
       return;
@@ -551,6 +588,7 @@ function ConnectorDetailView({
         api_key: selectedAuth === "api_key" ? apiKey.trim() : undefined,
         source: "catalog",
         catalog_id: entry.catalog_id,
+        access_level: accessLevel,
       });
 
       setCreatedServerId(server.id);
@@ -647,7 +685,11 @@ function ConnectorDetailView({
                     {accessLabels.map((label) => (
                       <span
                         key={label}
-                        className="px-2 py-0.5 text-[11px] font-semibold text-gray-700 bg-gray-100 rounded"
+                        className={`px-2 py-0.5 text-[11px] font-semibold rounded ${
+                          label === "Personal"
+                            ? "text-blue-600 bg-blue-50"
+                            : "text-gray-700 bg-gray-100"
+                        }`}
                       >
                         {label}
                       </span>
@@ -656,7 +698,52 @@ function ConnectorDetailView({
                 </div>
               </div>
 
-              {entry.is_connected && isAdmin ? (
+              {isAddedForTeam && isAdmin ? (
+                <button
+                  onClick={() => setShowRemoveConfirm(true)}
+                  disabled={deleteMutation.isPending}
+                  className="px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 transition-colors"
+                >
+                  Disable for Team
+                </button>
+              ) : isOnlyPersonalConnected && isAdmin ? (
+                /* Personal connected, workspace not yet — Disconnect + Connect as Workspace */
+                <div ref={splitRef} className="relative flex shrink-0">
+                  <button
+                    onClick={() => setShowRemoveConfirm(true)}
+                    disabled={deleteMutation.isPending}
+                    className="px-5 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-l-lg hover:bg-red-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSplitOpen((o) => !o);
+                    }}
+                    disabled={isBusy}
+                    className="px-2 py-2 text-red-600 border border-red-300 border-l-red-200 rounded-r-lg hover:bg-red-50 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    <CaretDown size={13} weight="bold" />
+                  </button>
+                  {splitOpen && (
+                    <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen(false);
+                          handleConnect("tenant");
+                        }}
+                        disabled={isBusy}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                      >
+                        <User size={12} className="text-gray-500" />
+                        Connect as Workspace
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : entry.is_connected && isAdmin ? (
                 <button
                   onClick={() => setShowRemoveConfirm(true)}
                   disabled={deleteMutation.isPending}
@@ -664,21 +751,54 @@ function ConnectorDetailView({
                 >
                   Remove from Workspace
                 </button>
-              ) : !entry.is_connected && isAdmin && isPersonalOnly ? (
-                <button
-                  onClick={() =>
-                    createMutation.isPending
-                      ? undefined
-                      : handleAddToWorkspace()
-                  }
-                  disabled={createMutation.isPending}
-                  className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-                >
-                  {createMutation.isPending ? "Adding…" : "Add to Workspace"}
-                </button>
+              ) : !entry.is_connected && isAdmin && (isPersonalOnly || isBothLevels) ? (
+                /* Split button for personal-only or workspace+personal apps */
+                <div ref={splitRef} className="relative flex shrink-0">
+                  <button
+                    onClick={() =>
+                      isPersonalOnly
+                        ? handleAddToWorkspace()
+                        : handleConnect("tenant")
+                    }
+                    disabled={isBusy || publishMutation.isPending}
+                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-l-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isBusy || publishMutation.isPending
+                      ? "Connecting…"
+                      : isPersonalOnly
+                        ? "Enable for Team"
+                        : "Connect as Workspace"}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSplitOpen((o) => !o);
+                    }}
+                    disabled={isBusy || publishMutation.isPending}
+                    className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
+                  >
+                    <CaretDown size={13} weight="bold" />
+                  </button>
+                  {splitOpen && (
+                    <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-36 py-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen(false);
+                          setShowPermissions("personal");
+                        }}
+                        disabled={isBusy}
+                        className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                      >
+                        <User size={12} className="text-gray-500" />
+                        Personal Access
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : !entry.is_connected && isAdmin && isWorkspaceConnector ? (
                 <button
-                  onClick={() => (isBusy ? undefined : handleConnect())}
+                  onClick={() => (isBusy ? undefined : handleConnect("tenant"))}
                   disabled={isBusy}
                   className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
@@ -694,37 +814,8 @@ function ConnectorDetailView({
             {/* Description */}
             <p className="text-sm text-gray-700 mb-4">{entry.description}</p>
 
-            {/* Author */}
-            {entry.author && (
-              <p className="text-sm text-gray-500 mb-1">
-                Developed by{" "}
-                {entry.docs_url ? (
-                  <a
-                    href={entry.docs_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-gray-900 hover:underline inline-flex items-center gap-0.5"
-                  >
-                    {entry.author}
-                    <ArrowSquareOut size={12} className="text-gray-400" />
-                  </a>
-                ) : (
-                  <span className="font-semibold text-gray-900">
-                    {entry.author}
-                  </span>
-                )}
-              </p>
-            )}
-
-            {/* Trust warning */}
-            <p className="text-xs text-gray-400 mb-5">
-              Only use connectors from developers you trust. Von does not
-              control which tools developers make available and cannot verify
-              that they will work as intended or that they won't change.
-            </p>
-
             {/* ── Connected state ── */}
-            {entry.is_connected ? (
+            {(entry.is_connected || isOnlyPersonalConnected) && !isAddedForTeam ? (
               <>
                 {/* Connected status banner */}
                 <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-100 rounded-lg mb-5">
@@ -736,75 +827,6 @@ function ConnectorDetailView({
                   <span className="text-sm font-medium text-green-700">
                     Connected · {authTypeLabel}
                   </span>
-                </div>
-
-                {/* Tools */}
-                <div className="mb-5">
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">
-                    Tools
-                  </h3>
-                  {liveTools.length === 0 ? (
-                    <p className="text-sm text-gray-400">
-                      No tools discovered yet.
-                    </p>
-                  ) : (
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => setToolsExpanded(!toolsExpanded)}
-                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          {toolsExpanded ? (
-                            <CaretDown
-                              size={14}
-                              weight="bold"
-                              className="text-gray-500"
-                            />
-                          ) : (
-                            <CaretUp
-                              size={14}
-                              weight="bold"
-                              className="text-gray-500"
-                            />
-                          )}
-                          <span className="text-sm font-medium text-gray-900">
-                            {liveTools.length} tool
-                            {liveTools.length !== 1 ? "s" : ""}
-                          </span>
-                        </div>
-                        {liveTools.filter((t) => t.is_write).length > 0 && (
-                          <span className="text-xs text-gray-500">
-                            <span className="text-amber-600">
-                              {liveTools.filter((t) => t.is_write).length} write
-                            </span>
-                          </span>
-                        )}
-                      </button>
-                      {toolsExpanded && (
-                        <div className="border-t border-gray-200 divide-y divide-gray-100">
-                          {liveTools.map((tool) => (
-                            <div key={tool.name} className="px-4 py-2.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-mono font-medium text-gray-900">
-                                  {tool.name}
-                                </span>
-                                {tool.is_write && (
-                                  <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">
-                                    Write
-                                  </span>
-                                )}
-                              </div>
-                              {tool.description && (
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                  {tool.description}
-                                </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </>
             ) : (
@@ -886,74 +908,67 @@ function ConnectorDetailView({
               </div>
             )}
 
+            {/* Org Memory */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  Org Memory
+                </h3>
+                <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                  Optional
+                </span>
+              </div>
+              <textarea
+                value={orgMemory}
+                onChange={(e) => setOrgMemory(e.target.value)}
+                placeholder={
+                  "Help Von decide when to use this integration and what context to pull from it.\n\ne.g. Use this when users ask about [topic]. Always pull [relevant data]."
+                }
+                rows={5}
+                className="w-full px-3 py-3 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 placeholder:text-gray-400 leading-relaxed"
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  disabled={!orgMemory.trim()}
+                  className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+
             {/* Details */}
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
               Details
             </h3>
-            <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm mb-4">
-              {entry.author && (
-                <div>
-                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                    Author
-                  </p>
-                  <p className="text-gray-900">{entry.author}</p>
-                </div>
-              )}
+            <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm mb-4">
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
-                  Connector URL
+                  Integration Type
                 </p>
-                <p className="text-gray-700 font-mono text-xs truncate">
-                  {entry.server_url}
+                <p className="text-gray-900">
+                  {entry.tool_manifest?.some((t) => t.is_write)
+                    ? "Read & Write"
+                    : "Read Only"}
                 </p>
               </div>
-            </div>
-
-            {/* More info links */}
-            {(entry.docs_url ||
-              entry.support_url ||
-              entry.privacy_policy_url) && (
-              <>
-                <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  More Info
-                </h4>
-                <div className="space-y-1">
-                  {entry.docs_url && (
-                    <a
-                      href={entry.docs_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
-                    >
-                      Documentation{" "}
-                      <ArrowSquareOut size={12} className="text-gray-400" />
-                    </a>
-                  )}
-                  {entry.support_url && (
-                    <a
-                      href={entry.support_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
-                    >
-                      Support{" "}
-                      <ArrowSquareOut size={12} className="text-gray-400" />
-                    </a>
-                  )}
-                  {entry.privacy_policy_url && (
-                    <a
-                      href={entry.privacy_policy_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
-                    >
-                      Privacy Policy{" "}
-                      <ArrowSquareOut size={12} className="text-gray-400" />
-                    </a>
-                  )}
+              {entry.docs_url && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                    More Info
+                  </p>
+                  <a
+                    href={entry.docs_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                  >
+                    Documentation{" "}
+                    <ArrowSquareOut size={12} className="text-gray-400" />
+                  </a>
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
 
           <style>{`.mcp-input-wrapper input::placeholder { font-size: 13px; color: #9ca3af; }`}</style>
@@ -968,11 +983,31 @@ function ConnectorDetailView({
           />
           <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
             <h2 className="text-base font-semibold text-gray-900 mb-2">
-              Remove from Workspace
+              {isAddedForTeam
+                ? "Disable for Team"
+                : isOnlyPersonalConnected
+                  ? "Disconnect Personal Access"
+                  : "Remove from Workspace"}
             </h2>
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to remove <strong>{entry.name}</strong> from
-              workspace? This will remove the workspace connection.
+              {isAddedForTeam ? (
+                <>
+                  Are you sure you want to disable{" "}
+                  <strong>{entry.name}</strong> for your team? Members won't be
+                  able to connect their personal accounts.
+                </>
+              ) : isOnlyPersonalConnected ? (
+                <>
+                  Are you sure you want to disconnect your personal{" "}
+                  <strong>{entry.name}</strong> connection?
+                </>
+              ) : (
+                <>
+                  Are you sure you want to remove{" "}
+                  <strong>{entry.name}</strong> from workspace? This will remove
+                  the workspace connection.
+                </>
+              )}
             </p>
             <div className="flex gap-3">
               <button
@@ -989,12 +1024,91 @@ function ConnectorDetailView({
                 disabled={deleteMutation.isPending}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
               >
-                {deleteMutation.isPending ? "Removing…" : "Remove"}
+                {deleteMutation.isPending
+                  ? "Removing…"
+                  : isAddedForTeam
+                    ? "Disable"
+                    : "Disconnect"}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {showPermissions && (
+        <PermissionsModal
+          entry={entry}
+          onDeny={() => setShowPermissions(null)}
+          onAllow={() => {
+            setShowPermissions(null);
+            handleConnect("user");
+          }}
+        />
+      )}
     </>
+  );
+}
+
+/* ─── Permissions consent modal ─── */
+function PermissionsModal({
+  entry,
+  onDeny,
+  onAllow,
+}: {
+  entry: CatalogEntry;
+  onDeny: () => void;
+  onAllow: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
+      <div className="fixed inset-0 bg-black/20" onClick={onDeny} />
+      <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
+        {/* App + Von logos */}
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+            {entry.logo_url ? (
+              <img
+                src={entry.logo_url}
+                alt=""
+                className="w-12 h-12 object-contain"
+              />
+            ) : (
+              <Plugs size={24} className="text-gray-400" />
+            )}
+          </div>
+          <ArrowsLeftRight size={18} className="text-gray-400" />
+          <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+            <img
+              src={vonFilledLogo}
+              alt="Von"
+              className="w-8 h-8 object-contain"
+            />
+          </div>
+        </div>
+
+        <h2 className="text-base font-semibold text-gray-900 mb-1 text-center">
+          {entry.name} wants to connect to Von
+        </h2>
+        <p className="text-sm text-gray-500 mb-5 text-center">
+          Von is requesting access to your {entry.name} workspace to use the
+          following tools on your team&apos;s behalf.
+        </p>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onDeny}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+          >
+            Deny
+          </button>
+          <button
+            onClick={onAllow}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 cursor-pointer transition-colors"
+          >
+            Allow access
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

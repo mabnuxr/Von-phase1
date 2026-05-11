@@ -115,6 +115,7 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
         api_key: entry.auth_type === "api_key" ? apiKey.trim() : undefined,
         source: "catalog",
         catalog_id: entry.catalog_id,
+        access_level: "user",
       });
       setCreatedServerId(server.id);
 

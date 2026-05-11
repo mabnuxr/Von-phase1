@@ -37,6 +37,7 @@ class MCPServerService {
     source: "catalog" | "custom";
     catalog_id?: string;
     description?: string;
+    access_level?: "tenant" | "user";
   }): Promise<MCPServer> {
     return apiClient.post<MCPServer>(BASE, data);
   }
