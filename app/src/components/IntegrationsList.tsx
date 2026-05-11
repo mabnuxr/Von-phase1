@@ -1,10 +1,19 @@
-import { useMemo, useState, useRef, useEffect } from "react";
-import { IntegrationCard } from "@vonlabs/design-components";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import {
+  useDeleteMCPServer,
+  useCreateMCPServer,
+  useMCPAuthorize,
+  useMCPCheckAuthStatus,
+  useDiscoverTools,
+} from "../hooks/useMCPServers";
+import { useToast } from "../hooks/useToast";
+import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useSetSalesforceScope } from "../hooks/useIntegrations";
 import { Resource, AuthenticationStatus } from "../services";
 import type { SalesforceWriteScope } from "../services";
+import type { CatalogEntry } from "../types/mcp";
 import {
   getAllIntegrations,
   canBeOrgLevel,
@@ -15,11 +24,11 @@ import {
 import type { Integration } from "./IntegrationsPanel";
 import { getUserContext } from "../lib/auth";
 import {
-  DotsThreeVertical,
-  CaretRight,
-  TrashSimple,
-  ShieldCheck,
-  Check,
+  DotsThreeVerticalIcon,
+  CaretRightIcon,
+  TrashSimpleIcon,
+  ShieldCheckIcon,
+  CheckIcon,
 } from "@phosphor-icons/react";
 
 /**
@@ -73,6 +82,268 @@ interface IntegrationsListProps {
     id: string,
     connectionType: "workspace" | "personal" | "both",
   ) => void;
+  mcpEntries?: CatalogEntry[];
+  onMCPConnect?: (entry: CatalogEntry) => void;
+}
+
+// Map catalog category_name → CATEGORY_ORDER key (best-effort)
+const CATALOG_CATEGORY_MAP: Record<string, string> = {
+  CRM: "CRM",
+  Calendar: "Calendar",
+  "Note Takers": "Note Takers",
+  "Knowledge Base": "Knowledge base",
+  "Knowledge base": "Knowledge base",
+  "Sales Engagement": "Sales Engagement",
+  "Data Warehouse": "Data Warehouse",
+  "Customer Support": "Customer Support",
+  Communication: "Communication",
+  "Call Recorder": "Call Recorder",
+  "Calls & Engagement": "Call Recorder",
+};
+
+function MCPCatalogItem({
+  entry,
+  onConnect,
+}: {
+  entry: CatalogEntry;
+  onConnect: (entry: CatalogEntry) => void;
+}) {
+  const deleteMutation = useDeleteMCPServer();
+  const createMutation = useCreateMCPServer();
+  const authorizeMutation = useMCPAuthorize();
+  const discoverMutation = useDiscoverTools();
+  const { showToast } = useToast();
+
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [createdServerId, setCreatedServerId] = useState<string | null>(null);
+  const [waitingForOAuth, setWaitingForOAuth] = useState(false);
+  const [discoverTriggered, setDiscoverTriggered] = useState(false);
+  const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
+
+  const authStatusQuery = useMCPCheckAuthStatus(
+    createdServerId,
+    waitingForOAuth,
+  );
+
+  const finishOAuth = useCallback(
+    (serverId: string) => {
+      if (discoverTriggered) return;
+      setDiscoverTriggered(true);
+      setWaitingForOAuth(false);
+      oauthPopup?.close();
+      showToast({
+        message: `${entry.name} connected — discovering tools…`,
+        variant: "success",
+      });
+      discoverMutation.mutate(serverId);
+    },
+    [discoverTriggered, oauthPopup, entry.name, showToast, discoverMutation],
+  );
+
+  useEffect(() => {
+    if (!waitingForOAuth || !createdServerId) return;
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "mcp_oauth_callback") return;
+      if (event.data.success) {
+        finishOAuth(createdServerId);
+      } else {
+        setWaitingForOAuth(false);
+        oauthPopup?.close();
+        if (createdServerId) deleteMutation.mutate(createdServerId);
+        setCreatedServerId(null);
+        showToast({
+          message:
+            event.data.error || "OAuth authorization failed. Please try again.",
+          variant: "error",
+        });
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [
+    waitingForOAuth,
+    createdServerId,
+    finishOAuth,
+    oauthPopup,
+    deleteMutation,
+    showToast,
+  ]);
+
+  useEffect(() => {
+    if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
+    const status = authStatusQuery.data?.authentication_status;
+    if (status === "AUTHENTICATED") {
+      finishOAuth(createdServerId);
+    } else if (status === "AUTHENTICATION_FAILED") {
+      setWaitingForOAuth(false);
+      oauthPopup?.close();
+      if (createdServerId) deleteMutation.mutate(createdServerId);
+      setCreatedServerId(null);
+      showToast({
+        message: "OAuth authorization failed. Please try again.",
+        variant: "error",
+      });
+    }
+  }, [
+    authStatusQuery.data?.authentication_status,
+    waitingForOAuth,
+    createdServerId,
+    discoverTriggered,
+    deleteMutation,
+    showToast,
+    oauthPopup,
+    finishOAuth,
+  ]);
+
+  const handleDirectOAuth = async (accessLevel: "tenant" | "user" = "user") => {
+    let newServerId: string | null = null;
+    try {
+      const server = await createMutation.mutateAsync({
+        name: entry.name,
+        server_url: entry.server_url,
+        auth_type: entry.auth_type,
+        source: "catalog",
+        catalog_id: entry.catalog_id,
+        access_level: accessLevel,
+      });
+      newServerId = server.id;
+      setCreatedServerId(server.id);
+      const authData = await authorizeMutation.mutateAsync(server.id);
+      const popup = window.open(
+        authData.authorization_url,
+        "mcp_oauth",
+        "popup,width=600,height=700",
+      );
+      setOauthPopup(popup);
+      setWaitingForOAuth(true);
+    } catch (err: unknown) {
+      if (newServerId) {
+        deleteMutation.mutate(newServerId);
+        setCreatedServerId(null);
+      }
+      showToast({
+        message:
+          err && typeof err === "object" && "message" in err
+            ? (err as { message: string }).message
+            : "Failed to start authorization",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleConnectClick = () => {
+    if (entry.auth_type === "oauth2") {
+      handleDirectOAuth();
+    } else {
+      onConnect(entry);
+    }
+  };
+
+  const isWorkspace = (entry.default_access_level ?? []).some(
+    (l) => l === "tenant" || l === "workspace",
+  );
+  const isPersonal = (entry.default_access_level ?? []).some(
+    (l) => l === "user" || l === "personal",
+  );
+  const isBoth = isWorkspace && isPersonal;
+
+  const isAuthenticated =
+    !entry.authentication_status ||
+    entry.authentication_status === "AUTHENTICATED";
+
+  // For both-levels apps, only show chips for levels that are actually connected
+  const isWorkspaceActuallyConnected =
+    isWorkspace &&
+    entry.is_connected &&
+    (!isBoth || entry.connected_server_id !== entry.personal_server_id);
+  const isPersonalActuallyConnected =
+    isPersonal && !!entry.is_personal_connected;
+  const isOnlyPersonalConnected =
+    isBoth && isPersonalActuallyConnected && !isWorkspaceActuallyConnected;
+
+  const chips: Array<"workspace" | "personal" | "connected"> = [];
+  if (isWorkspaceActuallyConnected) chips.push("workspace");
+  if (isPersonalActuallyConnected) chips.push("personal");
+  if (
+    !isWorkspaceActuallyConnected &&
+    !isPersonalActuallyConnected &&
+    isWorkspace
+  )
+    chips.push("workspace"); // unconnected workspace-only app
+  if (isAuthenticated) chips.push("connected");
+
+  const canDisconnectPersonal =
+    !!entry.is_personal_connected && !!entry.personal_server_id;
+
+  const isConnecting =
+    createMutation.isPending || authorizeMutation.isPending || waitingForOAuth;
+
+  return (
+    <div>
+      <IntegrationCard
+        name={entry.name}
+        description={entry.description}
+        integrationLogoPath={entry.logo_url ?? ""}
+        chips={chips}
+        isAvailable={!isAuthenticated}
+        onToggle={!isAuthenticated ? handleConnectClick : undefined}
+        onDelete={
+          isAuthenticated && canDisconnectPersonal
+            ? () => setShowDisconnectConfirm(true)
+            : undefined
+        }
+        canDelete={
+          isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending
+        }
+        deleteTooltip="Remove personal connection"
+        disabled={deleteMutation.isPending || isConnecting}
+      />
+      {/* Case: personal connected but workspace not yet */}
+      {isAuthenticated && isOnlyPersonalConnected && (
+        <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
+          <button
+            onClick={() =>
+              entry.auth_type === "oauth2"
+                ? handleDirectOAuth("tenant")
+                : onConnect(entry)
+            }
+            className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
+          >
+            Set as workspace integration
+          </button>
+        </div>
+      )}
+      {/* Case 2: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
+      {isAuthenticated && isBoth && !entry.is_personal_connected && (
+        <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
+          <button
+            onClick={handleConnectClick}
+            className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
+          >
+            Connect your personal {entry.name}
+          </button>
+        </div>
+      )}
+      <ConfirmationModal
+        isOpen={showDisconnectConfirm}
+        title="Disconnect Integration"
+        message={
+          <>
+            Are you sure you want to disconnect <strong>{entry.name}</strong>?{" "}
+            This will remove your personal connection.
+          </>
+        }
+        confirmText="Disconnect"
+        cancelText="Cancel"
+        onConfirm={() => {
+          setShowDisconnectConfirm(false);
+          deleteMutation.mutate(entry.personal_server_id!);
+        }}
+        onCancel={() => setShowDisconnectConfirm(false)}
+      />
+    </div>
+  );
 }
 
 interface IntegrationItemProps {
@@ -164,7 +435,7 @@ function SalesforceScopeMenu({
         }`}
         aria-label="Open settings"
       >
-        <DotsThreeVertical size={18} weight="bold" />
+        <DotsThreeVerticalIcon size={18} weight="bold" />
       </button>
 
       {isOpen && (
@@ -178,10 +449,10 @@ function SalesforceScopeMenu({
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <ShieldCheck size={14} className="text-gray-800" />
+                <ShieldCheckIcon size={14} className="text-gray-800" />
                 <span>Access Permissions</span>
               </div>
-              <CaretRight size={14} className="text-gray-400" />
+              <CaretRightIcon size={14} className="text-gray-400" />
             </button>
 
             {/* Scope Submenu */}
@@ -209,7 +480,7 @@ function SalesforceScopeMenu({
                         {option.label}
                       </span>
                       {option.value === currentScope && (
-                        <Check
+                        <CheckIcon
                           size={14}
                           weight="bold"
                           className="text-green-600 shrink-0"
@@ -240,7 +511,7 @@ function SalesforceScopeMenu({
               }}
               className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 cursor-pointer"
             >
-              <TrashSimple size={14} />
+              <TrashSimpleIcon size={14} />
               <span>Remove Connection</span>
             </button>
           )}
@@ -567,6 +838,8 @@ export function IntegrationsList({
   timedOutIntegrations,
   onConnect,
   onDelete,
+  mcpEntries = [],
+  onMCPConnect,
 }: IntegrationsListProps) {
   const {
     isGoogleDriveEnabled,
@@ -581,6 +854,7 @@ export function IntegrationsList({
     isDatabricksEnabled,
     isBoxEnabled,
     isBigQueryEnabled,
+    isMcpServersEnabled,
   } = useFeatureFlag();
 
   const allApps = useMemo(() => {
@@ -652,6 +926,27 @@ export function IntegrationsList({
     });
   }, [allApps, integrations]);
 
+  // Group MCP catalog entries by mapped category
+  const mcpByCategory = useMemo(() => {
+    const grouped: Record<string, CatalogEntry[]> = {};
+    for (const entry of mcpEntries) {
+      const mapped =
+        CATALOG_CATEGORY_MAP[entry.category_name] ?? entry.category_name;
+      if (!grouped[mapped]) grouped[mapped] = [];
+      grouped[mapped].push(entry);
+    }
+    return grouped;
+  }, [mcpEntries]);
+
+  // Extra MCP categories not in CATEGORY_ORDER
+  const extraMCPCategories = useMemo(
+    () =>
+      Object.keys(mcpByCategory).filter(
+        (c) => !CATEGORY_ORDER.includes(c as never),
+      ),
+    [mcpByCategory],
+  );
+
   // Group by category, disabled (coming soon) items sorted to the bottom
   const byCategory = useMemo(() => {
     const grouped = mergedData.reduce(
@@ -675,7 +970,8 @@ export function IntegrationsList({
     <div className="space-y-2">
       {CATEGORY_ORDER.map((category) => {
         const items = byCategory[category];
-        if (!items?.length) return null;
+        const mcpItems = mcpByCategory[category] ?? [];
+        if (!items?.length && !mcpItems.length) return null;
 
         return (
           <div
@@ -691,7 +987,7 @@ export function IntegrationsList({
 
             {/* Items */}
             <div className="divide-y divide-gray-200">
-              {items.map((item) => (
+              {items?.map((item) => (
                 <IntegrationItem
                   key={item.id}
                   item={item}
@@ -703,10 +999,42 @@ export function IntegrationsList({
                   onDelete={onDelete}
                 />
               ))}
+              {isMcpServersEnabled &&
+                mcpItems.map((entry) => (
+                  <MCPCatalogItem
+                    key={entry.catalog_id}
+                    entry={entry}
+                    onConnect={onMCPConnect ?? (() => {})}
+                  />
+                ))}
             </div>
           </div>
         );
       })}
+
+      {/* Extra MCP categories not in CATEGORY_ORDER */}
+      {isMcpServersEnabled &&
+        extraMCPCategories.map((category) => (
+          <div
+            key={category}
+            className="bg-white rounded-lg border border-gray-200 overflow-visible"
+          >
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {category}
+              </h3>
+            </div>
+            <div className="divide-y divide-gray-200">
+              {mcpByCategory[category].map((entry) => (
+                <MCPCatalogItem
+                  key={entry.catalog_id}
+                  entry={entry}
+                  onConnect={onMCPConnect ?? (() => {})}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { ConfirmationModal, Banner, Text } from "@vonlabs/design-components";
-import { BookOpen } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useUser } from "../hooks/useUser";
 import {
   useIntegrations,
   useCheckAllAuthStatuses,
@@ -16,10 +17,15 @@ import usePreferencesStore from "../store/preferencesStore";
 import { WorkspaceIntegrationPane } from "./WorkspaceIntegrationPane";
 import { PersonalIntegrationPane } from "./PersonalIntegrationPane";
 import { IntegrationsList } from "./IntegrationsList";
+import { ConnectorLibraryModal } from "./mcp/ConnectorLibraryModal";
+import { MCPConnectDrawer } from "./mcp/MCPConnectDrawer";
+import { useMCPCatalog, useMCPServers } from "../hooks/useMCPServers";
+import type { CatalogEntry } from "../types/mcp";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
 } from "../constants/integrationMetadata";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
 export interface Integration {
   id: string;
@@ -93,6 +99,93 @@ export function IntegrationsPanel() {
   // Poll all authenticating integrations concurrently
   const { timedOutIntegrations } = useCheckAllAuthStatuses(authenticatingIds);
 
+  // MCP modal/pane state
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [mcpConnectEntry, setMcpConnectEntry] = useState<CatalogEntry | null>(
+    null,
+  );
+
+  const { user } = useUser();
+  const isAdmin =
+    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const { isMcpServersEnabled } = useFeatureFlag();
+
+  // MCP servers — authoritative source; catalog used only for metadata enrichment
+  const { data: mcpServers } = useMCPServers();
+  const { data: mcpCatalog } = useMCPCatalog();
+  const connectedMCPEntries = useMemo<CatalogEntry[]>(() => {
+    if (!isMcpServersEnabled || !mcpServers) return [];
+    const catalogMap = new Map(
+      (mcpCatalog ?? []).map((e) => [e.catalog_id, e]),
+    );
+
+    // Group workspace + personal servers for the same app into one entry.
+    // Include:
+    //   • any AUTHENTICATED server (Cases 2 & 3)
+    //   • published personal-only servers that are NOT yet authenticated (Case 1 — shows Connect button)
+    const groups = new Map<
+      string,
+      { workspace?: (typeof mcpServers)[0]; personal?: (typeof mcpServers)[0] }
+    >();
+    for (const server of mcpServers) {
+      const cat = server.catalog_id
+        ? catalogMap.get(server.catalog_id)
+        : undefined;
+      const isWorkspaceInCatalog = (cat?.default_access_level ?? []).some(
+        (l) => l === "tenant" || l === "workspace",
+      );
+      const isCase1 =
+        server.availability_status === "published" && !isWorkspaceInCatalog;
+      if (server.authentication_status !== "AUTHENTICATED" && !isCase1)
+        continue;
+
+      const key = server.catalog_id ?? `__custom__${server.id}`;
+      const group = groups.get(key) ?? {};
+      if (server.access_level === "tenant") group.workspace = server;
+      else group.personal = server;
+      groups.set(key, group);
+    }
+
+    return Array.from(groups.values()).map(({ workspace, personal }) => {
+      const server = workspace ?? personal!;
+      const cat = server.catalog_id
+        ? catalogMap.get(server.catalog_id)
+        : undefined;
+      // Use the most favourable auth status — if any member is authenticated the app is "connected"
+      const authStatus =
+        workspace?.authentication_status === "AUTHENTICATED" ||
+        personal?.authentication_status === "AUTHENTICATED"
+          ? ("AUTHENTICATED" as const)
+          : server.authentication_status;
+      return {
+        catalog_id: cat?.catalog_id ?? server.id,
+        name: server.name,
+        description: cat?.description ?? server.description ?? "",
+        server_url: server.server_url,
+        auth_type: server.auth_type,
+        credential_label: cat?.credential_label ?? "API Key",
+        credential_hint_url: cat?.credential_hint_url ?? null,
+        default_access_level: cat?.default_access_level ?? [
+          server.access_level === "tenant" ? "workspace" : "user",
+        ],
+        logo_url: cat?.logo_url ?? null,
+        tool_manifest: server.tool_manifest,
+        is_connected: true,
+        connected_server_id: server.id,
+        is_personal_connected: !!personal,
+        personal_server_id: personal?.id ?? null,
+        authentication_status: authStatus,
+        category_code: cat?.category_code ?? "",
+        category_name: cat?.category_name ?? "Other",
+        author: cat?.author ?? "",
+        docs_url: cat?.docs_url ?? null,
+        support_url: cat?.support_url ?? null,
+        privacy_policy_url: cat?.privacy_policy_url ?? null,
+        is_active: server.is_active,
+      };
+    });
+  }, [isMcpServersEnabled, mcpServers, mcpCatalog]);
+
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);
 
@@ -133,6 +226,7 @@ export function IntegrationsPanel() {
       integrationsData?.integrations.map(
         (integration: {
           id: string;
+          name: string;
           provider: string;
           type: IntegrationType;
           authenticationStatus: string;
@@ -144,7 +238,10 @@ export function IntegrationsPanel() {
           isConfigured?: boolean;
         }) => ({
           id: integration.id,
-          name: getIntegrationDisplayName(integration.type),
+          name:
+            integration.type === IntegrationType.MCP_SERVER
+              ? integration.name
+              : getIntegrationDisplayName(integration.type),
           integrationLogoPath: getIntegrationLogoPath(integration.type),
           enabled:
             integration.authenticationStatus ===
@@ -285,8 +382,8 @@ export function IntegrationsPanel() {
     <div className="flex flex-col h-full p-2">
       {/* Heading - Fixed */}
       <div className="">
-        <div className="px-4 pt-4 pb-6 border-b border-gray-200">
-          <div className="flex items-start justify-between">
+        <div className="px-6 pt-4 pb-6 border-b border-gray-200">
+          <div className="w-full max-w-4xl mx-auto flex items-start justify-between">
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
                 Integrations
@@ -295,15 +392,17 @@ export function IntegrationsPanel() {
                 Connect and manage your external services
               </p>
             </div>
-            <a
-              href="https://docs.vonlabs.ai/reference/integrations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
-            >
-              <BookOpen size={14} />
-              Learn more
-            </a>
+            <div className="flex items-center gap-2">
+              {isAdmin && isMcpServersEnabled && (
+                <button
+                  onClick={() => setShowLibrary(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
+                >
+                  <MagnifyingGlass size={14} />
+                  Explore apps
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -328,6 +427,8 @@ export function IntegrationsPanel() {
             timedOutIntegrations={timedOutIntegrations}
             onConnect={handleConnect}
             onDelete={handleDelete}
+            mcpEntries={connectedMCPEntries}
+            onMCPConnect={(entry) => setMcpConnectEntry(entry)}
           />
         </div>
       </div>
@@ -374,6 +475,17 @@ export function IntegrationsPanel() {
         onConfirm={handleModalConfirm}
         onCancel={handleModalCancel}
       />
+
+      {/* MCP modals/panes */}
+      {isMcpServersEnabled && showLibrary && (
+        <ConnectorLibraryModal onClose={() => setShowLibrary(false)} />
+      )}
+      {isMcpServersEnabled && mcpConnectEntry && (
+        <MCPConnectDrawer
+          entry={mcpConnectEntry}
+          onClose={() => setMcpConnectEntry(null)}
+        />
+      )}
     </div>
   );
 }

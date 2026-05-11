@@ -61,6 +61,8 @@ export const FEATURE_FLAGS = {
   CHAT_SHARING: "enableChatSharing",
   USAGE_METRICS: "enableUsageMetrics",
   VON_AI_FIELDS: "enableVonAiFields",
+  CUSTOM_MCP: "enableCustomMcp",
+  MCP_SERVERS: "enableMcpServers",
   // Gates the redesigned memory pages (org/user split tabs, inline editor,
   // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
   // returns the legacy single-pane memory tab.
@@ -267,6 +269,16 @@ export function useFeatureFlag() {
      * Controls whether Von AI Fields tab is visible in Settings
      */
     isVonAiFieldsEnabled: flags[FEATURE_FLAGS.VON_AI_FIELDS] === true,
+
+    /**
+     * Controls whether custom MCP server connections are available
+     */
+    isCustomMcpEnabled: flags[FEATURE_FLAGS.CUSTOM_MCP] === true,
+
+    /**
+     * Controls whether catalog MCP servers are shown on the integrations page
+     */
+    isMcpServersEnabled: flags[FEATURE_FLAGS.MCP_SERVERS] === true,
 
     /**
      * Raw flags object for advanced usage

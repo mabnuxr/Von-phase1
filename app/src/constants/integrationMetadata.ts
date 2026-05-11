@@ -290,15 +290,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Zendesk.svg",
     category: "Customer Support",
   },
-  pylon: {
-    id: "pylon",
-    name: "Pylon",
-    description: "Import customer support data and insights from Pylon",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Pylon.png",
-    category: "Customer Support",
-    disabled: true,
-  },
+  // pylon: {
+  //   id: "pylon",
+  //   name: "Pylon",
+  //   description: "Import customer support data and insights from Pylon",
+  //   logoPath:
+  //     "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Pylon.png",
+  //   category: "Customer Support",
+  //   disabled: true,
+  // },
   granola: {
     id: "granola",
     name: "Granola",
