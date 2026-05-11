@@ -143,6 +143,7 @@ function MCPCatalogItem({
   useEffect(() => {
     if (!waitingForOAuth || !createdServerId) return;
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "mcp_oauth_callback") return;
       if (event.data.success) {
         finishOAuth(createdServerId);

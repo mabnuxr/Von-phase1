@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   useCreateMCPServer,
+  useDeleteMCPServer,
   useDiscoverTools,
   useMCPAuthorize,
   useMCPCheckAuthStatus,
@@ -21,11 +22,13 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
   }, []);
 
   const handleClose = () => {
+    oauthPopup?.close();
     setIsVisible(false);
     setTimeout(onClose, 300);
   };
 
   const createMutation = useCreateMCPServer();
+  const deleteMutation = useDeleteMCPServer();
   const discoverMutation = useDiscoverTools();
   const authorizeMutation = useMCPAuthorize();
   const { showToast } = useToast();
@@ -61,12 +64,15 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
   useEffect(() => {
     if (!waitingForOAuth || !createdServerId) return;
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "mcp_oauth_callback") return;
       if (event.data.success) {
         finishOAuth(createdServerId);
       } else {
         setWaitingForOAuth(false);
         oauthPopup?.close();
+        deleteMutation.mutate(createdServerId);
+        setCreatedServerId(null);
         setError(
           event.data.error || "OAuth authorization failed. Please try again.",
         );
@@ -74,7 +80,13 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup]);
+  }, [
+    waitingForOAuth,
+    createdServerId,
+    finishOAuth,
+    oauthPopup,
+    deleteMutation,
+  ]);
 
   useEffect(() => {
     if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
@@ -84,6 +96,8 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     } else if (status === "AUTHENTICATION_FAILED") {
       setWaitingForOAuth(false);
       oauthPopup?.close();
+      if (createdServerId) deleteMutation.mutate(createdServerId);
+      setCreatedServerId(null);
       setError("OAuth authorization failed. Please try again.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,9 +141,19 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
             "mcp_oauth",
             "popup,width=600,height=700",
           );
+          if (!popup) {
+            deleteMutation.mutate(server.id);
+            setCreatedServerId(null);
+            setError(
+              "Popup was blocked. Please allow popups for this site and try again.",
+            );
+            return;
+          }
           setOauthPopup(popup);
           setWaitingForOAuth(true);
         } catch (authErr: unknown) {
+          deleteMutation.mutate(server.id);
+          setCreatedServerId(null);
           setError(
             authErr && typeof authErr === "object" && "message" in authErr
               ? (authErr as { message: string }).message

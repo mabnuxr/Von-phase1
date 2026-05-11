@@ -3,6 +3,7 @@ import { Input, Banner, RadioButton } from "@vonlabs/design-components";
 import { Plugs } from "@phosphor-icons/react";
 import {
   useCreateMCPServer,
+  useDeleteMCPServer,
   useDiscoverTools,
   useMCPAuthorize,
   useMCPCheckAuthStatus,
@@ -19,6 +20,7 @@ export function CreateCustomMCPModal({
   onCreated,
 }: CreateCustomMCPModalProps) {
   const createMutation = useCreateMCPServer();
+  const deleteMutation = useDeleteMCPServer();
   const discoverMutation = useDiscoverTools();
   const authorizeMutation = useMCPAuthorize();
 
@@ -70,12 +72,15 @@ export function CreateCustomMCPModal({
     if (!waitingForOAuth || !createdServerId) return;
 
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "mcp_oauth_callback") return;
       if (event.data.success) {
         finishOAuth(createdServerId);
       } else {
         setWaitingForOAuth(false);
         oauthPopup?.close();
+        deleteMutation.mutate(createdServerId);
+        setCreatedServerId(null);
         setErrors([
           event.data.error || "OAuth authorization failed. Please try again.",
         ]);
@@ -84,7 +89,13 @@ export function CreateCustomMCPModal({
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [waitingForOAuth, createdServerId, finishOAuth, oauthPopup]);
+  }, [
+    waitingForOAuth,
+    createdServerId,
+    finishOAuth,
+    oauthPopup,
+    deleteMutation,
+  ]);
 
   // Polling fallback: detect AUTHENTICATED if postMessage was missed
   useEffect(() => {
@@ -96,6 +107,8 @@ export function CreateCustomMCPModal({
     } else if (status === "AUTHENTICATION_FAILED") {
       setWaitingForOAuth(false);
       oauthPopup?.close();
+      if (createdServerId) deleteMutation.mutate(createdServerId);
+      setCreatedServerId(null);
       setErrors(["OAuth authorization failed. Please try again."]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,9 +162,19 @@ export function CreateCustomMCPModal({
             "mcp_oauth",
             "popup,width=600,height=700",
           );
+          if (!popup) {
+            deleteMutation.mutate(server.id);
+            setCreatedServerId(null);
+            setErrors([
+              "Popup was blocked. Please allow popups for this site and try again.",
+            ]);
+            return;
+          }
           setOauthPopup(popup);
           setWaitingForOAuth(true);
         } catch (authErr: unknown) {
+          deleteMutation.mutate(server.id);
+          setCreatedServerId(null);
           const msg =
             authErr && typeof authErr === "object" && "message" in authErr
               ? (authErr as { message: string }).message
