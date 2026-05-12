@@ -109,8 +109,13 @@ export function AIFieldSidePanel({
   const isDraft =
     !!draftAiField &&
     (fieldId === "draft" || fieldId === draftAiField.workflowId);
+  // `refetchOnMount: "always"` guarantees every open of the side panel hits
+  // the backend for the freshest field state, regardless of the 30s global
+  // staleTime. Cached data still renders instantly while the refetch is
+  // in-flight, so there's no loading flash for subsequent opens.
   const { data: fetchedField, isLoading } = useAiField(
     isDraft ? null : fieldId,
+    { refetchOnMount: "always" },
   );
 
   // Check if a field already exists (determines Create vs Update vs Disabled)
@@ -130,7 +135,9 @@ export function AIFieldSidePanel({
   const isUpdate = isDraft && !!existingField;
   const isApplied = isDraft && !!existingField?.applied;
 
-  // Merge draft and fetched data
+  // Merge draft and fetched data. When the draft maps to an already-applied
+  // field (Create/Update button is disabled), surface that field's real
+  // status — otherwise we'd label a Live field as "Draft" in the header.
   const field =
     isDraft && draftAiField
       ? {
@@ -146,11 +153,11 @@ export function AIFieldSidePanel({
           displayFilter: draftAiField.displayFilter,
           matchCount: draftAiField.matchCount,
           totalRecords: draftAiField.totalRecords,
-          status: "draft" as const,
+          status: existingField?.status ?? ("draft" as const),
           workflowId: draftAiField.workflowId,
           conversationId: draftAiField.conversationId,
           createdBy: "",
-          createdAt: new Date().toISOString(),
+          createdAt: existingField?.createdAt ?? new Date().toISOString(),
           updatedAt: null,
         }
       : fetchedField;

@@ -223,17 +223,32 @@ export function VonAiFieldDetailPane({
         >
           Cancel
         </button>
-        <div className="relative" ref={chatPickerRef}>
+        <div className="relative group" ref={chatPickerRef}>
           <button
-            onClick={() => setChatPickerOpen(!chatPickerOpen)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+            onClick={() =>
+              !field?.isDefault && setChatPickerOpen(!chatPickerOpen)
+            }
+            aria-disabled={field?.isDefault}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              field?.isDefault
+                ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                : "text-white bg-gray-900 hover:bg-gray-800 cursor-pointer"
+            }`}
           >
             <ChatCircleDotsIcon size={14} />
             Edit in chat
             <CaretDownIcon size={12} />
           </button>
+          {field?.isDefault && (
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full right-0 mb-2 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg z-[60]"
+            >
+              This is a default AI field and can&apos;t be edited.
+            </span>
+          )}
 
-          {chatPickerOpen && (
+          {!field?.isDefault && chatPickerOpen && (
             <div className="absolute bottom-full mb-2 right-0 w-[300px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1">
               <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
                 Recent conversations

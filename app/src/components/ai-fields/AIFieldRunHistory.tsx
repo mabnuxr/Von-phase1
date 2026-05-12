@@ -3,10 +3,12 @@ import {
   X as XIcon,
   CaretLeft as CaretLeftIcon,
   CaretRight as CaretRightIcon,
+  DownloadSimple as DownloadSimpleIcon,
 } from "@phosphor-icons/react";
 import { useAiFieldRuns } from "../../hooks/useVonAiFields";
 import useAiFieldsStore from "../../store/vonAiFieldsStore";
 import { formatTimeAgo } from "../../utils/formatTimeAgo";
+import { config } from "../../config";
 
 // ─── Component ──────────────────────────────────────────────
 
@@ -84,6 +86,9 @@ export function AIFieldRunHistory() {
                       <th className="text-left text-[10.5px] uppercase tracking-[0.05em] font-medium text-gray-500 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
                         Status
                       </th>
+                      <th className="text-right text-[10.5px] uppercase tracking-[0.05em] font-medium text-gray-500 px-3.5 py-2.5 bg-gray-50 border-b border-gray-100">
+                        Results
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -136,6 +141,23 @@ export function AIFieldRunHistory() {
                               ? "partial failure"
                               : run.status}
                           </span>
+                        </td>
+                        <td
+                          className={`px-3.5 py-2.5 text-right ${i < runs.length - 1 ? "border-b border-dashed border-gray-100" : ""}`}
+                        >
+                          {run.status === "completed" ? (
+                            <a
+                              href={`${config.apiBaseUrl}/api/v1/ai-fields/runs/${run.executionId}/csv/download`}
+                              download
+                              title="Download results as CSV"
+                              className="inline-flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900 hover:underline cursor-pointer"
+                            >
+                              <DownloadSimpleIcon size={12} />
+                              Download
+                            </a>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}

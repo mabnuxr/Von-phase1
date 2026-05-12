@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import usePreferencesStore, {
-  DEFAULT_VONIQ_FIELDS,
+  DEFAULT_VON_AI_FIELDS,
 } from "../store/preferencesStore";
 import type { Field, VonIQField } from "../store/preferencesStore";
 import { Banner, SingleSelect } from "@vonlabs/design-components";
@@ -47,7 +47,7 @@ export function FieldDetailPane() {
       ? userDefinedVonIQFields.find(
           (f: VonIQField) => f.id === editingFieldId,
         ) ||
-        DEFAULT_VONIQ_FIELDS.find((f: VonIQField) => f.id === editingFieldId)
+        DEFAULT_VON_AI_FIELDS.find((f: VonIQField) => f.id === editingFieldId)
       : null;
 
   const field = salesforceField || voniqField;

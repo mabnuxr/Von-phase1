@@ -5,14 +5,22 @@ import { ApiError } from "../services/apiClient";
 import type {
   AiFieldStatus,
   CreateAiFieldRequest,
+  DefaultAiFieldDefinition,
   PlaygroundRequest,
 } from "../types/vonAiFields";
 
 // ─── Query Keys ──────────────────────────────────────────────
 export const aiFieldKeys = {
   all: ["ai-fields"] as const,
-  list: (status?: AiFieldStatus, page = 1, limit = 10) =>
-    [...aiFieldKeys.all, "list", status ?? "all", page, limit] as const,
+  list: (status?: AiFieldStatus, page = 1, limit = 10, isDefault?: boolean) =>
+    [
+      ...aiFieldKeys.all,
+      "list",
+      status ?? "all",
+      page,
+      limit,
+      isDefault ?? "any",
+    ] as const,
   detail: (fieldId: string) => [...aiFieldKeys.all, "detail", fieldId] as const,
   runs: (fieldId: string, page = 1, limit = 20) =>
     [...aiFieldKeys.all, "runs", fieldId, page, limit] as const,
@@ -29,20 +37,31 @@ export function useAiFields(
   page = 1,
   limit = 10,
   enabled = true,
+  isDefault?: boolean,
 ) {
   return useQuery({
-    queryKey: aiFieldKeys.list(status, page, limit),
-    queryFn: () => aiFieldsService.listFields(status, page, limit),
+    queryKey: aiFieldKeys.list(status, page, limit, isDefault),
+    queryFn: () => aiFieldsService.listFields(status, page, limit, isDefault),
     enabled,
   });
 }
 
 // ─── Single Field ────────────────────────────────────────────
-export function useAiField(fieldId: string | null) {
+interface UseAiFieldOptions {
+  staleTime?: number;
+  refetchOnMount?: boolean | "always";
+}
+
+export function useAiField(
+  fieldId: string | null,
+  options?: UseAiFieldOptions,
+) {
   return useQuery({
     queryKey: aiFieldKeys.detail(fieldId ?? ""),
     queryFn: () => aiFieldsService.getField(fieldId!),
     enabled: !!fieldId,
+    staleTime: options?.staleTime,
+    refetchOnMount: options?.refetchOnMount,
   });
 }
 
@@ -135,6 +154,31 @@ export function useActivateField() {
         error instanceof ApiError
           ? error.message
           : "Failed to activate AI field.";
+      showToast({ message: msg, variant: "error" });
+    },
+  });
+}
+
+// ─── Enable Default Field ────────────────────────────────────
+// Materializes a hardcoded default into a real AiField (or re-activates if
+// it already exists). Disabling a default reuses useDisableField with the
+// materialized field's fieldId.
+export function useEnableDefaultAiField() {
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  return useMutation({
+    mutationFn: (definition: DefaultAiFieldDefinition) =>
+      aiFieldsService.enableDefaultField(definition),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: aiFieldKeys.all });
+      showToast({ message: "AI field enabled.", variant: "success" });
+    },
+    onError: (error) => {
+      const msg =
+        error instanceof ApiError
+          ? error.message
+          : "Failed to enable AI field.";
       showToast({ message: msg, variant: "error" });
     },
   });

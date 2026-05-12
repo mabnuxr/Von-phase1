@@ -37,6 +37,30 @@ export interface AiField {
   updatedAt: string | null;
   lastRunAt?: string | null;
   applied?: boolean;
+  // True when this row was materialized from a hardcoded default definition.
+  // The match between a materialized row and its DEFAULT_AI_FIELDS entry is
+  // done by `name`, so `name` must be treated as a stable identifier for
+  // defaults (don't rename in the frontend constant without a migration).
+  isDefault?: boolean;
+}
+
+// ─── Default AI Field Definitions ────────────────────────────
+// Hardcoded catalog of system-provided AI fields. Users can enable/disable
+// these but cannot edit, view in chat, or delete them. `name` is the stable
+// identifier: it's how a materialized AiField row is matched back to its
+// definition here. Don't rename `name` without a backend migration.
+export interface DefaultAiFieldDefinition {
+  name: string;
+  displayName: string;
+  description: string;
+  objectType: AiFieldObjectType;
+  prompt: string;
+  columnsToGenerate: ColumnToGenerate[];
+  sources: string[];
+  // SOQL/WHERE-style filter that scopes which opportunities the field
+  // evaluates against. Sent to the backend on materialize so the scheduled
+  // runs and the playground both query the same opportunity set.
+  opportunityFilter: string | null;
 }
 
 // ─── AI Field Draft (from AI_FIELD_READY event) ─────────────
