@@ -60,7 +60,17 @@ const NewConversation = () => {
   //   <summary body>
   const initialInputRef = useRef<string>(
     (() => {
-      const prompt = (location.state as { prompt?: string } | null)?.prompt;
+      const state = location.state as {
+        prompt?: string;
+        initialInput?: string;
+      } | null;
+      // Raw prefilled input — used by callers (e.g. "Create AI field" button
+      // on the Custom AI Fields settings tab) that want to seed the chat
+      // textarea verbatim with no wrapping.
+      if (state?.initialInput) return state.initialInput;
+      // "Continue conversation" from a shared chat — wraps the summary in an
+      // "Ask a follow-up:" preamble so the user has a clear place to type.
+      const prompt = state?.prompt;
       if (!prompt) return "";
       return (
         `*Ask a follow-up:*\n\n` +
@@ -73,8 +83,11 @@ const NewConversation = () => {
     })(),
   );
   useEffect(() => {
-    const state = location.state as { prompt?: string } | null;
-    if (state?.prompt) {
+    const state = location.state as {
+      prompt?: string;
+      initialInput?: string;
+    } | null;
+    if (state?.prompt || state?.initialInput) {
       navigate(location.pathname, { replace: true, state: null });
     }
     // Run once on mount — subsequent location changes are unrelated.
