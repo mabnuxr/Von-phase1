@@ -5,6 +5,8 @@ import {
   useMCPAuthorize,
   useMCPCheckAuthStatus,
   useDiscoverTools,
+  useConnectMCPServer,
+  useDisconnectMCPServer,
 } from "../hooks/useMCPServers";
 import { useToast } from "../hooks/useToast";
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
@@ -112,7 +114,11 @@ function MCPCatalogItem({
   const createMutation = useCreateMCPServer();
   const authorizeMutation = useMCPAuthorize();
   const discoverMutation = useDiscoverTools();
+  const connectMutation = useConnectMCPServer();
+  const disconnectMutation = useDisconnectMCPServer();
   const { showToast } = useToast();
+
+  const isPersonalMode = entry.connection_mode === "personal";
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [createdServerId, setCreatedServerId] = useState<string | null>(null);
@@ -199,24 +205,56 @@ function MCPCatalogItem({
   const handleDirectOAuth = async (accessLevel: "tenant" | "user" = "user") => {
     let newServerId: string | null = null;
     try {
-      const server = await createMutation.mutateAsync({
-        name: entry.name,
-        server_url: entry.server_url,
-        auth_type: entry.auth_type,
-        source: "catalog",
-        catalog_id: entry.catalog_id,
-        access_level: accessLevel,
-      });
-      newServerId = server.id;
-      setCreatedServerId(server.id);
-      const authData = await authorizeMutation.mutateAsync(server.id);
-      const popup = window.open(
-        authData.authorization_url,
-        "mcp_oauth",
-        "popup,width=600,height=700",
-      );
-      setOauthPopup(popup);
-      setWaitingForOAuth(true);
+      if (isPersonalMode) {
+        // Personal mode: use the connect API directly
+        const result = await connectMutation.mutateAsync({
+          id: entry.connected_server_id!,
+        });
+        const authUrl = result.authorization_url;
+        if (authUrl) {
+          setCreatedServerId(entry.connected_server_id);
+          const popup = window.open(
+            authUrl,
+            "mcp_oauth",
+            "popup,width=600,height=700",
+          );
+          setOauthPopup(popup);
+          setWaitingForOAuth(true);
+        }
+      } else {
+        // Workspace/non-personal mode: reuse existing published-but-not-authenticated server
+        const existingId =
+          accessLevel === "tenant"
+            ? entry.connected_server_id
+            : (entry.personal_server_id ?? null);
+
+        let serverId: string;
+        if (existingId) {
+          serverId = existingId;
+          setCreatedServerId(existingId);
+        } else {
+          const server = await createMutation.mutateAsync({
+            name: entry.name,
+            server_url: entry.server_url,
+            auth_type: entry.auth_type,
+            source: "catalog",
+            catalog_id: entry.catalog_id,
+            access_level: accessLevel,
+          });
+          newServerId = server.id;
+          serverId = server.id;
+          setCreatedServerId(server.id);
+        }
+
+        const authData = await authorizeMutation.mutateAsync(serverId);
+        const popup = window.open(
+          authData.authorization_url,
+          "mcp_oauth",
+          "popup,width=600,height=700",
+        );
+        setOauthPopup(popup);
+        setWaitingForOAuth(true);
+      }
     } catch (err: unknown) {
       if (newServerId) {
         deleteMutation.mutate(newServerId);
@@ -233,10 +271,20 @@ function MCPCatalogItem({
   };
 
   const handleConnectClick = () => {
-    if (entry.auth_type === "oauth2") {
-      handleDirectOAuth();
+    if (isPersonalMode) {
+      if (entry.auth_type === "oauth2") {
+        handleDirectOAuth();
+      } else {
+        onConnect(entry);
+      }
     } else {
-      onConnect(entry);
+      // Workspace-only entries should authenticate at tenant level
+      const accessLevel = isWorkspace && !isPersonal ? "tenant" : "user";
+      if (entry.auth_type === "oauth2") {
+        handleDirectOAuth(accessLevel);
+      } else {
+        onConnect(entry);
+      }
     }
   };
 
@@ -276,8 +324,12 @@ function MCPCatalogItem({
   const canDisconnectPersonal =
     !!entry.is_personal_connected && !!entry.personal_server_id;
 
-  const isConnecting =
-    createMutation.isPending || authorizeMutation.isPending || waitingForOAuth;
+  const isBusy =
+    createMutation.isPending ||
+    authorizeMutation.isPending ||
+    connectMutation.isPending ||
+    disconnectMutation.isPending ||
+    waitingForOAuth;
 
   return (
     <div>
@@ -294,10 +346,10 @@ function MCPCatalogItem({
             : undefined
         }
         canDelete={
-          isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending
+          isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending && !disconnectMutation.isPending
         }
         deleteTooltip="Remove personal connection"
-        disabled={deleteMutation.isPending || isConnecting}
+        disabled={deleteMutation.isPending || isBusy}
       />
       {/* Case: personal connected but workspace not yet */}
       {isAuthenticated && isOnlyPersonalConnected && (
@@ -338,7 +390,11 @@ function MCPCatalogItem({
         cancelText="Cancel"
         onConfirm={() => {
           setShowDisconnectConfirm(false);
-          deleteMutation.mutate(entry.personal_server_id!);
+          if (isPersonalMode) {
+            disconnectMutation.mutate(entry.connected_server_id!);
+          } else {
+            deleteMutation.mutate(entry.personal_server_id!);
+          }
         }}
         onCancel={() => setShowDisconnectConfirm(false)}
       />

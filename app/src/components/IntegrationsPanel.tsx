@@ -20,7 +20,7 @@ import { IntegrationsList } from "./IntegrationsList";
 import { ConnectorLibraryModal } from "./mcp/ConnectorLibraryModal";
 import { MCPConnectDrawer } from "./mcp/MCPConnectDrawer";
 import { useMCPCatalog, useMCPServers } from "../hooks/useMCPServers";
-import type { CatalogEntry } from "../types/mcp";
+import type { CatalogEntry, MCPAuthenticationStatus } from "../types/mcp";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
@@ -119,72 +119,90 @@ export function IntegrationsPanel() {
       (mcpCatalog ?? []).map((e) => [e.catalog_id, e]),
     );
 
-    // Group workspace + personal servers for the same app into one entry.
-    // Include:
-    //   • any AUTHENTICATED server (Cases 2 & 3)
-    //   • published personal-only servers that are NOT yet authenticated (Case 1 — shows Connect button)
-    const groups = new Map<
-      string,
-      { workspace?: (typeof mcpServers)[0]; personal?: (typeof mcpServers)[0] }
-    >();
-    for (const server of mcpServers) {
-      const cat = server.catalog_id
-        ? catalogMap.get(server.catalog_id)
-        : undefined;
-      const isWorkspaceInCatalog = (cat?.default_access_level ?? []).some(
-        (l) => l === "tenant" || l === "workspace",
-      );
-      const isCase1 =
-        server.availability_status === "published" && !isWorkspaceInCatalog;
-      if (server.authentication_status !== "AUTHENTICATED" && !isCase1)
-        continue;
+    const entries: CatalogEntry[] = [];
 
-      const key = server.catalog_id ?? `__custom__${server.id}`;
-      const group = groups.get(key) ?? {};
-      if (server.access_level === "tenant") group.workspace = server;
-      else group.personal = server;
-      groups.set(key, group);
+    for (const server of mcpServers) {
+      if (server.connection_mode === "workspace") {
+        // Include if AUTHENTICATED (visible to all)
+        // OR if admin AND published AND not yet authenticated (admin-pending)
+        const isAuthenticated =
+          server.authentication_status === "AUTHENTICATED";
+        const isAdminPending =
+          isAdmin &&
+          server.availability_status === "published" &&
+          !isAuthenticated;
+
+        if (!isAuthenticated && !isAdminPending) continue;
+
+        const cat = server.catalog_id
+          ? catalogMap.get(server.catalog_id)
+          : undefined;
+
+        entries.push({
+          catalog_id: cat?.catalog_id ?? server.id,
+          name: server.name,
+          description: cat?.description ?? server.description ?? "",
+          server_url: server.server_url,
+          auth_type: server.auth_type,
+          credential_label: cat?.credential_label ?? "API Key",
+          credential_hint_url: cat?.credential_hint_url ?? null,
+          default_access_level: ["workspace"],
+          logo_url: cat?.logo_url ?? null,
+          tool_manifest: server.tool_manifest,
+          is_connected: isAuthenticated,
+          connected_server_id: server.id,
+          authentication_status: server.authentication_status,
+          category_code: cat?.category_code ?? "",
+          category_name: cat?.category_name ?? "Other",
+          author: cat?.author ?? "",
+          docs_url: cat?.docs_url ?? null,
+          support_url: cat?.support_url ?? null,
+          privacy_policy_url: cat?.privacy_policy_url ?? null,
+          is_active: server.is_active,
+          connection_mode: server.connection_mode,
+        });
+      } else {
+        // personal mode — include if published (all members see it to connect)
+        if (server.availability_status !== "published") continue;
+
+        const cat = server.catalog_id
+          ? catalogMap.get(server.catalog_id)
+          : undefined;
+
+        const userAuthStatus =
+          server.user_connection?.authentication_status ?? "NOT_AUTHENTICATED";
+        const isConnected = userAuthStatus === "AUTHENTICATED";
+
+        entries.push({
+          catalog_id: cat?.catalog_id ?? server.id,
+          name: server.name,
+          description: cat?.description ?? server.description ?? "",
+          server_url: server.server_url,
+          auth_type: server.auth_type,
+          credential_label: cat?.credential_label ?? "API Key",
+          credential_hint_url: cat?.credential_hint_url ?? null,
+          default_access_level: ["user"],
+          logo_url: cat?.logo_url ?? null,
+          tool_manifest: server.tool_manifest,
+          is_connected: isConnected,
+          connected_server_id: server.id,
+          is_personal_connected: server.user_connection !== null,
+          personal_server_id: server.id,
+          authentication_status: userAuthStatus as MCPAuthenticationStatus,
+          category_code: cat?.category_code ?? "",
+          category_name: cat?.category_name ?? "Other",
+          author: cat?.author ?? "",
+          docs_url: cat?.docs_url ?? null,
+          support_url: cat?.support_url ?? null,
+          privacy_policy_url: cat?.privacy_policy_url ?? null,
+          is_active: server.is_active,
+          connection_mode: server.connection_mode,
+        });
+      }
     }
 
-    return Array.from(groups.values()).map(({ workspace, personal }) => {
-      const server = workspace ?? personal!;
-      const cat = server.catalog_id
-        ? catalogMap.get(server.catalog_id)
-        : undefined;
-      // Use the most favourable auth status — if any member is authenticated the app is "connected"
-      const authStatus =
-        workspace?.authentication_status === "AUTHENTICATED" ||
-        personal?.authentication_status === "AUTHENTICATED"
-          ? ("AUTHENTICATED" as const)
-          : server.authentication_status;
-      return {
-        catalog_id: cat?.catalog_id ?? server.id,
-        name: server.name,
-        description: cat?.description ?? server.description ?? "",
-        server_url: server.server_url,
-        auth_type: server.auth_type,
-        credential_label: cat?.credential_label ?? "API Key",
-        credential_hint_url: cat?.credential_hint_url ?? null,
-        default_access_level: cat?.default_access_level ?? [
-          server.access_level === "tenant" ? "workspace" : "user",
-        ],
-        logo_url: cat?.logo_url ?? null,
-        tool_manifest: server.tool_manifest,
-        is_connected: true,
-        connected_server_id: server.id,
-        is_personal_connected: !!personal,
-        personal_server_id: personal?.id ?? null,
-        authentication_status: authStatus,
-        category_code: cat?.category_code ?? "",
-        category_name: cat?.category_name ?? "Other",
-        author: cat?.author ?? "",
-        docs_url: cat?.docs_url ?? null,
-        support_url: cat?.support_url ?? null,
-        privacy_policy_url: cat?.privacy_policy_url ?? null,
-        is_active: server.is_active,
-      };
-    });
-  }, [isMcpServersEnabled, mcpServers, mcpCatalog]);
+    return entries;
+  }, [isMcpServersEnabled, mcpServers, mcpCatalog, isAdmin]);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);

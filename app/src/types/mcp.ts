@@ -40,6 +40,12 @@ export interface MCPServer {
   user_id: string | null;
   created_at: string | null;
   updated_at: string | null;
+  connection_mode: "workspace" | "personal";
+  user_connection: {
+    mapping_id: string;
+    authentication_status: MCPAuthenticationStatus;
+    last_authenticated_at: string | null;
+  } | null;
 }
 
 export interface CatalogEntry {
@@ -65,6 +71,7 @@ export interface CatalogEntry {
   support_url: string | null;
   privacy_policy_url: string | null;
   is_active: boolean;
+  connection_mode?: "workspace" | "personal";
 }
 
 export interface MCPSettings {

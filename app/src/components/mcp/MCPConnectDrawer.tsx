@@ -5,6 +5,7 @@ import {
   useDiscoverTools,
   useMCPAuthorize,
   useMCPCheckAuthStatus,
+  useConnectMCPServer,
 } from "../../hooks/useMCPServers";
 import { useToast } from "../../hooks/useToast";
 import type { CatalogEntry } from "../../types/mcp";
@@ -31,7 +32,10 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
   const deleteMutation = useDeleteMCPServer();
   const discoverMutation = useDiscoverTools();
   const authorizeMutation = useMCPAuthorize();
+  const connectMutation = useConnectMCPServer();
   const { showToast } = useToast();
+
+  const isPersonalMode = entry.connection_mode === "personal";
 
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +116,7 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     createMutation.isPending ||
     discoverMutation.isPending ||
     authorizeMutation.isPending ||
+    connectMutation.isPending ||
     waitingForOAuth;
 
   const handleSave = async () => {
@@ -122,28 +127,33 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     setError(null);
 
     try {
-      const server = await createMutation.mutateAsync({
-        name: entry.name,
-        server_url: entry.server_url,
-        auth_type: entry.auth_type,
-        api_key: entry.auth_type === "api_key" ? apiKey.trim() : undefined,
-        source: "catalog",
-        catalog_id: entry.catalog_id,
-        access_level: "user",
-      });
-      setCreatedServerId(server.id);
-
-      if (entry.auth_type === "oauth2") {
-        try {
-          const authData = await authorizeMutation.mutateAsync(server.id);
+      if (isPersonalMode) {
+        if (entry.auth_type === "api_key") {
+          await connectMutation.mutateAsync({
+            id: entry.connected_server_id!,
+            data: { api_key: apiKey.trim() },
+          });
+          showToast({
+            message: `${entry.name} connected`,
+            variant: "success",
+          });
+          handleClose();
+        } else {
+          // oauth2
+          const result = await connectMutation.mutateAsync({
+            id: entry.connected_server_id!,
+          });
+          const authUrl = result.authorization_url;
+          if (!authUrl) {
+            setError("No authorization URL returned. Please try again.");
+            return;
+          }
           const popup = window.open(
-            authData.authorization_url,
+            authUrl,
             "mcp_oauth",
             "popup,width=600,height=700",
           );
           if (!popup) {
-            deleteMutation.mutate(server.id);
-            setCreatedServerId(null);
             setError(
               "Popup was blocked. Please allow popups for this site and try again.",
             );
@@ -151,26 +161,59 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
           }
           setOauthPopup(popup);
           setWaitingForOAuth(true);
-        } catch (authErr: unknown) {
-          deleteMutation.mutate(server.id);
-          setCreatedServerId(null);
-          setError(
-            authErr && typeof authErr === "object" && "message" in authErr
-              ? (authErr as { message: string }).message
-              : "Failed to start authorization",
-          );
+          setCreatedServerId(entry.connected_server_id);
         }
       } else {
-        showToast({
-          message: `${entry.name} connected — discovering tools…`,
-          variant: "success",
+        const server = await createMutation.mutateAsync({
+          name: entry.name,
+          server_url: entry.server_url,
+          auth_type: entry.auth_type,
+          api_key: entry.auth_type === "api_key" ? apiKey.trim() : undefined,
+          source: "catalog",
+          catalog_id: entry.catalog_id,
+          access_level: "user",
         });
-        try {
-          await discoverMutation.mutateAsync(server.id);
-        } catch {
-          /* non-fatal */
+        setCreatedServerId(server.id);
+
+        if (entry.auth_type === "oauth2") {
+          try {
+            const authData = await authorizeMutation.mutateAsync(server.id);
+            const popup = window.open(
+              authData.authorization_url,
+              "mcp_oauth",
+              "popup,width=600,height=700",
+            );
+            if (!popup) {
+              deleteMutation.mutate(server.id);
+              setCreatedServerId(null);
+              setError(
+                "Popup was blocked. Please allow popups for this site and try again.",
+              );
+              return;
+            }
+            setOauthPopup(popup);
+            setWaitingForOAuth(true);
+          } catch (authErr: unknown) {
+            deleteMutation.mutate(server.id);
+            setCreatedServerId(null);
+            setError(
+              authErr && typeof authErr === "object" && "message" in authErr
+                ? (authErr as { message: string }).message
+                : "Failed to start authorization",
+            );
+          }
+        } else {
+          showToast({
+            message: `${entry.name} connected — discovering tools…`,
+            variant: "success",
+          });
+          try {
+            await discoverMutation.mutateAsync(server.id);
+          } catch {
+            /* non-fatal */
+          }
+          handleClose();
         }
-        handleClose();
       }
     } catch (err: unknown) {
       setError(
