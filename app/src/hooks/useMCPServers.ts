@@ -97,6 +97,31 @@ export function useDeleteMCPServer() {
   });
 }
 
+export function useDeleteMCPServerConnections() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => mcpServerService.deleteConnections(id),
+    onSuccess: (_d, id) => invalidate(KEYS.servers, KEYS.server(id)),
+  });
+}
+
+export function useConnectMCPServer() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: { api_key?: string } }) =>
+      mcpServerService.connectServer(id, data),
+    onSuccess: () => invalidate(KEYS.servers),
+  });
+}
+
+export function useDisconnectMCPServer() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (id: string) => mcpServerService.disconnectServer(id),
+    onSuccess: () => invalidate(KEYS.servers),
+  });
+}
+
 export function useMCPAuthorize() {
   const invalidate = useInvalidate();
   return useMutation({

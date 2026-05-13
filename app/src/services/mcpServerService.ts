@@ -38,6 +38,7 @@ class MCPServerService {
     catalog_id?: string;
     description?: string;
     access_level?: "tenant" | "user";
+    connection_mode?: "workspace" | "personal";
   }): Promise<MCPServer> {
     return apiClient.post<MCPServer>(BASE, data);
   }
@@ -56,6 +57,26 @@ class MCPServerService {
 
   async deleteServer(id: string): Promise<void> {
     await apiClient.delete(`${BASE}/${id}`);
+  }
+
+  async deleteConnections(id: string): Promise<void> {
+    await apiClient.delete(`${BASE}/${id}/connections`);
+  }
+
+  async connectServer(
+    id: string,
+    data?: { api_key?: string },
+  ): Promise<{
+    status: string;
+    mcp_server_id: string;
+    mapping_id: string;
+    authorization_url?: string;
+  }> {
+    return apiClient.post(`${BASE}/${id}/connect`, data ?? {});
+  }
+
+  async disconnectServer(id: string): Promise<void> {
+    await apiClient.delete(`${BASE}/${id}/connect`);
   }
 
   /* ── OAuth authorize ── */

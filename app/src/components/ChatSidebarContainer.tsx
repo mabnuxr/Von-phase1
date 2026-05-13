@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChatSidebar, ItemType } from "@vonlabs/design-components";
+import { ChatSidebar } from "@vonlabs/design-components";
+import type { ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
@@ -271,13 +272,16 @@ export function ChatSidebarContainer({
     [chatLabelById, dashboardLabelById],
   );
 
-  // Single unfile callback; forwards the design-component's `ItemType` to the
-  // app's `removeItemFromFolder`, which expects `FolderItemType`.
+  // Single unfile callback; infer FolderItemType from the dashboard map since
+  // the design-component no longer forwards itemType in this callback.
   const handleRemoveItemFromFolder = useCallback(
-    (itemId: string, itemType: ItemType) => {
-      removeItemFromFolder(itemId, toFolderItemType(itemType));
+    (itemId: string) => {
+      const folderItemType = dashboardLabelById.has(itemId)
+        ? FolderItemType.Dashboard
+        : FolderItemType.Conversation;
+      removeItemFromFolder(itemId, folderItemType);
     },
-    [removeItemFromFolder],
+    [removeItemFromFolder, dashboardLabelById],
   );
 
   // Avatar props

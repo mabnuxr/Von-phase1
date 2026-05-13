@@ -1,17 +1,15 @@
-import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   useDeleteMCPServer,
-  useCreateMCPServer,
-  useMCPAuthorize,
-  useMCPCheckAuthStatus,
-  useDiscoverTools,
+  useDisconnectMCPServer,
 } from "../hooks/useMCPServers";
-import { useToast } from "../hooks/useToast";
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useDeleteConnections } from "../hooks/useAppCatalog";
 import {
   useSetHubspotScope,
+  useDeleteIntegration,
   useSetSalesforceScope,
 } from "../hooks/useIntegrations";
 import { Resource, AuthenticationStatus } from "../services";
@@ -22,10 +20,13 @@ import {
   canBeOrgLevel,
   canBeUserLevel,
   getFrontendIntegrationId,
+  getBackendIntegrationType,
   type IntegrationMetadata,
 } from "../constants/integrationMetadata";
 import type { Integration } from "./IntegrationsPanel";
+import type { TenantIntegrationEnriched } from "../types/appCatalog";
 import { getUserContext } from "../lib/auth";
+import { useUser } from "../hooks/useUser";
 import {
   DotsThreeVerticalIcon,
   CaretRightIcon,
@@ -87,6 +88,8 @@ interface IntegrationsListProps {
   ) => void;
   mcpEntries?: CatalogEntry[];
   onMCPConnect?: (entry: CatalogEntry) => void;
+  tenantIntegrations?: TenantIntegrationEnriched[];
+  isAdmin?: boolean;
 }
 
 // Map catalog category_name → CATEGORY_ORDER key (best-effort)
@@ -111,136 +114,29 @@ function MCPCatalogItem({
   entry: CatalogEntry;
   onConnect: (entry: CatalogEntry) => void;
 }) {
-  const deleteMutation = useDeleteMCPServer();
-  const createMutation = useCreateMCPServer();
-  const authorizeMutation = useMCPAuthorize();
-  const discoverMutation = useDiscoverTools();
-  const { showToast } = useToast();
+  const deleteMCPServerMutation = useDeleteMCPServer();
+  const disconnectMCPServerMutation = useDisconnectMCPServer();
+  const deleteConnectionsMutation = useDeleteConnections();
+  const deleteIntegrationMutation = useDeleteIntegration();
+  const { user } = useUser();
+  const isAdmin =
+    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
-  const [createdServerId, setCreatedServerId] = useState<string | null>(null);
-  const [waitingForOAuth, setWaitingForOAuth] = useState(false);
-  const [discoverTriggered, setDiscoverTriggered] = useState(false);
-  const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
-
-  const authStatusQuery = useMCPCheckAuthStatus(
-    createdServerId,
-    waitingForOAuth,
-  );
-
-  const finishOAuth = useCallback(
-    (serverId: string) => {
-      if (discoverTriggered) return;
-      setDiscoverTriggered(true);
-      setWaitingForOAuth(false);
-      oauthPopup?.close();
-      showToast({
-        message: `${entry.name} connected — discovering tools…`,
-        variant: "success",
-      });
-      discoverMutation.mutate(serverId);
-    },
-    [discoverTriggered, oauthPopup, entry.name, showToast, discoverMutation],
-  );
-
-  useEffect(() => {
-    if (!waitingForOAuth || !createdServerId) return;
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== "mcp_oauth_callback") return;
-      if (event.data.success) {
-        finishOAuth(createdServerId);
-      } else {
-        setWaitingForOAuth(false);
-        oauthPopup?.close();
-        if (createdServerId) deleteMutation.mutate(createdServerId);
-        setCreatedServerId(null);
-        showToast({
-          message:
-            event.data.error || "OAuth authorization failed. Please try again.",
-          variant: "error",
-        });
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [
-    waitingForOAuth,
-    createdServerId,
-    finishOAuth,
-    oauthPopup,
-    deleteMutation,
-    showToast,
-  ]);
-
-  useEffect(() => {
-    if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
-    const status = authStatusQuery.data?.authentication_status;
-    if (status === "AUTHENTICATED") {
-      finishOAuth(createdServerId);
-    } else if (status === "AUTHENTICATION_FAILED") {
-      setWaitingForOAuth(false);
-      oauthPopup?.close();
-      if (createdServerId) deleteMutation.mutate(createdServerId);
-      setCreatedServerId(null);
-      showToast({
-        message: "OAuth authorization failed. Please try again.",
-        variant: "error",
-      });
-    }
-  }, [
-    authStatusQuery.data?.authentication_status,
-    waitingForOAuth,
-    createdServerId,
-    discoverTriggered,
-    deleteMutation,
-    showToast,
-    oauthPopup,
-    finishOAuth,
-  ]);
-
-  const handleDirectOAuth = async (accessLevel: "tenant" | "user" = "user") => {
-    let newServerId: string | null = null;
-    try {
-      const server = await createMutation.mutateAsync({
-        name: entry.name,
-        server_url: entry.server_url,
-        auth_type: entry.auth_type,
-        source: "catalog",
-        catalog_id: entry.catalog_id,
-        access_level: accessLevel,
-      });
-      newServerId = server.id;
-      setCreatedServerId(server.id);
-      const authData = await authorizeMutation.mutateAsync(server.id);
-      const popup = window.open(
-        authData.authorization_url,
-        "mcp_oauth",
-        "popup,width=600,height=700",
-      );
-      setOauthPopup(popup);
-      setWaitingForOAuth(true);
-    } catch (err: unknown) {
-      if (newServerId) {
-        deleteMutation.mutate(newServerId);
-        setCreatedServerId(null);
-      }
-      showToast({
-        message:
-          err && typeof err === "object" && "message" in err
-            ? (err as { message: string }).message
-            : "Failed to start authorization",
-        variant: "error",
-      });
-    }
-  };
+  const [disconnectMode, setDisconnectMode] = useState<
+    "workspace" | "personal"
+  >("workspace");
 
   const handleConnectClick = () => {
-    if (entry.auth_type === "oauth2") {
-      handleDirectOAuth();
-    } else {
-      onConnect(entry);
-    }
+    onConnect(entry);
+  };
+
+  const handleConnectPersonalClick = () => {
+    onConnect({ ...entry, connection_mode: "personal" });
+  };
+
+  const handleConnectWorkspaceClick = () => {
+    onConnect({ ...entry, connection_mode: "workspace" });
   };
 
   const isWorkspace = (entry.default_access_level ?? []).some(
@@ -251,11 +147,8 @@ function MCPCatalogItem({
   );
   const isBoth = isWorkspace && isPersonal;
 
-  const isAuthenticated =
-    !entry.authentication_status ||
-    entry.authentication_status === "AUTHENTICATED";
+  const isAuthenticated = entry.authentication_status === "AUTHENTICATED";
 
-  // For both-levels apps, only show chips for levels that are actually connected
   const isWorkspaceActuallyConnected =
     isWorkspace &&
     entry.is_connected &&
@@ -273,14 +166,45 @@ function MCPCatalogItem({
     !isPersonalActuallyConnected &&
     isWorkspace
   )
-    chips.push("workspace"); // unconnected workspace-only app
+    chips.push("workspace");
   if (isAuthenticated) chips.push("connected");
 
+  const canDisconnectWorkspace = isWorkspaceActuallyConnected && isAdmin;
   const canDisconnectPersonal =
     !!entry.is_personal_connected && !!entry.personal_server_id;
+  const canDisconnect = canDisconnectWorkspace || canDisconnectPersonal;
 
-  const isConnecting =
-    createMutation.isPending || authorizeMutation.isPending || waitingForOAuth;
+  const isBusy =
+    deleteMCPServerMutation.isPending ||
+    disconnectMCPServerMutation.isPending ||
+    deleteConnectionsMutation.isPending ||
+    deleteIntegrationMutation.isPending;
+
+  const handleDisconnectConfirm = async () => {
+    setShowDisconnectConfirm(false);
+    if (disconnectMode === "workspace") {
+      await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
+    } else if (entry.is_ti_based) {
+      // TI-based personal disconnect — only remove the user's integration record
+      if (entry.personal_server_id) {
+        await deleteIntegrationMutation.mutateAsync(entry.personal_server_id);
+      }
+    } else {
+      // Legacy MCPServer-based personal disconnect
+      if (entry.connection_mode === "personal") {
+        disconnectMCPServerMutation.mutate(entry.connected_server_id!);
+      } else {
+        deleteMCPServerMutation.mutate(entry.personal_server_id!);
+      }
+    }
+  };
+
+  const deleteTooltip =
+    isBoth && canDisconnectWorkspace && canDisconnectPersonal
+      ? "Remove connection"
+      : canDisconnectWorkspace
+        ? "Remove workspace connection"
+        : "Remove personal connection";
 
   return (
     <div>
@@ -292,36 +216,36 @@ function MCPCatalogItem({
         isAvailable={!isAuthenticated}
         onToggle={!isAuthenticated ? handleConnectClick : undefined}
         onDelete={
-          isAuthenticated && canDisconnectPersonal
-            ? () => setShowDisconnectConfirm(true)
+          isAuthenticated && canDisconnect
+            ? () => {
+                // Personal takes priority — only target workspace when personal is not connected
+                setDisconnectMode(
+                  canDisconnectPersonal ? "personal" : "workspace",
+                );
+                setShowDisconnectConfirm(true);
+              }
             : undefined
         }
-        canDelete={
-          isAuthenticated && canDisconnectPersonal && !deleteMutation.isPending
-        }
-        deleteTooltip="Remove personal connection"
-        disabled={deleteMutation.isPending || isConnecting}
+        canDelete={isAuthenticated && canDisconnect && !isBusy}
+        deleteTooltip={deleteTooltip}
+        disabled={isBusy}
       />
       {/* Case: personal connected but workspace not yet */}
       {isAuthenticated && isOnlyPersonalConnected && (
         <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
           <button
-            onClick={() =>
-              entry.auth_type === "oauth2"
-                ? handleDirectOAuth("tenant")
-                : onConnect(entry)
-            }
+            onClick={handleConnectWorkspaceClick}
             className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
           >
             Set as workspace integration
           </button>
         </div>
       )}
-      {/* Case 2: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
+      {/* Case: workspace connected + catalog supports personal, but user hasn't connected personal yet */}
       {isAuthenticated && isBoth && !entry.is_personal_connected && (
         <div className="pl-18 pr-4 py-1.25 bg-white border-t border-gray-100 flex items-center">
           <button
-            onClick={handleConnectClick}
+            onClick={handleConnectPersonalClick}
             className="text-sm text-von-purple hover:underline cursor-pointer m-0 p-0 border-none bg-transparent font-medium"
           >
             Connect your personal {entry.name}
@@ -334,15 +258,14 @@ function MCPCatalogItem({
         message={
           <>
             Are you sure you want to disconnect <strong>{entry.name}</strong>?{" "}
-            This will remove your personal connection.
+            {disconnectMode === "workspace"
+              ? "This will remove the workspace connection."
+              : "This will remove your personal connection."}
           </>
         }
         confirmText="Disconnect"
         cancelText="Cancel"
-        onConfirm={() => {
-          setShowDisconnectConfirm(false);
-          deleteMutation.mutate(entry.personal_server_id!);
-        }}
+        onConfirm={handleDisconnectConfirm}
         onCancel={() => setShowDisconnectConfirm(false)}
       />
     </div>
@@ -353,6 +276,12 @@ interface IntegrationItemProps {
   item: IntegrationMetadata & {
     connectedInstances: Integration[];
     isConnected: boolean;
+    catalogEntry?: {
+      tenant_integrations: {
+        workspace: { availability_status: string } | null;
+        personal: { availability_status: string } | null;
+      };
+    };
   };
   allIntegrations: Integration[];
   integrationsData: IntegrationsListProps["integrationsData"];
@@ -647,11 +576,29 @@ function IntegrationItem({
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
   if (!isConnected) {
-    // Show access level chips for available integrations
-    // Some integrations (like Salesforce) support both levels
+    // Derive access level from published catalog entry when available,
+    // otherwise fall back to hardcoded metadata capabilities
+    const wsPublished =
+      item.catalogEntry?.tenant_integrations?.workspace?.availability_status ===
+      "published";
+    const personalPublished =
+      item.catalogEntry?.tenant_integrations?.personal?.availability_status ===
+      "published";
     const availableChips: Array<"workspace" | "personal"> = [];
-    if (canBeOrgLevel(item.id)) availableChips.push("workspace");
-    if (canBeUserLevel(item.id)) availableChips.push("personal");
+    if (wsPublished) availableChips.push("workspace");
+    if (personalPublished) availableChips.push("personal");
+    if (availableChips.length === 0) {
+      if (canBeOrgLevel(item.id)) availableChips.push("workspace");
+      if (canBeUserLevel(item.id)) availableChips.push("personal");
+    }
+
+    const primaryAccessLevel: "tenant" | "user" = wsPublished
+      ? "tenant"
+      : personalPublished
+        ? "user"
+        : canBeOrgLevel(item.id)
+          ? "tenant"
+          : "user";
 
     return (
       <IntegrationCard
@@ -660,15 +607,11 @@ function IntegrationItem({
         integrationLogoPath={item.logoPath}
         isAvailable={true}
         disabled={item.disabled}
-        chips={availableChips}
         note={item.note}
         onToggle={
           item.disabled
             ? undefined
-            : () => {
-                const accessLevel = canBeOrgLevel(item.id) ? "tenant" : "user";
-                onConnect(item.id, accessLevel);
-              }
+            : () => onConnect(item.id, primaryAccessLevel)
         }
       />
     );
@@ -755,7 +698,10 @@ function IntegrationItem({
         ? `${workspace.ownerFirstName} ${workspace.ownerLastName}`
         : undefined;
 
-    const canConnectPersonal = canBeUserLevel(item.id);
+    const canConnectPersonal = item.catalogEntry
+      ? item.catalogEntry.tenant_integrations.personal?.availability_status ===
+        "published"
+      : canBeUserLevel(item.id);
     const instanceUrl = workspaceBackendIntegration?.config
       ?.instance_url as string;
 
@@ -893,6 +839,8 @@ export function IntegrationsList({
   onDelete,
   mcpEntries = [],
   onMCPConnect,
+  tenantIntegrations,
+  isAdmin = false,
 }: IntegrationsListProps) {
   const {
     isGoogleDriveEnabled,
@@ -910,6 +858,40 @@ export function IntegrationsList({
     isBigQueryEnabled,
     isMcpServersEnabled,
   } = useFeatureFlag();
+
+  // Build a fast lookup: BACKEND_TYPE → { tenant_integrations: { workspace, personal } }
+  // Aggregates per-mode TI rows into a single entry per integration type.
+  const catalogMap = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        tenant_integrations: {
+          workspace: { availability_status: string } | null;
+          personal: { availability_status: string } | null;
+        };
+      }
+    >();
+    for (const ti of tenantIntegrations ?? []) {
+      if (!ti.integration_type) continue;
+      const key = ti.integration_type.toUpperCase();
+      if (!map.has(key)) {
+        map.set(key, {
+          tenant_integrations: { workspace: null, personal: null },
+        });
+      }
+      const entry = map.get(key)!;
+      if (ti.connection_mode === "workspace") {
+        entry.tenant_integrations.workspace = {
+          availability_status: ti.availability_status,
+        };
+      } else {
+        entry.tenant_integrations.personal = {
+          availability_status: ti.availability_status,
+        };
+      }
+    }
+    return map;
+  }, [tenantIntegrations]);
 
   const allApps = useMemo(() => {
     const apps = getAllIntegrations();
@@ -942,9 +924,38 @@ export function IntegrationsList({
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
       if (app.id === "box" && !isBoxEnabled) return false;
       if (app.id === "bigquery" && !isBigQueryEnabled) return false;
+
+      // Catalog-gating only applies when MCP feature is enabled
+      if (isMcpServersEnabled && tenantIntegrations !== undefined) {
+        // HubSpot and Salesforce are always visible regardless of catalog state
+        if (app.id === "hubspot" || app.id === "salesforce") return true;
+
+        const backendType = getBackendIntegrationType(app.id).toUpperCase();
+        const catalogEntry = catalogMap.get(backendType);
+        const isInCatalog = !!catalogEntry;
+        const isConnected = integrations.some(
+          (i) =>
+            getFrontendIntegrationId(i.type) === app.id &&
+            (i.enabled ||
+              i.authenticationStatus === AuthenticationStatus.AUTHENTICATING),
+        );
+        if (!isInCatalog && !isConnected) return false;
+
+        // Members only see apps they can act on: already connected OR personal is published
+        if (!isAdmin && !isConnected) {
+          const personalPublished =
+            catalogEntry?.tenant_integrations.personal?.availability_status ===
+            "published";
+          if (!personalPublished) return false;
+        }
+      }
+
       return true;
     });
   }, [
+    tenantIntegrations,
+    catalogMap,
+    integrations,
     isGoogleDriveEnabled,
     isZendeskEnabled,
     isSnowflakeEnabled,
@@ -958,6 +969,8 @@ export function IntegrationsList({
     isDatabricksEnabled,
     isBoxEnabled,
     isBigQueryEnabled,
+    isMcpServersEnabled,
+    isAdmin,
   ]);
 
   // Merge available apps with connected integrations
@@ -973,14 +986,17 @@ export function IntegrationsList({
           i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
         );
       });
+      const backendType = getBackendIntegrationType(app.id).toUpperCase();
+      const catalogEntry = catalogMap.get(backendType);
       return {
         ...app,
         disabled: app.disabled,
         connectedInstances,
         isConnected: connectedInstances.length > 0,
+        catalogEntry,
       };
     });
-  }, [allApps, integrations]);
+  }, [allApps, integrations, catalogMap]);
 
   // Group MCP catalog entries by mapped category
   const mcpByCategory = useMemo(() => {

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  useCreateMCPServer,
-  useDeleteMCPServer,
-  useDiscoverTools,
-  useMCPAuthorize,
-  useMCPCheckAuthStatus,
-} from "../../hooks/useMCPServers";
+  useConnectCatalog,
+  useConnectCatalogStatus,
+  APP_CATALOG_KEY,
+} from "../../hooks/useAppCatalog";
+import { appCatalogService } from "../../services/appCatalogService";
 import { useToast } from "../../hooks/useToast";
 import type { CatalogEntry } from "../../types/mcp";
 
@@ -21,58 +21,70 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     requestAnimationFrame(() => setIsVisible(true));
   }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     oauthPopup?.close();
     setIsVisible(false);
     setTimeout(onClose, 300);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose]);
 
-  const createMutation = useCreateMCPServer();
-  const deleteMutation = useDeleteMCPServer();
-  const discoverMutation = useDiscoverTools();
-  const authorizeMutation = useMCPAuthorize();
+  const qc = useQueryClient();
+  const connectMutation = useConnectCatalog();
   const { showToast } = useToast();
+
+  const connectionMode = entry.connection_mode ?? "workspace";
 
   const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [createdServerId, setCreatedServerId] = useState<string | null>(null);
   const [waitingForOAuth, setWaitingForOAuth] = useState(false);
-  const [discoverTriggered, setDiscoverTriggered] = useState(false);
   const [oauthPopup, setOauthPopup] = useState<Window | null>(null);
 
-  const authStatusQuery = useMCPCheckAuthStatus(
-    createdServerId,
+  const statusQuery = useConnectCatalogStatus(
+    entry.catalog_id,
+    connectionMode,
+    "mcp",
     waitingForOAuth,
   );
 
-  const finishOAuth = useCallback(
-    (serverId: string) => {
-      if (discoverTriggered) return;
-      setDiscoverTriggered(true);
-      setWaitingForOAuth(false);
-      oauthPopup?.close();
-      showToast({
-        message: `${entry.name} connected — discovering tools…`,
-        variant: "success",
+  const runDiscover = useCallback(async () => {
+    try {
+      const tis = await appCatalogService.getTenantIntegrations({
+        catalogType: "mcp",
       });
-      discoverMutation.mutate(serverId, { onSettled: () => handleClose() });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [discoverTriggered, oauthPopup, entry.name, showToast, discoverMutation],
-  );
+      const ti = tis.find(
+        (t) =>
+          t.catalog_id === entry.catalog_id &&
+          t.connection_mode === connectionMode,
+      );
+      if (ti) {
+        await appCatalogService.discoverTools(ti.id);
+        qc.invalidateQueries({ queryKey: [...APP_CATALOG_KEY] });
+      }
+    } catch {
+      // discover is best-effort
+    }
+  }, [qc, entry.catalog_id, connectionMode]);
+
+  const finishConnect = useCallback(() => {
+    setWaitingForOAuth(false);
+    oauthPopup?.close();
+    qc.invalidateQueries({ queryKey: [...APP_CATALOG_KEY] });
+    qc.invalidateQueries({ queryKey: ["integrations"] });
+    runDiscover();
+    showToast({ message: `${entry.name} connected`, variant: "success" });
+    handleClose();
+  }, [qc, oauthPopup, entry.name, showToast, handleClose, runDiscover]);
 
   useEffect(() => {
-    if (!waitingForOAuth || !createdServerId) return;
+    if (!waitingForOAuth) return;
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "mcp_oauth_callback") return;
       if (event.data.success) {
-        finishOAuth(createdServerId);
+        finishConnect();
       } else {
         setWaitingForOAuth(false);
         oauthPopup?.close();
-        deleteMutation.mutate(createdServerId);
-        setCreatedServerId(null);
         setError(
           event.data.error || "OAuth authorization failed. Please try again.",
         );
@@ -80,39 +92,22 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [
-    waitingForOAuth,
-    createdServerId,
-    finishOAuth,
-    oauthPopup,
-    deleteMutation,
-  ]);
+  }, [waitingForOAuth, finishConnect, oauthPopup]);
 
   useEffect(() => {
-    if (!waitingForOAuth || !createdServerId || discoverTriggered) return;
-    const status = authStatusQuery.data?.authentication_status;
+    if (!waitingForOAuth) return;
+    const status = statusQuery.data?.authentication_status;
     if (status === "AUTHENTICATED") {
-      finishOAuth(createdServerId);
+      finishConnect();
     } else if (status === "AUTHENTICATION_FAILED") {
       setWaitingForOAuth(false);
       oauthPopup?.close();
-      if (createdServerId) deleteMutation.mutate(createdServerId);
-      setCreatedServerId(null);
       setError("OAuth authorization failed. Please try again.");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    authStatusQuery.data?.authentication_status,
-    waitingForOAuth,
-    createdServerId,
-    discoverTriggered,
-  ]);
+  }, [statusQuery.data?.authentication_status, waitingForOAuth]);
 
-  const isBusy =
-    createMutation.isPending ||
-    discoverMutation.isPending ||
-    authorizeMutation.isPending ||
-    waitingForOAuth;
+  const isBusy = connectMutation.isPending || waitingForOAuth;
 
   const handleSave = async () => {
     if (entry.auth_type === "api_key" && !apiKey.trim()) {
@@ -122,54 +117,34 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
     setError(null);
 
     try {
-      const server = await createMutation.mutateAsync({
-        name: entry.name,
-        server_url: entry.server_url,
-        auth_type: entry.auth_type,
-        api_key: entry.auth_type === "api_key" ? apiKey.trim() : undefined,
-        source: "catalog",
-        catalog_id: entry.catalog_id,
-        access_level: "user",
+      const result = await connectMutation.mutateAsync({
+        catalogId: entry.catalog_id,
+        payload: {
+          catalog_type: "mcp",
+          connection_mode: connectionMode,
+          ...(entry.auth_type !== "oauth2" && apiKey.trim()
+            ? { api_key: apiKey.trim() }
+            : {}),
+        },
       });
-      setCreatedServerId(server.id);
 
-      if (entry.auth_type === "oauth2") {
-        try {
-          const authData = await authorizeMutation.mutateAsync(server.id);
-          const popup = window.open(
-            authData.authorization_url,
-            "mcp_oauth",
-            "popup,width=600,height=700",
-          );
-          if (!popup) {
-            deleteMutation.mutate(server.id);
-            setCreatedServerId(null);
-            setError(
-              "Popup was blocked. Please allow popups for this site and try again.",
-            );
-            return;
-          }
-          setOauthPopup(popup);
-          setWaitingForOAuth(true);
-        } catch (authErr: unknown) {
-          deleteMutation.mutate(server.id);
-          setCreatedServerId(null);
+      if (result.authorization_url) {
+        const popup = window.open(
+          result.authorization_url,
+          "mcp_oauth",
+          "popup,width=600,height=700",
+        );
+        if (!popup) {
           setError(
-            authErr && typeof authErr === "object" && "message" in authErr
-              ? (authErr as { message: string }).message
-              : "Failed to start authorization",
+            "Popup was blocked. Please allow popups for this site and try again.",
           );
+          return;
         }
+        setOauthPopup(popup);
+        setWaitingForOAuth(true);
       } else {
-        showToast({
-          message: `${entry.name} connected — discovering tools…`,
-          variant: "success",
-        });
-        try {
-          await discoverMutation.mutateAsync(server.id);
-        } catch {
-          /* non-fatal */
-        }
+        runDiscover();
+        showToast({ message: `${entry.name} connected`, variant: "success" });
         handleClose();
       }
     } catch (err: unknown) {
@@ -341,11 +316,9 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
               >
                 {waitingForOAuth
                   ? "Waiting for authorization…"
-                  : authorizeMutation.isPending
-                    ? "Authorizing..."
-                    : isBusy
-                      ? "Saving..."
-                      : "Create integration"}
+                  : connectMutation.isPending
+                    ? "Connecting..."
+                    : "Connect"}
               </button>
             </div>
           </div>
