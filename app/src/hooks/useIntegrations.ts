@@ -8,6 +8,7 @@ import type { Query } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useToast } from "./useToast";
 import { integrationsService } from "../services";
+import { APP_CATALOG_KEY } from "./useAppCatalog";
 import type { IntegrationType, SalesforceWriteScope } from "../services";
 import {
   OAUTH_POLLING_TIMEOUT_MS,
@@ -614,8 +615,8 @@ export function useDeleteIntegration() {
     mutationFn: (integrationId: string) =>
       integrationsService.deleteIntegration(integrationId),
     onSuccess: () => {
-      // Invalidate integrations to refetch and remove the deleted integration
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
+      queryClient.invalidateQueries({ queryKey: [...APP_CATALOG_KEY] });
     },
     onError: (error: Error) => {
       if (import.meta.env.DEV) {

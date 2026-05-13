@@ -20,7 +20,9 @@ import { IntegrationsList } from "./IntegrationsList";
 import { ConnectorLibraryModal } from "./mcp/ConnectorLibraryModal";
 import { MCPConnectDrawer } from "./mcp/MCPConnectDrawer";
 import { useMCPCatalog, useMCPServers } from "../hooks/useMCPServers";
-import type { CatalogEntry, MCPAuthenticationStatus } from "../types/mcp";
+import { useTenantIntegrations } from "../hooks/useAppCatalog";
+import type { CatalogEntry, MCPAuthType, MCPAuthenticationStatus } from "../types/mcp";
+import type { TenantIntegrationEnriched } from "../types/appCatalog";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
@@ -109,6 +111,7 @@ export function IntegrationsPanel() {
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
   const { isMcpServersEnabled } = useFeatureFlag();
+  const { data: tenantIntegrations } = useTenantIntegrations();
 
   // MCP servers — authoritative source; catalog used only for metadata enrichment
   const { data: mcpServers } = useMCPServers();
@@ -203,6 +206,78 @@ export function IntegrationsPanel() {
 
     return entries;
   }, [isMcpServersEnabled, mcpServers, mcpCatalog, isAdmin]);
+
+  // Merge connected MCP entries with published ones from tenant-integrations.
+  // connectedMCPEntries covers MCPServer-backed entries; TI entries cover catalog-connected ones.
+  const allMCPEntries = useMemo<CatalogEntry[]>(() => {
+    if (!isMcpServersEnabled) return [];
+    const connectedIds = new Set(connectedMCPEntries.map((e) => e.catalog_id));
+
+    // Group TI rows by catalog_id so workspace + personal become one card.
+    const tiByApp = new Map<string, { workspace: TenantIntegrationEnriched | null; personal: TenantIntegrationEnriched | null }>();
+    for (const ti of (tenantIntegrations ?? [])) {
+      if (ti.catalog_type !== "mcp" || connectedIds.has(ti.catalog_id)) continue;
+      if (!tiByApp.has(ti.catalog_id)) tiByApp.set(ti.catalog_id, { workspace: null, personal: null });
+      const slot = tiByApp.get(ti.catalog_id)!;
+      if (ti.connection_mode === "workspace") slot.workspace = ti;
+      else slot.personal = ti;
+    }
+
+    const resolveAuth = (ti: TenantIntegrationEnriched | null, accessLevel: "tenant" | "user") => {
+      if (!ti) return { auth: null as string | null, id: null as string | null, active: false };
+      if (ti.connection?.authentication_status) {
+        return { auth: ti.connection.authentication_status as string, id: ti.connection.id, active: ti.connection.is_active };
+      }
+      const match = integrationsData?.integrations.find(
+        (i) => i.name.toLowerCase() === ti.name.toLowerCase() && i.accessLevel === accessLevel,
+      );
+      return { auth: match?.authenticationStatus ?? null, id: match?.id ?? null, active: match?.isActive ?? false };
+    };
+
+    const tiMcpEntries: CatalogEntry[] = Array.from(tiByApp.entries()).flatMap(([catalogId, { workspace: wsTi, personal: personalTi }]) => {
+      const primaryTi = (wsTi ?? personalTi)!;
+      const ws = resolveAuth(wsTi, "tenant");
+      const personal = resolveAuth(personalTi, "user");
+      const wsConnected = ws.auth === "AUTHENTICATED";
+      const personalConnected = personal.auth === "AUTHENTICATED";
+
+      // Non-admins: hide workspace-only entries until workspace is connected.
+      // Show if workspace is connected OR personal TI is published (member can connect personal).
+      if (!isAdmin && !wsConnected && personalTi?.availability_status !== "published") return [];
+      const authStatus = ((wsConnected ? "AUTHENTICATED" : personalConnected ? "AUTHENTICATED" : ws.auth ?? personal.auth ?? "NOT_AUTHENTICATED")) as MCPAuthenticationStatus;
+      return {
+        catalog_id: catalogId,
+        name: primaryTi.name,
+        description: primaryTi.description,
+        server_url: primaryTi.server_url ?? "",
+        auth_type: primaryTi.auth_type as MCPAuthType,
+        credential_label: primaryTi.credential_label ?? "API Key",
+        credential_hint_url: primaryTi.credential_hint_url,
+        default_access_level: [
+          ...(wsTi ? (["workspace"] as const) : []),
+          ...(personalTi ? (["personal"] as const) : []),
+        ],
+        logo_url: primaryTi.logo_url,
+        tool_manifest: [],
+        is_connected: wsConnected,
+        connected_server_id: ws.id,
+        is_personal_connected: personalConnected,
+        personal_server_id: personal.id,
+        authentication_status: authStatus,
+        category_code: primaryTi.category_code,
+        category_name: primaryTi.category_name,
+        author: "",
+        docs_url: primaryTi.docs_url,
+        support_url: null,
+        privacy_policy_url: null,
+        is_active: ws.active || personal.active,
+        connection_mode: wsTi ? "workspace" : "personal",
+        is_ti_based: true,
+      };
+    });
+
+    return [...connectedMCPEntries, ...tiMcpEntries];
+  }, [connectedMCPEntries, tenantIntegrations, integrationsData, isAdmin]);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -445,8 +520,10 @@ export function IntegrationsPanel() {
             timedOutIntegrations={timedOutIntegrations}
             onConnect={handleConnect}
             onDelete={handleDelete}
-            mcpEntries={connectedMCPEntries}
+            mcpEntries={allMCPEntries}
             onMCPConnect={(entry) => setMcpConnectEntry(entry)}
+            tenantIntegrations={tenantIntegrations}
+            isAdmin={isAdmin}
           />
         </div>
       </div>

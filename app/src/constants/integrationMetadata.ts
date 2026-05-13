@@ -46,7 +46,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
-    disabled: true,
+    disabled: false,
   },
   gong: {
     id: "gong",

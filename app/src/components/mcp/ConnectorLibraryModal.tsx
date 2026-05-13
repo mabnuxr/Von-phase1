@@ -1,25 +1,27 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  MagnifyingGlass,
-  X,
-  CaretLeft,
-  Plugs,
-  ArrowSquareOut,
-  CaretDown,
-  User,
+  MagnifyingGlassIcon,
+  XIcon,
+  CaretLeftIcon,
+  PlugsIcon,
+  ArrowSquareOutIcon,
+  CaretDownIcon,
+  UserIcon,
 } from "@phosphor-icons/react";
 import { Input, Banner } from "@vonlabs/design-components";
 import {
-  useMCPCatalog,
-  useMCPServers,
-  useCreateMCPServer,
-  useDeleteMCPServer,
-  useDeleteMCPServerConnections,
-  usePublishServer,
-} from "../../hooks/useMCPServers";
-import type { CatalogEntry } from "../../types/mcp";
+  useAppCatalog,
+  useAppTools,
+  usePublishApp,
+  useDeleteConnections,
+  useDeleteTenantIntegration,
+  useTenantIntegrations,
+} from "../../hooks/useAppCatalog";
+
+import type { AppCatalogEntry, TenantIntegrationEnriched } from "../../types/appCatalog";
 import { useToast } from "../../hooks/useToast";
 import { useUser } from "../../hooks/useUser";
+import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
 
 interface ConnectorLibraryModalProps {
   onClose: () => void;
@@ -27,52 +29,68 @@ interface ConnectorLibraryModalProps {
 
 type SourceFilter = "all" | "von" | "mcp";
 
-function isBuiltByVon(entry: CatalogEntry): boolean {
-  return entry.author?.toLowerCase().includes("von") ?? false;
+function entryCategoryCode(e: AppCatalogEntry): string {
+  return e.category_code || "other";
 }
 
-function getSourceLabel(entry: CatalogEntry): "Built by Von" | "MCP" {
-  return isBuiltByVon(entry) ? "Built by Von" : "MCP";
+function entryCategoryName(e: AppCatalogEntry): string {
+  return e.category_name || "Other";
+}
+
+function isEntryBuiltByVon(e: AppCatalogEntry): boolean {
+  if (e.catalog_type === "native_integration") return e.is_builtin;
+  return e.author?.toLowerCase().includes("von") ?? false;
+}
+
+type TISlots = { workspace: TenantIntegrationEnriched | null; personal: TenantIntegrationEnriched | null };
+
+function buildTiMap(tis: TenantIntegrationEnriched[]): Map<string, TISlots> {
+  const map = new Map<string, TISlots>();
+  for (const ti of tis) {
+    if (!map.has(ti.catalog_id)) map.set(ti.catalog_id, { workspace: null, personal: null });
+    const slot = map.get(ti.catalog_id)!;
+    if (ti.connection_mode === "workspace") slot.workspace = ti;
+    else slot.personal = ti;
+  }
+  return map;
+}
+
+function isEntryAdded(e: AppCatalogEntry, tiMap: Map<string, TISlots>): boolean {
+  const ti = tiMap.get(e.catalog_id);
+  return (
+    ti?.workspace?.availability_status === "published" ||
+    ti?.personal?.availability_status === "published" ||
+    false
+  );
+}
+
+function getSourceLabel(e: AppCatalogEntry): string {
+  return isEntryBuiltByVon(e) ? "Built by Von" : "MCP";
 }
 
 export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
-  const { data: catalog, isLoading } = useMCPCatalog();
-  const { data: mcpServers } = useMCPServers();
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+
+  const { data: catalog = [], isLoading } = useAppCatalog({
+    statusFilter: "all",
+    includeBuiltins: true,
+  });
+
+  const { data: tenantIntegrations = [] } = useTenantIntegrations();
+  const tiMap = useMemo(() => buildTiMap(tenantIntegrations), [tenantIntegrations]);
+
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-  const [detailEntry, setDetailEntry] = useState<CatalogEntry | null>(null);
+  const [detailEntry, setDetailEntry] = useState<AppCatalogEntry | null>(null);
 
-  // Augment catalog entries with actual server state so published-but-not-auth servers show as "Added"
-  const augmentedCatalog = useMemo(() => {
-    if (!catalog) return catalog;
-    const publishedCatalogIds = new Set(
-      (mcpServers ?? [])
-        .filter(
-          (s) =>
-            s.availability_status === "published" ||
-            s.authentication_status === "AUTHENTICATED",
-        )
-        .map((s) => s.catalog_id)
-        .filter(Boolean) as string[],
-    );
-    return catalog.map((entry) => ({
-      ...entry,
-      is_connected:
-        entry.is_connected || publishedCatalogIds.has(entry.catalog_id),
-    }));
-  }, [catalog, mcpServers]);
-
-  // Derive categories from catalog (keyed by category_code, display via category_name)
   const categories = useMemo(() => {
-    if (!augmentedCatalog) return [];
     const map = new Map<string, { name: string; count: number }>();
-    augmentedCatalog.forEach((e) => {
-      const code = e.category_code || "other";
-      const name = e.category_name || "Other";
+    catalog.forEach((e) => {
+      const code = entryCategoryCode(e);
+      const name = entryCategoryName(e);
       const existing = map.get(code);
       map.set(code, { name, count: (existing?.count ?? 0) + 1 });
     });
@@ -81,33 +99,41 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
       name,
       count,
     }));
-  }, [augmentedCatalog]);
+  }, [catalog]);
 
-  const totalCount = augmentedCatalog?.length ?? 0;
+  const totalCount = catalog.length;
 
-  // Filter entries
   const filtered = useMemo(() => {
-    if (!augmentedCatalog) return [];
-    return augmentedCatalog.filter((e) => {
-      if (selectedCategory && e.category_code !== selectedCategory)
+    return catalog.filter((e) => {
+      if (selectedCategory && entryCategoryCode(e) !== selectedCategory)
         return false;
-      if (sourceFilter === "von" && !isBuiltByVon(e)) return false;
-      if (sourceFilter === "mcp" && isBuiltByVon(e)) return false;
+      if (sourceFilter === "von" && !isEntryBuiltByVon(e)) return false;
+      if (sourceFilter === "mcp" && isEntryBuiltByVon(e)) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
           e.name.toLowerCase().includes(q) ||
           e.description.toLowerCase().includes(q) ||
-          e.category_name.toLowerCase().includes(q)
+          entryCategoryName(e).toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [augmentedCatalog, selectedCategory, sourceFilter, search]);
+  }, [catalog, selectedCategory, sourceFilter, search]);
 
   if (detailEntry) {
+    if (detailEntry.catalog_type === "mcp") {
+      return (
+        <MCPDetailView
+          entry={detailEntry}
+          isAdmin={isAdmin}
+          onBack={() => setDetailEntry(null)}
+          onClose={onClose}
+        />
+      );
+    }
     return (
-      <ConnectorDetailView
+      <NativeDetailView
         entry={detailEntry}
         isAdmin={isAdmin}
         onBack={() => setDetailEntry(null)}
@@ -142,7 +168,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
               >
-                <X size={20} />
+                <XIcon size={20} />
               </button>
             </div>
           </div>
@@ -183,7 +209,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
               {/* Search + Source filter */}
               <div className="px-5 pt-4 pb-3 shrink-0 flex items-center gap-3">
                 <div className="relative flex-1">
-                  <MagnifyingGlass
+                  <MagnifyingGlassIcon
                     size={16}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                   />
@@ -231,6 +257,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                 ) : (
                   <AppLibraryGrid
                     entries={filtered}
+                    tiMap={tiMap}
                     selectedCategory={selectedCategory}
                     categories={categories}
                     onSelect={(entry) => setDetailEntry(entry)}
@@ -245,18 +272,20 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   );
 }
 
-/* ─── App Library Grid (connected + unconnected sections) ─── */
+/* ─── App Library Grid ─── */
 function AppLibraryGrid({
   entries,
+  tiMap,
   onSelect,
 }: {
-  entries: CatalogEntry[];
+  entries: AppCatalogEntry[];
+  tiMap: Map<string, TISlots>;
   selectedCategory: string | null;
   categories: { code: string; name: string }[];
-  onSelect: (entry: CatalogEntry) => void;
+  onSelect: (entry: AppCatalogEntry) => void;
 }) {
-  const added = entries.filter((e) => e.is_connected);
-  const rest = entries.filter((e) => !e.is_connected);
+  const added = entries.filter((e) => isEntryAdded(e, tiMap));
+  const rest = entries.filter((e) => !isEntryAdded(e, tiMap));
 
   return (
     <div className="space-y-5">
@@ -268,7 +297,7 @@ function AppLibraryGrid({
           <div className="grid grid-cols-2 gap-3">
             {added.map((entry) => (
               <AppCard
-                key={entry.catalog_id}
+                key={`${entry.catalog_type}-${entry.catalog_id}`}
                 entry={entry}
                 isAdded
                 onClick={() => onSelect(entry)}
@@ -286,7 +315,7 @@ function AppLibraryGrid({
           <div className="grid grid-cols-2 gap-3">
             {rest.map((entry) => (
               <AppCard
-                key={entry.catalog_id}
+                key={`${entry.catalog_type}-${entry.catalog_id}`}
                 entry={entry}
                 onClick={() => onSelect(entry)}
               />
@@ -304,11 +333,16 @@ function AppCard({
   isAdded = false,
   onClick,
 }: {
-  entry: CatalogEntry;
+  entry: AppCatalogEntry;
   isAdded?: boolean;
   onClick: () => void;
 }) {
   const sourceLabel = getSourceLabel(entry);
+  const logoUrl =
+    entry.logo_url ??
+    (entry.catalog_type === "native_integration" && entry.integration_type
+      ? getIntegrationLogoPath(entry.integration_type)
+      : null);
 
   return (
     <div
@@ -316,14 +350,10 @@ function AppCard({
       className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer flex gap-3"
     >
       <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-        {entry.logo_url ? (
-          <img
-            src={entry.logo_url}
-            alt=""
-            className="w-10 h-10 object-contain"
-          />
+        {logoUrl ? (
+          <img src={logoUrl} alt="" className="w-10 h-10 object-contain" />
         ) : (
-          <Plugs size={18} className="text-gray-400" />
+          <PlugsIcon size={18} className="text-gray-400" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -346,33 +376,42 @@ function AppCard({
   );
 }
 
-/* ─── Connector Detail View (replaces grid inside modal) ─── */
-function ConnectorDetailView({
+/* ─── Native Integration Detail View ─── */
+function NativeDetailView({
   entry,
   isAdmin,
   onBack,
   onClose,
 }: {
-  entry: CatalogEntry;
+  entry: AppCatalogEntry;
   isAdmin: boolean;
   onBack: () => void;
   onClose: () => void;
 }) {
-  const { data: allServers } = useMCPServers();
-  const createMutation = useCreateMCPServer();
-  const publishMutation = usePublishServer();
-  const deleteMutation = useDeleteMCPServer();
-  const deleteConnectionsMutation = useDeleteMCPServerConnections();
+  const { data: tenantIntegrations = [] } = useTenantIntegrations();
+  const tiEntry = useMemo(() => {
+    const slots: TISlots = { workspace: null, personal: null };
+    for (const ti of tenantIntegrations) {
+      if (ti.catalog_id !== entry.catalog_id) continue;
+      if (ti.connection_mode === "workspace") slots.workspace = ti;
+      else slots.personal = ti;
+    }
+    return slots;
+  }, [tenantIntegrations, entry.catalog_id]);
 
+  const publishMutation = usePublishApp();
+  const deleteConnectionsMutation = useDeleteConnections();
+  const deleteMutation = useDeleteTenantIntegration();
   const { showToast } = useToast();
 
-  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
-  const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
-  const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<
+    "workspace" | "personal" | null
+  >(null);
+  const [showPublishConfirm, setShowPublishConfirm] = useState<
+    "workspace" | "personal" | null
+  >(null);
   const [splitOpen, setSplitOpen] = useState(false);
-  const [orgMemory, setOrgMemory] = useState("");
   const splitRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -386,106 +425,81 @@ function ConnectorDetailView({
     return () => document.removeEventListener("mousedown", handler);
   }, [splitOpen]);
 
-  const isBusy = createMutation.isPending || publishMutation.isPending;
-
-  // Source
-  const isMCPEntry = !isBuiltByVon(entry);
-  const sourceLabel = getSourceLabel(entry);
-
-  // Server state
-  const entryServers = (allServers ?? []).filter(
-    (s) => s.catalog_id === entry.catalog_id,
-  );
-  const workspaceServer = entryServers.find(
-    (s) =>
-      s.connection_mode === "workspace" &&
-      (s.authentication_status === "AUTHENTICATED" ||
-        s.availability_status === "published"),
-  );
-  const personalServer = entryServers.find(
-    (s) =>
-      s.connection_mode === "personal" && s.availability_status === "published",
-  );
-  const isPersonalConnected = !!personalServer;
-  const isWorkspaceConnected = !!workspaceServer;
+  const isWorkspacePublished = tiEntry.workspace?.availability_status === "published";
+  const isPersonalPublished = tiEntry.personal?.availability_status === "published";
+  const isWorkspaceConnected = isWorkspacePublished;
+  const isPersonalConnected = isPersonalPublished;
+  const isAdded = isWorkspacePublished || isPersonalPublished;
+  const isBusy = publishMutation.isPending || deleteConnectionsMutation.isPending || deleteMutation.isPending;
+  const logoUrl =
+    entry.logo_url ??
+    (entry.integration_type
+      ? getIntegrationLogoPath(entry.integration_type)
+      : null);
 
   const authTypeLabel =
     entry.auth_type === "oauth2"
       ? "OAuth"
       : entry.auth_type === "api_key"
         ? "API Key"
-        : "None";
+        : entry.auth_type === "token"
+          ? "Token"
+          : "None";
 
-  const writeOpsCount = (entry.tool_manifest ?? []).filter((t) => t.is_write).length;
-  const totalTools = (entry.tool_manifest ?? []).length;
-  const isReadWrite = writeOpsCount > 0;
+  const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
+  const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
 
-  const handleDisconnect = async () => {
+  const handlePublish = async (mode: "workspace" | "personal") => {
     setError(null);
+    const oppositeMode = mode === "workspace" ? "personal" : "workspace";
+    const isOppositePublished = mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     try {
-      if (isPersonalConnected && !isWorkspaceConnected) {
-        await deleteMutation.mutateAsync(personalServer!.id);
-      } else {
-        const wsId = workspaceServer?.id ?? entry.connected_server_id;
-        if (!wsId) return;
-        await deleteMutation.mutateAsync(wsId);
-        if (personalServer) {
-          await deleteMutation.mutateAsync(personalServer.id);
-        }
-      }
-      showToast({ message: `${entry.name} removed`, variant: "success" });
-      onBack();
-    } catch {
-      setError("Failed to remove. Please try again.");
-    }
-  };
-
-  const handlePublish = async (accessLevel: "tenant" | "user") => {
-    setError(null);
-    try {
-      const connectionMode = accessLevel === "tenant" ? "workspace" : "personal";
-
-      // Bulk-delete opposite-side server before switching
-      const oppositeServer = accessLevel === "tenant" ? personalServer : workspaceServer;
-      if (oppositeServer) {
-        await deleteConnectionsMutation.mutateAsync(oppositeServer.id);
-      }
-
-      const server = await createMutation.mutateAsync({
-        name: entry.name,
-        server_url: entry.server_url,
-        auth_type: entry.auth_type,
-        source: "catalog",
-        catalog_id: entry.catalog_id,
-        access_level: "tenant",
-        connection_mode: connectionMode,
-      });
-
-      if (connectionMode === "workspace") {
-        await publishMutation.mutateAsync({
-          id: server.id,
-          data: { status: "published", type: "admin_published" },
+      // Switching access level: cascade-delete existing credentials + archive the opposite TI first
+      if (isOppositePublished) {
+        await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
+        await deleteMutation.mutateAsync({
+          catalogId: entry.catalog_id,
+          catalogType: "native_integration",
+          connectionMode: oppositeMode,
         });
       }
-      // personal-mode is auto-published — no publish call
-
+      await publishMutation.mutateAsync({
+        catalogId: entry.catalog_id,
+        payload: {
+          catalog_type: "native_integration",
+          connection_mode: mode,
+          availability_status: "published",
+        },
+      });
       showToast({
-        message:
-          connectionMode === "workspace"
-            ? `${entry.name} added to workspace`
-            : `${entry.name} added as personal`,
+        message: `${entry.name} added to ${mode}`,
         variant: "success",
       });
-      onClose();
     } catch (err: unknown) {
       const msg =
         err && typeof err === "object" && "message" in err
           ? (err as { message: string }).message
-          : "Failed to add";
+          : "Failed to publish";
       setError(msg);
     }
   };
 
+  const handleRemove = async (mode: "workspace" | "personal") => {
+    setError(null);
+    try {
+      await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
+      await deleteMutation.mutateAsync({
+        catalogId: entry.catalog_id,
+        catalogType: "native_integration",
+        connectionMode: mode,
+      });
+      showToast({ message: `${entry.name} ${mode} removed`, variant: "success" });
+      // Go back only if the other mode is also gone; otherwise stay to show the remaining entry
+      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished) onBack();
+    } catch {
+      setError("Failed to remove. Please try again.");
+    }
+  };
 
   return (
     <>
@@ -501,14 +515,531 @@ function ConnectorDetailView({
               onClick={onBack}
               className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
             >
-              <CaretLeft size={14} weight="bold" />
+              <CaretLeftIcon size={14} weight="bold" />
               Back
             </button>
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
             >
-              <X size={20} />
+              <XIcon size={20} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="w-16 h-16 object-contain"
+                    />
+                  ) : (
+                    <PlugsIcon size={28} className="text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {entry.name}
+                  </h2>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className="text-sm text-gray-500">
+                      {entry.category_name}
+                    </span>
+                    {isWorkspaceConnected && (
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-purple-600">
+                          Workspace
+                        </span>
+                      </>
+                    )}
+                    {isPersonalConnected && (
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-blue-600">
+                          Personal
+                        </span>
+                      </>
+                    )}
+                    {isWorkspacePublished && !isWorkspaceConnected && (
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-green-600">
+                          Workspace
+                        </span>
+                      </>
+                    )}
+                    {isPersonalPublished && !isPersonalConnected && (
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-green-600">
+                          Personal
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <span className="inline-block mt-1.5 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-300 rounded-full">
+                    Built by Von
+                  </span>
+                </div>
+              </div>
+
+              {isAdmin && (
+                isWorkspacePublished && isPersonalPublished ? (
+                  /* Both published — split remove */
+                  <div ref={splitRef} className="relative flex shrink-0">
+                    <button
+                      onClick={() => setShowRemoveConfirm("workspace")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                    >
+                      Remove workspace
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      disabled={isBusy}
+                      className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                    >
+                      <CaretDownIcon size={13} weight="bold" />
+                    </button>
+                    {splitOpen && (
+                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowRemoveConfirm("personal"); }}
+                          disabled={isBusy}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          Remove personal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : isWorkspacePublished ? (
+                  /* Only workspace published */
+                  hasPersonalLevel ? (
+                    <div ref={splitRef} className="relative flex shrink-0">
+                      <button
+                        onClick={() => setShowRemoveConfirm("workspace")}
+                        disabled={isBusy}
+                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        disabled={isBusy}
+                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        <CaretDownIcon size={13} weight="bold" />
+                      </button>
+                      {splitOpen && (
+                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("personal"); }}
+                            disabled={isBusy}
+                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                          >
+                            <UserIcon size={12} className="text-gray-500" />
+                            Add as personal
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowRemoveConfirm("workspace")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )
+                ) : isPersonalPublished ? (
+                  /* Only personal published */
+                  hasWorkspaceLevel ? (
+                    <div ref={splitRef} className="relative flex shrink-0">
+                      <button
+                        onClick={() => setShowRemoveConfirm("personal")}
+                        disabled={isBusy}
+                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        disabled={isBusy}
+                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        <CaretDownIcon size={13} weight="bold" />
+                      </button>
+                      {splitOpen && (
+                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("workspace"); }}
+                            disabled={isBusy}
+                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                          >
+                            Add as workspace
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowRemoveConfirm("personal")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )
+                ) : isAdded ? (
+                  /* Connected but not yet published */
+                  <span className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg shrink-0">
+                    Connected
+                  </span>
+                ) : hasWorkspaceLevel && hasPersonalLevel ? (
+                  /* Both levels — split button */
+                  <div ref={splitRef} className="relative flex shrink-0">
+                    <button
+                      onClick={() => setShowPublishConfirm("workspace")}
+                      disabled={isBusy}
+                      className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-l-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isBusy ? "Adding…" : "Add as workspace"}
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      disabled={isBusy}
+                      className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
+                    >
+                      <CaretDownIcon size={13} weight="bold" />
+                    </button>
+                    {splitOpen && (
+                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("personal"); }}
+                          disabled={isBusy}
+                          className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          <UserIcon size={12} className="text-gray-500" />
+                          Add as personal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : hasWorkspaceLevel ? (
+                  <button
+                    onClick={() => setShowPublishConfirm("workspace")}
+                    disabled={isBusy}
+                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    {isBusy ? "Adding…" : "Add as workspace"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowPublishConfirm("personal")}
+                    disabled={isBusy}
+                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    {isBusy ? "Adding…" : "Add as personal"}
+                  </button>
+                )
+              )}
+            </div>
+
+            {/* Description */}
+            <p className="text-sm text-gray-700 mb-3">{entry.description}</p>
+
+            {error && (
+              <div className="mb-4">
+                <Banner
+                  variant="error"
+                  message={error}
+                  onClose={() => setError(null)}
+                  dismissible
+                />
+              </div>
+            )}
+
+            {/* Details */}
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Details
+            </h3>
+            <div className="grid grid-cols-3 gap-y-4 gap-x-6 text-sm mb-4">
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Integration Type
+                </p>
+                <p className="text-gray-900">{entry.category_name}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                  Authentication
+                </p>
+                <p className="text-gray-900">{authTypeLabel}</p>
+              </div>
+              {entry.docs_url && (
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
+                    More Info
+                  </p>
+                  <a
+                    href={entry.docs_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                  >
+                    Documentation{" "}
+                    <ArrowSquareOutIcon size={12} className="text-gray-400" />
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Publish confirmation */}
+      {showPublishConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
+          <div
+            className="fixed inset-0 bg-black/20"
+            onClick={() => setShowPublishConfirm(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
+            <h2 className="text-base font-semibold text-gray-900 mb-2">
+              Add as{" "}
+              {showPublishConfirm === "workspace" ? "Workspace" : "Personal"}
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              You are adding <strong>{entry.name}</strong> as a{" "}
+              {showPublishConfirm === "workspace" ? "workspace" : "personal"}{" "}
+              integration.{" "}
+              {showPublishConfirm === "workspace"
+                ? "All workspace members will be able to use it."
+                : "Members will be able to connect their personal accounts."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowPublishConfirm(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const mode = showPublishConfirm;
+                  setShowPublishConfirm(null);
+                  handlePublish(mode);
+                }}
+                disabled={isBusy}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                {isBusy ? "Adding…" : "Proceed"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove confirmation */}
+      {showRemoveConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
+          <div
+            className="fixed inset-0 bg-black/20"
+            onClick={() => setShowRemoveConfirm(null)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
+            <h2 className="text-base font-semibold text-gray-900 mb-2">
+              Remove{" "}
+              {showRemoveConfirm === "workspace" ? "Workspace" : "Personal"}{" "}
+              Integration
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to remove <strong>{entry.name}</strong>{" "}
+              {showRemoveConfirm === "workspace"
+                ? "from the workspace? Members will no longer have access."
+                : "as a personal integration? Members will no longer be able to connect their personal accounts."}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRemoveConfirm(null)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const mode = showRemoveConfirm;
+                  setShowRemoveConfirm(null);
+                  handleRemove(mode);
+                }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
+              >
+                {deleteMutation.isPending ? "Removing…" : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ─── MCP Detail View ─── */
+function MCPDetailView({
+  entry,
+  isAdmin,
+  onBack,
+  onClose,
+}: {
+  entry: AppCatalogEntry;
+  isAdmin: boolean;
+  onBack: () => void;
+  onClose: () => void;
+}) {
+  const { data: tenantIntegrations = [] } = useTenantIntegrations();
+  const tiEntry = useMemo(() => {
+    const slots: TISlots = { workspace: null, personal: null };
+    for (const ti of tenantIntegrations) {
+      if (ti.catalog_id !== entry.catalog_id) continue;
+      if (ti.connection_mode === "workspace") slots.workspace = ti;
+      else slots.personal = ti;
+    }
+    return slots;
+  }, [tenantIntegrations, entry.catalog_id]);
+
+  const publishMutation = usePublishApp();
+  const deleteConnectionsMutation = useDeleteConnections();
+  const deleteMutation = useDeleteTenantIntegration();
+  const { data: tools = [] } = useAppTools(entry.catalog_id, "catalog");
+  const { showToast } = useToast();
+
+  const [apiKey, setApiKey] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState<
+    "workspace" | "personal" | null
+  >(null);
+  const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
+  const [toolsExpanded, setToolsExpanded] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const splitRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!splitOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (splitRef.current && !splitRef.current.contains(e.target as Node)) {
+        setSplitOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [splitOpen]);
+
+  const isBusy = publishMutation.isPending || deleteConnectionsMutation.isPending || deleteMutation.isPending;
+
+  const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
+  const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
+
+  const sourceLabel = isEntryBuiltByVon(entry) ? "Built by Von" : "MCP";
+
+  const isWorkspacePublished = tiEntry.workspace?.availability_status === "published";
+  const isPersonalPublished = tiEntry.personal?.availability_status === "published";
+  const isWorkspaceConnected = isWorkspacePublished;
+  const isPersonalConnected = isPersonalPublished;
+  const isAdded = isWorkspacePublished || isPersonalPublished;
+
+  const authTypeLabel =
+    entry.auth_type === "oauth2"
+      ? "OAuth"
+      : entry.auth_type === "api_key"
+        ? "API Key"
+        : "None";
+
+  const writeOpsCount = tools.filter((t) => t.is_write).length;
+  const totalTools = tools.length;
+  const isReadWrite = writeOpsCount > 0;
+
+  const handlePublish = async (mode: "workspace" | "personal") => {
+    setError(null);
+    const oppositeMode = mode === "workspace" ? "personal" : "workspace";
+    const isOppositePublished = mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
+    try {
+      // Switching access level: cascade-delete existing credentials + archive the opposite TI first
+      if (isOppositePublished) {
+        await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
+        await deleteMutation.mutateAsync({
+          catalogId: entry.catalog_id,
+          catalogType: "mcp",
+          connectionMode: oppositeMode,
+        });
+      }
+      await publishMutation.mutateAsync({
+        catalogId: entry.catalog_id,
+        payload: {
+          catalog_type: "mcp",
+          connection_mode: mode,
+          availability_status: "published",
+        },
+      });
+      showToast({
+        message:
+          mode === "workspace"
+            ? `${entry.name} added to workspace`
+            : `${entry.name} added as personal`,
+        variant: "success",
+      });
+      onClose();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? (err as { message: string }).message
+          : "Failed to add";
+      setError(msg);
+    }
+  };
+
+  const handleRemove = async (mode: "workspace" | "personal") => {
+    setError(null);
+    try {
+      await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
+      await deleteMutation.mutateAsync({ catalogId: entry.catalog_id, catalogType: "mcp", connectionMode: mode });
+      showToast({ message: `${entry.name} removed`, variant: "success" });
+      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished) onBack();
+    } catch {
+      setError("Failed to remove. Please try again.");
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 z-50" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-8 pointer-events-none">
+        <div
+          className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-3xl max-h-[80vh] flex flex-col pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Top bar */}
+          <div className="px-6 pt-4 pb-0 shrink-0 flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
+            >
+              <CaretLeftIcon size={14} weight="bold" />
+              Back
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
+            >
+              <XIcon size={20} />
             </button>
           </div>
 
@@ -519,17 +1050,38 @@ function ConnectorDetailView({
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                   {entry.logo_url ? (
-                    <img src={entry.logo_url} alt="" className="w-16 h-16 object-contain" />
+                    <img
+                      src={entry.logo_url}
+                      alt=""
+                      className="w-16 h-16 object-contain"
+                    />
                   ) : (
-                    <Plugs size={28} className="text-gray-400" />
+                    <PlugsIcon size={28} className="text-gray-400" />
                   )}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">{entry.name}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {entry.name}
+                  </h2>
                   <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-sm text-gray-500">{entry.category_name}·</span>
+                    <span className="text-sm text-gray-500">
+                      {entry.category_name}
+                    </span>
                     {isPersonalConnected && (
-                      <span className="text-sm font-semibold text-blue-600">Personal</span>
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-blue-600">
+                          Personal
+                        </span>
+                      </>
+                    )}
+                    {isWorkspaceConnected && (
+                      <>
+                        <span className="text-sm text-gray-400">·</span>
+                        <span className="text-sm font-semibold text-purple-600">
+                          Workspace
+                        </span>
+                      </>
                     )}
                   </div>
                   <span className="inline-block mt-1.5 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-300 rounded-full">
@@ -539,23 +1091,43 @@ function ConnectorDetailView({
               </div>
 
               {isAdmin && (
-                (isPersonalConnected || isWorkspaceConnected) ? (
-                  isPersonalConnected && isWorkspaceConnected ? (
-                    /* Both connected — just Remove */
+                isWorkspacePublished && isPersonalPublished ? (
+                  /* Both published — split remove */
+                  <div ref={splitRef} className="relative flex shrink-0">
                     <button
-                      onClick={() => setShowRemoveConfirm(true)}
-                      disabled={deleteMutation.isPending}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                      onClick={() => setShowRemoveConfirm("workspace")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                     >
-                      Remove
+                      Remove workspace
                     </button>
-                  ) : (
-                    /* One side connected — Remove + option to add the other */
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      disabled={isBusy}
+                      className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                    >
+                      <CaretDownIcon size={13} weight="bold" />
+                    </button>
+                    {splitOpen && (
+                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowRemoveConfirm("personal"); }}
+                          disabled={isBusy}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                        >
+                          Remove personal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : isWorkspacePublished ? (
+                  /* Only workspace published */
+                  hasPersonalLevel ? (
                     <div ref={splitRef} className="relative flex shrink-0">
                       <button
-                        onClick={() => setShowRemoveConfirm(true)}
-                        disabled={deleteMutation.isPending}
-                        className="px-5 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                        onClick={() => setShowRemoveConfirm("workspace")}
+                        disabled={isBusy}
+                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
                         Remove
                       </button>
@@ -564,68 +1136,120 @@ function ConnectorDetailView({
                         disabled={isBusy}
                         className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
-                        <CaretDown size={13} weight="bold" />
+                        <CaretDownIcon size={13} weight="bold" />
                       </button>
                       {splitOpen && (
                         <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                          {isPersonalConnected && !isWorkspaceConnected && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowWorkspaceConfirm(true); }}
-                              disabled={isBusy}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                            >
-                              <User size={12} className="text-gray-500" />
-                              Add as workspace
-                            </button>
-                          )}
-                          {isWorkspaceConnected && !isPersonalConnected && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setSplitOpen(false); handlePublish("user"); }}
-                              disabled={isBusy}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                            >
-                              <User size={12} className="text-gray-500" />
-                              Add as personal
-                            </button>
-                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); handlePublish("personal"); }}
+                            disabled={isBusy}
+                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                          >
+                            <UserIcon size={12} className="text-gray-500" />
+                            Add as personal
+                          </button>
                         </div>
                       )}
                     </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowRemoveConfirm("workspace")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                    >
+                      Remove
+                    </button>
                   )
-                ) : (
-                  /* Not connected — Add as workspace (split) + Add as personal */
+                ) : isPersonalPublished ? (
+                  /* Only personal published */
+                  hasWorkspaceLevel ? (
+                    <div ref={splitRef} className="relative flex shrink-0">
+                      <button
+                        onClick={() => setShowRemoveConfirm("personal")}
+                        disabled={isBusy}
+                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        Remove
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        disabled={isBusy}
+                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      >
+                        <CaretDownIcon size={13} weight="bold" />
+                      </button>
+                      {splitOpen && (
+                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowWorkspaceConfirm(true); }}
+                            disabled={isBusy}
+                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
+                          >
+                            Add as workspace
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowRemoveConfirm("personal")}
+                      disabled={isBusy}
+                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  )
+                ) : isAdded ? (
+                  /* Connected but not published */
+                  <span className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg shrink-0">
+                    Connected
+                  </span>
+                ) : hasWorkspaceLevel && hasPersonalLevel ? (
+                  /* Both levels — split button */
                   <div ref={splitRef} className="relative flex shrink-0">
                     <button
                       onClick={() => setShowWorkspaceConfirm(true)}
-                      disabled={isBusy || publishMutation.isPending}
+                      disabled={isBusy}
                       className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-l-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      {isBusy ? "Connecting…" : "Add as workspace"}
+                      {isBusy ? "Adding…" : "Add as workspace"}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
-                      disabled={isBusy || publishMutation.isPending}
+                      disabled={isBusy}
                       className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
                     >
-                      <CaretDown size={13} weight="bold" />
+                      <CaretDownIcon size={13} weight="bold" />
                     </button>
                     {splitOpen && (
                       <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSplitOpen(false);
-                            handlePublish("user");
-                          }}
+                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); handlePublish("personal"); }}
                           disabled={isBusy}
                           className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                         >
-                          <User size={12} className="text-gray-500" />
+                          <UserIcon size={12} className="text-gray-500" />
                           Add as personal
                         </button>
                       </div>
                     )}
                   </div>
+                ) : hasWorkspaceLevel ? (
+                  <button
+                    onClick={() => setShowWorkspaceConfirm(true)}
+                    disabled={isBusy}
+                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    {isBusy ? "Adding…" : "Add as workspace"}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handlePublish("personal")}
+                    disabled={isBusy}
+                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
+                  >
+                    {isBusy ? "Adding…" : "Add as personal"}
+                  </button>
                 )
               )}
             </div>
@@ -634,16 +1258,16 @@ function ConnectorDetailView({
             <p className="text-sm text-gray-700 mb-3">{entry.description}</p>
 
             {/* MCP trust disclaimer */}
-            {isMCPEntry && (
+            {!isEntryBuiltByVon(entry) && (
               <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-                Only use connectors from developers you trust. Von does not control which tools
-                developers make available and cannot verify that they will work as intended or
-                that they won't change.
+                Only use connectors from developers you trust. Von does not
+                control which tools developers make available and cannot verify
+                that they will work as intended or that they won't change.
               </p>
             )}
 
-            {/* API key input (shown when not yet connected and auth requires a key) */}
-            {!entry.is_connected && entry.auth_type === "api_key" && (
+            {/* API key input (shown when not yet added and auth requires a key) */}
+            {!isAdded && entry.auth_type === "api_key" && (
               <div className="mb-4 space-y-2">
                 <div className="mcp-input-wrapper">
                   <Input
@@ -672,36 +1296,14 @@ function ConnectorDetailView({
 
             {error && (
               <div className="mb-4">
-                <Banner variant="error" message={error} onClose={() => setError(null)} dismissible />
+                <Banner
+                  variant="error"
+                  message={error}
+                  onClose={() => setError(null)}
+                  dismissible
+                />
               </div>
             )}
-
-            <hr className="border-gray-100 mb-5" />
-
-            {/* Org Memory */}
-            <div className="mb-5">
-              <div className="flex items-center gap-2 mb-2">
-                <h3 className="text-sm font-semibold text-gray-900">Org Memory</h3>
-                <span className="text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                  Optional
-                </span>
-              </div>
-              <textarea
-                value={orgMemory}
-                onChange={(e) => setOrgMemory(e.target.value)}
-                placeholder={"Help Von decide when to use this integration and what context to pull from it.\n\ne.g. Use this when users ask about [topic]. Always pull [relevant data]."}
-                rows={4}
-                className="w-full px-3 py-3 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-gray-900 placeholder:text-gray-400 leading-relaxed"
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  disabled={!orgMemory.trim()}
-                  className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
 
             {/* Tools (collapsible) */}
             {totalTools > 0 && (
@@ -711,7 +1313,9 @@ function ConnectorDetailView({
                   className="w-full flex items-center justify-between cursor-pointer group"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900">Tools</span>
+                    <span className="text-sm font-semibold text-gray-900">
+                      Tools
+                    </span>
                     <span className="text-sm text-gray-500">{totalTools}</span>
                     {writeOpsCount > 0 && (
                       <span className="text-[11px] font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full">
@@ -719,7 +1323,7 @@ function ConnectorDetailView({
                       </span>
                     )}
                   </div>
-                  <CaretDown
+                  <CaretDownIcon
                     size={15}
                     weight="bold"
                     className={`text-gray-400 transition-transform ${toolsExpanded ? "rotate-180" : ""}`}
@@ -727,11 +1331,16 @@ function ConnectorDetailView({
                 </button>
                 {toolsExpanded && (
                   <div className="mt-3 space-y-2">
-                    {(entry.tool_manifest ?? []).map((tool) => (
-                      <div key={tool.name} className="flex items-start gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+                    {tools.map((tool) => (
+                      <div
+                        key={tool.name}
+                        className="flex items-start gap-2 px-3 py-2 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-medium text-gray-800">{tool.name}</span>
+                            <span className="text-xs font-medium text-gray-800">
+                              {tool.name}
+                            </span>
                             {tool.is_write && (
                               <span className="text-[10px] font-semibold text-orange-600 bg-orange-50 px-1 py-0.5 rounded">
                                 write
@@ -739,7 +1348,9 @@ function ConnectorDetailView({
                             )}
                           </div>
                           {tool.description && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{tool.description}</p>
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+                              {tool.description}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -750,13 +1361,17 @@ function ConnectorDetailView({
             )}
 
             {/* Details */}
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Details</h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Details
+            </h3>
             <div className="grid grid-cols-3 gap-y-4 gap-x-6 text-sm mb-4">
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
                   Integration Type
                 </p>
-                <p className="text-gray-900">{isReadWrite ? "Read & Write" : "Read"}</p>
+                <p className="text-gray-900">
+                  {isReadWrite ? "Read & Write" : "Read"}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
@@ -776,7 +1391,7 @@ function ConnectorDetailView({
                     className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
                   >
                     Documentation{" "}
-                    <ArrowSquareOut size={12} className="text-gray-400" />
+                    <ArrowSquareOutIcon size={12} className="text-gray-400" />
                   </a>
                 </div>
               )}
@@ -790,20 +1405,29 @@ function ConnectorDetailView({
       {/* Enable as Workspace confirmation */}
       {showWorkspaceConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div className="fixed inset-0 bg-black/20" onClick={() => setShowWorkspaceConfirm(false)} />
+          <div
+            className="fixed inset-0 bg-black/20"
+            onClick={() => setShowWorkspaceConfirm(false)}
+          />
           <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">Enable as Workspace</h2>
+            <h2 className="text-base font-semibold text-gray-900 mb-2">
+              Add as Workspace
+            </h2>
             <p className="text-sm text-gray-600 mb-4">
-              You are enabling <strong>{entry.name}</strong> as a workspace integration.
+              You are enabling <strong>{entry.name}</strong> as a workspace
+              integration.
             </p>
             {writeOpsCount > 0 && (
               <div className="flex gap-2.5 px-3 py-3 bg-orange-50 border border-orange-200 rounded-lg mb-5">
                 <span className="text-orange-500 shrink-0 mt-0.5">⚠</span>
                 <p className="text-sm text-orange-700 leading-snug">
                   This integration includes{" "}
-                  <strong>{writeOpsCount} write operation{writeOpsCount > 1 ? "s" : ""}</strong>.
-                  All writes made by any team member will be executed under the connecting
-                  admin's account.
+                  <strong>
+                    {writeOpsCount} write operation
+                    {writeOpsCount > 1 ? "s" : ""}
+                  </strong>
+                  . All writes made by any team member will be executed under
+                  the connecting admin's account.
                 </p>
               </div>
             )}
@@ -817,12 +1441,12 @@ function ConnectorDetailView({
               <button
                 onClick={() => {
                   setShowWorkspaceConfirm(false);
-                  handlePublish("tenant");
+                  handlePublish("workspace");
                 }}
                 disabled={isBusy}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
               >
-                {isBusy ? "Connecting…" : "Proceed"}
+                {isBusy ? "Adding…" : "Proceed"}
               </button>
             </div>
           </div>
@@ -832,35 +1456,35 @@ function ConnectorDetailView({
       {/* Remove confirmation */}
       {showRemoveConfirm && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div className="fixed inset-0 bg-black/20" onClick={() => setShowRemoveConfirm(false)} />
+          <div
+            className="fixed inset-0 bg-black/20"
+            onClick={() => setShowRemoveConfirm(null)}
+          />
           <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
             <h2 className="text-base font-semibold text-gray-900 mb-2">
-              {isPersonalConnected && !isWorkspaceConnected
+              {showRemoveConfirm === "personal"
                 ? "Remove Personal Integration"
                 : "Remove from Workspace"}
             </h2>
             <p className="text-sm text-gray-600 mb-6">
-              {isPersonalConnected && !isWorkspaceConnected ? (
-                <>
-                  Are you sure you want to remove <strong>{entry.name}</strong>? Users who have
-                  connected their personal accounts will be disconnected.
-                </>
-              ) : (
-                <>
-                  Are you sure you want to remove <strong>{entry.name}</strong> from workspace?
-                  This will remove the workspace connection.
-                </>
-              )}
+              Are you sure you want to remove <strong>{entry.name}</strong>{" "}
+              {showRemoveConfirm === "personal"
+                ? "? Users who have connected their personal accounts will be disconnected."
+                : "from workspace? This will remove the workspace connection."}
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setShowRemoveConfirm(false)}
+                onClick={() => setShowRemoveConfirm(null)}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={() => { setShowRemoveConfirm(false); handleDisconnect(); }}
+                onClick={() => {
+                  const mode = showRemoveConfirm;
+                  setShowRemoveConfirm(null);
+                  handleRemove(mode);
+                }}
                 disabled={deleteMutation.isPending}
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
               >

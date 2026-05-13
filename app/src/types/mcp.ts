@@ -72,6 +72,7 @@ export interface CatalogEntry {
   privacy_policy_url: string | null;
   is_active: boolean;
   connection_mode?: "workspace" | "personal";
+  is_ti_based?: boolean;
 }
 
 export interface MCPSettings {
