@@ -20,27 +20,7 @@ import { AIFieldPlayground } from "./AIFieldPlayground";
 import type { AiFieldStatus } from "../../types/vonAiFields";
 import { AIFieldFilterBlock } from "./AIFieldFilterBlock";
 
-// ─── Source mapping ────────────────────────────────────────
-import { DataSources } from "@vonlabs/design-components";
-import type { DataSource, DataSourceIcon } from "@vonlabs/design-components";
-
-const SOURCE_CONFIG: Record<string, { name: string; icon: DataSourceIcon }> = {
-  crm: { name: "CRM", icon: "salesforce" },
-  calls: { name: "Calls", icon: "calls" },
-  emails: { name: "Emails", icon: "emails" },
-};
-
-function mapSourcesToDataSources(sources: string[]): DataSource[] {
-  return sources.map((s) => {
-    const config = SOURCE_CONFIG[s.toLowerCase()];
-    return {
-      id: s,
-      name: config?.name ?? s.charAt(0).toUpperCase() + s.slice(1),
-      icon: config?.icon ?? "database",
-      objects: [],
-    };
-  });
-}
+import { AiFieldSourcesDrawer } from "./AiFieldSourcesDrawer";
 
 // ─── Props ─────────────────────────────────────────────────
 interface AIFieldSidePanelProps {
@@ -109,8 +89,13 @@ export function AIFieldSidePanel({
   const isDraft =
     !!draftAiField &&
     (fieldId === "draft" || fieldId === draftAiField.workflowId);
+  // `refetchOnMount: "always"` guarantees every open of the side panel hits
+  // the backend for the freshest field state, regardless of the 30s global
+  // staleTime. Cached data still renders instantly while the refetch is
+  // in-flight, so there's no loading flash for subsequent opens.
   const { data: fetchedField, isLoading } = useAiField(
     isDraft ? null : fieldId,
+    { refetchOnMount: "always" },
   );
 
   // Check if a field already exists (determines Create vs Update vs Disabled)
@@ -130,7 +115,9 @@ export function AIFieldSidePanel({
   const isUpdate = isDraft && !!existingField;
   const isApplied = isDraft && !!existingField?.applied;
 
-  // Merge draft and fetched data
+  // Merge draft and fetched data. When the draft maps to an already-applied
+  // field (Create/Update button is disabled), surface that field's real
+  // status — otherwise we'd label a Live field as "Draft" in the header.
   const field =
     isDraft && draftAiField
       ? {
@@ -146,11 +133,11 @@ export function AIFieldSidePanel({
           displayFilter: draftAiField.displayFilter,
           matchCount: draftAiField.matchCount,
           totalRecords: draftAiField.totalRecords,
-          status: "draft" as const,
+          status: existingField?.status ?? ("draft" as const),
           workflowId: draftAiField.workflowId,
           conversationId: draftAiField.conversationId,
           createdBy: "",
-          createdAt: new Date().toISOString(),
+          createdAt: existingField?.createdAt ?? new Date().toISOString(),
           updatedAt: null,
         }
       : fetchedField;
@@ -268,9 +255,7 @@ export function AIFieldSidePanel({
         {/* Meta row — full width below title */}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <StatusBadge status={status} />
-          {field.sources && field.sources.length > 0 && (
-            <DataSources sources={mapSourcesToDataSources(field.sources)} />
-          )}
+          <AiFieldSourcesDrawer sources={field.sources ?? []} />
           <span className="text-xs text-gray-400">
             Created {formatDate(field.createdAt)}
           </span>
@@ -297,6 +282,18 @@ export function AIFieldSidePanel({
               {field.description || "No prompt provided."}
             </p>
           </div>
+          {field.columnsToGenerate && field.columnsToGenerate.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              {field.columnsToGenerate.map((col) => (
+                <span
+                  key={col.name}
+                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
+                >
+                  {col.type}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filter */}

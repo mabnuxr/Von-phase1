@@ -499,21 +499,54 @@ button.dd-v2-breadcrumb-widget:hover {
   position: relative;
 }
 
-/* Drillable cell affordance — pointer cursor on every clickable row, and
- * a light-violet bg on the SPECIFIC hovered cell (cell-level, not
+/* Drillable cell affordance — pointer cursor + slightly bolder font on
+ * cells whose column the active variant marked drillable, and a
+ * light-violet bg on the SPECIFIC hovered cell (cell-level, not
  * row-level). The ``dd-v2-grid-wrap-drillable`` class is toggled by
  * DrilldownPanelV2 based on ``drill.hasNextLevel``: present when cell
  * clicks descend, absent at the floor of the pyramid where rows are
- * inert. Same violet token as the dashboard's TableWidget cell hover so
- * the visual language matches across both views.
+ * inert. The per-cell ``td.drillable-cell`` class is appended by
+ * ``applyDrillableCellClass`` for the columns the active variant's
+ * ``drillable_columns`` whitelist named (or every column when null,
+ * back-compat for legacy variants). Same violet token + +100 font
+ * weight as the dashboard's TableWidget so the visual language matches
+ * across both views.
  *
  * Cell-level scoping (``td:hover``) is intentional — the affordance is
  * "this cell triggers a drill," and the hover should land where the
  * cursor is, not light up the entire row. The duplicated selector
  * handles Grid Lite's even-row zebra stripes (opaque td bg) at matching
  * specificity. */
-.dd-v2-grid-wrap-drillable tbody tr {
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell {
   cursor: pointer;
+  font-weight: 700;
+}
+
+/* Tint drillable values gray-700 + bold — see table-widget.css for the
+ * same rationale (inline-style override on the inner span produced by
+ * createCellFormatter). */
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell,
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell span {
+  color: #374151 !important;
+}
+
+/* Trailing ↳ glyph after every drillable cell value. Pure CSS — no
+ * formatter chain mutation. Inherits gray-700 color from the td;
+ * opacity 0.5 + 10px size keeps it subordinate to the value. */
+.dd-v2-grid-wrap-drillable .hcg-table tbody td.drillable-cell::after {
+  content: "\21B3"; /* ↳ U+21B3 */
+  margin-left: 5px;
+  opacity: 0.5;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Drillable column headers — gray-700 tint, no arrow. Tagged via a
+ * post-render effect (Grid Lite doesn't expose header className on the
+ * column config). Per-cell glyph below already carries the row-by-row
+ * affordance; a header glyph would just add noise. */
+.dd-v2-grid-wrap-drillable .hcg-table thead th.drillable-header {
+  color: #374151;
 }
 
 /* Specificity matters here. Empirically (verified via DevTools cascade
@@ -522,17 +555,24 @@ button.dd-v2-breadcrumb-widget:hover {
  * for ``background-color`` even when source-order tiebreaker should favor
  * us — outline-only properties from the same selector DO apply, so the
  * issue is specifically a competing bg declaration somewhere in the
- * Grid Lite cascade. Bumping to (0,4,3) by adding the ``.hcg-container``
+ * Grid Lite cascade. Bumping to (0,4,4) by adding the ``.hcg-container``
  * class qualifier (which is on a Grid-Lite-internal wrapper between our
- * wrap and the table) wins reliably for both zebra-stripe variants
- * (odd + even rows). The ``hcg-row-even`` branch stays for parity with
- * Grid Lite's zebra rules that paint the even-row td bg directly. */
-.dd-v2-grid-wrap-drillable .hcg-container .hcg-table tbody tr td:hover,
+ * wrap and the table) AND scoping to ``td.drillable-cell`` wins reliably
+ * for both zebra-stripe variants (odd + even rows). The ``hcg-row-even``
+ * branch stays for parity with Grid Lite's zebra rules that paint the
+ * even-row td bg directly. */
+.dd-v2-grid-wrap-drillable
+  .hcg-container
+  .hcg-table
+  tbody
+  tr
+  td.drillable-cell:hover,
 .dd-v2-grid-wrap-drillable
   .hcg-container
   .hcg-table
   tbody
   tr.hcg-row-even
-  td:hover {
-  background-color: #ede9fe; /* violet-100 — same token as variant pill */
+  td.drillable-cell:hover {
+  background-color: #f3f4f6; /* gray-100 — neutral hover */
+  font-weight: 700;
 }

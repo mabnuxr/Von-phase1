@@ -30,7 +30,19 @@ interface TableWidgetProps {
    *  ID, raw cell value, and the full row dict so V2 drilldown can extract
    *  multiple data_keys from a single click (e.g. cohort cells need both
    *  account_name AND week_label regardless of which column was clicked). */
-  onCellClick?: (columnId: string, cellValue: unknown, rowData: Record<string, unknown>) => void;
+  onCellClick?: (
+    columnId: string,
+    cellValue: unknown,
+    rowData: Record<string, unknown>,
+    displayText?: string
+  ) => void;
+  /** Whitelist of column ids that should receive the drillable-cell hover
+   *  affordance + register clicks. When provided, only those columns get
+   *  `td.drillable-cell` painted (hover background + pointer cursor).
+   *  ``null``/``undefined`` (default) → back-compat: every cell is treated
+   *  as drillable, preserving behaviour of dashboards predating the
+   *  per-column drilldown contract. ``[]`` → no cells drillable. */
+  drillableColumns?: string[] | null;
 }
 
 const SERVER_PAGINATION_PX = 44; // ~8px padding × 2 + 28px buttons
@@ -125,6 +137,46 @@ function applyRowDataTemplates(options: GridOptions): GridOptions {
   return { ...options, columns: mapped };
 }
 
+// Append ``drillable-cell`` to ``column.cells.className`` for each column
+// id in ``drillableColumns``. ``null`` means the agent didn't author a
+// whitelist — paint NO cells as drillable in that case (no highlight,
+// no pointer cursor, no ↳ glyph). Click handlers still gate on the same
+// ``null`` value to allow clicks through anywhere, since legacy
+// V1→V2-migrated panels can still benefit from cell-clicks even
+// without a whitelist.
+//
+// The previous back-compat ("null = every cell clickable + highlighted")
+// produced misleading affordance on agent-authored panels where the
+// agent simply forgot to populate the whitelist — every dimension
+// column appeared drillable. The validator now rejects null on
+// agent-authored configs (see schema_validator
+// ``_validate_v2_drillable_columns_required``); this FE change drops
+// the matching back-compat so legacy migrations and accidental nulls
+// fail closed visually.
+function applyDrillableCellClass(
+  options: GridOptions,
+  drillableColumns: string[] | null
+): GridOptions {
+  const cols = options.columns;
+  if (!cols) return options;
+  // null whitelist → don't tag any column. Click still works (the per-cell
+  // click handler treats null as "no gate"); just no visual affordance.
+  if (drillableColumns === null) return options;
+  const allow = new Set(drillableColumns);
+  const mapped = cols.map((col) => {
+    const c = col as { id?: string; cells?: { className?: string } };
+    const id = c.id;
+    if (!id) return col;
+    if (!allow.has(id)) return col;
+    const existing = typeof c.cells?.className === 'string' ? c.cells.className : '';
+    const next = existing.includes('drillable-cell')
+      ? existing
+      : [existing, 'drillable-cell'].filter(Boolean).join(' ');
+    return { ...col, cells: { ...(c.cells ?? {}), className: next } };
+  });
+  return { ...options, columns: mapped };
+}
+
 const TableWidget: React.FC<TableWidgetProps> = ({
   panelId,
   config,
@@ -133,6 +185,7 @@ const TableWidget: React.FC<TableWidgetProps> = ({
   onSortChange,
   sortState,
   onCellClick,
+  drillableColumns,
 }) => {
   const { serverPagination } = config;
   const hasServerPagination = !!serverPagination;
@@ -153,12 +206,18 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     const applied = applyColumnRenderers(
       hasServerPagination ? { ...base, pagination: { enabled: false } } : base
     );
-    const finalOptions = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    const withFormatters = applyMarkdownCellFormatters(applyRowDataTemplates(applied.options));
+    // Tag the body cells of drillable columns with a ``drillable-cell``
+    // className so the per-cell hover CSS only paints those columns. When
+    // ``drillableColumns`` is null/undefined we fall back to "every cell
+    // gets the class" so legacy dashboards predating the per-column
+    // contract keep their existing whole-table hover behaviour.
+    const finalOptions = applyDrillableCellClass(withFormatters, drillableColumns ?? null);
     return {
       options: finalOptions,
       autoHeight: base.autoHeight === true || applied.hasWrapColumn,
     };
-  }, [base, hasServerPagination]);
+  }, [base, hasServerPagination, drillableColumns]);
 
   // Update ref only when NOT loading (i.e. fresh data has arrived)
   if (!isLoading) {
@@ -240,6 +299,55 @@ const TableWidget: React.FC<TableWidgetProps> = ({
     const raf = requestAnimationFrame(measure);
     return () => cancelAnimationFrame(raf);
   }, [stableOptions, measure]);
+
+  // Drillable affordance — post-render DOM tagging.
+  //
+  // Grid Lite's column config exposes ``cells.className`` (which we use in
+  // ``applyDrillableCellClass`` to mark body cells), but NOT a parallel
+  // ``header.className`` knob. To tint the column headers purple + emit the
+  // ↳ hint glyph above only the drillable columns, we tag matching
+  // ``<th>`` elements after Grid Lite commits its DOM. Body cells are
+  // already class-tagged via the column config; this effect adds the
+  // ``title="Click to drill deeper"`` attribute to those td's (Grid Lite
+  // doesn't have a per-cell attributes API, only className).
+  //
+  // Runs on every options-identity change so it survives sort / page /
+  // resize cycles that re-render the grid.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      const table = el.querySelector('.hcg-table');
+      if (!table) return;
+      // Find which column indices have drillable body cells. Reading from
+      // the first real (non-mocked) row keeps the lookup O(numCols).
+      const firstRow = table.querySelector(
+        'tbody tr:not(.hcg-mocked-row)'
+      ) as HTMLTableRowElement | null;
+      if (!firstRow) return;
+      const drillableIdxs = new Set<number>();
+      Array.from(firstRow.children).forEach((cell, i) => {
+        if ((cell as HTMLElement).classList.contains('drillable-cell')) {
+          drillableIdxs.add(i);
+        }
+      });
+
+      // Tag matching headers; clear any stale tags from prior renders so
+      // the set doesn't drift if the column ordering changes.
+      const ths = table.querySelectorAll('thead th');
+      ths.forEach((th, i) => {
+        th.classList.toggle('drillable-header', drillableIdxs.has(i));
+      });
+
+      // Set the native browser tooltip on every drillable td. Idempotent
+      // — re-setting an attribute to the same value is a no-op.
+      const tds = table.querySelectorAll('tbody td.drillable-cell');
+      tds.forEach((td) => {
+        (td as HTMLElement).title = 'Click to drill deeper';
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [stableOptions]);
 
   // Row count used for both the fingerprint and the intrinsic height
   // calculation below.

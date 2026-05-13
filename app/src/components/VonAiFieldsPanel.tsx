@@ -51,18 +51,22 @@ export function VonAiFieldsPanel({ onRowClick }: VonAiFieldsPanelProps) {
     apiStatus,
     page,
     PAGE_SIZE,
+    true,
+    false,
   );
   const deleteMutation = useDeleteAiField();
 
   const fields = fieldsData?.data ?? [];
   const pagination = fieldsData?.pagination;
-  const total = pagination?.total ?? 0;
   const totalPages = pagination?.totalPages ?? 1;
   const hasNextPage = pagination?.hasNextPage ?? false;
   const hasPrevPage = pagination?.hasPrevPage ?? false;
 
-  // Client-side search filter (API doesn't support search)
+  // Client-side search filter (API doesn't support search). Also defensively
+  // exclude materialized defaults in case the backend doesn't yet honor the
+  // `isDefault=false` query param.
   const filteredFields = fields.filter((f) => {
+    if (f.isDefault) return false;
     if (f.objectType !== activeScope) return false;
     if (!searchTerm) return true;
     const q = searchTerm.toLowerCase();
@@ -71,8 +75,6 @@ export function VonAiFieldsPanel({ onRowClick }: VonAiFieldsPanelProps) {
       (f.description ?? "").toLowerCase().includes(q)
     );
   });
-
-  const liveCount = fields.filter((f) => f.status === "live").length;
 
   const handleConfirmDelete = async () => {
     if (!deletingFieldId) return;
@@ -165,9 +167,8 @@ export function VonAiFieldsPanel({ onRowClick }: VonAiFieldsPanelProps) {
       {/* Summary */}
       <div className="mb-4">
         <span className="text-xs text-gray-400">
-          {liveCount} live &middot; {total} total &middot;{" "}
-          <ClockIcon size={11} className="inline -mt-px" weight="bold" />{" "}
-          Polling every 1 day
+          <ClockIcon size={11} className="inline -mt-px" weight="bold" /> Runs
+          every 24 hours
         </span>
       </div>
 
@@ -217,7 +218,7 @@ export function VonAiFieldsPanel({ onRowClick }: VonAiFieldsPanelProps) {
               <colgroup>
                 <col />
                 <col className="w-[160px]" />
-                <col className="w-[120px]" />
+                <col className="w-[160px]" />
                 <col className="w-[100px]" />
                 <col className="w-[100px]" />
                 <col className="w-[48px]" />

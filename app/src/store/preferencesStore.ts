@@ -40,10 +40,10 @@ export interface VonIQFieldCustomization {
 }
 
 // Default VonIQ fields (stored in frontend)
-export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
+export const DEFAULT_VON_AI_FIELDS: VonIQField[] = [
   {
     id: "voniq-competitor",
-    name: "von_iq_competitor",
+    name: "von_ai_competitor",
     type: "string",
     sourceFieldDisplayName: "Competitor",
     sourceFieldDescription:
@@ -54,7 +54,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-how-is-competitor-viewed",
-    name: "von_iq_how_is_the_competitor_viewed",
+    name: "von_ai_how_is_the_competitor_viewed",
     type: "string",
     sourceFieldDisplayName: "How Is The Competitor Viewed",
     sourceFieldDescription:
@@ -70,7 +70,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-buyer-stage",
-    name: "von_iq_buyer_stage",
+    name: "von_ai_buyer_stage",
     type: "string",
     sourceFieldDisplayName: "Buyer Stage",
     sourceFieldDescription:
@@ -87,7 +87,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-severity-of-pain",
-    name: "von_iq_severity_of_pain",
+    name: "von_ai_severity_of_pain",
     type: "string",
     sourceFieldDisplayName: "Severity Of Pain",
     sourceFieldDescription:
@@ -102,7 +102,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-budget-confirmed",
-    name: "von_iq_budget_confirmed",
+    name: "von_ai_budget_confirmed",
     type: "string",
     sourceFieldDisplayName: "Budget Confirmed",
     sourceFieldDescription:
@@ -118,7 +118,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-decisionmaking-authority",
-    name: "von_iq_decisionmaking_authority",
+    name: "von_ai_decisionmaking_authority",
     type: "string",
     sourceFieldDisplayName: "Decisionmaking Authority",
     sourceFieldDescription:
@@ -133,7 +133,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-champion-identified",
-    name: "von_iq_champion_identified",
+    name: "von_ai_champion_identified",
     type: "string",
     sourceFieldDisplayName: "Champion Identified",
     sourceFieldDescription:
@@ -148,7 +148,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-economic-buyer",
-    name: "von_iq_economic_buyer",
+    name: "von_ai_economic_buyer",
     type: "string",
     sourceFieldDisplayName: "Economic Buyer",
     sourceFieldDescription:
@@ -159,7 +159,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-decision-maker",
-    name: "von_iq_decision_maker",
+    name: "von_ai_decision_maker",
     type: "string",
     sourceFieldDisplayName: "Decision Maker",
     sourceFieldDescription:
@@ -170,7 +170,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-decision-making-process",
-    name: "von_iq_decision_making_process",
+    name: "von_ai_decision_making_process",
     type: "string",
     sourceFieldDisplayName: "Decision Making Process",
     sourceFieldDescription:
@@ -186,7 +186,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-stakeholder-turnover",
-    name: "von_iq_stakeholder_turnover",
+    name: "von_ai_stakeholder_turnover",
     type: "string",
     sourceFieldDisplayName: "Stakeholder Turnover",
     sourceFieldDescription:
@@ -197,7 +197,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-timeline-urgency",
-    name: "von_iq_timeline_urgency",
+    name: "von_ai_timeline_urgency",
     type: "string",
     sourceFieldDisplayName: "Timeline Urgency",
     sourceFieldDescription:
@@ -212,7 +212,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-stated-priority-level",
-    name: "von_iq_stated_priority_level",
+    name: "von_ai_stated_priority_level",
     type: "string",
     sourceFieldDisplayName: "Stated Priority Level",
     sourceFieldDescription:
@@ -229,7 +229,7 @@ export const DEFAULT_VONIQ_FIELDS: VonIQField[] = [
   },
   {
     id: "voniq-next-step-scheduled",
-    name: "von_iq_next_step_scheduled",
+    name: "von_ai_next_step_scheduled",
     type: "string",
     sourceFieldDisplayName: "Next Step Scheduled",
     sourceFieldDescription:
@@ -248,7 +248,7 @@ Examples:
   },
   {
     id: "voniq-customer-ghosting",
-    name: "von_iq_customer_ghosting",
+    name: "von_ai_customer_ghosting",
     type: "string",
     sourceFieldDisplayName: "Customer Ghosting",
     sourceFieldDescription:
@@ -271,7 +271,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
   },
   {
     id: "voniq-internal-leadership-involvement",
-    name: "von_iq_internal_leadership_involvement",
+    name: "von_ai_internal_leadership_involvement",
     type: "string",
     sourceFieldDisplayName: "Internal Leadership Involvement",
     sourceFieldDescription:
@@ -287,7 +287,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
   },
   {
     id: "voniq-how-did-seller-followup",
-    name: "von_iq_how_did_our_seller_followup",
+    name: "von_ai_how_did_our_seller_followup",
     type: "string",
     sourceFieldDisplayName: "How Did Our Seller Followup",
     sourceFieldDescription:
@@ -302,7 +302,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
   },
   {
     id: "voniq-opportunity-qualification-depth",
-    name: "von_iq_opportunity_qualification_depth",
+    name: "von_ai_opportunity_qualification_depth",
     type: "string",
     sourceFieldDisplayName: "Opportunity Qualification Depth",
     sourceFieldDescription:
@@ -317,7 +317,7 @@ Ghosting - no response after ≥ 3 outreach attempts over 7 days`,
   },
   {
     id: "voniq-summary",
-    name: "von_iq_summary",
+    name: "von_ai_summary",
     type: "string",
     sourceFieldDisplayName: "Summary",
     sourceFieldDescription:
@@ -387,7 +387,7 @@ Create a comprehensive narrative summary that tells the complete story of this d
   },
   {
     id: "voniq-risk",
-    name: "von_iq_risk",
+    name: "von_ai_risk",
     type: "string",
     sourceFieldDisplayName: "Risk",
     sourceFieldDescription:
@@ -514,7 +514,7 @@ Remember: Your job is to help sales teams WIN DEALS by identifying what could go
   },
   {
     id: "voniq-stakeholders",
-    name: "von_iq_stakeholders",
+    name: "von_ai_stakeholders",
     type: "string",
     sourceFieldDisplayName: "Stakeholders",
     sourceFieldDescription:
@@ -626,7 +626,7 @@ Create a comprehensive stakeholder map. Document every significant person involv
   },
   {
     id: "voniq-timeline",
-    name: "von_iq_timeline",
+    name: "von_ai_timeline",
     type: "string",
     sourceFieldDisplayName: "Timeline",
     sourceFieldDescription:
@@ -740,7 +740,7 @@ Create a chronological timeline of significant interactions. Each entry should c
   },
   {
     id: "voniq-pain-why-anything-why-now",
-    name: "von_iq_pain_why_anything_why_now",
+    name: "von_ai_pain_why_anything_why_now",
     type: "string",
     sourceFieldDisplayName: "Pain Why Anything Why Now",
     sourceFieldDescription:
@@ -901,7 +901,7 @@ Don't confuse what customer says about urgency with what their behavior demonstr
   },
   {
     id: "voniq-decision-criteria-and-process",
-    name: "von_iq_decision_criteria_and_process",
+    name: "von_ai_decision_criteria_and_process",
     type: "string",
     sourceFieldDisplayName: "Decision Criteria And Process",
     sourceFieldDescription:
@@ -1088,7 +1088,7 @@ If you don't know something important about their decision process, explicitly n
   },
   {
     id: "voniq-competition-why-us",
-    name: "von_iq_competition_why_us",
+    name: "von_ai_competition_why_us",
     type: "string",
     sourceFieldDisplayName: "Competition Why Us",
     sourceFieldDescription:
@@ -1289,7 +1289,7 @@ Start with competitive summary (2-3 sentences on landscape), then details on eac
   },
   {
     id: "voniq-next-steps",
-    name: "von_iq_next_steps",
+    name: "von_ai_next_steps",
     type: "string",
     sourceFieldDisplayName: "Next Steps",
     sourceFieldDescription:
@@ -1415,7 +1415,7 @@ RISKS TO MANAGE: ⚠️ Competitor X still in play - they're cheaper. Need to re
   },
   {
     id: "voniq-momentum",
-    name: "von_iq_momentum",
+    name: "von_ai_momentum",
     type: "string",
     sourceFieldDisplayName: "Momentum",
     sourceFieldDescription:
@@ -1723,7 +1723,7 @@ Don't just say "momentum is good" - cite specific evidence, behaviors, and timel
   },
   {
     id: "voniq-open-action-items",
-    name: "von_iq_open_action_items",
+    name: "von_ai_open_action_items",
     type: "string",
     sourceFieldDisplayName: "Open Action Items",
     sourceFieldDescription:
@@ -1951,7 +1951,7 @@ Provide a scannable list organized by priority, with critical blockers at the to
   },
   {
     id: "voniq-is-available",
-    name: "von_iq_is_available",
+    name: "von_ai_is_available",
     type: "boolean",
     sourceFieldDisplayName: "Is Available",
     sourceFieldDescription: "Indicates if we have VonIQ data available",

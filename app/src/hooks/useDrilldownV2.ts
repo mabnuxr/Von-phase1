@@ -1,7 +1,6 @@
 /**
  * Drilldown V2 hook (pyramid model) — click-chain state machine for descent
- * through a panel's aggregation pyramid. Feature-flagged on the backend via
- * `drilldown_v2`.
+ * through a panel's aggregation pyramid.
  *
  * Mental model:
  * - A panel's main query has K aggregations; drilldown has K levels.
@@ -48,11 +47,39 @@ export interface DrilldownV2ClickNode {
   /** null => use this level's is_default variant. */
   variantId: string | null;
   /**
+   * The variant id this node was originally clicked into — captured at
+   * push/open time and never mutated by ``changeVariant``. Lets the
+   * breadcrumb tell "user is still on the routed-to variant" from "user
+   * manually switched to a different variant". For ``column_variant_map``
+   * routing this is the mapped id; for KPI / chart clicks where no
+   * routing applies it stays null (meaning "fall back to is_default").
+   */
+  initialVariantId: string | null;
+  /**
    * Filter contributions originating at THIS click. Keyed by SQL column name;
    * latest-wins across the chain when merged. For whole-row descent, this is
    * typically the entire grouping-key dict from the clicked row.
    */
   filters: Record<string, unknown>;
+  /**
+   * Numeric metric value behind the clicked element — chart point's
+   * ``y``/``weight``/``value`` for chart clicks, the cell's value for
+   * table cell clicks, the KPI's resolved numeric for tile clicks.
+   * Surfaced in the breadcrumb as a parenthesized suffix (e.g.
+   * "Stage: Negotiation (47)") so the user can see what value they
+   * drilled into. Backend ignores this; FE-only.
+   */
+  metricValue?: unknown;
+  /**
+   * Optional column label for table-style click sources. When set, the
+   * breadcrumb suffix renders as ``(label: value)`` rather than bare
+   * ``(value)``. Set for table widget cell clicks and drill-view cell
+   * clicks (where the column the user clicked is meaningful context);
+   * left null for chart point clicks (the axis label is already in
+   * the segment's main label) and KPI tile clicks (the widget title
+   * already conveys what the value represents).
+   */
+  metricLabel?: string;
 }
 
 export interface UseDrilldownV2Return {
@@ -78,15 +105,30 @@ export interface UseDrilldownV2Return {
     panelId: string,
     columnPath: string[],
     filters: Record<string, unknown>,
+    metricValue?: unknown,
+    metricLabel?: string,
+    variantId?: string | null,
   ) => void;
   /**
    * Descend one level. ``columnPath`` extends the parent's path by one segment
    * (the segment value is opaque — usually the column name the user clicked,
    * for breadcrumb display only). ``filters`` is the cumulative filter
    * contribution from THIS click; combined with shallower-level filters at
-   * fetch time.
+   * fetch time. Optional ``metricValue`` carries the clicked-cell / clicked-
+   * point numeric value for breadcrumb display; ``metricLabel`` carries the
+   * column label for table-style sources (renders as "label: value").
+   * ``variantId`` is the next-level variant to open; pass null to fall back
+   * to the next level's is_default. Used by ``column_variant_map`` routing
+   * — the caller looks up the clicked column in the current variant's
+   * column_variant_map and forwards the mapped id (or null if unmapped).
    */
-  pushLevel: (columnPath: string[], filters: Record<string, unknown>) => void;
+  pushLevel: (
+    columnPath: string[],
+    filters: Record<string, unknown>,
+    metricValue?: unknown,
+    metricLabel?: string,
+    variantId?: string | null,
+  ) => void;
   popToLevel: (depth: number) => void;
   closeDrilldown: () => void;
   changeVariant: (variantId: string | null) => void;
@@ -173,10 +215,22 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       panelId: string,
       columnPath: string[],
       filters: Record<string, unknown>,
+      metricValue?: unknown,
+      metricLabel?: string,
+      variantId: string | null = null,
     ) => {
       setState({
         panelId,
-        chain: [{ columnPath, variantId: null, filters }],
+        chain: [
+          {
+            columnPath,
+            variantId,
+            initialVariantId: variantId,
+            filters,
+            metricValue,
+            metricLabel,
+          },
+        ],
         page: 1,
         sort: null,
       });
@@ -185,7 +239,13 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
   );
 
   const pushLevel = useCallback(
-    (columnPath: string[], filters: Record<string, unknown>) => {
+    (
+      columnPath: string[],
+      filters: Record<string, unknown>,
+      metricValue?: unknown,
+      metricLabel?: string,
+      variantId: string | null = null,
+    ) => {
       setState((prev) => {
         if (!prev) return prev;
         // Only descend when the server says another level exists. Otherwise
@@ -194,7 +254,17 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
         if (!data?.has_next_level) return prev;
         const next: DrilldownV2State = {
           ...prev,
-          chain: [...prev.chain, { columnPath, variantId: null, filters }],
+          chain: [
+            ...prev.chain,
+            {
+              columnPath,
+              variantId,
+              initialVariantId: variantId,
+              filters,
+              metricValue,
+              metricLabel,
+            },
+          ],
           page: 1,
           sort: null,
         };

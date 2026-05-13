@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQueryClient,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { foldersService } from "../../services";
 import { folderKeys } from "./folderKeys";
@@ -11,19 +7,15 @@ import { getFolderErrorToast } from "../../utils/folderErrors";
 import type {
   Folder,
   FolderItemType,
-  FolderItemsResponse,
-  FolderConversationRow,
-  FolderDashboardRow,
   CreateFolderRequest,
   UpdateFolderRequest,
+  SetItemFoldersResponse,
 } from "../../types/chatSidebar";
 
-interface AddItemParams {
-  folderId: string;
+interface SetItemFoldersParams {
   itemType: FolderItemType;
   itemId: string;
-  /** Optional source folder so we also invalidate the source's contents/items caches. */
-  sourceFolderId?: string | null;
+  folderIds: string[];
 }
 
 interface RemoveItemParams {
@@ -36,7 +28,6 @@ interface CreateFolderForItemParams {
   name: string;
   itemType: FolderItemType;
   itemId: string;
-  sourceFolderId?: string | null;
 }
 
 interface PinFolderParams {
@@ -49,12 +40,12 @@ interface PinFolderParams {
  * so consumers can pass them straight into props without churning React keys.
  *
  * Cache strategy:
- *   - Optimistic: remove from source unfiled-items list and folders-list
- *     (where applicable) so the UI feels instant.
  *   - On success: invalidate folders list + every contents/items/unfiled
- *     touchpoint so live counts and slices come back fresh.
- *   - On error: roll back the optimistic updates and surface a toast keyed
- *     off the standard APP_* error envelope.
+ *     touchpoint affected by the diff so live counts and slices come back fresh.
+ *   - On error: surface a toast keyed off the standard APP_* error envelope.
+ *
+ * Item membership is multi-folder; the only write paths are `setItemFolders`
+ * (PUT, replace-all-or-nothing) and `removeItemFromFolder` (DELETE, single).
  */
 export function useFolderMutations() {
   const queryClient = useQueryClient();
@@ -207,127 +198,65 @@ export function useFolderMutations() {
 
   // ── Item membership mutations ───────────────────────────────────────────
 
-  const invalidateMembershipCaches = useCallback(
-    ({
-      folderId,
-      itemType,
-      sourceFolderId,
-    }: {
-      folderId: string;
-      itemType: FolderItemType;
-      sourceFolderId?: string | null;
-    }) => {
+  const invalidateAffectedFolderCaches = useCallback(
+    (folderIds: Iterable<string>, itemType: FolderItemType) => {
       queryClient.invalidateQueries({ queryKey: folderKeys.list() });
-      queryClient.invalidateQueries({
-        queryKey: folderKeys.contents(folderId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: folderKeys.items(folderId, itemType),
-      });
-      queryClient.invalidateQueries({
-        queryKey: folderKeys.unfiled(itemType),
-      });
-      if (sourceFolderId && sourceFolderId !== folderId) {
+      queryClient.invalidateQueries({ queryKey: folderKeys.unfiled(itemType) });
+      for (const folderId of folderIds) {
         queryClient.invalidateQueries({
-          queryKey: folderKeys.contents(sourceFolderId),
+          queryKey: folderKeys.contents(folderId),
         });
         queryClient.invalidateQueries({
-          queryKey: folderKeys.items(sourceFolderId, itemType),
+          queryKey: folderKeys.items(folderId, itemType),
         });
       }
     },
     [queryClient],
   );
 
-  const addItemMutation = useMutation<
-    void,
+  const setItemFoldersMutation = useMutation<
+    SetItemFoldersResponse,
     unknown,
-    AddItemParams,
-    {
-      previousUnfiled:
-        | InfiniteData<
-            FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-          >
-        | undefined;
-    }
+    SetItemFoldersParams
   >({
-    mutationFn: async ({ folderId, itemType, itemId }) => {
-      await foldersService.addItem(folderId, { itemType, itemId });
-    },
-    onMutate: async ({ itemType, itemId }) => {
-      await queryClient.cancelQueries({
-        queryKey: folderKeys.unfiled(itemType),
+    mutationFn: ({ itemType, itemId, folderIds }) =>
+      foldersService.setItemFolders({ itemType, itemId, folderIds }),
+    onError: (error) => reportError(error, "Couldn't update folders."),
+    onSuccess: (result, { itemType, itemId }) => {
+      // Defensive reads — the server should always return these arrays, but
+      // unwrap with fallbacks so a payload-shape regression doesn't throw
+      // inside onSuccess and silently swallow the toast.
+      const added = result?.added ?? [];
+      const removed = result?.removed ?? [];
+
+      const touched = new Set<string>([...added, ...removed]);
+      invalidateAffectedFolderCaches(touched, itemType);
+      queryClient.invalidateQueries({
+        queryKey: folderKeys.itemMemberships(itemType, itemId),
       });
-      const previousUnfiled = queryClient.getQueryData<
-        InfiniteData<
-          FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-        >
-      >(folderKeys.unfiled(itemType));
 
-      if (previousUnfiled) {
-        // Was the item present anywhere in the cached pages? Only touch
-        // pagination metadata when we actually removed something.
-        const wasPresent = previousUnfiled.pages.some((page) =>
-          page.items.some((it) => readItemId(it, itemType) === itemId),
-        );
-        queryClient.setQueryData<
-          InfiniteData<
-            FolderItemsResponse<FolderConversationRow | FolderDashboardRow>
-          >
-        >(folderKeys.unfiled(itemType), {
-          ...previousUnfiled,
-          pages: previousUnfiled.pages.map((page) => {
-            const nextItems = page.items.filter(
-              (it) => readItemId(it, itemType) !== itemId,
-            );
-            // `total` is logically global — replicate the decrement across
-            // every page snapshot so consumers reading any page (typically
-            // the last) see a consistent value. Otherwise downstream
-            // "Show 5 more" math reads a stale `total` and the expander
-            // can render a phantom button or hide prematurely.
-            const nextTotal = wasPresent
-              ? Math.max(0, page.pagination.total - 1)
-              : page.pagination.total;
-            return {
-              ...page,
-              items: nextItems,
-              pagination: {
-                ...page.pagination,
-                total: nextTotal,
-                hasNextPage:
-                  nextTotal > page.pagination.page * page.pagination.limit,
-                totalPages: Math.max(
-                  1,
-                  Math.ceil(nextTotal / page.pagination.limit),
-                ),
-              },
-            };
-          }),
-        });
-      }
-      return { previousUnfiled };
-    },
-    onError: (error, vars, ctx) => {
-      if (ctx?.previousUnfiled) {
-        queryClient.setQueryData(
-          folderKeys.unfiled(vars.itemType),
-          ctx.previousUnfiled,
-        );
-      }
-      reportError(error, "Couldn't add to folder.");
-    },
-    onSuccess: (_data, { folderId, itemType, sourceFolderId }) => {
-      invalidateMembershipCaches({ folderId, itemType, sourceFolderId });
-
-      const folders = queryClient.getQueryData<Folder[]>(folderKeys.list());
-      const folderName = folders?.find((f) => f.folderId === folderId)?.name;
       const itemLabel = itemType === "dashboard" ? "Dashboard" : "Chat";
-      showToast({
-        message: folderName
-          ? `${itemLabel} moved to "${folderName}"`
-          : `${itemLabel} moved to folder`,
-        variant: "success",
-      });
+      const addedCount = added.length;
+      const removedCount = removed.length;
+      let message: string;
+      if (addedCount === 0 && removedCount === 0) {
+        // Server replied with no diff — surface a neutral confirmation so the
+        // user knows the save round-tripped, instead of an awkward silent close.
+        message = `${itemLabel} folders are up to date`;
+      } else if (addedCount > 0 && removedCount === 0) {
+        message =
+          addedCount === 1
+            ? `${itemLabel} added to 1 folder`
+            : `${itemLabel} added to ${addedCount} folders`;
+      } else if (addedCount === 0 && removedCount > 0) {
+        message =
+          removedCount === 1
+            ? `${itemLabel} removed from 1 folder`
+            : `${itemLabel} removed from ${removedCount} folders`;
+      } else {
+        message = `${itemLabel} folders updated`;
+      }
+      showToast({ message, variant: "success" });
     },
   });
 
@@ -341,34 +270,51 @@ export function useFolderMutations() {
       await foldersService.removeItem(folderId, itemType, itemId);
     },
     onError: (error) => reportError(error, "Couldn't remove from folder."),
-    onSuccess: (_data, { folderId, itemType }) => {
-      invalidateMembershipCaches({ folderId, itemType });
+    onSuccess: (_data, { folderId, itemType, itemId }) => {
+      invalidateAffectedFolderCaches([folderId], itemType);
+      queryClient.invalidateQueries({
+        queryKey: folderKeys.itemMemberships(itemType, itemId),
+      });
+      const itemLabel = itemType === "dashboard" ? "Dashboard" : "Chat";
+      showToast({
+        message: `${itemLabel} removed from folder`,
+        variant: "success",
+      });
     },
   });
 
-  // Compose: create folder, then file the item into it. Two server calls,
-  // one user intent.
+  /**
+   * Compose: read the item's current memberships, create a new folder, then
+   * PUT `current ∪ {newFolder}`. Server is the source of truth for current
+   * memberships — the sidebar cache only knows about loaded slices and can
+   * miss folders the user hasn't expanded yet.
+   */
   const createFolderForItem = useCallback(
     async ({
       name,
       itemType,
       itemId,
-      sourceFolderId,
     }: CreateFolderForItemParams): Promise<Folder | null> => {
       try {
-        const folder = await createFolderMutation.mutateAsync({ name });
-        await addItemMutation.mutateAsync({
-          folderId: folder.folderId,
+        const current = await foldersService.getItemMemberships({
           itemType,
           itemId,
-          sourceFolderId: sourceFolderId ?? null,
+        });
+        const folder = await createFolderMutation.mutateAsync({ name });
+        const targetIds = Array.from(
+          new Set([...current.folders.map((f) => f.folderId), folder.folderId]),
+        );
+        await setItemFoldersMutation.mutateAsync({
+          itemType,
+          itemId,
+          folderIds: targetIds,
         });
         return folder;
       } catch {
         return null;
       }
     },
-    [createFolderMutation, addItemMutation],
+    [createFolderMutation, setItemFoldersMutation],
   );
 
   return {
@@ -389,21 +335,13 @@ export function useFolderMutations() {
     updateFolder: (folderId: string, patch: UpdateFolderRequest) =>
       updateFolderMutation.mutate({ folderId, patch }),
 
-    addItemToFolder: addItemMutation.mutate,
-    isAddingItem: addItemMutation.isPending,
+    setItemFolders: setItemFoldersMutation.mutate,
+    setItemFoldersAsync: setItemFoldersMutation.mutateAsync,
+    isSettingFolders: setItemFoldersMutation.isPending,
 
     removeItemFromFolder: removeItemMutation.mutate,
     isRemovingItem: removeItemMutation.isPending,
 
     createFolderForItem,
   };
-}
-
-function readItemId(
-  item: FolderConversationRow | FolderDashboardRow,
-  itemType: FolderItemType,
-): string {
-  return itemType === "conversation"
-    ? (item as FolderConversationRow).conversation_id
-    : (item as FolderDashboardRow).dashboard_id;
 }

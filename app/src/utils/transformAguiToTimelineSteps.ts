@@ -169,6 +169,10 @@ const TOOL_SOURCE_MAP: Record<string, SourceType> = {
   // Salesforce Chatter
   salesforce_chatter_read: "salesforce",
 
+  // HubSpot tools (passthroughs — operations selected via scalekit_tool_name)
+  hubspot_read: "hubspot",
+  hubspot_write: "hubspot",
+
   // Gong tools
   search_gong_calls: "gong",
   get_gong_call_transcript: "gong",

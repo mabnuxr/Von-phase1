@@ -82,3 +82,60 @@ export function getLevelColumnMaps(
     ) ?? []
   );
 }
+
+/**
+ * Pick each level's default-variant ``drillable_columns`` whitelist in
+ * level order. The list at index N describes which display columns of
+ * level N's drill output are clickable for further descent — surfaced
+ * to ``DrilldownPanelV2`` so it can apply the per-cell ``drillable-cell``
+ * className (which gates hover affordance + click registration in CSS +
+ * JS). null/undefined entries fall back to "every cell drillable" in
+ * the panel's per-column gating logic.
+ */
+export function getLevelDrillableColumns(
+  widget: WidgetConfig | undefined,
+): (string[] | null | undefined)[] {
+  return (
+    widget?.drilldown_v2?.levels?.map(
+      (lvl) =>
+        (lvl.variants.find((v) => v.is_default) ?? lvl.variants[0])
+          ?.drillable_columns ?? null,
+    ) ?? []
+  );
+}
+
+/**
+ * Resolve the ``column_variant_map`` of the variant the user is *currently
+ * viewing* at the given drill chain depth. This map controls "click column
+ * X → open next level with variant Y" routing for descent inside the drill
+ * sheet. Returns null when no variant has a map declared, or when the
+ * widget has no drilldown_v2.
+ *
+ * Why current-variant (not default):
+ *   The user might have flipped to the "won" variant at L1; the variant
+ *   they're viewing OWNS the drill output rows on screen, so its
+ *   ``column_variant_map`` is the one that defines how its columns route
+ *   to L2 variants. Reading the default variant's map would route based
+ *   on a variant the user isn't even looking at.
+ *
+ * ``depth`` is the user's current chain length (= how many drill levels
+ * are open). Depth 0 means the drill sheet isn't open yet — return null.
+ * Depth 1 means the user is viewing the L1 (= levels[0]) drill view, so
+ * we read ``levels[0]``. In general the active level index is depth-1.
+ */
+export function getCurrentVariantColumnVariantMap(
+  widget: WidgetConfig | undefined,
+  depth: number,
+  currentVariantId: string | null,
+): Record<string, string> | null {
+  if (depth <= 0) return null;
+  const level = widget?.drilldown_v2?.levels?.[depth - 1];
+  if (!level) return null;
+  const active =
+    (currentVariantId
+      ? level.variants.find((v) => v.id === currentVariantId)
+      : null) ??
+    level.variants.find((v) => v.is_default) ??
+    level.variants[0];
+  return active?.column_variant_map ?? null;
+}

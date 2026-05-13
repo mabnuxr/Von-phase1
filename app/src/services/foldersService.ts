@@ -8,10 +8,12 @@ import type {
   FolderDashboardRow,
   CreateFolderRequest,
   UpdateFolderRequest,
-  AddItemRequest,
   ReorderItemsRequest,
   FolderOperationResponse,
   FolderItemType,
+  FolderMembershipLookupResponse,
+  SetItemFoldersRequest,
+  SetItemFoldersResponse,
 } from "../types/chatSidebar";
 
 interface ContentsParams {
@@ -97,13 +99,36 @@ class FoldersService {
     );
   }
 
-  /** POST /folders/{id}/items — file or move an item */
-  async addItem(
-    folderId: string,
-    payload: AddItemRequest,
-  ): Promise<FolderOperationResponse> {
-    return apiClient.post<FolderOperationResponse>(
-      `/api/v1/folders/${folderId}/items`,
+  /**
+   * GET /folders/item-memberships?dashboardId|conversationId=…
+   *
+   * Returns every folder the calling user has filed the item in, sorted by
+   * `displayOrder` then `name`. Multi-folder is supported server-side, so
+   * `count` can exceed 1.
+   */
+  async getItemMemberships(params: {
+    itemType: FolderItemType;
+    itemId: string;
+  }): Promise<FolderMembershipLookupResponse> {
+    const qs = new URLSearchParams();
+    if (params.itemType === "dashboard") qs.set("dashboardId", params.itemId);
+    else qs.set("conversationId", params.itemId);
+    return apiClient.get<FolderMembershipLookupResponse>(
+      `/api/v1/folders/item-memberships?${qs.toString()}`,
+    );
+  }
+
+  /**
+   * PUT /folders/item-memberships — replace the calling user's folder
+   * memberships for an item with the given target set. All-or-nothing on the
+   * server side: if any folder is missing or over capacity, no changes apply
+   * and an `APP_FOLDER_SET_FAILED` envelope comes back.
+   */
+  async setItemFolders(
+    payload: SetItemFoldersRequest,
+  ): Promise<SetItemFoldersResponse> {
+    return apiClient.put<SetItemFoldersResponse>(
+      `/api/v1/folders/item-memberships`,
       payload,
     );
   }

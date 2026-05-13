@@ -60,7 +60,17 @@ const NewConversation = () => {
   //   <summary body>
   const initialInputRef = useRef<string>(
     (() => {
-      const prompt = (location.state as { prompt?: string } | null)?.prompt;
+      const state = location.state as {
+        prompt?: string;
+        initialInput?: string;
+      } | null;
+      // Raw prefilled input — used by callers (e.g. "Create AI field" button
+      // on the Custom AI Fields settings tab) that want to seed the chat
+      // textarea verbatim with no wrapping.
+      if (state?.initialInput) return state.initialInput;
+      // "Continue conversation" from a shared chat — wraps the summary in an
+      // "Ask a follow-up:" preamble so the user has a clear place to type.
+      const prompt = state?.prompt;
       if (!prompt) return "";
       return (
         `*Ask a follow-up:*\n\n` +
@@ -73,8 +83,11 @@ const NewConversation = () => {
     })(),
   );
   useEffect(() => {
-    const state = location.state as { prompt?: string } | null;
-    if (state?.prompt) {
+    const state = location.state as {
+      prompt?: string;
+      initialInput?: string;
+    } | null;
+    if (state?.prompt || state?.initialInput) {
       navigate(location.pathname, { replace: true, state: null });
     }
     // Run once on mount — subsequent location changes are unrelated.
@@ -186,12 +199,19 @@ const NewConversation = () => {
     removeFile,
     fileErrorMessage,
     dismissFileError,
+    restoredInput,
   } = useCreateAndSendMessage({
     agentVersion: isAgentV2Flag ? "v2" : "v1",
     isAgentV2: isAgentV2Flag,
     title: "",
     navigateOnCreate: true,
   });
+
+  // When a send fails, the hook surfaces the user's unsent text via
+  // `restoredInput`. ChatEmptyState remounts whenever the message list
+  // toggles between empty and non-empty (and reads `defaultInputValue` only
+  // on mount), so substituting it here is enough to repopulate the input.
+  const defaultInputValue = restoredInput ?? initialInputRef.current;
 
   const {
     commands,
@@ -317,6 +337,53 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
+  const basePostHogProps = useMemo(
+    () => ({
+      company: user?.tenant ?? null,
+      company_id: user?.tenantId ?? null,
+      user_id: user?.id ?? null,
+      user_email: user?.email ?? null,
+      user_role: !user?.roles?.length
+        ? null
+        : user.roles.some((r) => r.toLowerCase() === "admin")
+          ? "Admin"
+          : "Member",
+    }),
+    [user],
+  );
+
+  const handleTemplateCategoryClick = useCallback(
+    (category: string) => {
+      posthog?.capture("Chat - Template Category Clicked", {
+        ...basePostHogProps,
+        category_name: category,
+      });
+    },
+    [posthog, basePostHogProps],
+  );
+
+  const handleTemplateClick = useCallback(
+    (template: { prompt: string; category: string }, position: number) => {
+      posthog?.capture("Chat - Suggested Prompt Clicked", {
+        ...basePostHogProps,
+        prompt_text: template.prompt,
+        category_name: template.category,
+        prompt_position: position,
+      });
+    },
+    [posthog, basePostHogProps],
+  );
+
+  const handleTemplateArrowClick = useCallback(
+    (_direction: string, activeCategory: string) => {
+      posthog?.capture("Chat - Suggested Prompt Arrow Clicked", {
+        ...basePostHogProps,
+        category_name: activeCategory,
+      });
+    },
+    [posthog, basePostHogProps],
+  );
+
   const banner = isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
@@ -343,7 +410,7 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
-        defaultInputValue={initialInputRef.current}
+        defaultInputValue={defaultInputValue}
         placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"
@@ -378,6 +445,9 @@ const NewConversation = () => {
         onMentionsActivated={handleMentionsActivated}
         widgetMentions={preloadedWidgetMentions}
         onWidgetMentionRemoved={handleWidgetMentionRemoved}
+        onTemplateCategoryClick={handleTemplateCategoryClick}
+        onTemplateClick={handleTemplateClick}
+        onTemplateArrowClick={handleTemplateArrowClick}
       />
     </Profiler>
   );

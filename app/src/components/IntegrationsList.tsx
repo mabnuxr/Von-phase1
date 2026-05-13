@@ -6,8 +6,12 @@ import {
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { useSetSalesforceScope, useDeleteIntegration } from "../hooks/useIntegrations";
 import { useDeleteConnections } from "../hooks/useAppCatalog";
+import {
+  useSetHubspotScope,
+  useDeleteIntegration,
+  useSetSalesforceScope,
+} from "../hooks/useIntegrations";
 import { Resource, AuthenticationStatus } from "../services";
 import type { SalesforceWriteScope } from "../services";
 import type { CatalogEntry } from "../types/mcp";
@@ -273,11 +277,22 @@ interface IntegrationItemProps {
   ) => void;
 }
 
-const SCOPE_OPTIONS: {
+// Salesforce + HubSpot share the same scope union, so one option-list shape works for both.
+type ScopeOption = {
   value: SalesforceWriteScope;
   label: string;
   description: string;
-}[] = [
+};
+
+type SetScopeMutation = {
+  mutate: (
+    scope: SalesforceWriteScope,
+    options?: { onSuccess?: () => void },
+  ) => void;
+  isPending: boolean;
+};
+
+const SALESFORCE_SCOPE_OPTIONS: ScopeOption[] = [
   {
     value: "full_access",
     label: "Read & Write",
@@ -296,17 +311,43 @@ const SCOPE_OPTIONS: {
   },
 ];
 
-function SalesforceScopeMenu({
+const HUBSPOT_SCOPE_OPTIONS: ScopeOption[] = [
+  {
+    value: "full_access",
+    label: "Read & Write",
+    description: "Read and update HubSpot for all users",
+  },
+  {
+    value: "user_level_write",
+    label: "Write with Personal Login",
+    description:
+      "Read for all users, but updates require each user to connect their HubSpot",
+  },
+  {
+    value: "read_only",
+    label: "Read Only",
+    description: "Only read from HubSpot — no updates will be made",
+  },
+];
+
+// One menu rendering for any integration that uses the read_only / user_level_write
+// / full_access scope model. Callers pass the integration-specific option list and
+// the matching mutation hook (the hook is called inside so React can track it).
+function IntegrationScopeMenu({
   currentScope,
+  options,
+  useSetScope,
   onDelete,
 }: {
   currentScope: SalesforceWriteScope;
+  options: ScopeOption[];
+  useSetScope: () => SetScopeMutation;
   onDelete?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showScopeSubmenu, setShowScopeSubmenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const setScopeMutation = useSetSalesforceScope();
+  const setScopeMutation = useSetScope();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -351,7 +392,6 @@ function SalesforceScopeMenu({
 
       {isOpen && (
         <div className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-50">
-          {/* Vonage Permissions */}
           <div className="relative">
             <button
               onClick={() => setShowScopeSubmenu(!showScopeSubmenu)}
@@ -366,10 +406,9 @@ function SalesforceScopeMenu({
               <CaretRightIcon size={14} className="text-gray-400" />
             </button>
 
-            {/* Scope Submenu */}
             {showScopeSubmenu && (
               <div className="absolute right-full top-0 mr-1 w-64 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
-                {SCOPE_OPTIONS.map((option) => (
+                {options.map((option) => (
                   <button
                     key={option.value}
                     onClick={() => handleSelect(option.value)}
@@ -413,7 +452,6 @@ function SalesforceScopeMenu({
             )}
           </div>
 
-          {/* Remove Connection */}
           {onDelete && (
             <button
               onClick={() => {
@@ -508,11 +546,15 @@ function IntegrationItem({
     (loadingIntegrationId === personal.id ||
       (personalIsAuthenticating && !personalIsTimedOut));
 
-  // Salesforce scope - read from workspace config if available
+  // Scope menu wiring — Salesforce + HubSpot share the same three modes;
+  // we render an integration-specific menu so the labels reference the
+  // right product name in toasts and submenu copy.
   const isSalesforce = item.id === "salesforce";
+  const isHubspot = item.id === "hubspot";
   const currentScope = (workspaceBackendIntegration?.scope ??
     "full_access") as SalesforceWriteScope;
-  const canEditScope = isSalesforce && workspace && workspacePerms?.update;
+  const canEditScope =
+    (isSalesforce || isHubspot) && workspace && workspacePerms?.update;
 
   // Case 1: Not connected at all - show as available
   // Note: Timed-out integrations are automatically deleted, so we always open sidepanel for new integration
@@ -614,8 +656,14 @@ function IntegrationItem({
         deleteTooltip={deleteTooltip}
         actionSlot={
           canEditScope && !isLoading ? (
-            <SalesforceScopeMenu
+            <IntegrationScopeMenu
               currentScope={currentScope}
+              options={
+                isHubspot ? HUBSPOT_SCOPE_OPTIONS : SALESFORCE_SCOPE_OPTIONS
+              }
+              useSetScope={
+                isHubspot ? useSetHubspotScope : useSetSalesforceScope
+              }
               onDelete={deleteHandler}
             />
           ) : undefined
@@ -697,8 +745,14 @@ function IntegrationItem({
           }
           actionSlot={
             canEditScope && !workspaceIsLoading ? (
-              <SalesforceScopeMenu
+              <IntegrationScopeMenu
                 currentScope={currentScope}
+                options={
+                  isHubspot ? HUBSPOT_SCOPE_OPTIONS : SALESFORCE_SCOPE_OPTIONS
+                }
+                useSetScope={
+                  isHubspot ? useSetHubspotScope : useSetSalesforceScope
+                }
                 onDelete={handleWorkspaceDelete}
               />
             ) : undefined
@@ -775,6 +829,7 @@ export function IntegrationsList({
     isGmailEnabled,
     isGranolaEnabled,
     isNotionEnabled,
+    isHubspotEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,
@@ -827,6 +882,7 @@ export function IntegrationsList({
       if (app.id === "gmail" && !isGmailEnabled) return false;
       if (app.id === "granola" && !isGranolaEnabled) return false;
       if (app.id === "notion" && !isNotionEnabled) return false;
+      if (app.id === "hubspot" && !isHubspotEnabled) return false;
       if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
       if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
         return false;
@@ -871,6 +927,7 @@ export function IntegrationsList({
     isGmailEnabled,
     isGranolaEnabled,
     isNotionEnabled,
+    isHubspotEnabled,
     isOutreachEngageEnabled,
     isSalesloftEngagementEnabled,
     isJiminnyEnabled,

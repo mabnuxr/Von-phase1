@@ -7,8 +7,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useAiFieldEvents } from "../hooks/useAiFieldEvents";
 import { useUser } from "../hooks/useUser";
 import { AIFieldPlayground } from "./ai-fields/AIFieldPlayground";
-import { DataSources } from "@vonlabs/design-components";
-import type { DataSource, DataSourceIcon } from "@vonlabs/design-components";
+import { AiFieldSourcesDrawer } from "./ai-fields/AiFieldSourcesDrawer";
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -16,24 +15,6 @@ import {
   CaretDownIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
-
-const SOURCE_CONFIG: Record<string, { name: string; icon: DataSourceIcon }> = {
-  crm: { name: "CRM", icon: "salesforce" },
-  calls: { name: "Calls", icon: "calls" },
-  emails: { name: "Emails", icon: "emails" },
-};
-
-function mapSourcesToDataSources(sources: string[]): DataSource[] {
-  return sources.map((s) => {
-    const config = SOURCE_CONFIG[s.toLowerCase()];
-    return {
-      id: s,
-      name: config?.name ?? s.charAt(0).toUpperCase() + s.slice(1),
-      icon: config?.icon ?? "database",
-      objects: [],
-    };
-  });
-}
 
 interface VonAiFieldDetailPageProps {
   fieldId: string;
@@ -133,11 +114,7 @@ export function VonAiFieldDetailPane({
             {!isLoading && field && (
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 {statusBadge()}
-                {field.sources.length > 0 && (
-                  <DataSources
-                    sources={mapSourcesToDataSources(field.sources)}
-                  />
-                )}
+                <AiFieldSourcesDrawer sources={field.sources} />
                 {field.createdAt && (
                   <span className="text-xs text-gray-400">
                     Created{" "}
@@ -180,18 +157,19 @@ export function VonAiFieldDetailPane({
               <div className="w-full px-3 py-2.5 text-sm text-gray-700 border border-gray-200 rounded-lg bg-gray-50 whitespace-pre-wrap font-mono min-h-[80px]">
                 {field.description || "\u2014"}
               </div>
-              {field.columnsToGenerate.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap mt-2">
-                  {field.columnsToGenerate.map((col) => (
-                    <span
-                      key={col.name}
-                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
-                    >
-                      {col.type}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {field.columnsToGenerate &&
+                field.columnsToGenerate.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    {field.columnsToGenerate.map((col) => (
+                      <span
+                        key={col.name}
+                        className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
+                      >
+                        {col.type}
+                      </span>
+                    ))}
+                  </div>
+                )}
             </div>
 
             {/* Filter (read-only, if present) */}
@@ -223,17 +201,32 @@ export function VonAiFieldDetailPane({
         >
           Cancel
         </button>
-        <div className="relative" ref={chatPickerRef}>
+        <div className="relative group" ref={chatPickerRef}>
           <button
-            onClick={() => setChatPickerOpen(!chatPickerOpen)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+            onClick={() =>
+              !field?.isDefault && setChatPickerOpen(!chatPickerOpen)
+            }
+            aria-disabled={field?.isDefault}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              field?.isDefault
+                ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                : "text-white bg-gray-900 hover:bg-gray-800 cursor-pointer"
+            }`}
           >
             <ChatCircleDotsIcon size={14} />
             Edit in chat
             <CaretDownIcon size={12} />
           </button>
+          {field?.isDefault && (
+            <span
+              role="tooltip"
+              className="pointer-events-none absolute bottom-full right-0 mb-2 hidden group-hover:block whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow-lg z-[60]"
+            >
+              This is a default AI field and can&apos;t be edited.
+            </span>
+          )}
 
-          {chatPickerOpen && (
+          {!field?.isDefault && chatPickerOpen && (
             <div className="absolute bottom-full mb-2 right-0 w-[300px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1">
               <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
                 Recent conversations

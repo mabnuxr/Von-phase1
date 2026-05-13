@@ -26,6 +26,7 @@ import type { TenantIntegrationEnriched } from "../types/appCatalog";
 import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
+  canBeOrgLevel,
 } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 
@@ -61,16 +62,29 @@ export function IntegrationsPanel() {
     setLoadingIntegrationId,
   } = usePreferencesStore();
 
-  // Auto-open integration config pane when linked from chat via ?configure=<id>
+  // Auto-open integration config pane when linked from chat via ?configure=<id>.
+  // For integrations that support org-level connections (HubSpot, Salesforce,
+  // etc.) the chat-card click should default to the workspace pane — picking
+  // personal here would create the wrong record type when no workspace exists
+  // yet. Personal-only integrations (Gmail, Calendar) go to personal as before.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const configureId = searchParams.get("configure");
     if (configureId) {
-      setConfiguringPersonalIntegration(configureId);
+      if (canBeOrgLevel(configureId)) {
+        setConfiguringWorkspaceIntegration(configureId);
+      } else {
+        setConfiguringPersonalIntegration(configureId);
+      }
       searchParams.delete("configure");
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams, setConfiguringPersonalIntegration]);
+  }, [
+    searchParams,
+    setSearchParams,
+    setConfiguringWorkspaceIntegration,
+    setConfiguringPersonalIntegration,
+  ]);
 
   // Fetch integrations with React Query
   const {

@@ -330,17 +330,19 @@ function ExistingChatInner(
     const connected = new Set<string>();
     if (integrationsData?.integrations) {
       for (const integration of integrationsData.integrations) {
-        if (
-          integration.accessLevel === "user" &&
+        const isConnected =
+          (integration.accessLevel === "user" ||
+            (integration.accessLevel === "tenant" &&
+              integration.userId === base.user?.id)) &&
           integration.authenticationStatus ===
-            AuthenticationStatus.AUTHENTICATED
-        ) {
+            AuthenticationStatus.AUTHENTICATED;
+        if (isConnected) {
           connected.add(integration.type.toLowerCase());
         }
       }
     }
     return connected;
-  }, [integrationsData]);
+  }, [integrationsData, base.user?.id]);
 
   // ── Admin check ───────────────────────────────────────────────────
   const handleIntegrate = useCallback((integrationType: string) => {
@@ -981,6 +983,7 @@ function NewChatInner(
       messages={createFlow.transformedMessages}
       onSendMessage={createFlow.handleSendMessage}
       isLoading={false}
+      defaultInputValue={createFlow.restoredInput ?? undefined}
       compact={props.compact}
       height="100%"
       width="100%"

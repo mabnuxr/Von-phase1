@@ -14,7 +14,31 @@
 
 import type { ConversationMode } from "./conversation";
 
-export type FolderItemType = "conversation" | "dashboard";
+/**
+ * Canonical Folders v2 item-type vocabulary (matches the backend enum).
+ * Exposed as both a const object (for value-position use, e.g.
+ * `FolderItemType.Dashboard`) and a string union type (for type positions).
+ */
+export const FolderItemType = {
+  Conversation: "conversation",
+  Dashboard: "dashboard",
+} as const;
+
+export type FolderItemType =
+  (typeof FolderItemType)[keyof typeof FolderItemType];
+
+/**
+ * Translate the design-system sidebar's display-side vocabulary
+ * (`'chat' | 'dashboard'`) to the API's `FolderItemType`. `'chat' →
+ * 'conversation'`; `'dashboard'` is identical.
+ */
+export function toFolderItemType(
+  sidebarType: "chat" | "dashboard",
+): FolderItemType {
+  return sidebarType === "dashboard"
+    ? FolderItemType.Dashboard
+    : FolderItemType.Conversation;
+}
 
 /**
  * Approval indicator state for a conversation in the sidebar.
@@ -137,14 +161,45 @@ export interface UpdateFolderRequest {
   displayOrder?: number | null;
 }
 
-export interface AddItemRequest {
-  itemType: FolderItemType;
-  itemId: string;
-}
-
 export interface ReorderItemsRequest {
   itemType: FolderItemType;
   itemIds: string[];
+}
+
+/**
+ * Response shape of `GET /folders/item-memberships?dashboardId|conversationId=`.
+ * The server enforces multi-folder membership now, so `count >= 0` and
+ * `folders` lists every folder the calling user has filed the item in,
+ * pre-sorted by `displayOrder` then `name`.
+ */
+export interface FolderMembershipLookupResponse {
+  itemType: FolderItemType;
+  itemId: string;
+  count: number;
+  folders: Folder[];
+}
+
+/**
+ * Request body for `PUT /folders/item-memberships`. The server diffs against
+ * the calling user's current memberships for this item and applies adds /
+ * removes atomically — `folderIds` is the desired *full* set, not a delta.
+ */
+export interface SetItemFoldersRequest {
+  itemType: FolderItemType;
+  itemId: string;
+  folderIds: string[];
+}
+
+/**
+ * Response from the PUT endpoint. `added` / `removed` / `unchanged` are
+ * disjoint and together describe the diff the server applied.
+ */
+export interface SetItemFoldersResponse {
+  itemType: FolderItemType;
+  itemId: string;
+  added: string[];
+  removed: string[];
+  unchanged: string[];
 }
 
 export interface FolderOperationResponse {

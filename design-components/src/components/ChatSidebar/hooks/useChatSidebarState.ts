@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { SidebarItem, Folder, FolderItemsMap } from '../ChatSidebar';
+import type { SidebarItem, Folder, FolderItemsMap, ItemType } from '../ChatSidebar';
 import type { MoveToFolderConfig } from '../../popups';
 
 // ============================================================================
@@ -53,7 +53,9 @@ export interface UseChatSidebarStateOptions {
   onNewChatFolderClick?: (folderName: string) => void;
   onMoveItemToFolder?: (itemId: string, folderId: string) => void;
   onCreateFolderAndMoveItem?: (itemId: string, newFolderName: string) => void;
-  onRemoveItemFromFolder?: (itemId: string) => void;
+  /** Unfile a sidebar row (chat or dashboard) from its folder. The unified
+   *  `itemType` is forwarded so the host doesn't need a parallel per-type prop. */
+  onRemoveItemFromFolder?: (itemId: string, itemType: ItemType) => void;
   // Dashboard parallels — dispatched when the in-folder context menu acts
   // on a SidebarItem whose `type` is 'dashboard'. Falls back to the chat
   // callbacks if not provided so existing chat-only callers keep working.
@@ -61,7 +63,6 @@ export interface UseChatSidebarStateOptions {
   onDeleteDashboard?: (id: string) => void;
   onMoveDashboardToFolder?: (dashboardId: string, folderId: string) => void;
   onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
-  onRemoveDashboardFromFolder?: (dashboardId: string) => void;
 }
 
 // ============================================================================
@@ -85,7 +86,6 @@ export function useChatSidebarState({
   onDeleteDashboard,
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
-  onRemoveDashboardFromFolder,
 }: UseChatSidebarStateOptions) {
   // ============================================================================
   // State
@@ -388,13 +388,11 @@ export function useChatSidebarState({
 
   const handleRemoveFromFolder = useCallback(
     (item: SidebarItem) => {
-      if (item.type === 'dashboard') {
-        onRemoveDashboardFromFolder?.(item.id);
-      } else {
-        onRemoveItemFromFolder?.(item.id);
-      }
+      // Single host callback; forward the item's type so the app can dispatch
+      // without parallel per-type props.
+      onRemoveItemFromFolder?.(item.id, item.type);
     },
-    [onRemoveItemFromFolder, onRemoveDashboardFromFolder]
+    [onRemoveItemFromFolder]
   );
 
   // ============================================================================

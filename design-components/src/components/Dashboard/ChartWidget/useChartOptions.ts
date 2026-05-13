@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
-import type Highcharts from 'highcharts';
+import Highcharts from 'highcharts';
 import type {
   ChartWidgetConfig,
-  DrilldownConfig,
-  DrilldownColumnMapping,
+  DrilldownV2ColumnMapping,
   DrillFilters,
   PanelDrilldownV2,
 } from '../types';
@@ -144,6 +143,52 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
     gridLineColor: GRID_LINE_COLOR,
   };
 
+  // Smart tooltip: read each series' ``dataLabels.format`` and apply it
+  // to the hover value so the tooltip mirrors what's printed on the bar
+  // (e.g. "$447,500" rather than the raw "447500"). Highcharts'
+  // ``pointFormatter`` takes precedence over ``pointFormat`` when both
+  // are set, so this overrides any agent-authored
+  // ``tooltip.pointFormat: "<b>{point.y}</b>"`` template that ships
+  // raw values.
+  //
+  // Falls back to ``Number.toLocaleString()`` when no ``dataLabels.format``
+  // is declared on the series. Non-numeric ``point.y`` (categorical
+  // labels) passes through verbatim. Dot-glyph color matches Highcharts'
+  // default tooltip styling so the visual is unchanged besides the value.
+  const smartPointFormatter = function (
+    this: Highcharts.Point & {
+      series: Highcharts.Series & {
+        options: { dataLabels?: { format?: string } | Array<{ format?: string }> };
+      };
+    }
+  ): string {
+    const seriesName = this.series?.name ?? '';
+    const colorAny = (this as unknown as { color?: unknown }).color;
+    const color =
+      typeof colorAny === 'string'
+        ? colorAny
+        : (this.series as unknown as { color?: string })?.color || '#7c3aed';
+    const dl = this.series?.options?.dataLabels;
+    const dlFormat = Array.isArray(dl) ? dl[0]?.format : dl?.format;
+    let valueStr: string;
+    if (typeof this.y !== 'number' || !Number.isFinite(this.y)) {
+      valueStr = String(this.y ?? '');
+    } else if (dlFormat && typeof dlFormat === 'string') {
+      try {
+        valueStr = Highcharts.format(
+          dlFormat,
+          { point: this, series: this.series, value: this.y },
+          undefined
+        );
+      } catch {
+        valueStr = this.y.toLocaleString();
+      }
+    } else {
+      valueStr = this.y.toLocaleString();
+    }
+    return `<span style="color:${color}">●</span> ${seriesName}: <b>${valueStr}</b><br/>`;
+  };
+
   return {
     ...BASE_CHART_OPTIONS,
     ...raw,
@@ -152,6 +197,11 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
       ...(raw.chart ?? {}),
       animation: false,
       reflow: false,
+    },
+    tooltip: {
+      ...(BASE_CHART_OPTIONS.tooltip ?? {}),
+      ...((raw.tooltip ?? {}) as object),
+      pointFormatter: smartPointFormatter,
     },
     xAxis: Array.isArray(raw.xAxis)
       ? raw.xAxis.map((x) => ({ ...xAxisDefaults, ...(x as object) }))
@@ -206,40 +256,28 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
 // ── Drilldown injection ─────────────────────────────────────────
 
 /**
- * Resolve the effective column_map for a chart's point click — V2 (when
- * present) takes precedence over the legacy V1 ``drilldown.column_map`` so
- * V2-authored panels keep V1-style "click a bar to filter by stage"
- * behavior.
+ * Resolve the effective column_map for a chart's point click.
  *
- * For V2 the column_map is read off ``levels[0]``'s default variant. Deeper
- * levels are descended into via the drilldown panel UI, not via widget point
- * clicks — every chart click always opens drilldown at depth 0.
+ * Chart parent clicks always live at L0 = ``levels[0]`` of the pyramid.
+ * Read its default variant's column_map to find which Highcharts
+ * properties map to which SQL columns. Deeper levels are unreachable
+ * from a widget click; descent happens via the drilldown panel UI.
  */
 function resolveEffectiveColumnMap(
-  drilldown: DrilldownConfig | null | undefined,
   drilldownV2: PanelDrilldownV2 | null | undefined
-): DrilldownColumnMapping[] {
-  // V2 pyramid model: chart parent clicks always live at L0 = levels[0].
-  // Read its default variant's column_map to find which Highcharts properties
-  // map to which SQL columns. Deeper levels are unreachable from a widget click;
-  // descent happens via the drilldown panel UI.
+): DrilldownV2ColumnMapping[] {
   const l0 = drilldownV2?.levels?.[0];
-  if (l0?.variants?.length) {
-    const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
-    if (defaultVariant?.column_map?.length) {
-      return defaultVariant.column_map;
-    }
-  }
-  return drilldown?.column_map ?? [];
+  if (!l0?.variants?.length) return [];
+  const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
+  return defaultVariant?.column_map ?? [];
 }
 
 function injectDrilldown(
   options: Highcharts.Options,
-  drilldown: DrilldownConfig | null | undefined,
   drilldownV2: PanelDrilldownV2 | null | undefined,
-  onPointClick: ((drillFilters: DrillFilters) => void) | undefined
+  onPointClick: ((drillFilters: DrillFilters, metricValue?: unknown) => void) | undefined
 ): Highcharts.Options {
-  const columnMap = resolveEffectiveColumnMap(drilldown, drilldownV2);
+  const columnMap = resolveEffectiveColumnMap(drilldownV2);
   if (!columnMap.length || !onPointClick) return options;
 
   const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
@@ -313,7 +351,92 @@ function injectDrilldown(
                 }
               }
               if (Object.keys(filters).length > 0) {
-                onPointClick(filters);
+                // Capture the metric value behind this point so the drill
+                // breadcrumb can show "Stage: Negotiation ($47K)" instead
+                // of just "Stage: Negotiation". Highcharts stores the
+                // numeric value at ``point.y`` for cartesian + pie series;
+                // Sankey and similar weighted-edge series surface it as
+                // ``point.weight``. We pull whichever is non-null.
+                //
+                // Format the numeric so the breadcrumb mirrors what the
+                // user actually sees on the chart — matching the
+                // KPI/table affordance.
+                //
+                // Highcharts charts expose three different formatting
+                // templates, each with different reach:
+                //   - ``series.dataLabels.format`` — what the per-bar /
+                //     per-point labels render. Templates like
+                //     ``"${point.y:,.0f}"`` produce ``"$80,000"``. When
+                //     the agent enabled data labels, this is the most
+                //     user-visible format because the bar literally
+                //     shows it.
+                //   - ``yAxis.labels.format`` — y-axis tick labels
+                //     (e.g. ``"200k"``). Often unset; Highcharts uses
+                //     k/M auto-abbreviation by default.
+                //   - ``tooltip.pointFormat`` — hover tooltip body.
+                //     Often ``<b>{point.y}</b>`` (raw), which is why
+                //     the tooltip can show an unformatted value while
+                //     the bar shows a formatted one.
+                //
+                // Resolution order: dataLabels.format → yAxis labels
+                // (string format or function formatter) → toLocaleString.
+                // ``Highcharts.format`` evaluates the template string
+                // against ``{point, series, value}`` so both
+                // ``{point.y:,.0f}`` and ``{value:,.0f}`` resolve.
+                //
+                // Non-numeric points (categorical labels) pass through
+                // verbatim.
+                const point = this as unknown as {
+                  y?: unknown;
+                  weight?: unknown;
+                  value?: unknown;
+                  series?: {
+                    options?: {
+                      dataLabels?: { format?: string } | Array<{ format?: string }>;
+                    };
+                    yAxis?: {
+                      options?: {
+                        labels?: {
+                          format?: string;
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter?: (this: any) => string;
+                        };
+                      };
+                    };
+                  };
+                };
+                const rawValue = point.y ?? point.weight ?? point.value ?? null;
+                let metricValue: unknown = rawValue;
+                if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+                  const dl = point.series?.options?.dataLabels;
+                  const dlFormat = Array.isArray(dl) ? dl[0]?.format : dl?.format;
+                  const axisLabels = point.series?.yAxis?.options?.labels;
+                  try {
+                    if (dlFormat && typeof dlFormat === 'string') {
+                      metricValue = Highcharts.format(
+                        dlFormat,
+                        { point, series: point.series, value: rawValue },
+                        undefined
+                      );
+                    } else if (axisLabels?.format && typeof axisLabels.format === 'string') {
+                      metricValue = Highcharts.format(
+                        axisLabels.format,
+                        { value: rawValue },
+                        undefined
+                      );
+                    } else if (typeof axisLabels?.formatter === 'function') {
+                      metricValue = axisLabels.formatter.call({
+                        value: rawValue,
+                        axis: point.series?.yAxis,
+                      });
+                    } else {
+                      metricValue = rawValue.toLocaleString();
+                    }
+                  } catch {
+                    metricValue = rawValue.toLocaleString();
+                  }
+                }
+                onPointClick(filters, metricValue);
               }
             },
           },
@@ -327,17 +450,11 @@ function injectDrilldown(
 
 interface UseChartOptionsParams {
   config: ChartWidgetConfig;
-  drilldown?: DrilldownConfig | null;
   drilldownV2?: PanelDrilldownV2 | null;
   onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
-export function useChartOptions({
-  config,
-  drilldown,
-  drilldownV2,
-  onPointClick,
-}: UseChartOptionsParams) {
+export function useChartOptions({ config, drilldownV2, onPointClick }: UseChartOptionsParams) {
   const isGantt = config.chartType === 'gantt';
   const constructorType: 'chart' | 'ganttChart' = isGantt ? 'ganttChart' : 'chart';
 
@@ -347,8 +464,8 @@ export function useChartOptions({
   }, [config.highchartsOptions, isGantt]);
 
   const finalOptions = useMemo(
-    () => injectDrilldown(options, drilldown, drilldownV2, onPointClick),
-    [options, drilldown, drilldownV2, onPointClick]
+    () => injectDrilldown(options, drilldownV2, onPointClick),
+    [options, drilldownV2, onPointClick]
   );
 
   return { options: finalOptions, constructorType };

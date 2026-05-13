@@ -2,9 +2,10 @@
  * DrilldownPanelV2 — bottom-sheet renderer for the V2 drilldown flow
  * (pyramid model).
  *
- * Feature-flagged on the backend via `drilldown_v2`. The FE wires this panel
- * alongside the legacy DrilldownPanel — callers pick the V2 variant when the
- * clicked widget's loaded config has a `drilldown_v2` field populated.
+ * The FE wires this panel alongside the legacy DrilldownPanel — callers
+ * pick the V2 variant when the clicked widget's loaded config has a
+ * `drilldown_v2` field populated. Legacy panels (no `drilldown_v2`)
+ * fall through to the V1 DrilldownPanel.
  *
  * Contract:
  * - 95vh bottom sheet with scrim + grip handle; ESC / close button to dismiss.
@@ -22,7 +23,7 @@
  * - Advisory banner when click-chain depth >= 8 (deep drilling — suggests
  *   switching to chat if the user is lost).
  */
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   XIcon,
@@ -91,6 +92,54 @@ function columnsFromData(rows: Record<string, unknown>[]): ReportColumn[] {
   }));
 }
 
+/**
+ * Append ``drillable-cell`` to ``column.cells.className`` for each column
+ * id in ``drillableColumns``. ``null`` whitelist means the variant didn't
+ * author one — paint NO cells as drillable (no highlight, no pointer
+ * cursor, no ↳ glyph). The bottom-sheet click handler still passes
+ * through clicks on null (see ``handleGridClick``), so legacy
+ * V1→V2-migrated variants without a whitelist still respond to clicks
+ * even though the visual affordance is suppressed.
+ *
+ * Mirror of ``applyDrillableCellClass`` in ``TableWidget`` — kept inline
+ * here rather than imported because the helper isn't exported from
+ * design-components and the logic is small.
+ *
+ * Removed the previous "null = every cell clickable + highlighted"
+ * back-compat. It produced misleading affordance on agent-authored
+ * variants where the agent simply omitted the whitelist — every
+ * dimension column appeared drillable. The validator now rejects null
+ * on agent-authored configs
+ * (``_validate_v2_drillable_columns_required``); this FE change drops
+ * the matching visual back-compat so legacy migrations + accidental
+ * nulls fail closed visually.
+ */
+function applyDrillableCellClass(
+  options: ReturnType<typeof buildGridOptions>,
+  drillableColumns: string[] | null,
+): ReturnType<typeof buildGridOptions> {
+  const cols = (options as { columns?: unknown[] }).columns;
+  if (!Array.isArray(cols)) return options;
+  // null whitelist → don't tag any column. Click still works (the
+  // per-cell click handler treats null as "no gate"); just no visual
+  // affordance.
+  if (drillableColumns === null) return options;
+  const allow = new Set(drillableColumns);
+  const mapped = cols.map((col) => {
+    const c = col as { id?: string; cells?: { className?: string } };
+    const id = c.id;
+    if (!id) return col;
+    if (!allow.has(id)) return col;
+    const existing =
+      typeof c.cells?.className === "string" ? c.cells.className : "";
+    const next = existing.includes("drillable-cell")
+      ? existing
+      : [existing, "drillable-cell"].filter(Boolean).join(" ");
+    return { ...c, cells: { ...(c.cells ?? {}), className: next } };
+  });
+  return { ...options, columns: mapped } as ReturnType<typeof buildGridOptions>;
+}
+
 // ─── Component props ─────────────────────────────────────────────
 
 export interface DrilldownPanelV2Props {
@@ -115,9 +164,40 @@ export interface DrilldownPanelV2Props {
   /**
    * Called when the user clicks any cell in a row, while `hasNextLevel` is
    * true. The parent issues `drill.pushLevel(...)` with the row's grouping-key
-   * dict as the new filter contribution — whole-row descent.
+   * dict as the new filter contribution — whole-row descent. The optional
+   * ``metricValue`` + ``metricLabel`` args carry the clicked cell's value
+   * and column label so deeper breadcrumb segments can render the
+   * "Column Name: value" parenthesized suffix. ``variantId`` carries the
+   * next-level variant id resolved from the current variant's
+   * ``column_variant_map`` for the clicked column; null = next level uses
+   * its is_default.
    */
-  onRowDrill?: (rowIndex: number, rowData: Record<string, unknown>) => void;
+  onRowDrill?: (
+    rowIndex: number,
+    rowData: Record<string, unknown>,
+    metricValue?: unknown,
+    metricLabel?: string,
+    variantId?: string | null,
+  ) => void;
+  /**
+   * Per-depth drillable-column whitelists indexed by chain depth (same
+   * indexing convention as ``levelColumnMaps``). Sourced from the active
+   * variant at each level: ``levels[N].variants[active].drillable_columns``.
+   * When the entry at the current chain depth is a non-null list, only
+   * those column ids in the drill output get the ``drillable-cell`` class
+   * (hover affordance + click registration). null/undefined → back-compat
+   * (every cell drillable).
+   */
+  levelDrillableColumns?: (string[] | null | undefined)[];
+  /**
+   * The currently-viewed variant's ``column_variant_map`` at the active
+   * drill depth. Resolved by the parent because it can read drill state
+   * (``currentVariantId`` + chain length) before passing in. null/undefined
+   * means no map declared → every clicked column descends into the next
+   * level's is_default variant. See ``getCurrentVariantColumnVariantMap``
+   * in utils/drilldownFilters.ts for resolution rules.
+   */
+  currentLevelColumnVariantMap?: Record<string, string> | null;
 }
 
 export function DrilldownPanelV2({
@@ -125,6 +205,8 @@ export function DrilldownPanelV2({
   widgetTitle,
   levelColumnMaps,
   onRowDrill,
+  levelDrillableColumns,
+  currentLevelColumnVariantMap,
 }: DrilldownPanelV2Props) {
   // Close on ESC
   useEffect(() => {
@@ -138,24 +220,99 @@ export function DrilldownPanelV2({
 
   const columns = useMemo(() => columnsFromData(drill.data), [drill.data]);
 
+  // Active variant's drillable_columns whitelist for the level the user is
+  // currently viewing. The drill view at chain depth N renders rows from
+  // ``levels[N-1].variants[active]``'s drill query, so its drillable
+  // columns live at index N-1 of ``levelDrillableColumns``. Anything
+  // beyond chain.length is unreachable; a null/undefined entry means
+  // back-compat (every cell drillable).
+  const currentDrillableColumns: string[] | null | undefined = useMemo(() => {
+    const depth = drill.clickChain.length;
+    if (depth <= 0) return null;
+    return levelDrillableColumns?.[depth - 1] ?? null;
+  }, [drill.clickChain.length, levelDrillableColumns]);
+
+  // Wrapper ref for the post-render effect that tags drillable headers
+  // and writes the title attribute on drillable td's. Grid Lite owns
+  // thead rendering and doesn't expose a header className API on the
+  // column config, so we tag from the DOM instead. Mirror of the
+  // equivalent effect in TableWidget.tsx.
+  const gridWrapRef = useRef<HTMLDivElement>(null);
+
   const gridOptions = useMemo(() => {
     if (columns.length === 0 || drill.data.length === 0) return null;
-    return buildGridOptions(columns, drill.data, {
+    const opts = buildGridOptions(columns, drill.data, {
       pageSize: drill.data.length,
       showPagination: false,
     });
-  }, [columns, drill.data]);
+    // Tag the body cells of drillable columns with ``drillable-cell`` so
+    // the per-cell hover CSS only paints those columns. null whitelist =
+    // every column gets the class (back-compat). Same rule the dashboard
+    // TableWidget applies via ``applyDrillableCellClass``.
+    return applyDrillableCellClass(opts, currentDrillableColumns ?? null);
+  }, [columns, drill.data, currentDrillableColumns]);
 
-  // Whole-row descent: clicking ANY cell in a row descends to the next level
-  // when `hasNextLevel === true`. We don't discriminate per column — semantically
-  // a click anywhere in row R means "show me what made up THIS row," and the
-  // entire row's grouping-key values become cumulative filters at the next level.
+  // Drillable affordance — post-render DOM tagging.
+  //
+  // Grid Lite exposes ``cells.className`` on the column config (used by
+  // ``applyDrillableCellClass`` above) but not a parallel
+  // ``header.className`` — to tint matching column headers we tag the
+  // ``<th>`` elements after Grid Lite commits its DOM. Same effect adds
+  // the ``title="Click to drill deeper"`` native tooltip to drillable
+  // td's (Grid Lite has no per-cell attributes API beyond className).
+  //
+  // Re-runs on every gridOptions identity change so it survives variant
+  // / page / sort cycles. Mirror of the equivalent effect in
+  // ``design-components/.../TableWidget.tsx``.
+  useEffect(() => {
+    const el = gridWrapRef.current;
+    if (!el) return;
+    const raf = requestAnimationFrame(() => {
+      const table = el.querySelector(".hcg-table");
+      if (!table) return;
+      const firstRow = table.querySelector(
+        "tbody tr:not(.hcg-mocked-row)",
+      ) as HTMLTableRowElement | null;
+      if (!firstRow) return;
+      const drillableIdxs = new Set<number>();
+      Array.from(firstRow.children).forEach((cell, i) => {
+        if ((cell as HTMLElement).classList.contains("drillable-cell")) {
+          drillableIdxs.add(i);
+        }
+      });
+      const ths = table.querySelectorAll("thead th");
+      ths.forEach((th, i) => {
+        th.classList.toggle("drillable-header", drillableIdxs.has(i));
+      });
+      const tds = table.querySelectorAll("tbody td.drillable-cell");
+      tds.forEach((td) => {
+        (td as HTMLElement).title = "Click to drill deeper";
+      });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [gridOptions]);
+
+  // Whole-row descent: clicking a drillable cell descends to the next
+  // level when ``hasNextLevel === true``. We DON'T discriminate at the
+  // SQL filter level (the entire row's grouping-key values still propagate
+  // — see ``rowDescentFilters``) but we DO gate which CELLS are clickable
+  // based on the active variant's ``drillable_columns`` whitelist, so the
+  // hover affordance + click registration only fire on aggregated metric
+  // columns. null whitelist = every cell clickable (back-compat).
   const handleGridClick = useCallback(
     (e: React.MouseEvent) => {
       if (!onRowDrill || !drill.hasNextLevel) return;
       const target = e.target as HTMLElement;
       const td = target.closest("td");
       if (!td) return;
+      // Per-column gate — the same ``drillable-cell`` className the CSS
+      // hover rule keys on. Cells not in the whitelist are non-interactive.
+      if (
+        currentDrillableColumns != null &&
+        !td.classList.contains("drillable-cell")
+      ) {
+        return;
+      }
       const tr = td.closest("tr");
       if (!tr) return;
 
@@ -164,10 +321,43 @@ export function DrilldownPanelV2({
       const rowIndex = Array.prototype.indexOf.call(tbody.children, tr);
       if (rowIndex < 0 || rowIndex >= drill.data.length) return;
 
+      // Look up the clicked cell's value AND the column's display label so
+      // deeper-level breadcrumb segments can render "Column Name: value".
+      // Map td position → column id from the rendered headers, then read
+      // ``td.textContent`` for the FORMATTED string the user clicked
+      // (e.g. ``"$1,096,367"`` rather than the raw ``1096366.67`` from
+      // rowData[col.id]). The breadcrumb suffix is a display-only
+      // affordance — surfacing the formatted value matches what the
+      // user clicked, mirroring the KPI/chart pattern. Falls back to
+      // the raw rowData value when the cell has no rendered text
+      // (empty / null cells).
+      const cells = Array.from(tr.children);
+      const colIdx = cells.indexOf(td);
+      const rowData = drill.data[rowIndex] as Record<string, unknown>;
+      const col = columns[colIdx];
+      const rawValue = col?.id != null ? (rowData[col.id] ?? null) : null;
+      const displayText = td.textContent?.trim() ?? "";
+      const metricValue = displayText.length > 0 ? displayText : rawValue;
+      const metricLabel = col?.label;
+      // Route to a specific next-level variant when the active variant's
+      // ``column_variant_map`` declares one for the clicked column. Without
+      // a match, fall back to the next level's is_default by passing null.
+      const mappedVariantId =
+        col?.id != null
+          ? (currentLevelColumnVariantMap?.[col.id] ?? null)
+          : null;
+
       e.stopPropagation();
-      onRowDrill(rowIndex, drill.data[rowIndex]);
+      onRowDrill(rowIndex, rowData, metricValue, metricLabel, mappedVariantId);
     },
-    [drill.data, drill.hasNextLevel, onRowDrill],
+    [
+      drill.data,
+      drill.hasNextLevel,
+      onRowDrill,
+      currentDrillableColumns,
+      columns,
+      currentLevelColumnVariantMap,
+    ],
   );
 
   // ServerSortState is ``{orderBy, orderByAsc}`` — same shape as the hook's
@@ -205,6 +395,8 @@ export function DrilldownPanelV2({
             widgetTitle={widgetTitle ?? drill.title ?? "Drilldown"}
             chain={drill.clickChain}
             levelColumnMaps={levelColumnMaps}
+            variants={drill.variants}
+            currentVariantId={drill.currentVariantId}
             onPopToLevel={drill.popToLevel}
           />
           <div className="dd-v2-header-actions">
@@ -261,6 +453,7 @@ export function DrilldownPanelV2({
             </div>
           ) : (
             <div
+              ref={gridWrapRef}
               className={`dd-v2-grid-wrap${drill.hasNextLevel ? " dd-v2-grid-wrap-drillable" : ""}`}
               onClick={handleGridClick}
             >
@@ -294,11 +487,15 @@ function Breadcrumb({
   widgetTitle,
   chain,
   levelColumnMaps,
+  variants,
+  currentVariantId,
   onPopToLevel,
 }: {
   widgetTitle: string;
   chain: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode[];
   levelColumnMaps?: DrilldownV2ColumnMapping[][];
+  variants: DrilldownV2VariantSummary[];
+  currentVariantId: string | null;
   onPopToLevel: (depth: number) => void;
 }) {
   // The widget title is the breadcrumb's "home" — clicking it pops to depth
@@ -313,6 +510,52 @@ function Breadcrumb({
   // chain length <= 1 the user is already at L1 (or before), so we render a
   // plain span to avoid a misleading hover affordance and a no-op click.
   const isInteractive = chain.length > 1;
+  // The variant control acts on the CURRENT (deepest) view. When the user
+  // picks a variant different from what the click originally routed to, the
+  // parenthesized suffix on the segment representing that depth swaps from
+  // the captured metric value to the variant label. "Originally routed"
+  // means: the variant id passed at click-time (for table-cell clicks this
+  // comes from ``column_variant_map``; for KPI / chart clicks it's null,
+  // meaning "use is_default"). Comparing against the routed variant — not
+  // the level's ``is_default`` — keeps the value visible when the column-
+  // routed initial variant happens to be non-default (e.g. clicking
+  // open_pipeline_arr routes to the "open" variant even though the level's
+  // is_default is "all").
+  const topIdx = chain.length - 1;
+  const topNode = chain[topIdx];
+  const activeVariant = currentVariantId
+    ? (variants.find((v) => v.id === currentVariantId) ?? null)
+    : null;
+  const isOnRoutedVariant =
+    topNode == null
+      ? true
+      : topNode.initialVariantId === null
+        ? (activeVariant?.is_default ?? false)
+        : topNode.initialVariantId === currentVariantId;
+  const variantLabelOverride =
+    activeVariant && !isOnRoutedVariant ? activeVariant.label : null;
+
+  // For panel-level clicks (KPI tile, chart/table drill icon) chain[0] has
+  // no filters and no columnPath, so formatSegment skips rendering a
+  // segment for it. KPI clicks DO carry a metricValue (the resolved
+  // numeric the tile rendered) — surface it as a suffix on the widget
+  // title since for a KPI the title IS the metric label. Only attach
+  // when the L0 click is truly panel-level (empty filters + empty
+  // columnPath) so we never double-render against a real L0 segment.
+  // When chain.length === 1 and the root is panel-level, the title
+  // suffix IS the active depth's suffix — so the variant-label override
+  // applies here too.
+  const root = chain[0];
+  const rootIsPanelLevel =
+    !!root &&
+    Object.keys(root.filters).length === 0 &&
+    root.columnPath.length === 0;
+  const titleSuffix = rootIsPanelLevel
+    ? chain.length === 1 && variantLabelOverride
+      ? ` (${variantLabelOverride})`
+      : formatMetricSuffix(root.metricValue, root.metricLabel)
+    : "";
+  const titleText = (widgetTitle || "Drilldown") + titleSuffix;
   return (
     <div className="dd-v2-breadcrumb">
       {isInteractive ? (
@@ -321,15 +564,21 @@ function Breadcrumb({
           title={`${widgetTitle} — back to first drill view`}
           onClick={() => onPopToLevel(0)}
         >
-          {widgetTitle || "Drilldown"}
+          {titleText}
         </button>
       ) : (
         <span className="dd-v2-breadcrumb-widget" title={widgetTitle}>
-          {widgetTitle || "Drilldown"}
+          {titleText}
         </span>
       )}
       {chain.map((node, idx) => {
-        const label = formatSegment(node, levelColumnMaps?.[idx]);
+        const segmentVariantOverride =
+          idx === topIdx ? variantLabelOverride : null;
+        const label = formatSegment(
+          node,
+          levelColumnMaps?.[idx],
+          segmentVariantOverride,
+        );
         // A null label indicates a panel-level click with no filters (e.g.
         // KPI tile click, chart drilldown-icon click). The widget title above
         // already absorbs the click target for that depth — emitting a
@@ -376,14 +625,30 @@ function Breadcrumb({
 function formatSegment(
   node: import("../../../hooks/useDrilldownV2").DrilldownV2ClickNode,
   columnMap: DrilldownV2ColumnMapping[] | undefined,
+  variantLabelOverride: string | null,
 ): string | null {
+  // Append the clicked metric value as a parenthesized suffix when present
+  // (e.g. " (47)" for a chart bar of height 47). For table widget cells +
+  // drill-view cells, also include the column label so the user knows WHICH
+  // metric they clicked: " (Opp Count: 40)". Captured at click time; null
+  // for panel-level icon clicks. Numbers render via toLocaleString for
+  // thousands separators; booleans / strings pass through verbatim.
+  //
+  // When the user picked a non-default variant on this depth, the suffix
+  // swaps to the variant label — the variant choice is more informative than
+  // the original click value once the view's slice has changed.
   const filterEntries = Object.entries(node.filters);
+  const metricSuffix = variantLabelOverride
+    ? ` (${variantLabelOverride})`
+    : formatMetricSuffix(node.metricValue, node.metricLabel);
   if (filterEntries.length === 0) {
     if (node.columnPath.length === 0) {
       // Panel-level drill (KPI / icon click). Nothing to show.
       return null;
     }
-    return formatLabel(node.columnPath[node.columnPath.length - 1]);
+    return (
+      formatLabel(node.columnPath[node.columnPath.length - 1]) + metricSuffix
+    );
   }
 
   const cmByKey = new Map<string, DrilldownV2ColumnMapping>();
@@ -408,13 +673,48 @@ function formatSegment(
     if (!seen.has(k)) ordered.push([k, v]);
   });
 
-  return ordered
-    .map(([key, val]) => {
-      const entry = cmByKey.get(key);
-      const label = entry?.title || formatLabel(stripPrefix(key));
-      return `${label}: ${formatFilterValue(val, entry)}`;
-    })
-    .join(", ");
+  const labels = ordered.map(([key, val]) => {
+    const entry = cmByKey.get(key);
+    const label = entry?.title || formatLabel(stripPrefix(key));
+    return `${label}: ${formatFilterValue(val, entry)}`;
+  });
+  return labels.join(", ") + metricSuffix;
+}
+
+/**
+ * Render the clicked metric value as a " (value)" or " (label: value)"
+ * suffix for the breadcrumb segment, or empty string when no metric is
+ * captured.
+ *
+ * - When ``metricLabel`` is set (table widget / drill-view cell click), the
+ *   suffix renders as ``(Opp Count: 40)`` so the user can see WHICH column's
+ *   value they drilled into. Chart point clicks and KPI tile clicks leave
+ *   ``metricLabel`` unset because the breadcrumb's main segment label
+ *   already conveys the dimension (chart axis) or the widget title (KPI).
+ * - Numbers → ``toLocaleString`` for thousands separators (`1234` → "1,234").
+ * - Non-empty strings → verbatim. An empty string `""` (which CASE WHEN
+ *   expressions or coalesced cells can produce) is treated as "no
+ *   metric to show" rather than rendering as the awkward `" ()"`.
+ * - Booleans → verbatim.
+ * - null / undefined → empty (no suffix at all).
+ */
+function formatMetricSuffix(
+  metricValue: unknown,
+  metricLabel?: string,
+): string {
+  if (metricValue === null || metricValue === undefined) return "";
+  let formatted: string;
+  if (typeof metricValue === "number" && Number.isFinite(metricValue)) {
+    formatted = metricValue.toLocaleString();
+  } else if (typeof metricValue === "string") {
+    if (metricValue.length === 0) return "";
+    formatted = metricValue;
+  } else if (typeof metricValue === "boolean") {
+    formatted = String(metricValue);
+  } else {
+    return "";
+  }
+  return metricLabel ? ` (${metricLabel}: ${formatted})` : ` (${formatted})`;
 }
 
 function stripPrefix(dataKey: string): string {

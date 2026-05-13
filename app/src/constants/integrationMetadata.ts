@@ -46,7 +46,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
-    disabled: false,
   },
   gong: {
     id: "gong",
@@ -505,8 +504,10 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
 export type AccessLevel = "tenant" | "user";
 
 export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
-  // CRM - Salesforce can be both org and user level
+  // CRM - Salesforce + HubSpot support both Workspace (admin connects once) and
+  // Personal (per-user OAuth for write attribution) modes
   salesforce: ["tenant", "user"],
+  hubspot: ["tenant", "user"],
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],
@@ -522,7 +523,6 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   outreach_kaia: ["tenant"],
 
   // Personal integrations - user-level only
-  hubspot: ["user"],
   googlecalendar: ["user"],
   googledrive: ["user"],
   box: ["user"],

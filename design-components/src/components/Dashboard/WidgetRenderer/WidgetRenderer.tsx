@@ -8,6 +8,7 @@ import { TableWidget } from '../TableWidget';
 import { QueryInfoPopover } from '../QueryInfoPopover';
 import { WidgetFiltersPopover } from '../WidgetFiltersPopover';
 import { DragPill } from '../DragPill';
+import { formatKpiDisplay } from '../../../utils/formatKpiValue';
 import type {
   WidgetRendererProps,
   ChartWidgetConfig,
@@ -37,17 +38,59 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     isEditMode,
   }) => {
     const handleDrillDown = useCallback(() => {
-      onDrillDown?.(widget.id);
-    }, [onDrillDown, widget.id]);
+      // For KPI tiles, surface what the user actually saw on the tile to
+      // the drill chain so the breadcrumb renders the same string in
+      // parentheses. The tile renders via ``formatKpiDisplay(value,
+      // format, prefix, suffix)`` (CounterWidget.tsx) — e.g. a KPI with
+      // ``format: 'currency-millions', prefix: '$', suffix: 'M'`` shows
+      // ``$1.23M``, not the raw ``1234567``. Forward the same formatted
+      // string here so the breadcrumb matches what was clicked.
+      //
+      // Empty KPIs (``value === null`` → ``formatKpiDisplay`` returns
+      // ``"—"``) get pass-through ``undefined`` instead so the
+      // breadcrumb suppresses the suffix entirely — a "(—)" suffix
+      // would be noise.
+      //
+      // Non-counter widgets (chart drill icon, table drill icon) have
+      // no single "value" to surface, so we leave metricValue undefined
+      // and the breadcrumb stays bare.
+      let metricValue: unknown;
+      if (widget.type === 'counter') {
+        const cfg = widget.config as CounterWidgetConfig | undefined;
+        if (cfg && cfg.value !== null && cfg.value !== undefined) {
+          metricValue = formatKpiDisplay(cfg.value, cfg.format, cfg.prefix, cfg.suffix);
+        }
+      }
+      onDrillDown?.(widget.id, metricValue);
+    }, [onDrillDown, widget.id, widget.type, widget.config]);
 
     const drillDownHandler = onDrillDown ? handleDrillDown : undefined;
 
     const handlePointDrillDown = useCallback(
-      (filters: DrillFilters) => {
-        onPointDrillDown?.(widget.id, filters);
+      (filters: DrillFilters, metricValue?: unknown) => {
+        // Chart point clicks pass through with metricValue but no
+        // metricLabel and no variantId — the chart's axis label is
+        // already in the segment's main label (so a "(label: value)"
+        // suffix would duplicate context), and chart points don't
+        // route to a specific variant (the chart represents one
+        // measure, not multiple variants per point). Table cell
+        // clicks plumb their own label + variantId via
+        // ``handleTableCellClick`` below.
+        onPointDrillDown?.(widget.id, filters, metricValue);
       },
       [onPointDrillDown, widget.id]
     );
+
+    // Convert a SQL column id to the user-facing label the table header
+    // renders. Mirrors the formatLabel heuristic used by DrilldownPanelV2's
+    // columnsFromData (the drill-view side) so the breadcrumb suffix shows
+    // the same casing on both surfaces. ``opp_count`` → ``Opp Count``.
+    const formatColumnLabel = useCallback((columnId: string): string => {
+      return columnId
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+    }, []);
 
     const handleAddToChat = useCallback(() => {
       onAddToChat?.({ id: widget.id, title: widget.title, type: widget.type });
@@ -55,13 +98,23 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
 
     const addToChatHandler = onAddToChat ? handleAddToChat : undefined;
 
+    // Resolve the explicit drillable-columns whitelist for this panel widget.
+    // ``panel.drilldown_v2.drillable_columns`` lists the column ids in the
+    // panel's main query output that the agent marked as clickable for drill
+    // — typically the aggregated metric columns only, never GROUP BY
+    // dimensions. When the agent authored it, we use it verbatim. When it's
+    // null (omitted) we fall back to "every cell clickable" so legacy
+    // dashboards predating this field keep their current drill behaviour.
+    const drillableColumns: string[] | null | undefined = widget.drilldown_v2?.drillable_columns;
+
     // Table cell-click → drilldown_v2 wiring. Mirror of the chart `onPointClick`
-    // path above (line 45–50) for table panels: when the user clicks any body
-    // cell, build drillFilters by reading every column_map.data_key from the
-    // clicked row, then fire onPointDrillDown — same shape the chart point
-    // handler sends. Without this wire-up, table panels rely solely on the
-    // corner drilldown icon (panel-level drill, no row context), which makes
-    // 2-D cohort/pivot cells effectively non-drillable even when
+    // path above (line 45–50) for table panels: when the user clicks a body
+    // cell whose column id is in ``drillable_columns`` (or any cell, when the
+    // field is null), build drillFilters by reading every column_map.data_key
+    // from the clicked row and fire onPointDrillDown — same shape the chart
+    // point handler sends. Without this wire-up, table panels rely solely on
+    // the corner drilldown icon (panel-level drill, no row context), which
+    // makes 2-D cohort/pivot cells effectively non-drillable even when
     // drilldown_v2 is correctly authored.
     //
     // Resolves drillFilters from the L0 default variant's column_map because
@@ -72,8 +125,19 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     // table-row data) and skip data_keys not present in the row to avoid
     // sending `undefined` drill_filter values.
     const handleTableCellClick = useCallback(
-      (_columnId: string, _cellValue: unknown, rowData: Record<string, unknown>) => {
+      (
+        columnId: string,
+        cellValue: unknown,
+        rowData: Record<string, unknown>,
+        displayText?: string
+      ) => {
         if (!onPointDrillDown) return;
+        // Per-column gate: when the agent declared a drillable_columns
+        // whitelist, only those cells fire a drill. null whitelist =
+        // back-compat (every cell clickable).
+        if (drillableColumns != null && !drillableColumns.includes(columnId)) {
+          return;
+        }
         const v2 = widget.drilldown_v2;
         const defaultVariant =
           v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
@@ -98,9 +162,41 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           }
         }
         if (Object.keys(drillFilters).length === 0) return;
-        onPointDrillDown(widget.id, drillFilters);
+        // ``cellValue`` is the RAW value behind the click (e.g. 1096367
+        // for a SUM(arr) cell). ``displayText`` is the formatted string
+        // the user actually saw in the cell (e.g. "$1,096,367" — d3
+        // formatted via applyColumnFormats). Forward the formatted
+        // string when present so the drill breadcrumb shows the same
+        // value the user clicked rather than the raw numeric. Falls
+        // back to cellValue when the cell renders without a formatted
+        // wrapper (rare).
+        //
+        // Surface the column's display label so the breadcrumb renders
+        // ``(Opp Count: $1,096,367)`` rather than bare
+        // ``($1,096,367)`` — without the column context, two metric
+        // columns on the same row look identical in the breadcrumb.
+        // Charts pass through with no label since their axis is
+        // already in the main segment label.
+        //
+        // ``column_variant_map`` lets the agent route a specific clicked
+        // column to a specific L1 variant — e.g. clicking "Won deals"
+        // opens the "won" variant rather than the default "all_deals".
+        // Columns NOT in the map fall back to L1's is_default; we
+        // forward null in that case so the backend resolver picks the
+        // default. Clamp to undefined when the map is absent so we
+        // pass through pre-existing call signatures cleanly.
+        const mappedVariantId = v2?.column_variant_map?.[columnId] ?? null;
+        const metricValueForBreadcrumb =
+          displayText && displayText.length > 0 ? displayText : (cellValue ?? null);
+        onPointDrillDown(
+          widget.id,
+          drillFilters,
+          metricValueForBreadcrumb,
+          formatColumnLabel(columnId),
+          mappedVariantId
+        );
       },
-      [onPointDrillDown, widget.id, widget.drilldown_v2]
+      [onPointDrillDown, widget.id, widget.drilldown_v2, drillableColumns, formatColumnLabel]
     );
 
     // Gate the cell-click handler on the panel actually having a usable
@@ -112,15 +208,21 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     // cohort table whose lineage shape didn't qualify for drilldown_v2).
     //
     // Mirror the same usability check the handler does: at least one
-    // non-extract_from column_map entry on the L0 default variant is required
-    // for the click to produce drill_filters.
+    // non-extract_from column_map entry on the L0 default variant is
+    // required for the click to produce drill_filters. Plus, if the agent
+    // explicitly authored an empty drillable_columns list ([]), no cell is
+    // clickable — drop the hover affordance entirely (only the corner drill
+    // icon remains).
     const hasUsableDrilldownV2 = useMemo(() => {
       const v2 = widget.drilldown_v2;
       const defaultVariant =
         v2?.levels?.[0]?.variants?.find((vt) => vt.is_default) ?? v2?.levels?.[0]?.variants?.[0];
       const columnMap = defaultVariant?.column_map ?? [];
-      return columnMap.some((cm) => !cm.extract_from);
-    }, [widget.drilldown_v2]);
+      const hasColumnMap = columnMap.some((cm) => !cm.extract_from);
+      // Empty whitelist explicitly disables cell clicks. null = back-compat.
+      const explicitlyEmpty = Array.isArray(drillableColumns) && drillableColumns.length === 0;
+      return hasColumnMap && !explicitlyEmpty;
+    }, [widget.drilldown_v2, drillableColumns]);
     const tableCellClickHandler =
       onPointDrillDown && hasUsableDrilldownV2 ? handleTableCellClick : undefined;
 
@@ -139,7 +241,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
-              drilldown={widget.drilldown}
               drilldownV2={widget.drilldown_v2}
               onPointClick={onPointDrillDown ? handlePointDrillDown : undefined}
             />
@@ -228,6 +329,7 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
               }
               sortState={tableSortState}
               onCellClick={tableCellClickHandler}
+              drillableColumns={drillableColumns}
             />
           </WidgetShell>
         );

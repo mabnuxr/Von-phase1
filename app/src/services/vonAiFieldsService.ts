@@ -6,6 +6,7 @@ import type {
   AiFieldStatus,
   CreateAiFieldRequest,
   CreateAiFieldResponse,
+  DefaultAiFieldDefinition,
   OpportunitySearchResult,
   PlaygroundRequest,
   RunHistoryResponse,
@@ -20,12 +21,14 @@ class AiFieldsService {
     status?: AiFieldStatus,
     page = 1,
     limit = 20,
+    isDefault?: boolean,
   ): Promise<AiFieldListResponse> {
     const params = new URLSearchParams({
       page: String(page),
       limit: String(limit),
     });
     if (status) params.set("status", status);
+    if (isDefault !== undefined) params.set("isDefault", String(isDefault));
     return apiClient.get<AiFieldListResponse>(`${BASE}?${params}`);
   }
 
@@ -61,6 +64,19 @@ class AiFieldsService {
 
   async disableField(fieldId: string): Promise<AiField> {
     return apiClient.post<AiField>(`${BASE}/${fieldId}/disable`);
+  }
+
+  // ─── Default Field Enable ─────────────────────────────────
+  // Materializes a hardcoded default into a real AiField row (or re-activates
+  // an existing one). Backend identifies the field by `name` (scoped to
+  // `isDefault=true` rows) for idempotency. Returns the resulting AiField.
+  async enableDefaultField(
+    definition: DefaultAiFieldDefinition,
+  ): Promise<AiField> {
+    return apiClient.post<AiField>(
+      `${BASE}/defaults/${encodeURIComponent(definition.name)}/enable`,
+      definition,
+    );
   }
 
   // ─── Playground ────────────────────────────────────────────

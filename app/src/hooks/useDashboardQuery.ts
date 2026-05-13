@@ -52,10 +52,6 @@ interface RawApiWidget {
   gridOptions: Record<string, unknown> | null;
   text_content?: string | null;
   query_failed?: boolean;
-  drilldown?: {
-    query_ref: string;
-    column_map: Array<{ data_key: string; sql_expression: string }>;
-  } | null;
   drilldown_v2?: PanelDrilldownV2Config | null;
   pagination?: {
     page: number;
@@ -128,7 +124,6 @@ function adaptWidget(
       config: raw.kpi,
       query_failed: raw.query_failed,
       queryRef: raw.query_ref,
-      drilldown: raw.drilldown ?? null,
       drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     };
@@ -165,7 +160,6 @@ function adaptWidget(
         highchartsOptions: normalizedHc,
       } as unknown as WidgetConfig["config"],
       queryRef: raw.query_ref,
-      drilldown: raw.drilldown ?? null,
       drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     };
@@ -191,7 +185,6 @@ function adaptWidget(
           : undefined,
       },
       queryRef: raw.query_ref,
-      drilldown: raw.drilldown ?? null,
       drilldown_v2: raw.drilldown_v2 ?? null,
       queryInfo,
     } as unknown as WidgetConfig;
@@ -223,7 +216,6 @@ function adaptWidget(
     title: raw.title,
     config: {},
     queryRef: raw.query_ref,
-    drilldown: raw.drilldown ?? null,
     drilldown_v2: raw.drilldown_v2 ?? null,
     queryInfo,
   } as WidgetConfig;

@@ -9,10 +9,11 @@
  * block reason text in the message IS the source of truth.
  *
  * Two pattern categories:
- *   1. Salesforce-specific write restrictions — these have dedicated block
- *      codes (org_read_only / admin_disabled / personal_oauth_expired) that
- *      determine whether the user can self-remediate. Salesforce reads still
- *      work in these cases, so the user may still get data back.
+ *   1. CRM write-restriction patterns (Salesforce, HubSpot) — generated
+ *      dynamically per CRM. The 4 sentences come from
+ *      `agents-v2/utils/crm_permissions._resolve_write_permission`; FE keeps
+ *      a small per-CRM config (display name + org noun) so adding a new CRM
+ *      is one entry.
  *   2. Generic "not connected" — derived from the agent's phrasing
  *      "{Display} is not connected. Please connect…". Matches any integration
  *      that has an entry in INTEGRATION_METADATA. Adding a new integration
@@ -26,7 +27,7 @@ import {
 } from "../constants/integrationMetadata";
 
 export interface DetectedIntegrationBlock {
-  /** Backend integration type key, e.g. "salesforce", "google_calendar" */
+  /** Backend integration type key, e.g. "salesforce", "hubspot", "google_calendar" */
   integrationType: string;
   /** The matched block reason text */
   message: string;
@@ -35,41 +36,56 @@ export interface DetectedIntegrationBlock {
 }
 
 /**
- * Salesforce write-restriction patterns. These fire when Salesforce IS connected
- * but the user can't write (org read-only, admin-disabled, expired personal OAuth,
- * or user_level_write scope without personal OAuth). Reads still work in all
- * these cases.
+ * CRMs with write-scope gating (org_read_only / admin_disabled /
+ * user_level_write personal OAuth). Each entry generates the 4 block-reason
+ * patterns from `_resolve_write_permission`. To add a new CRM, append one
+ * entry — no other change needed.
  */
-const SALESFORCE_WRITE_PATTERNS: Array<{
-  pattern: string;
-  blockCode: string;
-  message: string;
+const CRM_WRITE_BLOCK_INTEGRATIONS: Array<{
+  integrationType: string;
+  display: string;
+  orgTerm: string; // "org" for Salesforce, "portal" for HubSpot
 }> = [
-  {
-    pattern: "salesforce org is in read-only mode",
-    blockCode: "org_read_only",
-    message:
-      "Your Salesforce org is in read-only mode. Contact your admin to enable write access.",
-  },
-  {
-    pattern: "salesforce write access is disabled for your account",
-    blockCode: "admin_disabled",
-    message:
-      "Salesforce write access is disabled for your account. Contact your admin to enable it.",
-  },
-  {
-    pattern: "salesforce writes require a personal connection",
-    blockCode: "personal_oauth_not_connected",
-    message:
-      "Salesforce writes require a personal connection. Connect your account to continue.",
-  },
-  {
-    pattern: "salesforce connection has expired",
-    blockCode: "personal_oauth_expired",
-    message:
-      "Your Salesforce connection has expired or been revoked. Reconnect your account to continue.",
-  },
+  { integrationType: "salesforce", display: "Salesforce", orgTerm: "org" },
+  { integrationType: "hubspot", display: "HubSpot", orgTerm: "portal" },
 ];
+
+/**
+ * For a given CRM, return the {pattern, blockCode, message} triples that
+ * mirror the strings emitted by `_resolve_write_permission`.
+ */
+function buildCrmWritePatterns(
+  display: string,
+  orgTerm: string,
+): Array<{ pattern: string; blockCode: string; message: string }> {
+  const readOnlyMsg = `Your ${display} ${orgTerm} is in read-only mode. Contact your admin to enable write access.`;
+  const adminDisabledMsg = `${display} write access is disabled for your account. Contact your admin to enable it.`;
+  const personalNotConnectedMsg = `${display} writes require a personal connection. Connect your account to continue.`;
+  const personalExpiredMsg = `Your ${display} connection has expired or been revoked. Reconnect your account to continue.`;
+  return [
+    {
+      pattern: `${display} ${orgTerm} is in read-only mode`.toLowerCase(),
+      blockCode: "org_read_only",
+      message: readOnlyMsg,
+    },
+    {
+      pattern:
+        `${display} write access is disabled for your account`.toLowerCase(),
+      blockCode: "admin_disabled",
+      message: adminDisabledMsg,
+    },
+    {
+      pattern: `${display} writes require a personal connection`.toLowerCase(),
+      blockCode: "personal_oauth_not_connected",
+      message: personalNotConnectedMsg,
+    },
+    {
+      pattern: `${display} connection has expired`.toLowerCase(),
+      blockCode: "personal_oauth_expired",
+      message: personalExpiredMsg,
+    },
+  ];
+}
 
 /**
  * Scan assistant message content for known integration block reason patterns.
@@ -95,24 +111,31 @@ export function detectIntegrationBlocks(
   const blocks: DetectedIntegrationBlock[] = [];
   const seen = new Set<string>();
 
-  // (1) Salesforce write-restriction patterns (checked first — specific
-  // block codes take precedence over the generic "not connected" form).
-  for (const { pattern, blockCode, message } of SALESFORCE_WRITE_PATTERNS) {
-    if (contentLower.includes(pattern) && !seen.has("salesforce")) {
-      seen.add("salesforce");
-      blocks.push({
-        integrationType: "salesforce",
-        message,
-        blockCode,
-      });
+  // (1) CRM write-restriction patterns (checked first — specific block codes
+  // take precedence over the generic "not connected" form).
+  for (const {
+    integrationType,
+    display,
+    orgTerm,
+  } of CRM_WRITE_BLOCK_INTEGRATIONS) {
+    if (seen.has(integrationType)) continue;
+    for (const { pattern, blockCode, message } of buildCrmWritePatterns(
+      display,
+      orgTerm,
+    )) {
+      if (contentLower.includes(pattern)) {
+        seen.add(integrationType);
+        blocks.push({ integrationType, message, blockCode });
+        break;
+      }
     }
   }
 
   // (2) Generic "{Display} is not connected" — iterate every known
-  // integration and look for its canonical sentence as a substring.
-  // This naturally handles agents that prefix extra words before the
-  // sentence, and self-updates as new integrations are added to
-  // INTEGRATION_METADATA without any change here.
+  // integration and look for its canonical sentence as a substring. This
+  // naturally handles agents that prefix extra words before the sentence,
+  // and self-updates as new integrations are added to INTEGRATION_METADATA
+  // without any change here.
   for (const entry of Object.values(INTEGRATION_METADATA)) {
     const integrationType = getBackendIntegrationType(entry.id).toLowerCase();
     if (seen.has(integrationType)) continue;

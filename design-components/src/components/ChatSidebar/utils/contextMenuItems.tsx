@@ -2,7 +2,7 @@ import {
   PencilSimpleIcon,
   TrashIcon,
   FolderSimpleIcon,
-  ArrowBendUpRightIcon,
+  FoldersIcon,
   PushPinIcon,
   PushPinSimpleSlashIcon,
   ExportIcon,
@@ -51,7 +51,17 @@ export function getContextMenuItems(
       icon: <PencilSimpleIcon size={14} />,
       disabled: !isOwner,
     },
-    { id: 'move', label: 'Add to Folder', icon: <ArrowBendUpRightIcon size={14} /> },
+    // Multi-folder membership picker. Item id kept as `manage-folders` to keep
+    // the API a clean break from the legacy `move` (single-select) flow.
+    // Label swings on whether the row currently lives in a folder: rows
+    // already filed read as "Manage Folders" (the user is curating the set);
+    // unfiled rows read as "Add to Folder" (the user is filing for the first
+    // time). The underlying behavior is identical.
+    {
+      id: 'manage-folders',
+      label: options.isInFolder ? 'Manage Folders' : 'Add to Folder',
+      icon: <FoldersIcon size={14} />,
+    },
     ...(options.enableShare && itemType === 'chat'
       ? [{ id: 'share', label: isShared ? 'Shared' : 'Share', icon: shareIcon }]
       : []),

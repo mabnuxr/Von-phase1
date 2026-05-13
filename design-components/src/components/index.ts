@@ -267,12 +267,17 @@ export type { TopBarProps, Tab } from './TopBar';
 
 // ChatSidebar Organism (Folders v2 — sectioned + nested A2 layout, supports
 // dashboards + chats inside folders).
-export { ChatSidebar } from './ChatSidebar';
+//
+// `ItemType` is a const-object plus matching type alias under the same name
+// so consumers can use it as both `ItemType.Dashboard` (value) and
+// `(itemType: ItemType) => void` (type). A regular `export { ItemType }`
+// without `type` already carries both meanings — the `export type { ... }`
+// block below covers the remaining type-only symbols.
+export { ChatSidebar, ItemType } from './ChatSidebar';
 export type {
   ChatSidebarProps,
   SidebarItem,
   Folder,
-  ItemType,
   ItemStatus,
   ApprovalState,
   FolderItemsMap,

@@ -17,7 +17,6 @@ import type { Editor, Extension } from '@tiptap/react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import { ChartBarIcon, X } from '@phosphor-icons/react';
 import {
   MentionChip,
   createMentionSuggestion,
@@ -25,6 +24,7 @@ import {
 } from '../TiptapEditor/extensions';
 import type { MentionSuggestionState } from '../TiptapEditor/extensions';
 import { MentionsOverlay } from '../Mentions/MentionsOverlay';
+import { MentionPreview } from '../Chat/FileAttachment/MentionPreview';
 import type { MentionItem } from '../Mentions/types';
 import { MentionItemType } from '../Mentions/constants';
 import type { CommandReference, DashboardOption } from './types';
@@ -136,12 +136,23 @@ export const CommandPromptEditor: React.FC<CommandPromptEditorProps> = ({
     [availableDashboards]
   );
 
-  // Items shown in the dropdown — filter by query and exclude already-selected.
+  // Commands are limited to a single tagged dashboard (parity with chat's
+  // per-message constraint). When the limit is reached, the dropdown still
+  // renders items but in a disabled state so the user gets a clear signal.
+  const isDashboardLimitReached = references.some((r) => r.type === 'dashboard');
+  const isDashboardLimitReachedRef = useRef(isDashboardLimitReached);
+  isDashboardLimitReachedRef.current = isDashboardLimitReached;
+
+  // Items shown in the dropdown — filter by query, exclude already-selected
+  // unless the limit is reached (in which case all items render as disabled).
   const filteredItems = useMemo<MentionItem[]>(() => {
+    if (isDashboardLimitReached) {
+      return filterByQuery(mentionPool, suggestionState.query);
+    }
     const selectedIds = new Set(references.map((r) => r.context.dashboardId));
     const available = mentionPool.filter((item) => !selectedIds.has(item.id));
     return filterByQuery(available, suggestionState.query);
-  }, [mentionPool, references, suggestionState.query]);
+  }, [mentionPool, references, suggestionState.query, isDashboardLimitReached]);
   filteredItemsRef.current = filteredItems;
 
   // Reset highlight whenever the query changes (render-phase prev-prop pattern).
@@ -153,6 +164,8 @@ export const CommandPromptEditor: React.FC<CommandPromptEditorProps> = ({
   }
 
   const handleSelectMention = useCallback((item: MentionItem) => {
+    // Block selection when the single-dashboard limit is already filled.
+    if (isDashboardLimitReachedRef.current) return;
     // Insert via Tiptap's suggestion command so the @query text is replaced cleanly.
     if (suggestionCommandRef.current) {
       suggestionCommandRef.current({
@@ -289,24 +302,17 @@ export const CommandPromptEditor: React.FC<CommandPromptEditorProps> = ({
       {references.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {references.map((r) => (
-            <span
+            <MentionPreview
               key={r.context.dashboardId}
-              title={r.context.dashboardName}
-              className="inline-flex items-center gap-1.5 max-w-[240px] px-2.5 py-1 rounded-xl border border-gray-200/60 bg-white shadow-xs text-[13px] text-gray-700"
-            >
-              <ChartBarIcon size={13} weight="regular" className="text-gray-500 shrink-0" />
-              <span className="truncate">{r.context.dashboardName}</span>
-              {!readOnly && (
-                <button
-                  type="button"
-                  onClick={() => removeReference(r.context.dashboardId)}
-                  className="ml-0.5 p-0.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
-                  aria-label={`Remove ${r.context.dashboardName}`}
-                >
-                  <X size={11} weight="bold" />
-                </button>
-              )}
-            </span>
+              mention={{
+                id: r.context.dashboardId,
+                name: r.context.dashboardName,
+                type: MentionItemType.Dashboard,
+                version: r.context.dashboardVersion,
+              }}
+              removable={!readOnly}
+              onRemove={removeReference}
+            />
           ))}
         </div>
       )}
@@ -328,6 +334,8 @@ export const CommandPromptEditor: React.FC<CommandPromptEditorProps> = ({
         highlightedIndex={highlightedIndex}
         onHoverIndex={setHighlightedIndex}
         anchorRect={suggestionState.anchorRect}
+        disabled={isDashboardLimitReached}
+        disabledTooltip="Only one dashboard can be tagged per command"
       />
     </div>
   );
