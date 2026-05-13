@@ -48,9 +48,13 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
 
   const runDiscover = useCallback(async () => {
     try {
-      const tis = await appCatalogService.getTenantIntegrations({ catalogType: "mcp" });
+      const tis = await appCatalogService.getTenantIntegrations({
+        catalogType: "mcp",
+      });
       const ti = tis.find(
-        (t) => t.catalog_id === entry.catalog_id && t.connection_mode === connectionMode,
+        (t) =>
+          t.catalog_id === entry.catalog_id &&
+          t.connection_mode === connectionMode,
       );
       if (ti) {
         await appCatalogService.discoverTools(ti.id);
@@ -81,7 +85,9 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
       } else {
         setWaitingForOAuth(false);
         oauthPopup?.close();
-        setError(event.data.error || "OAuth authorization failed. Please try again.");
+        setError(
+          event.data.error || "OAuth authorization failed. Please try again.",
+        );
       }
     };
     window.addEventListener("message", handleMessage);
@@ -104,7 +110,7 @@ export function MCPConnectDrawer({ entry, onClose }: MCPConnectDrawerProps) {
   const isBusy = connectMutation.isPending || waitingForOAuth;
 
   const handleSave = async () => {
-    if ((entry.auth_type === "api_key" || entry.auth_type === "token") && !apiKey.trim()) {
+    if (entry.auth_type === "api_key" && !apiKey.trim()) {
       setError(`${entry.credential_label || "API Key"} is required`);
       return;
     }

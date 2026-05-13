@@ -119,10 +119,13 @@ function MCPCatalogItem({
   const deleteConnectionsMutation = useDeleteConnections();
   const deleteIntegrationMutation = useDeleteIntegration();
   const { user } = useUser();
-  const isAdmin = user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const isAdmin =
+    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
-  const [disconnectMode, setDisconnectMode] = useState<"workspace" | "personal">("workspace");
+  const [disconnectMode, setDisconnectMode] = useState<
+    "workspace" | "personal"
+  >("workspace");
 
   const handleConnectClick = () => {
     onConnect(entry);
@@ -150,19 +153,25 @@ function MCPCatalogItem({
     isWorkspace &&
     entry.is_connected &&
     (!isBoth || entry.connected_server_id !== entry.personal_server_id);
-  const isPersonalActuallyConnected = isPersonal && !!entry.is_personal_connected;
+  const isPersonalActuallyConnected =
+    isPersonal && !!entry.is_personal_connected;
   const isOnlyPersonalConnected =
     isBoth && isPersonalActuallyConnected && !isWorkspaceActuallyConnected;
 
   const chips: Array<"workspace" | "personal" | "connected"> = [];
   if (isWorkspaceActuallyConnected) chips.push("workspace");
   if (isPersonalActuallyConnected) chips.push("personal");
-  if (!isWorkspaceActuallyConnected && !isPersonalActuallyConnected && isWorkspace)
+  if (
+    !isWorkspaceActuallyConnected &&
+    !isPersonalActuallyConnected &&
+    isWorkspace
+  )
     chips.push("workspace");
   if (isAuthenticated) chips.push("connected");
 
   const canDisconnectWorkspace = isWorkspaceActuallyConnected && isAdmin;
-  const canDisconnectPersonal = !!entry.is_personal_connected && !!entry.personal_server_id;
+  const canDisconnectPersonal =
+    !!entry.is_personal_connected && !!entry.personal_server_id;
   const canDisconnect = canDisconnectWorkspace || canDisconnectPersonal;
 
   const isBusy =
@@ -190,11 +199,12 @@ function MCPCatalogItem({
     }
   };
 
-  const deleteTooltip = isBoth && canDisconnectWorkspace && canDisconnectPersonal
-    ? "Remove connection"
-    : canDisconnectWorkspace
-      ? "Remove workspace connection"
-      : "Remove personal connection";
+  const deleteTooltip =
+    isBoth && canDisconnectWorkspace && canDisconnectPersonal
+      ? "Remove connection"
+      : canDisconnectWorkspace
+        ? "Remove workspace connection"
+        : "Remove personal connection";
 
   return (
     <div>
@@ -209,7 +219,9 @@ function MCPCatalogItem({
           isAuthenticated && canDisconnect
             ? () => {
                 // Personal takes priority — only target workspace when personal is not connected
-                setDisconnectMode(canDisconnectPersonal ? "personal" : "workspace");
+                setDisconnectMode(
+                  canDisconnectPersonal ? "personal" : "workspace",
+                );
                 setShowDisconnectConfirm(true);
               }
             : undefined
@@ -264,7 +276,12 @@ interface IntegrationItemProps {
   item: IntegrationMetadata & {
     connectedInstances: Integration[];
     isConnected: boolean;
-    catalogEntry?: { tenant_integrations: { workspace: { availability_status: string } | null; personal: { availability_status: string } | null } };
+    catalogEntry?: {
+      tenant_integrations: {
+        workspace: { availability_status: string } | null;
+        personal: { availability_status: string } | null;
+      };
+    };
   };
   allIntegrations: Integration[];
   integrationsData: IntegrationsListProps["integrationsData"];
@@ -562,9 +579,11 @@ function IntegrationItem({
     // Derive access level from published catalog entry when available,
     // otherwise fall back to hardcoded metadata capabilities
     const wsPublished =
-      item.catalogEntry?.tenant_integrations?.workspace?.availability_status === "published";
+      item.catalogEntry?.tenant_integrations?.workspace?.availability_status ===
+      "published";
     const personalPublished =
-      item.catalogEntry?.tenant_integrations?.personal?.availability_status === "published";
+      item.catalogEntry?.tenant_integrations?.personal?.availability_status ===
+      "published";
     const availableChips: Array<"workspace" | "personal"> = [];
     if (wsPublished) availableChips.push("workspace");
     if (personalPublished) availableChips.push("personal");
@@ -680,7 +699,8 @@ function IntegrationItem({
         : undefined;
 
     const canConnectPersonal = item.catalogEntry
-      ? item.catalogEntry.tenant_integrations.personal?.availability_status === "published"
+      ? item.catalogEntry.tenant_integrations.personal?.availability_status ===
+        "published"
       : canBeUserLevel(item.id);
     const instanceUrl = workspaceBackendIntegration?.config
       ?.instance_url as string;
@@ -842,18 +862,32 @@ export function IntegrationsList({
   // Build a fast lookup: BACKEND_TYPE → { tenant_integrations: { workspace, personal } }
   // Aggregates per-mode TI rows into a single entry per integration type.
   const catalogMap = useMemo(() => {
-    const map = new Map<string, { tenant_integrations: { workspace: { availability_status: string } | null; personal: { availability_status: string } | null } }>();
+    const map = new Map<
+      string,
+      {
+        tenant_integrations: {
+          workspace: { availability_status: string } | null;
+          personal: { availability_status: string } | null;
+        };
+      }
+    >();
     for (const ti of tenantIntegrations ?? []) {
       if (!ti.integration_type) continue;
       const key = ti.integration_type.toUpperCase();
       if (!map.has(key)) {
-        map.set(key, { tenant_integrations: { workspace: null, personal: null } });
+        map.set(key, {
+          tenant_integrations: { workspace: null, personal: null },
+        });
       }
       const entry = map.get(key)!;
       if (ti.connection_mode === "workspace") {
-        entry.tenant_integrations.workspace = { availability_status: ti.availability_status };
+        entry.tenant_integrations.workspace = {
+          availability_status: ti.availability_status,
+        };
       } else {
-        entry.tenant_integrations.personal = { availability_status: ti.availability_status };
+        entry.tenant_integrations.personal = {
+          availability_status: ti.availability_status,
+        };
       }
     }
     return map;
@@ -910,7 +944,8 @@ export function IntegrationsList({
         // Members only see apps they can act on: already connected OR personal is published
         if (!isAdmin && !isConnected) {
           const personalPublished =
-            catalogEntry?.tenant_integrations.personal?.availability_status === "published";
+            catalogEntry?.tenant_integrations.personal?.availability_status ===
+            "published";
           if (!personalPublished) return false;
         }
       }

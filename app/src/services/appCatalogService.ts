@@ -35,7 +35,8 @@ export class AppCatalogService {
     const p = new URLSearchParams();
     if (opts?.catalogType) p.set("catalog_type", opts.catalogType);
     if (opts?.connectionMode) p.set("connection_mode", opts.connectionMode);
-    if (opts?.availabilityStatus) p.set("availability_status", opts.availabilityStatus);
+    if (opts?.availabilityStatus)
+      p.set("availability_status", opts.availabilityStatus);
     const qs = p.toString();
     return apiClient.get<TenantIntegrationEnriched[]>(
       `${BASE}/tenant-integrations${qs ? `?${qs}` : ""}`,
@@ -113,22 +114,33 @@ export class AppCatalogService {
 
   async connect(
     catalogId: string,
-    payload: { catalog_type: CatalogType; connection_mode: ConnectionMode; api_key?: string },
-  ): Promise<{ integration_id: string; authentication_status: string; authorization_url: string | null }> {
+    payload: {
+      catalog_type: CatalogType;
+      connection_mode: ConnectionMode;
+      api_key?: string;
+    },
+  ): Promise<{
+    integration_id: string;
+    authentication_status: string;
+    authorization_url: string | null;
+  }> {
     return apiClient.post(`${BASE}/${catalogId}/connect`, payload);
   }
 
   async getConnectStatus(
     catalogId: string,
     params: { catalog_type: CatalogType; connection_mode: ConnectionMode },
-  ): Promise<{ integration_id: string; authentication_status: string; authorization_url: string | null }> {
+  ): Promise<{
+    integration_id: string;
+    authentication_status: string;
+    authorization_url: string | null;
+  }> {
     const p = new URLSearchParams({
       catalog_type: params.catalog_type,
       connection_mode: params.connection_mode,
     });
     return apiClient.get(`${BASE}/${catalogId}/connect/status?${p}`);
   }
-
 }
 
 export const appCatalogService = new AppCatalogService();

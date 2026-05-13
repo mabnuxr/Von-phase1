@@ -75,7 +75,8 @@ export function useUpdateTenantIntegration() {
 export function useDeleteConnections() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (catalogId: string) => appCatalogService.deleteConnections(catalogId),
+    mutationFn: (catalogId: string) =>
+      appCatalogService.deleteConnections(catalogId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: APP_CATALOG_KEY });
       qc.invalidateQueries({ queryKey: ["mcp-servers"] });
@@ -95,7 +96,12 @@ export function useDeleteTenantIntegration() {
       catalogId: string;
       catalogType: string;
       connectionMode: string;
-    }) => appCatalogService.deleteTenantIntegration(catalogId, catalogType, connectionMode),
+    }) =>
+      appCatalogService.deleteTenantIntegration(
+        catalogId,
+        catalogType,
+        connectionMode,
+      ),
     onSuccess: () => qc.invalidateQueries({ queryKey: APP_CATALOG_KEY }),
   });
 }
@@ -118,8 +124,7 @@ export function useConnectPersonalMcp() {
     }: {
       tenantIntegrationId: string;
       apiKey: string;
-    }) =>
-      appCatalogService.connectPersonalApiKey(tenantIntegrationId, apiKey),
+    }) => appCatalogService.connectPersonalApiKey(tenantIntegrationId, apiKey),
     onSuccess: () => qc.invalidateQueries({ queryKey: APP_CATALOG_KEY }),
   });
 }
@@ -132,7 +137,11 @@ export function useConnectCatalog() {
       payload,
     }: {
       catalogId: string;
-      payload: { catalog_type: CatalogType; connection_mode: ConnectionMode; api_key?: string };
+      payload: {
+        catalog_type: CatalogType;
+        connection_mode: ConnectionMode;
+        api_key?: string;
+      };
     }) => appCatalogService.connect(catalogId, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: APP_CATALOG_KEY });
@@ -157,7 +166,8 @@ export function useConnectCatalogStatus(
     enabled: !!catalogId && !!connectionMode && enabled,
     refetchInterval: (query) => {
       const status = query.state.data?.authentication_status;
-      if (status === "AUTHENTICATED" || status === "AUTHENTICATION_FAILED") return false;
+      if (status === "AUTHENTICATED" || status === "AUTHENTICATION_FAILED")
+        return false;
       return 2500;
     },
     refetchIntervalInBackground: true,

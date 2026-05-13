@@ -18,7 +18,10 @@ import {
   useTenantIntegrations,
 } from "../../hooks/useAppCatalog";
 
-import type { AppCatalogEntry, TenantIntegrationEnriched } from "../../types/appCatalog";
+import type {
+  AppCatalogEntry,
+  TenantIntegrationEnriched,
+} from "../../types/appCatalog";
 import { useToast } from "../../hooks/useToast";
 import { useUser } from "../../hooks/useUser";
 import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
@@ -42,12 +45,16 @@ function isEntryBuiltByVon(e: AppCatalogEntry): boolean {
   return e.author?.toLowerCase().includes("von") ?? false;
 }
 
-type TISlots = { workspace: TenantIntegrationEnriched | null; personal: TenantIntegrationEnriched | null };
+type TISlots = {
+  workspace: TenantIntegrationEnriched | null;
+  personal: TenantIntegrationEnriched | null;
+};
 
 function buildTiMap(tis: TenantIntegrationEnriched[]): Map<string, TISlots> {
   const map = new Map<string, TISlots>();
   for (const ti of tis) {
-    if (!map.has(ti.catalog_id)) map.set(ti.catalog_id, { workspace: null, personal: null });
+    if (!map.has(ti.catalog_id))
+      map.set(ti.catalog_id, { workspace: null, personal: null });
     const slot = map.get(ti.catalog_id)!;
     if (ti.connection_mode === "workspace") slot.workspace = ti;
     else slot.personal = ti;
@@ -55,7 +62,10 @@ function buildTiMap(tis: TenantIntegrationEnriched[]): Map<string, TISlots> {
   return map;
 }
 
-function isEntryAdded(e: AppCatalogEntry, tiMap: Map<string, TISlots>): boolean {
+function isEntryAdded(
+  e: AppCatalogEntry,
+  tiMap: Map<string, TISlots>,
+): boolean {
   const ti = tiMap.get(e.catalog_id);
   return (
     ti?.workspace?.availability_status === "published" ||
@@ -79,7 +89,10 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   });
 
   const { data: tenantIntegrations = [] } = useTenantIntegrations();
-  const tiMap = useMemo(() => buildTiMap(tenantIntegrations), [tenantIntegrations]);
+  const tiMap = useMemo(
+    () => buildTiMap(tenantIntegrations),
+    [tenantIntegrations],
+  );
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -425,12 +438,17 @@ function NativeDetailView({
     return () => document.removeEventListener("mousedown", handler);
   }, [splitOpen]);
 
-  const isWorkspacePublished = tiEntry.workspace?.availability_status === "published";
-  const isPersonalPublished = tiEntry.personal?.availability_status === "published";
+  const isWorkspacePublished =
+    tiEntry.workspace?.availability_status === "published";
+  const isPersonalPublished =
+    tiEntry.personal?.availability_status === "published";
   const isWorkspaceConnected = isWorkspacePublished;
   const isPersonalConnected = isPersonalPublished;
   const isAdded = isWorkspacePublished || isPersonalPublished;
-  const isBusy = publishMutation.isPending || deleteConnectionsMutation.isPending || deleteMutation.isPending;
+  const isBusy =
+    publishMutation.isPending ||
+    deleteConnectionsMutation.isPending ||
+    deleteMutation.isPending;
   const logoUrl =
     entry.logo_url ??
     (entry.integration_type
@@ -452,7 +470,8 @@ function NativeDetailView({
   const handlePublish = async (mode: "workspace" | "personal") => {
     setError(null);
     const oppositeMode = mode === "workspace" ? "personal" : "workspace";
-    const isOppositePublished = mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
+    const isOppositePublished =
+      mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     try {
       // Switching access level: cascade-delete existing credentials + archive the opposite TI first
       if (isOppositePublished) {
@@ -493,9 +512,13 @@ function NativeDetailView({
         catalogType: "native_integration",
         connectionMode: mode,
       });
-      showToast({ message: `${entry.name} ${mode} removed`, variant: "success" });
+      showToast({
+        message: `${entry.name} ${mode} removed`,
+        variant: "success",
+      });
       // Go back only if the other mode is also gone; otherwise stay to show the remaining entry
-      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished) onBack();
+      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished)
+        onBack();
     } catch {
       setError("Failed to remove. Please try again.");
     }
@@ -589,8 +612,8 @@ function NativeDetailView({
                 </div>
               </div>
 
-              {isAdmin && (
-                isWorkspacePublished && isPersonalPublished ? (
+              {isAdmin &&
+                (isWorkspacePublished && isPersonalPublished ? (
                   /* Both published — split remove */
                   <div ref={splitRef} className="relative flex shrink-0">
                     <button
@@ -601,7 +624,10 @@ function NativeDetailView({
                       Remove workspace
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSplitOpen((o) => !o);
+                      }}
                       disabled={isBusy}
                       className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                     >
@@ -610,7 +636,11 @@ function NativeDetailView({
                     {splitOpen && (
                       <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowRemoveConfirm("personal"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSplitOpen(false);
+                            setShowRemoveConfirm("personal");
+                          }}
                           disabled={isBusy}
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                         >
@@ -631,7 +661,10 @@ function NativeDetailView({
                         Remove
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen((o) => !o);
+                        }}
                         disabled={isBusy}
                         className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
@@ -640,7 +673,11 @@ function NativeDetailView({
                       {splitOpen && (
                         <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("personal"); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSplitOpen(false);
+                              setShowPublishConfirm("personal");
+                            }}
                             disabled={isBusy}
                             className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                           >
@@ -671,7 +708,10 @@ function NativeDetailView({
                         Remove
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen((o) => !o);
+                        }}
                         disabled={isBusy}
                         className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
@@ -680,7 +720,11 @@ function NativeDetailView({
                       {splitOpen && (
                         <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("workspace"); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSplitOpen(false);
+                              setShowPublishConfirm("workspace");
+                            }}
                             disabled={isBusy}
                             className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                           >
@@ -714,7 +758,10 @@ function NativeDetailView({
                       {isBusy ? "Adding…" : "Add as workspace"}
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSplitOpen((o) => !o);
+                      }}
                       disabled={isBusy}
                       className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
                     >
@@ -723,7 +770,11 @@ function NativeDetailView({
                     {splitOpen && (
                       <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowPublishConfirm("personal"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSplitOpen(false);
+                            setShowPublishConfirm("personal");
+                          }}
                           disabled={isBusy}
                           className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                         >
@@ -749,8 +800,7 @@ function NativeDetailView({
                   >
                     {isBusy ? "Adding…" : "Add as personal"}
                   </button>
-                )
-              )}
+                ))}
             </div>
 
             {/* Description */}
@@ -943,15 +993,20 @@ function MCPDetailView({
     return () => document.removeEventListener("mousedown", handler);
   }, [splitOpen]);
 
-  const isBusy = publishMutation.isPending || deleteConnectionsMutation.isPending || deleteMutation.isPending;
+  const isBusy =
+    publishMutation.isPending ||
+    deleteConnectionsMutation.isPending ||
+    deleteMutation.isPending;
 
   const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
   const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
 
   const sourceLabel = isEntryBuiltByVon(entry) ? "Built by Von" : "MCP";
 
-  const isWorkspacePublished = tiEntry.workspace?.availability_status === "published";
-  const isPersonalPublished = tiEntry.personal?.availability_status === "published";
+  const isWorkspacePublished =
+    tiEntry.workspace?.availability_status === "published";
+  const isPersonalPublished =
+    tiEntry.personal?.availability_status === "published";
   const isWorkspaceConnected = isWorkspacePublished;
   const isPersonalConnected = isPersonalPublished;
   const isAdded = isWorkspacePublished || isPersonalPublished;
@@ -970,7 +1025,8 @@ function MCPDetailView({
   const handlePublish = async (mode: "workspace" | "personal") => {
     setError(null);
     const oppositeMode = mode === "workspace" ? "personal" : "workspace";
-    const isOppositePublished = mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
+    const isOppositePublished =
+      mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     try {
       // Switching access level: cascade-delete existing credentials + archive the opposite TI first
       if (isOppositePublished) {
@@ -1010,9 +1066,14 @@ function MCPDetailView({
     setError(null);
     try {
       await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
-      await deleteMutation.mutateAsync({ catalogId: entry.catalog_id, catalogType: "mcp", connectionMode: mode });
+      await deleteMutation.mutateAsync({
+        catalogId: entry.catalog_id,
+        catalogType: "mcp",
+        connectionMode: mode,
+      });
       showToast({ message: `${entry.name} removed`, variant: "success" });
-      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished) onBack();
+      if (mode === "workspace" ? !isPersonalPublished : !isWorkspacePublished)
+        onBack();
     } catch {
       setError("Failed to remove. Please try again.");
     }
@@ -1090,8 +1151,8 @@ function MCPDetailView({
                 </div>
               </div>
 
-              {isAdmin && (
-                isWorkspacePublished && isPersonalPublished ? (
+              {isAdmin &&
+                (isWorkspacePublished && isPersonalPublished ? (
                   /* Both published — split remove */
                   <div ref={splitRef} className="relative flex shrink-0">
                     <button
@@ -1102,7 +1163,10 @@ function MCPDetailView({
                       Remove workspace
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSplitOpen((o) => !o);
+                      }}
                       disabled={isBusy}
                       className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                     >
@@ -1111,7 +1175,11 @@ function MCPDetailView({
                     {splitOpen && (
                       <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowRemoveConfirm("personal"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSplitOpen(false);
+                            setShowRemoveConfirm("personal");
+                          }}
                           disabled={isBusy}
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                         >
@@ -1132,7 +1200,10 @@ function MCPDetailView({
                         Remove
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen((o) => !o);
+                        }}
                         disabled={isBusy}
                         className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
@@ -1141,7 +1212,11 @@ function MCPDetailView({
                       {splitOpen && (
                         <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); handlePublish("personal"); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSplitOpen(false);
+                              handlePublish("personal");
+                            }}
                             disabled={isBusy}
                             className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                           >
@@ -1172,7 +1247,10 @@ function MCPDetailView({
                         Remove
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSplitOpen((o) => !o);
+                        }}
                         disabled={isBusy}
                         className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
                       >
@@ -1181,7 +1259,11 @@ function MCPDetailView({
                       {splitOpen && (
                         <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
                           <button
-                            onClick={(e) => { e.stopPropagation(); setSplitOpen(false); setShowWorkspaceConfirm(true); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSplitOpen(false);
+                              setShowWorkspaceConfirm(true);
+                            }}
                             disabled={isBusy}
                             className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                           >
@@ -1215,7 +1297,10 @@ function MCPDetailView({
                       {isBusy ? "Adding…" : "Add as workspace"}
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); setSplitOpen((o) => !o); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSplitOpen((o) => !o);
+                      }}
                       disabled={isBusy}
                       className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
                     >
@@ -1224,7 +1309,11 @@ function MCPDetailView({
                     {splitOpen && (
                       <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
                         <button
-                          onClick={(e) => { e.stopPropagation(); setSplitOpen(false); handlePublish("personal"); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSplitOpen(false);
+                            handlePublish("personal");
+                          }}
                           disabled={isBusy}
                           className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
                         >
@@ -1250,8 +1339,7 @@ function MCPDetailView({
                   >
                     {isBusy ? "Adding…" : "Add as personal"}
                   </button>
-                )
-              )}
+                ))}
             </div>
 
             {/* Description */}
