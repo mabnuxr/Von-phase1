@@ -165,11 +165,11 @@ export interface WidgetConfig {
   /** Drilldown configuration — present when the panel supports drill-down. */
   drilldown?: DrilldownConfig | null;
   /**
-   * V2 drilldown configuration (pyramid model). Present when the panel was
-   * authored with the ``drilldown_v2`` flag on. Widgets prefer this over
-   * ``drilldown`` for point-click filter extraction (read off levels[0]'s
-   * default variant); the variant selector and level-descent UI live in the
-   * drilldown panel component, not the widget itself.
+   * V2 drilldown configuration (pyramid model). Present on panels authored
+   * by the V2 flow. Widgets prefer this over ``drilldown`` for point-click
+   * filter extraction (read off levels[0]'s default variant); the variant
+   * selector and level-descent UI live in the drilldown panel component,
+   * not the widget itself.
    */
   drilldown_v2?: PanelDrilldownV2 | null;
   /** Query SQL and description for this widget */

@@ -144,12 +144,8 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   } = useDrilldown(dashboardId);
 
   // V2 drilldown wiring — exact mirror of pages/Analytics.tsx so preview
-  // mode and full mode produce byte-identical drill requests. Without this,
-  // V2-built panels (which only have ``drilldown_v2`` config, no V1
-  // ``drilldown.query_ref``) fall through to the V1 endpoint in preview
-  // mode and the backend 500s because the panel has no V1 drilldown to
-  // execute. Per ``feedback_preview_parity.md``: preview must mirror full
-  // mode changes — V2 drilldown is one of those changes.
+  // mode and full mode produce byte-identical drill requests. Per
+  // ``feedback_preview_parity.md``: preview must mirror full mode changes.
   const drillV2 = useDrilldownV2(dashboardId);
   const shouldUseV2 = useCallback(
     (panelId: string) => {

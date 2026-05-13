@@ -162,11 +162,13 @@ class DashboardService {
   }
 
   /**
-   * V2 drilldown — feature-flagged via `drilldown_v2` on the backend.
+   * V2 drilldown — pyramid model with variants, justifications, and
+   * cumulative drill_filters across the click chain.
    *
-   * Returns a 5xx when the flag is off; callers should first check the panel's
-   * loaded `drilldown_v2` config presence before invoking this endpoint, and
-   * treat a 5xx as "V2 not enabled for this tenant".
+   * Callers should check the panel's loaded ``drilldown_v2`` config
+   * presence before invoking this endpoint; panels without it predate
+   * the V1→V2 migration and should drill through ``drilldownPanel``
+   * (V1) instead.
    */
   async drilldownPanelV2(
     dashboardId: string,
