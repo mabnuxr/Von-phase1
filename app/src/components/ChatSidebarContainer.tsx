@@ -278,7 +278,7 @@ export function ChatSidebarContainer({
     (itemId: string) => {
       const folderItemType = dashboardLabelById.has(itemId)
         ? FolderItemType.Dashboard
-        : FolderItemType.Chat;
+        : FolderItemType.Conversation;
       removeItemFromFolder(itemId, folderItemType);
     },
     [removeItemFromFolder, dashboardLabelById],

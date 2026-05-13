@@ -352,16 +352,6 @@ const NewConversation = () => {
     [user],
   );
 
-  const handleTemplateCategoryClick = useCallback(
-    (category: string) => {
-      posthog?.capture("Chat - Template Category Clicked", {
-        ...basePostHogProps,
-        category_name: category,
-      });
-    },
-    [posthog, basePostHogProps],
-  );
-
   const handleTemplateClick = useCallback(
     (template: { prompt: string; category: string }, position: number) => {
       posthog?.capture("Chat - Suggested Prompt Clicked", {
