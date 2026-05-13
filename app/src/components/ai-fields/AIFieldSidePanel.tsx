@@ -20,27 +20,7 @@ import { AIFieldPlayground } from "./AIFieldPlayground";
 import type { AiFieldStatus } from "../../types/vonAiFields";
 import { AIFieldFilterBlock } from "./AIFieldFilterBlock";
 
-// ─── Source mapping ────────────────────────────────────────
-import { DataSources } from "@vonlabs/design-components";
-import type { DataSource, DataSourceIcon } from "@vonlabs/design-components";
-
-const SOURCE_CONFIG: Record<string, { name: string; icon: DataSourceIcon }> = {
-  crm: { name: "CRM", icon: "salesforce" },
-  calls: { name: "Calls", icon: "calls" },
-  emails: { name: "Emails", icon: "emails" },
-};
-
-function mapSourcesToDataSources(sources: string[]): DataSource[] {
-  return sources.map((s) => {
-    const config = SOURCE_CONFIG[s.toLowerCase()];
-    return {
-      id: s,
-      name: config?.name ?? s.charAt(0).toUpperCase() + s.slice(1),
-      icon: config?.icon ?? "database",
-      objects: [],
-    };
-  });
-}
+import { AiFieldSourcesDrawer } from "./AiFieldSourcesDrawer";
 
 // ─── Props ─────────────────────────────────────────────────
 interface AIFieldSidePanelProps {
@@ -275,9 +255,7 @@ export function AIFieldSidePanel({
         {/* Meta row — full width below title */}
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <StatusBadge status={status} />
-          {field.sources && field.sources.length > 0 && (
-            <DataSources sources={mapSourcesToDataSources(field.sources)} />
-          )}
+          <AiFieldSourcesDrawer sources={field.sources ?? []} />
           <span className="text-xs text-gray-400">
             Created {formatDate(field.createdAt)}
           </span>

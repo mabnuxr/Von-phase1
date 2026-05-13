@@ -7,8 +7,7 @@ import { useUserPusherChannel } from "../hooks/useUserPusherChannel";
 import { useAiFieldEvents } from "../hooks/useAiFieldEvents";
 import { useUser } from "../hooks/useUser";
 import { AIFieldPlayground } from "./ai-fields/AIFieldPlayground";
-import { DataSources } from "@vonlabs/design-components";
-import type { DataSource, DataSourceIcon } from "@vonlabs/design-components";
+import { AiFieldSourcesDrawer } from "./ai-fields/AiFieldSourcesDrawer";
 import {
   ArrowLeftIcon,
   ClockIcon,
@@ -16,24 +15,6 @@ import {
   CaretDownIcon,
   PlusIcon,
 } from "@phosphor-icons/react";
-
-const SOURCE_CONFIG: Record<string, { name: string; icon: DataSourceIcon }> = {
-  crm: { name: "CRM", icon: "salesforce" },
-  calls: { name: "Calls", icon: "calls" },
-  emails: { name: "Emails", icon: "emails" },
-};
-
-function mapSourcesToDataSources(sources: string[]): DataSource[] {
-  return sources.map((s) => {
-    const config = SOURCE_CONFIG[s.toLowerCase()];
-    return {
-      id: s,
-      name: config?.name ?? s.charAt(0).toUpperCase() + s.slice(1),
-      icon: config?.icon ?? "database",
-      objects: [],
-    };
-  });
-}
 
 interface VonAiFieldDetailPageProps {
   fieldId: string;
@@ -133,11 +114,7 @@ export function VonAiFieldDetailPane({
             {!isLoading && field && (
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 {statusBadge()}
-                {field.sources.length > 0 && (
-                  <DataSources
-                    sources={mapSourcesToDataSources(field.sources)}
-                  />
-                )}
+                <AiFieldSourcesDrawer sources={field.sources} />
                 {field.createdAt && (
                   <span className="text-xs text-gray-400">
                     Created{" "}
