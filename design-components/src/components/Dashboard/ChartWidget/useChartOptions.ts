@@ -454,11 +454,7 @@ interface UseChartOptionsParams {
   onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
-export function useChartOptions({
-  config,
-  drilldownV2,
-  onPointClick,
-}: UseChartOptionsParams) {
+export function useChartOptions({ config, drilldownV2, onPointClick }: UseChartOptionsParams) {
   const isGantt = config.chartType === 'gantt';
   const constructorType: 'chart' | 'ganttChart' = isGantt ? 'ganttChart' : 'chart';
 
