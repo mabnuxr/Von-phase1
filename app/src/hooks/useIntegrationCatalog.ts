@@ -28,7 +28,8 @@ export function usePublishIntegration() {
       catalogId: string;
       payload: PublishIntegrationPayload;
     }) => integrationCatalogService.publishIntegration(catalogId, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
   });
 }
 
@@ -42,7 +43,8 @@ export function useUpdateIntegrationPolicy() {
       catalogId: string;
       payload: UpdatePolicyPayload;
     }) => integrationCatalogService.updatePolicy(catalogId, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
   });
 }
 
@@ -51,6 +53,7 @@ export function useDeleteIntegrationPolicy() {
   return useMutation({
     mutationFn: (catalogId: string) =>
       integrationCatalogService.deletePolicy(catalogId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: INTEGRATION_CATALOG_KEY }),
   });
 }

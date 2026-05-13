@@ -334,7 +334,13 @@ export function IntegrationsPanel() {
     );
 
     return [...connectedMCPEntries, ...tiMcpEntries];
-  }, [connectedMCPEntries, tenantIntegrations, integrationsData, isAdmin]);
+  }, [
+    connectedMCPEntries,
+    tenantIntegrations,
+    integrationsData,
+    isAdmin,
+    isMcpServersEnabled,
+  ]);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);

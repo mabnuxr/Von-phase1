@@ -445,7 +445,6 @@ const NewConversation = () => {
         onMentionsActivated={handleMentionsActivated}
         widgetMentions={preloadedWidgetMentions}
         onWidgetMentionRemoved={handleWidgetMentionRemoved}
-        onTemplateCategoryClick={handleTemplateCategoryClick}
         onTemplateClick={handleTemplateClick}
         onTemplateArrowClick={handleTemplateArrowClick}
       />
