@@ -656,15 +656,7 @@ export interface PanelRenderResponse {
   widgets: Record<string, PanelRenderWidget>;
 }
 
-// ─── Panel Drilldown ────────────────────────────────────────────
-
-export interface PanelDrilldownRequest {
-  panel_id: string;
-  drill_filters?: Record<string, unknown> | null;
-  page_limit: number;
-  page: number;
-  sort_config?: SortConfigItem[];
-}
+// ─── Panel Drilldown (pyramid model) ────────────────────────────────────────────
 
 export interface PanelDrilldownPagination {
   page: number;
@@ -675,15 +667,6 @@ export interface PanelDrilldownPagination {
   hasPrevPage: boolean;
   sortConfig?: SortConfigItem[];
 }
-
-export interface PanelDrilldownResponse {
-  title: string;
-  query: string;
-  data: Record<string, unknown>[];
-  pagination: PanelDrilldownPagination;
-}
-
-// ─── Panel Drilldown V2 (pyramid model) ─────────────────────────────────────────
 
 export interface DrilldownV2ColumnMapping {
   data_key: string;

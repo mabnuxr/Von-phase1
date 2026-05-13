@@ -241,7 +241,6 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
           >
             <ChartWidget
               config={widget.config as ChartWidgetConfig}
-              drilldown={widget.drilldown}
               drilldownV2={widget.drilldown_v2}
               onPointClick={onPointDrillDown ? handlePointDrillDown : undefined}
             />

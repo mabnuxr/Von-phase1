@@ -32,8 +32,6 @@ export type {
   TableWidgetConfig,
   TablePaginationInfo,
   SortState,
-  DrilldownConfig,
-  DrilldownColumnMapping,
   DrillFilters,
   QueryInfo,
   AppliedWidgetFilter,

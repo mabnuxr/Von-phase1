@@ -26,36 +26,6 @@ export type WidgetType = 'chart' | 'counter' | 'table' | 'text';
 
 // ─── Drilldown ────────────────────────────────────────────────────
 
-/**
- * Maps a click value to a SQL expression for drilldown filtering.
- *
- * `data_key` is the SQL column name (or short synthetic identifier like
- * `_won_status` for chart axes that aren't real columns). The same
- * `data_key` is what the FE emits in `drill_filters` — single namespace at
- * the wire (matched against the level's column_map on the backend).
- *
- * `extract_from` is the optional Highcharts-property bridge for chart
- * parent clicks. When set, the FE reads the click value from
- * `point[extract_from]` (e.g. `point.name`, `point.x`, `series.name`) but
- * emits the filter keyed by `data_key`. When omitted, the FE looks up
- * `point[data_key]` directly — works for table cells / row clicks where
- * the data_key already matches a key on the click event payload.
- *
- * Legacy V1 dashboards may persist `data_key` values like `point.name` —
- * the FE falls back to dotted-path lookup when `extract_from` is unset,
- * so those continue to work without migration.
- */
-export interface DrilldownColumnMapping {
-  data_key: string;
-  sql_expression: string;
-  extract_from?: string | null;
-}
-
-export interface DrilldownConfig {
-  query_ref: string;
-  column_map: DrilldownColumnMapping[];
-}
-
 /** Column-value pairs sent as drill filters from a chart point click. */
 export type DrillFilters = Record<string, unknown>;
 
@@ -71,9 +41,13 @@ export interface DrilldownV2ColumnMapping {
   data_key: string;
   sql_expression: string;
   /**
-   * Optional Highcharts-property bridge for chart parent clicks. See the
-   * docstring on the legacy ``DrilldownColumnMapping`` above for the full
-   * semantics — same field, same behavior.
+   * Optional Highcharts-property bridge for chart parent clicks. When
+   * set, the FE reads the click value from ``point[extract_from]``
+   * (e.g. ``point.name``, ``point.x``, ``series.name``) but emits the
+   * filter keyed by ``data_key``. When omitted, the FE looks up
+   * ``point[data_key]`` directly — works for table cells / row clicks
+   * where the data_key already matches a key on the click event
+   * payload.
    */
   extract_from?: string | null;
   title?: string | null;
@@ -162,14 +136,12 @@ export interface WidgetConfig {
    * `applies_to` entries (which reference query IDs, not widget IDs).
    */
   queryRef?: string;
-  /** Drilldown configuration — present when the panel supports drill-down. */
-  drilldown?: DrilldownConfig | null;
   /**
-   * V2 drilldown configuration (pyramid model). Present on panels authored
-   * by the V2 flow. Widgets prefer this over ``drilldown`` for point-click
-   * filter extraction (read off levels[0]'s default variant); the variant
-   * selector and level-descent UI live in the drilldown panel component,
-   * not the widget itself.
+   * Drilldown configuration (pyramid model). Present when the panel
+   * supports drill-down — column_map for point-click filter extraction
+   * is sourced from ``levels[0]``'s default variant; the variant
+   * selector and level-descent UI live in the drilldown panel
+   * component, not the widget itself.
    */
   drilldown_v2?: PanelDrilldownV2 | null;
   /** Query SQL and description for this widget */

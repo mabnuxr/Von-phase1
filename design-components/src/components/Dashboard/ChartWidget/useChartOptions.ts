@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import Highcharts from 'highcharts';
 import type {
   ChartWidgetConfig,
-  DrilldownConfig,
-  DrilldownColumnMapping,
+  DrilldownV2ColumnMapping,
   DrillFilters,
   PanelDrilldownV2,
 } from '../types';
@@ -257,40 +256,28 @@ function buildStandardOptions(raw: Highcharts.Options): Highcharts.Options {
 // ── Drilldown injection ─────────────────────────────────────────
 
 /**
- * Resolve the effective column_map for a chart's point click — V2 (when
- * present) takes precedence over the legacy V1 ``drilldown.column_map`` so
- * V2-authored panels keep V1-style "click a bar to filter by stage"
- * behavior.
+ * Resolve the effective column_map for a chart's point click.
  *
- * For V2 the column_map is read off ``levels[0]``'s default variant. Deeper
- * levels are descended into via the drilldown panel UI, not via widget point
- * clicks — every chart click always opens drilldown at depth 0.
+ * Chart parent clicks always live at L0 = ``levels[0]`` of the pyramid.
+ * Read its default variant's column_map to find which Highcharts
+ * properties map to which SQL columns. Deeper levels are unreachable
+ * from a widget click; descent happens via the drilldown panel UI.
  */
 function resolveEffectiveColumnMap(
-  drilldown: DrilldownConfig | null | undefined,
   drilldownV2: PanelDrilldownV2 | null | undefined
-): DrilldownColumnMapping[] {
-  // V2 pyramid model: chart parent clicks always live at L0 = levels[0].
-  // Read its default variant's column_map to find which Highcharts properties
-  // map to which SQL columns. Deeper levels are unreachable from a widget click;
-  // descent happens via the drilldown panel UI.
+): DrilldownV2ColumnMapping[] {
   const l0 = drilldownV2?.levels?.[0];
-  if (l0?.variants?.length) {
-    const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
-    if (defaultVariant?.column_map?.length) {
-      return defaultVariant.column_map;
-    }
-  }
-  return drilldown?.column_map ?? [];
+  if (!l0?.variants?.length) return [];
+  const defaultVariant = l0.variants.find((v) => v.is_default) ?? l0.variants[0];
+  return defaultVariant?.column_map ?? [];
 }
 
 function injectDrilldown(
   options: Highcharts.Options,
-  drilldown: DrilldownConfig | null | undefined,
   drilldownV2: PanelDrilldownV2 | null | undefined,
   onPointClick: ((drillFilters: DrillFilters, metricValue?: unknown) => void) | undefined
 ): Highcharts.Options {
-  const columnMap = resolveEffectiveColumnMap(drilldown, drilldownV2);
+  const columnMap = resolveEffectiveColumnMap(drilldownV2);
   if (!columnMap.length || !onPointClick) return options;
 
   const existingPlotOptions = (options.plotOptions ?? {}) as Record<string, unknown>;
@@ -463,14 +450,12 @@ function injectDrilldown(
 
 interface UseChartOptionsParams {
   config: ChartWidgetConfig;
-  drilldown?: DrilldownConfig | null;
   drilldownV2?: PanelDrilldownV2 | null;
   onPointClick?: (drillFilters: DrillFilters) => void;
 }
 
 export function useChartOptions({
   config,
-  drilldown,
   drilldownV2,
   onPointClick,
 }: UseChartOptionsParams) {
@@ -483,8 +468,8 @@ export function useChartOptions({
   }, [config.highchartsOptions, isGantt]);
 
   const finalOptions = useMemo(
-    () => injectDrilldown(options, drilldown, drilldownV2, onPointClick),
-    [options, drilldown, drilldownV2, onPointClick]
+    () => injectDrilldown(options, drilldownV2, onPointClick),
+    [options, drilldownV2, onPointClick]
   );
 
   return { options: finalOptions, constructorType };

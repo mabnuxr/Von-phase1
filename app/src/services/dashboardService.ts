@@ -5,8 +5,6 @@ import type {
   WidgetDataResponse,
   PanelRenderRequest,
   PanelRenderResponse,
-  PanelDrilldownRequest,
-  PanelDrilldownResponse,
   DrilldownV2Request,
   DrilldownV2Response,
   ScheduleConfigRequest,
@@ -151,24 +149,14 @@ class DashboardService {
     );
   }
 
-  async drilldownPanel(
-    dashboardId: string,
-    request: PanelDrilldownRequest,
-  ): Promise<PanelDrilldownResponse> {
-    return apiClient.post<PanelDrilldownResponse>(
-      `/api/v1/dashboards/${dashboardId}/panels/drilldown`,
-      request,
-    );
-  }
-
   /**
-   * V2 drilldown — pyramid model with variants, justifications, and
+   * Drilldown — pyramid model with variants, justifications, and
    * cumulative drill_filters across the click chain.
    *
-   * Callers should check the panel's loaded ``drilldown_v2`` config
-   * presence before invoking this endpoint; panels without it predate
-   * the V1→V2 migration and should drill through ``drilldownPanel``
-   * (V1) instead.
+   * Every panel authored by the current dashboard-creation flow has
+   * ``drilldown_v2`` populated; the V1 endpoint at
+   * ``/panels/drilldown`` is deprecated and may still exist on the
+   * backend for legacy support but is no longer reachable from this FE.
    */
   async drilldownPanelV2(
     dashboardId: string,

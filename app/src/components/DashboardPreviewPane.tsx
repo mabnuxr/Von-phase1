@@ -14,13 +14,12 @@ import { useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
-import { useDrilldown } from "../hooks/useDrilldown";
 import { useDrilldownV2 } from "../hooks/useDrilldownV2";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
 import { AnalyticsView, AnalyticsSkeleton, AnalyticsError } from "./Analytics";
-import { DrilldownPanel, DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
+import { DrilldownPanelV2 } from "./Analytics/DrilldownPanel";
 import { EditModeBanner } from "./Analytics/EditModeBanner";
 import {
   getCurrentVariantColumnVariantMap,
@@ -126,45 +125,17 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     activeSorts,
   } = useTableServerPagination(dashboardId, dashboard?.widgets ?? {});
 
-  const {
-    isOpen: isDrilldownOpen,
-    panelId: drilldownPanelId,
-    title: drilldownTitle,
-    query: drilldownQuery,
-    data: drilldownData,
-    pagination: drilldownPagination,
-    currentSort: drilldownSort,
-    isLoading: isDrilldownLoading,
-    isError: isDrilldownError,
-    openDrilldown,
-    openPointDrilldown,
-    closeDrilldown,
-    changePage: changeDrilldownPage,
-    changeSort: changeDrilldownSort,
-  } = useDrilldown(dashboardId);
-
-  // V2 drilldown wiring — exact mirror of pages/Analytics.tsx so preview
-  // mode and full mode produce byte-identical drill requests. Per
+  // Drilldown wiring — mirror of pages/Analytics.tsx so preview mode and
+  // full mode produce byte-identical drill requests. Per
   // ``feedback_preview_parity.md``: preview must mirror full mode changes.
   const drillV2 = useDrilldownV2(dashboardId);
-  const shouldUseV2 = useCallback(
-    (panelId: string) => {
-      const widget = dashboard?.widgets?.[panelId];
-      return !!widget?.drilldown_v2;
-    },
-    [dashboard?.widgets],
-  );
   const handleWidgetDrillDown = useCallback(
     (panelId: string, metricValue?: unknown) => {
-      if (shouldUseV2(panelId)) {
-        // KPI tile clicks pass the resolved numeric as ``metricValue``;
-        // chart drill-icon clicks pass undefined.
-        drillV2.openPanelDrilldown(panelId, [], {}, metricValue);
-        return;
-      }
-      openDrilldown(panelId);
+      // KPI tile clicks pass the resolved numeric as ``metricValue``;
+      // chart drill-icon clicks pass undefined.
+      drillV2.openPanelDrilldown(panelId, [], {}, metricValue);
     },
-    [shouldUseV2, drillV2, openDrilldown],
+    [drillV2],
   );
   const handlePointDrillDown = useCallback(
     (
@@ -174,20 +145,16 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       metricLabel?: string,
       variantId?: string | null,
     ) => {
-      if (shouldUseV2(panelId)) {
-        drillV2.openPanelDrilldown(
-          panelId,
-          [],
-          filters,
-          metricValue,
-          metricLabel,
-          variantId,
-        );
-        return;
-      }
-      openPointDrilldown(panelId, filters);
+      drillV2.openPanelDrilldown(
+        panelId,
+        [],
+        filters,
+        metricValue,
+        metricLabel,
+        variantId,
+      );
     },
-    [shouldUseV2, drillV2, openPointDrilldown],
+    [drillV2],
   );
   const handleV2RowDrill = useCallback(
     (
@@ -292,7 +259,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             editModePhase={editModePhase}
             isRefetchingData={isFetching && !isLoading}
             isRefreshing={isRefreshing}
-            isDrilldownOpen={isDrilldownOpen || drillV2.isOpen}
+            isDrilldownOpen={drillV2.isOpen}
             panelFilterState={panelFilterState}
             lockedFilterState={lockedFilterState}
             getEffectivePanelState={getEffectivePanelState}
@@ -308,39 +275,11 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             canLockPanelFilter={canLockPanelFilter}
             lockedPanelFilterState={lockedPanelFilterState}
           />
-          {/* Edit mode banner — floats above drilldown panel when either V1 or V2 drill is open */}
+          {/* Edit mode banner — floats above the drilldown panel when open */}
           <EditModeBanner
-            visible={
-              dashboard.isEditable && (isDrilldownOpen || drillV2.isOpen)
-            }
+            visible={dashboard.isEditable && drillV2.isOpen}
             className="absolute bottom-0 left-0 right-0 z-[51] pointer-events-none flex justify-center pb-4"
           />
-          <DrilldownPanel
-            isOpen={isDrilldownOpen}
-            onClose={closeDrilldown}
-            widgetTitle={
-              drilldownTitle ||
-              (drilldownPanelId &&
-                dashboard.widgets?.[drilldownPanelId]?.title) ||
-              "Drilldown"
-            }
-            query={
-              drilldownQuery ||
-              (drilldownPanelId &&
-                dashboard.widgets?.[drilldownPanelId]?.queryInfo?.sql) ||
-              ""
-            }
-            data={drilldownData}
-            pagination={drilldownPagination}
-            isLoading={isDrilldownLoading}
-            isError={isDrilldownError}
-            onPageChange={changeDrilldownPage}
-            onSortChange={changeDrilldownSort}
-            sortState={drilldownSort}
-          />
-          {/* V2 drilldown panel — mounted in parallel with V1. The handlers
-              above route per-panel based on widget config; the panel itself
-              only opens when one of those handlers fires. */}
           <DrilldownPanelV2
             drill={drillV2}
             widgetTitle={
