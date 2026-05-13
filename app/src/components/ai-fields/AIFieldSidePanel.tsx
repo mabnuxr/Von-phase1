@@ -282,6 +282,18 @@ export function AIFieldSidePanel({
               {field.description || "No prompt provided."}
             </p>
           </div>
+          {field.columnsToGenerate && field.columnsToGenerate.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              {field.columnsToGenerate.map((col) => (
+                <span
+                  key={col.name}
+                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
+                >
+                  {col.type}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filter */}
