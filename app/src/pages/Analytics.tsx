@@ -8,7 +8,6 @@ import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDrilldownV2 } from "../hooks/useDrilldownV2";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useResizablePane } from "../hooks/useResizablePane";
 import {
@@ -158,23 +157,19 @@ function DashboardCanvas({
     changeSort: changeDrilldownSort,
   } = useDrilldown(dashboardId);
 
-  // V2 drilldown runs alongside V1, gated by the `drilldown_v2` LaunchDarkly
-  // flag (matched by the backend's V2 endpoint gate). Per-panel routing also
-  // requires `widget.drilldown_v2` on the dashboard config — when the flag is
-  // off, V2-built panels fall through to the legacy V1 wiring (a no-op for
-  // V2-only panels, which is fine: V2-built dashboards are only served to
-  // flagged users in practice).
-  const { isDrilldownV2Enabled } = useFeatureFlag();
+  // V2 drilldown runs alongside V1. Per-panel routing picks V2 whenever
+  // ``widget.drilldown_v2`` is populated on the dashboard config; otherwise
+  // the legacy V1 path serves the click. (Pre-V1→V2-migration dashboards
+  // still have only V1 drilldown — those go through ``useDrilldown``.)
   const drillV2 = useDrilldownV2(dashboardId);
   // Named ``shouldUseV2`` (not ``useV2``) so React's rules-of-hooks lint
   // doesn't mistake this regular callback for a custom hook.
   const shouldUseV2 = useCallback(
     (panelId: string) => {
-      if (!isDrilldownV2Enabled) return false;
       const widget = dashboard?.widgets?.[panelId];
       return !!widget?.drilldown_v2;
     },
-    [isDrilldownV2Enabled, dashboard?.widgets],
+    [dashboard?.widgets],
   );
 
   const handleWidgetDrillDown = useCallback(
@@ -384,33 +379,26 @@ function DashboardCanvas({
         onSortChange={changeDrilldownSort}
         sortState={drilldownSort}
       />
-      {/* V2 drilldown panel — only mounted when the flag is on so v1-only
-          users can never see V2 chrome. The handlers above won't open the
-          drill state when the flag is off, but a conditional mount also
-          keeps the bottom-sheet's hooks (react-query subscriptions, etc.)
-          out of the v1 path entirely. */}
-      {isDrilldownV2Enabled && (
-        <DrilldownPanelV2
-          drill={drillV2}
-          widgetTitle={
-            drillV2.panelId
-              ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
-              : "Drilldown"
-          }
-          levelColumnMaps={getLevelColumnMaps(
-            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
-          )}
-          levelDrillableColumns={getLevelDrillableColumns(
-            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
-          )}
-          currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
-            drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
-            drillV2.clickChain.length,
-            drillV2.currentVariantId,
-          )}
-          onRowDrill={handleV2RowDrill}
-        />
-      )}
+      <DrilldownPanelV2
+        drill={drillV2}
+        widgetTitle={
+          drillV2.panelId
+            ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
+            : "Drilldown"
+        }
+        levelColumnMaps={getLevelColumnMaps(
+          drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+        )}
+        levelDrillableColumns={getLevelDrillableColumns(
+          drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+        )}
+        currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
+          drillV2.panelId ? dashboard.widgets?.[drillV2.panelId] : undefined,
+          drillV2.clickChain.length,
+          drillV2.currentVariantId,
+        )}
+        onRowDrill={handleV2RowDrill}
+      />
     </>
   );
 }

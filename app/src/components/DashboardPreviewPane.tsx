@@ -16,7 +16,6 @@ import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldown } from "../hooks/useDrilldown";
 import { useDrilldownV2 } from "../hooks/useDrilldownV2";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useDashboardSchedule } from "../hooks/useDashboardSchedule";
 import { useDashboardRefreshEvents } from "../hooks/useDashboardRefreshEvents";
@@ -151,15 +150,13 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   // mode and the backend 500s because the panel has no V1 drilldown to
   // execute. Per ``feedback_preview_parity.md``: preview must mirror full
   // mode changes — V2 drilldown is one of those changes.
-  const { isDrilldownV2Enabled } = useFeatureFlag();
   const drillV2 = useDrilldownV2(dashboardId);
   const shouldUseV2 = useCallback(
     (panelId: string) => {
-      if (!isDrilldownV2Enabled) return false;
       const widget = dashboard?.widgets?.[panelId];
       return !!widget?.drilldown_v2;
     },
-    [isDrilldownV2Enabled, dashboard?.widgets],
+    [dashboard?.widgets],
   );
   const handleWidgetDrillDown = useCallback(
     (panelId: string, metricValue?: unknown) => {
@@ -345,38 +342,35 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onSortChange={changeDrilldownSort}
             sortState={drilldownSort}
           />
-          {/* V2 drilldown panel — mounted in parallel with V1, gated on the
-              ``drilldown_v2`` LD flag so V1-only users never see V2 chrome.
-              The handlers above route per-panel based on widget config; the
-              panel itself only opens when one of those handlers fires. */}
-          {isDrilldownV2Enabled && (
-            <DrilldownPanelV2
-              drill={drillV2}
-              widgetTitle={
-                drillV2.panelId
-                  ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
-                  : "Drilldown"
-              }
-              levelColumnMaps={getLevelColumnMaps(
-                drillV2.panelId
-                  ? dashboard.widgets?.[drillV2.panelId]
-                  : undefined,
-              )}
-              levelDrillableColumns={getLevelDrillableColumns(
-                drillV2.panelId
-                  ? dashboard.widgets?.[drillV2.panelId]
-                  : undefined,
-              )}
-              currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
-                drillV2.panelId
-                  ? dashboard.widgets?.[drillV2.panelId]
-                  : undefined,
-                drillV2.clickChain.length,
-                drillV2.currentVariantId,
-              )}
-              onRowDrill={handleV2RowDrill}
-            />
-          )}
+          {/* V2 drilldown panel — mounted in parallel with V1. The handlers
+              above route per-panel based on widget config; the panel itself
+              only opens when one of those handlers fires. */}
+          <DrilldownPanelV2
+            drill={drillV2}
+            widgetTitle={
+              drillV2.panelId
+                ? (dashboard.widgets?.[drillV2.panelId]?.title ?? "Drilldown")
+                : "Drilldown"
+            }
+            levelColumnMaps={getLevelColumnMaps(
+              drillV2.panelId
+                ? dashboard.widgets?.[drillV2.panelId]
+                : undefined,
+            )}
+            levelDrillableColumns={getLevelDrillableColumns(
+              drillV2.panelId
+                ? dashboard.widgets?.[drillV2.panelId]
+                : undefined,
+            )}
+            currentLevelColumnVariantMap={getCurrentVariantColumnVariantMap(
+              drillV2.panelId
+                ? dashboard.widgets?.[drillV2.panelId]
+                : undefined,
+              drillV2.clickChain.length,
+              drillV2.currentVariantId,
+            )}
+            onRowDrill={handleV2RowDrill}
+          />
         </>
       )}
     </div>
