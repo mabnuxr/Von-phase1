@@ -1,7 +1,6 @@
 /**
  * Drilldown V2 hook (pyramid model) — click-chain state machine for descent
- * through a panel's aggregation pyramid. Feature-flagged on the backend via
- * `drilldown_v2`.
+ * through a panel's aggregation pyramid.
  *
  * Mental model:
  * - A panel's main query has K aggregations; drilldown has K levels.

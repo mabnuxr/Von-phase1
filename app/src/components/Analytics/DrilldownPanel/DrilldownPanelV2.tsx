@@ -2,9 +2,10 @@
  * DrilldownPanelV2 — bottom-sheet renderer for the V2 drilldown flow
  * (pyramid model).
  *
- * Feature-flagged on the backend via `drilldown_v2`. The FE wires this panel
- * alongside the legacy DrilldownPanel — callers pick the V2 variant when the
- * clicked widget's loaded config has a `drilldown_v2` field populated.
+ * The FE wires this panel alongside the legacy DrilldownPanel — callers
+ * pick the V2 variant when the clicked widget's loaded config has a
+ * `drilldown_v2` field populated. Legacy panels (no `drilldown_v2`)
+ * fall through to the V1 DrilldownPanel.
  *
  * Contract:
  * - 95vh bottom sheet with scrim + grip handle; ESC / close button to dismiss.
