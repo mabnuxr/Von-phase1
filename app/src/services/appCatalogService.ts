@@ -1,10 +1,10 @@
 import { apiClient } from "./apiClient";
 import type {
-  AppCatalogEntry,
   AppTool,
   CatalogType,
   ConnectionMode,
   AvailabilityStatus,
+  PaginatedCatalogResponse,
   PublishAppPayload,
   TenantIntegrationEnriched,
   TenantIntegrationSummary,
@@ -18,13 +18,21 @@ export class AppCatalogService {
     catalogType?: "native_integration" | "mcp";
     statusFilter?: "all" | "published" | "unsubscribed";
     includeBuiltins?: boolean;
-  }): Promise<AppCatalogEntry[]> {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<PaginatedCatalogResponse> {
     const p = new URLSearchParams();
     if (opts?.catalogType) p.set("catalog_type", opts.catalogType);
     if (opts?.statusFilter) p.set("status_filter", opts.statusFilter);
     if (opts?.includeBuiltins === false) p.set("include_builtins", "false");
+    if (opts?.search) p.set("search", opts.search);
+    if (opts?.page != null) p.set("page", String(opts.page));
+    if (opts?.pageSize != null) p.set("page_size", String(opts.pageSize));
     const qs = p.toString();
-    return apiClient.get<AppCatalogEntry[]>(`${BASE}/${qs ? `?${qs}` : ""}`);
+    return apiClient.get<PaginatedCatalogResponse>(
+      `${BASE}/${qs ? `?${qs}` : ""}`,
+    );
   }
 
   async getTenantIntegrations(opts?: {

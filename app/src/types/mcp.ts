@@ -73,6 +73,7 @@ export interface CatalogEntry {
   is_active: boolean;
   connection_mode?: "workspace" | "personal";
   is_ti_based?: boolean;
+  workspace_published_by?: string | null;
 }
 
 export interface MCPSettings {

@@ -8,15 +8,16 @@ import {
   CaretDownIcon,
   UserIcon,
 } from "@phosphor-icons/react";
-import { Input, Banner } from "@vonlabs/design-components";
+import { Banner } from "@vonlabs/design-components";
 import {
-  useAppCatalog,
+  useAppCatalogInfinite,
   useAppTools,
   usePublishApp,
   useDeleteConnections,
   useDeleteTenantIntegration,
   useTenantIntegrations,
 } from "../../hooks/useAppCatalog";
+import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 
 import type {
   AppCatalogEntry,
@@ -29,8 +30,6 @@ import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
 interface ConnectorLibraryModalProps {
   onClose: () => void;
 }
-
-type SourceFilter = "all" | "von" | "mcp";
 
 function entryCategoryCode(e: AppCatalogEntry): string {
   return e.category_code || "other";
@@ -83,9 +82,34 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
 
-  const { data: catalog = [], isLoading } = useAppCatalog({
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [detailEntry, setDetailEntry] = useState<AppCatalogEntry | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const {
+    data: catalogData,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useAppCatalogInfinite({
     statusFilter: "all",
     includeBuiltins: true,
+    pageSize: 100,
+    search: debouncedSearch || undefined,
+  });
+  const catalog = useMemo(() => catalogData?.items ?? [], [catalogData]);
+
+  const loadMoreRef = useInfiniteScroll({
+    onLoadMore: fetchNextPage,
+    hasMore: !!hasNextPage,
+    isLoading: isFetchingNextPage,
   });
 
   const { data: tenantIntegrations = [] } = useTenantIntegrations();
@@ -93,11 +117,6 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     () => buildTiMap(tenantIntegrations),
     [tenantIntegrations],
   );
-
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
-  const [detailEntry, setDetailEntry] = useState<AppCatalogEntry | null>(null);
 
   const categories = useMemo(() => {
     const map = new Map<string, { name: string; count: number }>();
@@ -114,25 +133,10 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     }));
   }, [catalog]);
 
-  const totalCount = catalog.length;
-
   const filtered = useMemo(() => {
-    return catalog.filter((e) => {
-      if (selectedCategory && entryCategoryCode(e) !== selectedCategory)
-        return false;
-      if (sourceFilter === "von" && !isEntryBuiltByVon(e)) return false;
-      if (sourceFilter === "mcp" && isEntryBuiltByVon(e)) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          e.name.toLowerCase().includes(q) ||
-          e.description.toLowerCase().includes(q) ||
-          entryCategoryName(e).toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [catalog, selectedCategory, sourceFilter, search]);
+    if (!selectedCategory) return catalog;
+    return catalog.filter((e) => entryCategoryCode(e) === selectedCategory);
+  }, [catalog, selectedCategory]);
 
   if (detailEntry) {
     if (detailEntry.catalog_type === "mcp") {
@@ -174,7 +178,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                   App Library
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  Connect and manage apps for your workspace
+                  Manage integrations for your workspace
                 </p>
               </div>
               <button
@@ -199,7 +203,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                 }`}
               >
                 <span>All apps</span>
-                <span className="text-xs text-gray-400">{totalCount}</span>
+                <span className="text-xs text-gray-400">{catalog.length}</span>
               </button>
               {categories.map((cat) => (
                 <button
@@ -219,9 +223,9 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
 
             {/* Right: Search + Grid */}
             <div className="flex-1 flex flex-col min-h-0">
-              {/* Search + Source filter */}
-              <div className="px-5 pt-4 pb-3 shrink-0 flex items-center gap-3">
-                <div className="relative flex-1">
+              {/* Search */}
+              <div className="px-5 pt-4 pb-3 shrink-0">
+                <div className="relative">
                   <MagnifyingGlassIcon
                     size={16}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -233,27 +237,6 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent placeholder:text-gray-400"
                   />
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {(
-                    [
-                      { value: "all", label: "All" },
-                      { value: "von", label: "Built by Von" },
-                      { value: "mcp", label: "MCP" },
-                    ] as const
-                  ).map(({ value, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => setSourceFilter(value)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors ${
-                        sourceFilter === value
-                          ? "bg-gray-900 text-white"
-                          : "text-gray-600 border border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
                 </div>
               </div>
 
@@ -268,13 +251,21 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                     No apps found
                   </div>
                 ) : (
-                  <AppLibraryGrid
-                    entries={filtered}
-                    tiMap={tiMap}
-                    selectedCategory={selectedCategory}
-                    categories={categories}
-                    onSelect={(entry) => setDetailEntry(entry)}
-                  />
+                  <>
+                    <AppLibraryGrid
+                      entries={filtered}
+                      tiMap={tiMap}
+                      selectedCategory={selectedCategory}
+                      categories={categories}
+                      onSelect={(entry) => setDetailEntry(entry)}
+                    />
+                    <div ref={loadMoreRef} className="h-1" />
+                    {isFetchingNextPage && (
+                      <div className="flex justify-center py-4 text-sm text-gray-400">
+                        Loading more...
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -282,6 +273,95 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
         </div>
       </div>
     </>
+  );
+}
+
+/* ─── Proceed Confirm Modal ─── */
+function ProceedConfirmModal({
+  fromMode,
+  toMode,
+  onConfirm,
+  onCancel,
+}: {
+  fromMode: "workspace" | "personal";
+  toMode: "workspace" | "personal";
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const [input, setInput] = useState("");
+  const canProceed = input.trim() === "PROCEED";
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md p-6 flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-3">
+          <div className="shrink-0 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+            <svg
+              className="size-4 text-red-600"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">
+              Switch to {toMode}?
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Switching from{" "}
+              <span className="font-medium capitalize">{fromMode}</span> to{" "}
+              <span className="font-medium capitalize">{toMode}</span> will{" "}
+              <span className="font-medium text-red-600">
+                delete all existing connections
+              </span>{" "}
+              for this integration. This cannot be undone.
+            </p>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1.5">
+            Type{" "}
+            <span className="font-mono font-semibold text-gray-900">
+              PROCEED
+            </span>{" "}
+            to confirm
+          </label>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            autoFocus
+            placeholder="PROCEED"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!canProceed}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Switch to {toMode}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -297,45 +377,22 @@ function AppLibraryGrid({
   categories: { code: string; name: string }[];
   onSelect: (entry: AppCatalogEntry) => void;
 }) {
-  const added = entries.filter((e) => isEntryAdded(e, tiMap));
-  const rest = entries.filter((e) => !isEntryAdded(e, tiMap));
+  const sorted = [...entries].sort((a, b) => {
+    const aAdded = isEntryAdded(a, tiMap) ? 0 : 1;
+    const bAdded = isEntryAdded(b, tiMap) ? 0 : 1;
+    return aAdded - bAdded;
+  });
 
   return (
-    <div className="space-y-5">
-      {added.length > 0 && (
-        <div>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Added
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {added.map((entry) => (
-              <AppCard
-                key={`${entry.catalog_type}-${entry.catalog_id}`}
-                entry={entry}
-                isAdded
-                onClick={() => onSelect(entry)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {rest.length > 0 && (
-        <div>
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            All apps
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {rest.map((entry) => (
-              <AppCard
-                key={`${entry.catalog_type}-${entry.catalog_id}`}
-                entry={entry}
-                onClick={() => onSelect(entry)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="grid grid-cols-2 gap-3">
+      {sorted.map((entry) => (
+        <AppCard
+          key={`${entry.catalog_type}-${entry.catalog_id}`}
+          entry={entry}
+          isAdded={isEntryAdded(entry, tiMap)}
+          onClick={() => onSelect(entry)}
+        />
+      ))}
     </div>
   );
 }
@@ -376,7 +433,7 @@ function AppCard({
           </span>
           {isAdded && (
             <span className="text-[11px] font-semibold text-green-600 shrink-0">
-              Added
+              Enabled
             </span>
           )}
         </div>
@@ -424,6 +481,9 @@ function NativeDetailView({
   const [showPublishConfirm, setShowPublishConfirm] = useState<
     "workspace" | "personal" | null
   >(null);
+  const [switchConfirmMode, setSwitchConfirmMode] = useState<
+    "workspace" | "personal" | null
+  >(null);
   const [splitOpen, setSplitOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
 
@@ -467,13 +527,12 @@ function NativeDetailView({
   const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
   const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
 
-  const handlePublish = async (mode: "workspace" | "personal") => {
+  const executePublish = async (mode: "workspace" | "personal") => {
     setError(null);
     const oppositeMode = mode === "workspace" ? "personal" : "workspace";
     const isOppositePublished =
       mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     try {
-      // Switching access level: cascade-delete existing credentials + archive the opposite TI first
       if (isOppositePublished) {
         await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
         await deleteMutation.mutateAsync({
@@ -501,6 +560,16 @@ function NativeDetailView({
           : "Failed to publish";
       setError(msg);
     }
+  };
+
+  const handlePublish = (mode: "workspace" | "personal") => {
+    const isOppositePublished =
+      mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
+    if (isOppositePublished) {
+      setSwitchConfirmMode(mode);
+      return;
+    }
+    executePublish(mode);
   };
 
   const handleRemove = async (mode: "workspace" | "personal") => {
@@ -939,6 +1008,20 @@ function NativeDetailView({
           </div>
         </div>
       )}
+      {switchConfirmMode && (
+        <ProceedConfirmModal
+          fromMode={
+            switchConfirmMode === "workspace" ? "personal" : "workspace"
+          }
+          toMode={switchConfirmMode}
+          onConfirm={() => {
+            const mode = switchConfirmMode;
+            setSwitchConfirmMode(null);
+            executePublish(mode);
+          }}
+          onCancel={() => setSwitchConfirmMode(null)}
+        />
+      )}
     </>
   );
 }
@@ -972,12 +1055,14 @@ function MCPDetailView({
   const { data: tools = [] } = useAppTools(entry.catalog_id, "catalog");
   const { showToast } = useToast();
 
-  const [apiKey, setApiKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<
     "workspace" | "personal" | null
   >(null);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
+  const [switchConfirmMode, setSwitchConfirmMode] = useState<
+    "workspace" | "personal" | null
+  >(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const splitRef = useRef<HTMLDivElement>(null);
@@ -1022,13 +1107,12 @@ function MCPDetailView({
   const totalTools = tools.length;
   const isReadWrite = writeOpsCount > 0;
 
-  const handlePublish = async (mode: "workspace" | "personal") => {
+  const executePublish = async (mode: "workspace" | "personal") => {
     setError(null);
     const oppositeMode = mode === "workspace" ? "personal" : "workspace";
     const isOppositePublished =
       mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     try {
-      // Switching access level: cascade-delete existing credentials + archive the opposite TI first
       if (isOppositePublished) {
         await deleteConnectionsMutation.mutateAsync(entry.catalog_id);
         await deleteMutation.mutateAsync({
@@ -1060,6 +1144,16 @@ function MCPDetailView({
           : "Failed to add";
       setError(msg);
     }
+  };
+
+  const handlePublish = (mode: "workspace" | "personal") => {
+    const isOppositePublished =
+      mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
+    if (isOppositePublished) {
+      setSwitchConfirmMode(mode);
+      return;
+    }
+    executePublish(mode);
   };
 
   const handleRemove = async (mode: "workspace" | "personal") => {
@@ -1354,34 +1448,6 @@ function MCPDetailView({
               </p>
             )}
 
-            {/* API key input (shown when not yet added and auth requires a key) */}
-            {!isAdded && entry.auth_type === "api_key" && (
-              <div className="mb-4 space-y-2">
-                <div className="mcp-input-wrapper">
-                  <Input
-                    type="password"
-                    label={entry.credential_label || "API Key"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={`Enter your ${(entry.credential_label || "API key").toLowerCase()}`}
-                    required
-                    fullWidth
-                    disabled={isBusy}
-                  />
-                </div>
-                {entry.credential_hint_url && (
-                  <a
-                    href={entry.credential_hint_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    How to get your credentials
-                  </a>
-                )}
-              </div>
-            )}
-
             {error && (
               <div className="mb-4">
                 <Banner
@@ -1581,6 +1647,20 @@ function MCPDetailView({
             </div>
           </div>
         </div>
+      )}
+      {switchConfirmMode && (
+        <ProceedConfirmModal
+          fromMode={
+            switchConfirmMode === "workspace" ? "personal" : "workspace"
+          }
+          toMode={switchConfirmMode}
+          onConfirm={() => {
+            const mode = switchConfirmMode;
+            setSwitchConfirmMode(null);
+            executePublish(mode);
+          }}
+          onCancel={() => setSwitchConfirmMode(null)}
+        />
       )}
     </>
   );
