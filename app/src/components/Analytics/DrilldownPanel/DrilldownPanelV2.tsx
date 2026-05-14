@@ -35,6 +35,7 @@ import {
 import {
   ReportTable,
   buildGridOptions,
+  markdownCellFormatter,
   Dropdown,
 } from "@vonlabs/design-components";
 import type {
@@ -245,11 +246,49 @@ export function DrilldownPanelV2({
       pageSize: drill.data.length,
       showPagination: false,
     });
+    // ``buildGridOptions`` stamps every column's ``cells.formatter`` with a
+    // typed default from ``createCellFormatter``. Currency / date / number
+    // formatters are fine — they format numerics. For text columns the
+    // default just wraps the escaped value in a styled ``<span>``, so any
+    // markdown source (e.g. ``[Acme](https://…)`` from drill SQL — see BE
+    // generate_drilldowns prompt) renders as literal text. Replace the
+    // formatter on text-typed columns with ``markdownCellFormatter`` so
+    // those values render as proper ``<a>`` links / styled markdown.
+    //
+    // (We can't reuse the shared ``applyMarkdownCellFormatters`` helper
+    // here — it skips columns whose ``cells.formatter`` is already set,
+    // which is true for EVERY column after ``buildGridOptions``. The
+    // helper's "preserve existing formatter" semantics are correct for
+    // TableWidget, which never goes through ``buildGridOptions`` and
+    // only has formatters on variant-renderer columns.)
+    const textIds = new Set(
+      columns.filter((c) => c.type === "text").map((c) => c.id),
+    );
+    const optsWithMarkdown =
+      textIds.size === 0
+        ? opts
+        : ({
+            ...opts,
+            columns: (opts.columns ?? []).map((col) =>
+              textIds.has(col.id)
+                ? {
+                    ...col,
+                    cells: {
+                      ...(col.cells ?? {}),
+                      formatter: markdownCellFormatter,
+                    },
+                  }
+                : col,
+            ),
+          } as typeof opts);
     // Tag the body cells of drillable columns with ``drillable-cell`` so
     // the per-cell hover CSS only paints those columns. null whitelist =
     // every column gets the class (back-compat). Same rule the dashboard
     // TableWidget applies via ``applyDrillableCellClass``.
-    return applyDrillableCellClass(opts, currentDrillableColumns ?? null);
+    return applyDrillableCellClass(
+      optsWithMarkdown,
+      currentDrillableColumns ?? null,
+    );
   }, [columns, drill.data, currentDrillableColumns]);
 
   // Drillable affordance — post-render DOM tagging.
@@ -303,6 +342,11 @@ export function DrilldownPanelV2({
     (e: React.MouseEvent) => {
       if (!onRowDrill || !drill.hasNextLevel) return;
       const target = e.target as HTMLElement;
+      // Clicks on markdown-rendered links (drill SQL emits ``'[name](url)'``
+      // strings that render as ``<a target="_blank">``) should follow the
+      // link only — never also trigger drill descent. Without this gate the
+      // browser opens the link AND the drill descends in parallel.
+      if (target.closest("a")) return;
       const td = target.closest("td");
       if (!td) return;
       // Per-column gate — the same ``drillable-cell`` className the CSS
