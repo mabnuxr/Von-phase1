@@ -71,7 +71,14 @@ const useAiFieldsStore = create<AiFieldsState>((set) => ({
 
   // ─── Draft AI field ────────────────────────────────────────
   draftAiField: null,
-  setDraftAiField: (draft) => set({ draftAiField: draft }),
+  // A new draft invalidates any prior playground execution — results were
+  // computed against the previous prompt/columns/sources and would be stale.
+  setDraftAiField: (draft) =>
+    set({
+      draftAiField: draft,
+      playgroundOpps: [],
+      playgroundExecutionId: null,
+    }),
 
   // ─── Chat panel ───────────────────────────────────────────
   chatPanelFieldId: null,

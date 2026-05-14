@@ -20,7 +20,7 @@ import {
   UsersIcon,
   BrainIcon,
   ChartBarIcon,
-  LightbulbIcon,
+  ColumnsIcon,
 } from "@phosphor-icons/react";
 import { authService } from "../services";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
@@ -45,9 +45,9 @@ const TAB_LABELS: Record<string, string> = {
   memory: "Memory",
   "memory-org": "Org Memory",
   "memory-user": "User Memory",
-  "custom-iq": "Von AI Fields",
-  "custom-iq-default": "Default",
-  "custom-iq-custom": "Custom",
+  "custom-iq": "AI Fields",
+  "custom-iq-default": "Default Fields",
+  "custom-iq-custom": "Custom Fields",
   email: "Email",
   team: "Manage Team",
   usage: "Usage",
@@ -297,11 +297,11 @@ const Settings = () => {
         ? [
             {
               id: "custom-iq",
-              label: "Von AI Fields",
-              icon: <LightbulbIcon size={20} weight="regular" />,
+              label: "AI Fields",
+              icon: <ColumnsIcon size={20} weight="regular" />,
               children: [
-                { id: "custom-iq-default", label: "Default" },
-                { id: "custom-iq-custom", label: "Custom" },
+                { id: "custom-iq-default", label: "Default Fields" },
+                { id: "custom-iq-custom", label: "Custom Fields" },
               ],
             },
           ]

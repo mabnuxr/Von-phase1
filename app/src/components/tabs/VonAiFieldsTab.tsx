@@ -57,6 +57,15 @@ export function VonAiFieldsTab({ onRowClick }: VonAiFieldsTabProps) {
           <VonAiFieldsPanel onRowClick={onRowClick} />
         </div>
       </div>
+
+      {/* Footer note - pinned at the bottom, outside the scroll area */}
+      <div className="border-t border-gray-200 px-6 py-3 shrink-0">
+        <p className="text-xs text-gray-400 m-0 max-w-4xl mx-auto">
+          AI Fields aren&apos;t shown as fields on records. Von uses them across
+          chat and dashboards, and you can export by record with filters and
+          time period.
+        </p>
+      </div>
     </div>
   );
 }

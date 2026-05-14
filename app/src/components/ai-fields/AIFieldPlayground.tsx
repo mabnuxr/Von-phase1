@@ -29,19 +29,18 @@ function formatAmount(amount: number | null | undefined): string {
 // ─── Helpers ────────────────────────────────────────────────
 function formatInsights(
   insights: string | Record<string, unknown> | undefined,
-): { summary: string; reasoning: string } {
-  if (!insights) return { summary: "", reasoning: "" };
-  if (typeof insights === "string")
-    return { summary: insights, reasoning: insights };
+): { value: string; reasoning: string } {
+  if (!insights) return { value: "", reasoning: "" };
+  if (typeof insights === "string") return { value: insights, reasoning: "" };
 
   // Object: extract value + reasoning fields
   const entries = Object.entries(insights);
   const reasoningEntry = entries.find(([k]) => k.endsWith("_reasoning"));
   const valueEntry = entries.find(([k]) => !k.endsWith("_reasoning"));
 
-  const summary = valueEntry ? `${valueEntry[0]}: ${valueEntry[1]}` : "";
+  const value = valueEntry ? String(valueEntry[1]) : "";
   const reasoning = reasoningEntry ? String(reasoningEntry[1]) : "";
-  return { summary, reasoning };
+  return { value, reasoning };
 }
 
 // ─── PlaygroundCard (internal) ──────────────────────────────
@@ -53,12 +52,12 @@ function PlaygroundCard({
   onRemove: (id: string) => void;
 }) {
   const [showReasoning, setShowReasoning] = useState(false);
-  const { summary, reasoning } = formatInsights(opp.result?.insights);
+  const { value, reasoning } = formatInsights(opp.result?.insights);
 
   const statusIndicator = () => {
     switch (opp.status) {
       case "ready":
-        return <span className="text-xs font-medium text-gray-500">Ready</span>;
+        return null;
       case "running":
         return (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600">
@@ -117,10 +116,21 @@ function PlaygroundCard({
       {/* Done output */}
       {opp.status === "done" && opp.result && (
         <div className="space-y-2">
-          {/* Insights text */}
-          {summary && <p className="text-sm text-gray-800 m-0">{summary}</p>}
+          {/* Output value in a white card (label above, like reasoning) */}
+          {value && (
+            <div>
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Output
+              </span>
+              <div className="mt-1.5 p-3 bg-white border border-gray-200 rounded-md">
+                <p className="text-sm text-gray-800 m-0 whitespace-pre-wrap">
+                  {value}
+                </p>
+              </div>
+            </div>
+          )}
 
-          {/* Source counts */}
+          {/* Source counts (below the output) */}
           <div className="flex items-center gap-3">
             {opp.result.callsCount != null && (
               <span className="text-xs text-gray-500">
@@ -190,16 +200,18 @@ export function AIFieldPlayground({
 
   const runPlayground = useRunPlayground();
 
-  // Seed playground with sample opportunities from the event
-  const seededRef = useRef(false);
+  // Seed playground with sample opportunities from the event. Each
+  // AI_FIELD_READY produces a fresh sampleOpportunities array in
+  // useV2EventProcessor, so we trigger re-seeding by comparing array
+  // reference identity — not IDs, because the backend re-sends the same
+  // opportunity IDs when only the prompt changed, and ID-based comparison
+  // would skip re-seeding in that case. setDraftAiField clears
+  // playgroundOpps in the store, so we just need to repopulate.
+  const lastSeededRef = useRef<SampleOpportunity[] | null>(null);
   useEffect(() => {
-    if (
-      seededRef.current ||
-      !sampleOpportunities?.length ||
-      playgroundOpps.length > 0
-    )
-      return;
-    seededRef.current = true;
+    if (!sampleOpportunities?.length) return;
+    if (lastSeededRef.current === sampleOpportunities) return;
+    lastSeededRef.current = sampleOpportunities;
     for (const opp of sampleOpportunities.slice(0, MAX_OPPS)) {
       addPlaygroundOpp({
         opportunityId: opp.id,
@@ -209,7 +221,7 @@ export function AIFieldPlayground({
         owner: opp.owner ?? "",
       });
     }
-  }, [sampleOpportunities, playgroundOpps.length, addPlaygroundOpp]);
+  }, [sampleOpportunities, addPlaygroundOpp]);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");

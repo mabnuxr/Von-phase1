@@ -27,7 +27,7 @@ export function AIFieldFilterBlock({ conditions }: AIFieldFilterBlockProps) {
           size={14}
           className={`text-gray-400 transition-transform ${collapsed ? "-rotate-90" : ""}`}
         />
-        <span className="text-sm font-medium text-gray-900">Filter</span>
+        <span className="text-sm font-medium text-gray-900">Run Criteria</span>
         <span className="text-xs text-gray-400">
           {conditions.length} condition{conditions.length !== 1 ? "s" : ""}
         </span>

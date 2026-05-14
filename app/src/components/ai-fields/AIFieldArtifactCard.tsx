@@ -1,6 +1,6 @@
 import {
   CaretRight as CaretRightIcon,
-  Lightning as LightningIcon,
+  Columns as ColumnsIcon,
 } from "@phosphor-icons/react";
 import { useAiField } from "../../hooks/useVonAiFields";
 import useAiFieldsStore from "../../store/vonAiFieldsStore";
@@ -37,7 +37,7 @@ export function AIFieldArtifactCard({
       className="border border-gray-200 rounded-2xl px-3 py-3 flex items-center gap-3 hover:border-gray-200 shadow-xs transition-colors cursor-pointer mt-2"
     >
       <div className="shrink-0 w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center">
-        <LightningIcon size={20} weight="fill" className="text-gray-500" />
+        <ColumnsIcon size={20} weight="fill" className="text-gray-500" />
       </div>
 
       <div className="flex-1 min-w-0">

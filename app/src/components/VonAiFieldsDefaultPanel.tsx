@@ -240,13 +240,6 @@ export function VonAiFieldsDefaultPanel({
           {searchTerm ? ` matching "${searchTerm}"` : ""}
         </div>
       )}
-
-      {/* Footer note */}
-      <p className="text-xs text-gray-400 mt-4 m-0">
-        Default AI Fields are provided by Von and can&apos;t be edited or
-        deleted. Enable the ones you want and they&apos;ll run on the same
-        schedule as your custom fields.
-      </p>
     </div>
   );
 }

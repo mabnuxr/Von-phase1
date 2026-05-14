@@ -294,13 +294,6 @@ export function VonAiFieldsPanel({ onRowClick }: VonAiFieldsPanelProps) {
           </p>
         </div>
       )}
-
-      {/* Footer note */}
-      <p className="text-xs text-gray-400 mt-4 m-0">
-        Von AI Fields aren&apos;t shown as fields on records. Von uses them
-        across chat and dashboards, and you can export by record with filters
-        and time period.
-      </p>
     </div>
   );
 }

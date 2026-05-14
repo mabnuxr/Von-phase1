@@ -31,6 +31,15 @@ export function VonAiFieldsDefaultTab({
           <VonAiFieldsDefaultPanel onRowClick={onRowClick} />
         </div>
       </div>
+
+      {/* Footer note - pinned at the bottom, outside the scroll area */}
+      <div className="border-t border-gray-200 px-6 py-3 shrink-0">
+        <p className="text-xs text-gray-400 m-0 max-w-4xl mx-auto">
+          Default AI Fields are provided by Von and can&apos;t be edited or
+          deleted. Enable the ones you want and they&apos;ll run on the same
+          schedule as your custom fields.
+        </p>
+      </div>
     </div>
   );
 }

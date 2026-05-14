@@ -63,33 +63,31 @@ export function VonAiFieldDetailPane({
   });
   useAiFieldEvents(channel);
 
+  // Minimal status indicator matching the AI Fields list row: just a
+  // colored dot + text, no border or background. Sits inline next to the
+  // field name in the header.
   const statusBadge = () => {
     if (!field) return null;
-    switch (field.status) {
-      case "live":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-green-700 border border-green-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-            Live
-          </span>
-        );
-      case "disabled":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-600 border border-gray-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-            Disabled
-          </span>
-        );
-      case "draft":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-            Draft
-          </span>
-        );
-      default:
-        return null;
-    }
+    const isLive = field.status === "live";
+    const label = isLive
+      ? "Live"
+      : field.status === "draft"
+        ? "Draft"
+        : "Disabled";
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+          isLive ? "text-gray-900" : "text-gray-400"
+        }`}
+      >
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${
+            isLive ? "bg-green-500" : "bg-gray-300"
+          }`}
+        />
+        {label}
+      </span>
+    );
   };
 
   return (
@@ -106,14 +104,16 @@ export function VonAiFieldDetailPane({
 
         <div className="flex items-start justify-between">
           <div className="min-w-0 flex-1">
-            <h2 className="text-2xl font-semibold text-gray-900 m-0">
-              {isLoading
-                ? "Loading..."
-                : (field?.displayName ?? field?.name ?? "Field Detail")}
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl font-semibold text-gray-900 m-0">
+                {isLoading
+                  ? "Loading..."
+                  : (field?.displayName ?? field?.name ?? "Field Detail")}
+              </h2>
+              {!isLoading && field && statusBadge()}
+            </div>
             {!isLoading && field && (
               <div className="flex items-center gap-3 mt-3 flex-wrap">
-                {statusBadge()}
                 <AiFieldSourcesDrawer sources={field.sources} />
                 {field.createdAt && (
                   <span className="text-xs text-gray-400">
@@ -131,10 +131,10 @@ export function VonAiFieldDetailPane({
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => openRunHistory(fieldId)}
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-              title="Run History"
+              className="inline-flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <ClockIcon size={18} />
+              <ClockIcon size={14} />
+              Run History
             </button>
           </div>
         </div>
@@ -151,25 +151,27 @@ export function VonAiFieldDetailPane({
           <div className="space-y-6 max-w-4xl mx-auto">
             {/* Prompt + output types (read-only) */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-1">
-                Prompt
-              </label>
-              <div className="w-full px-3 py-2.5 text-sm text-gray-700 border border-gray-200 rounded-lg bg-gray-50 whitespace-pre-wrap font-mono min-h-[80px]">
+              <div className="flex items-center gap-1.5 mb-1">
+                <label className="block text-sm font-semibold text-gray-900">
+                  Prompt
+                </label>
+                {field.columnsToGenerate &&
+                  field.columnsToGenerate.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap ml-auto">
+                      {field.columnsToGenerate.map((col) => (
+                        <span
+                          key={col.name}
+                          className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
+                        >
+                          {col.type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+              </div>
+              <div className="w-full px-3 py-2.5 text-sm text-gray-700 border border-gray-200 rounded-lg bg-gray-50 whitespace-pre-wrap font-mono min-h-[80px] max-h-60 overflow-y-auto settings-scrollbar">
                 {field.description || "\u2014"}
               </div>
-              {field.columnsToGenerate &&
-                field.columnsToGenerate.length > 0 && (
-                  <div className="flex items-center gap-2 flex-wrap mt-2">
-                    {field.columnsToGenerate.map((col) => (
-                      <span
-                        key={col.name}
-                        className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded"
-                      >
-                        {col.type}
-                      </span>
-                    ))}
-                  </div>
-                )}
             </div>
 
             {/* Filter (read-only, if present) */}
