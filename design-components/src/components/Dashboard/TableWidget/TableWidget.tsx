@@ -3,9 +3,9 @@ import { AnimatePresence } from 'framer-motion';
 import {
   ReportTable,
   LongTextPopover,
-  markdownCellFormatter,
   handleMarkdownCellHover,
   createMarkdownCellClickHandler,
+  applyMarkdownCellFormatters,
   escapeHtml,
 } from '../../ReportTable';
 import type { ServerSortState, ExpandPopoverState } from '../../ReportTable';
@@ -53,47 +53,6 @@ const WIDGET_SHELL_HEADER_PX = 54;
 // reported height only when overflow is actually present so the last row
 // doesn't get clipped by the scrollbar.
 const HORIZONTAL_SCROLLBAR_PX = 16;
-
-/** Identify text column ids by checking data values */
-function findTextColumnIds(options: GridOptions): Set<string> {
-  const ids = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const opts = options as any;
-  // Grid Lite supports both `data.columns` (new) and `dataTable.columns` (legacy)
-  const dataCols: Record<string, unknown[]> | undefined =
-    opts.data?.columns ?? opts.dataTable?.columns;
-  if (!dataCols) return ids;
-  for (const [colId, values] of Object.entries(dataCols)) {
-    if (colId.startsWith('_')) continue; // skip internal columns
-    if (!Array.isArray(values)) continue;
-    const first = values.find((v) => v != null);
-    if (typeof first === 'string') ids.add(colId);
-  }
-  return ids;
-}
-
-// Auto-assign markdownCellFormatter to text columns. Existing per-column
-// formatters or formats (backend- or config-supplied, including those set
-// by applyColumnRenderers via cell variants) win — Grid Lite returns an
-// empty cell when BOTH `cells.format` and `cells.formatter` are non-default,
-// so we must leave columns that already carry a `format` template untouched.
-// Disabled columns are also skipped since they don't render at all.
-function applyMarkdownCellFormatters(options: GridOptions): GridOptions {
-  const textIds = findTextColumnIds(options);
-  if (textIds.size === 0) return options;
-  const cols = options.columns;
-  if (!cols) return options;
-  return {
-    ...options,
-    columns: cols.map((col) => {
-      if (!textIds.has(col.id)) return col;
-      if (col.enabled === false) return col;
-      if (col.cells?.formatter) return col;
-      if (col.cells?.format) return col; // backend template (e.g. <a> link)
-      return { ...col, cells: { ...col.cells, formatter: markdownCellFormatter } };
-    }),
-  };
-}
 
 // Grid Lite's built-in `cells.format` templating resolves `{key}` against the
 // cell only — `{value}` works, but `{account_link}` (or any other row-sibling
