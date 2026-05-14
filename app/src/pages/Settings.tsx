@@ -20,8 +20,8 @@ import {
   UsersIcon,
   BrainIcon,
   ChartBarIcon,
-  ColumnsIcon,
 } from "@phosphor-icons/react";
+import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
 import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
@@ -305,7 +305,7 @@ const Settings = () => {
             {
               id: "custom-iq",
               label: "AI Fields",
-              icon: <ColumnsIcon size={20} weight="regular" />,
+              icon: <AiFieldIcon size={20} />,
               children: [
                 { id: "custom-iq-custom", label: "Custom Fields" },
                 { id: "custom-iq-default", label: "Default Fields" },

@@ -10,7 +10,7 @@ import {
   useEnableDefaultAiField,
 } from "../hooks/useVonAiFields";
 import { DEFAULT_AI_FIELDS } from "../constants/defaultAiFields";
-import { formatTimeAgo } from "../utils/formatTimeAgo";
+import { formatRunTime } from "../utils/formatRunTime";
 import type { AiField, DefaultAiFieldDefinition } from "../types/vonAiFields";
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
@@ -254,9 +254,7 @@ function DefaultFieldRow({ row, onClick }: DefaultFieldRowProps) {
 
   const isLive = materialized?.status === "live";
   const isMutating = enableMutation.isPending || disableMutation.isPending;
-  const lastRun = materialized?.lastRunAt
-    ? formatTimeAgo(materialized.lastRunAt)
-    : "—";
+  const lastRun = formatRunTime(materialized?.lastRunAt);
 
   const handleToggle = () => {
     if (isMutating) return;

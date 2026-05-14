@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  Columns as ColumnsIcon,
   X as XIcon,
   ArrowSquareOut as ArrowSquareOutIcon,
 } from "@phosphor-icons/react";
+import { AiFieldIcon } from "../icons/AiFieldIcon";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useAiField,
@@ -220,9 +220,12 @@ export function AIFieldSidePanel({
   const isApplied =
     isDraft && !!draftAiField && isDraftApplied(draftAiField, existingField);
 
-  // Merge draft and fetched data. When the draft maps to an already-applied
-  // field (Create/Update button is disabled), surface that field's real
-  // status — otherwise we'd label a Live field as "Draft" in the header.
+  // Merge draft and fetched data. Surface the saved field's real status
+  // (Live / Disabled) only when the draft matches what's persisted — i.e.
+  // the Create/Update button is disabled. The moment the user has unsaved
+  // chat-driven changes, the header drops back to "Draft" so the badge
+  // tracks "is this what's actually live right now?" rather than "did a
+  // live version once exist for this name?".
   const field =
     isDraft && draftAiField
       ? {
@@ -238,7 +241,10 @@ export function AIFieldSidePanel({
           displayFilter: draftAiField.displayFilter,
           matchCount: draftAiField.matchCount,
           totalRecords: draftAiField.totalRecords,
-          status: existingField?.status ?? ("draft" as const),
+          status:
+            isApplied && existingField
+              ? existingField.status
+              : ("draft" as const),
           workflowId: draftAiField.workflowId,
           conversationId: draftAiField.conversationId,
           createdBy: "",
@@ -324,7 +330,7 @@ export function AIFieldSidePanel({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <span className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-              <ColumnsIcon size={18} weight="fill" className="text-gray-500" />
+              <AiFieldIcon size={18} className="text-gray-500" />
             </span>
             <span className="text-base font-semibold text-gray-900 truncate">
               {field.displayName ?? field.name}

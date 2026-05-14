@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChartBarIcon, LightningIcon, X } from '@phosphor-icons/react';
+import { ChartBarIcon, X } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
+import { AiFieldGlyph } from './AiFieldGlyph';
 
 export interface MentionStripProps {
   item: MentionItem;
@@ -9,7 +10,7 @@ export interface MentionStripProps {
 
 function getChipIcon(item: MentionItem) {
   if (item.type === 'ai_field') {
-    return <LightningIcon size={14} weight="fill" className="text-indigo-500 shrink-0" />;
+    return <AiFieldGlyph size={14} className="text-indigo-500 shrink-0" />;
   }
   return <ChartBarIcon size={14} weight="regular" className="text-indigo-500 shrink-0" />;
 }

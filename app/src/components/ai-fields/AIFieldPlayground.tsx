@@ -122,7 +122,7 @@ function PlaygroundCard({
               <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
                 Output
               </span>
-              <div className="mt-1.5 p-3 bg-white border border-gray-200 rounded-md">
+              <div className="mt-1.5 p-3 bg-white border border-gray-200 rounded-md max-h-24 overflow-y-auto settings-scrollbar">
                 <p className="text-sm text-gray-800 m-0 whitespace-pre-wrap">
                   {value}
                 </p>

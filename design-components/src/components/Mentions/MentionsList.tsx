@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { ChartBarIcon, ColumnsIcon } from '@phosphor-icons/react';
+import { ChartBarIcon } from '@phosphor-icons/react';
 import type { MentionItem } from './types';
 import { Tooltip } from '../Tooltip';
+import { AiFieldGlyph } from './AiFieldGlyph';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -9,7 +10,7 @@ import { Tooltip } from '../Tooltip';
 
 function getMentionIcon(item: MentionItem) {
   if (item.type === 'ai_field') {
-    return <ColumnsIcon size={16} weight="fill" className="text-gray-500 flex-shrink-0" />;
+    return <AiFieldGlyph size={16} className="text-gray-500 flex-shrink-0" />;
   }
   return <ChartBarIcon size={16} weight="regular" className="text-gray-800 flex-shrink-0" />;
 }
