@@ -43,7 +43,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     id: "hubspot",
     name: "HubSpot",
     description:
-      "Ask about pipeline, contacts, and marketing activity. Log calls, move deals, and update records.",
+      "Ask about pipeline, contacts, and marketing activity. Log calls, move deals, and update records",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
