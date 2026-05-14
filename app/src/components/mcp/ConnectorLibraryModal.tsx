@@ -99,10 +99,13 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   } = useAppCatalogInfinite({
     statusFilter: "all",
     includeBuiltins: true,
-    pageSize: 20,
+    pageSize: 100,
     search: debouncedSearch || undefined,
   });
-  const catalog = useMemo(() => catalogData?.items ?? [], [catalogData]);
+  const catalog = useMemo(() => {
+    const items = catalogData?.items;
+    return Array.isArray(items) ? items : [];
+  }, [catalogData]);
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextPage,
@@ -110,7 +113,11 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     isLoading: isFetchingNextPage,
   });
 
-  const { data: tenantIntegrations = [] } = useTenantIntegrations();
+  const { data: tenantIntegrationsRaw } = useTenantIntegrations();
+  const tenantIntegrations = useMemo(
+    () => (Array.isArray(tenantIntegrationsRaw) ? tenantIntegrationsRaw : []),
+    [tenantIntegrationsRaw],
+  );
   const tiMap = useMemo(
     () => buildTiMap(tenantIntegrations),
     [tenantIntegrations],
@@ -485,6 +492,15 @@ function NativeDetailView({
         ? "personal"
         : null,
   );
+  useEffect(() => {
+    setSelectedMode(
+      isWorkspacePublished
+        ? "workspace"
+        : isPersonalPublished
+          ? "personal"
+          : null,
+    );
+  }, [isWorkspacePublished, isPersonalPublished]);
   const isWorkspaceConnected = isWorkspacePublished;
   const isPersonalConnected = isPersonalPublished;
   const isBusy =
@@ -894,6 +910,15 @@ function MCPDetailView({
         ? "personal"
         : null,
   );
+  useEffect(() => {
+    setSelectedMode(
+      isWorkspacePublished
+        ? "workspace"
+        : isPersonalPublished
+          ? "personal"
+          : null,
+    );
+  }, [isWorkspacePublished, isPersonalPublished]);
 
   const authTypeLabel =
     entry.auth_type === "oauth2"

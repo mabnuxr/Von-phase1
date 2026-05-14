@@ -882,8 +882,8 @@ export function IntegrationsList({
       }
     >();
     for (const ti of tenantIntegrations ?? []) {
-      if (ti.catalog_type !== "native_integration") continue;
-      const key = ti.catalog_id;
+      if (!ti.integration_type) continue;
+      const key = ti.integration_type.toUpperCase();
       if (!map.has(key)) {
         map.set(key, {
           tenant_integrations: { workspace: null, personal: null },
@@ -940,7 +940,8 @@ export function IntegrationsList({
         // HubSpot and Salesforce are always visible regardless of catalog state
         if (app.id === "hubspot" || app.id === "salesforce") return true;
 
-        const catalogEntry = catalogMap.get(app.id);
+        const backendType = getBackendIntegrationType(app.id).toUpperCase();
+        const catalogEntry = catalogMap.get(backendType);
         const isInCatalog = !!catalogEntry;
         const isConnected = integrations.some(
           (i) =>
