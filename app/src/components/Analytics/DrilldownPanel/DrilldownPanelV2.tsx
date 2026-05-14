@@ -35,6 +35,7 @@ import {
 import {
   ReportTable,
   buildGridOptions,
+  applyMarkdownCellFormatters,
   Dropdown,
 } from "@vonlabs/design-components";
 import type {
@@ -245,11 +246,20 @@ export function DrilldownPanelV2({
       pageSize: drill.data.length,
       showPagination: false,
     });
+    // Auto-wire ``markdownCellFormatter`` on text columns so drill SQL
+    // emitting markdown link strings (e.g. ``'[' || opp_name || '](' ||
+    // url || ')'``) renders as clickable links instead of raw text. Same
+    // pass the dashboard TableWidget runs — without it, drill cells
+    // show literal ``[Acme](https://...)`` markdown source.
+    const withMarkdown = applyMarkdownCellFormatters(opts);
     // Tag the body cells of drillable columns with ``drillable-cell`` so
     // the per-cell hover CSS only paints those columns. null whitelist =
     // every column gets the class (back-compat). Same rule the dashboard
     // TableWidget applies via ``applyDrillableCellClass``.
-    return applyDrillableCellClass(opts, currentDrillableColumns ?? null);
+    return applyDrillableCellClass(
+      withMarkdown,
+      currentDrillableColumns ?? null,
+    );
   }, [columns, drill.data, currentDrillableColumns]);
 
   // Drillable affordance — post-render DOM tagging.
@@ -303,6 +313,11 @@ export function DrilldownPanelV2({
     (e: React.MouseEvent) => {
       if (!onRowDrill || !drill.hasNextLevel) return;
       const target = e.target as HTMLElement;
+      // Clicks on markdown-rendered links (drill SQL emits ``'[name](url)'``
+      // strings that render as ``<a target="_blank">``) should follow the
+      // link only — never also trigger drill descent. Without this gate the
+      // browser opens the link AND the drill descends in parallel.
+      if (target.closest("a")) return;
       const td = target.closest("td");
       if (!td) return;
       // Per-column gate — the same ``drillable-cell`` className the CSS

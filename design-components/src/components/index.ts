@@ -471,6 +471,7 @@ export {
   markdownCellFormatter,
   handleMarkdownCellHover,
   createMarkdownCellClickHandler,
+  applyMarkdownCellFormatters,
   escapeHtml,
   LongTextPopover,
 } from './ReportTable';

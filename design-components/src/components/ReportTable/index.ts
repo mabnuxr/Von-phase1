@@ -35,3 +35,4 @@ export {
   handleMarkdownCellHover,
   createMarkdownCellClickHandler,
 } from './markdownCell';
+export { applyMarkdownCellFormatters, findTextColumnIds } from './markdownColumnFormatters';
