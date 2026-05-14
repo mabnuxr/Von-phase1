@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { useLaunchDarklyIdentify } from "../hooks/useLaunchDarklyIdentify";
+import { usePosthogSuperProps } from "../hooks/usePosthogSuperProps";
 import { getUserContextFromToken } from "../lib/auth";
 import { identifyDatadogUser } from "../lib/datadog";
 import { identifyPosthogUser } from "../lib/posthog";
@@ -14,6 +15,7 @@ import { GlobalChatProvider } from "../providers/GlobalChat";
  */
 export function AuthenticatedLayout() {
   const { identifyUser, isIdentified } = useLaunchDarklyIdentify();
+  usePosthogSuperProps();
 
   useEffect(() => {
     identifyUser();
