@@ -16,12 +16,15 @@ import type {
   CommandReference,
   DashboardOption,
   ScheduleRecipient,
+  SharingScope,
 } from './types';
+import { SHARING_SCOPE_LABELS } from './types';
 import { FilesPreviewPanel } from '../FilesPreview';
 import { useFileDrop } from '../../hooks';
 import { Drawer } from '../Drawer';
 import { Accordion } from '../Accordion';
 import { FileChip } from '../FileChip';
+import { RecipientPicker } from '../RecipientPicker';
 import { useCommandForm } from './useCommandForm';
 import { useCommandDataSources } from './useCommandDataSources';
 import { ScheduleSection } from './ScheduleSection';
@@ -43,7 +46,13 @@ export interface CommandDrawerProps {
   onSave: (
     data: Pick<
       Command,
-      'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+      | 'name'
+      | 'prompt'
+      | 'prefillText'
+      | 'sharingScope'
+      | 'sharedUserIds'
+      | 'schedule'
+      | 'references'
     >,
     dataSources: CommandAttachment[],
     commandId: string
@@ -107,6 +116,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       isOpen,
       editingCommand,
       currentUser,
+      teamMembers,
     });
 
   const {
@@ -155,6 +165,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         prompt: form.prompt.trim(),
         prefillText: form.prefillText.trim() || undefined,
         sharingScope: form.sharingScope,
+        sharedUserIds: form.sharingScope === 'specific' ? form.sharedUsers.map((r) => r.id) : [],
         schedule: form.schedule.enabled ? form.schedule : undefined,
         references: form.references,
       },
@@ -332,21 +343,35 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
           {/* Sharing — collapsible */}
           <Accordion title="Sharing" summary={sharingLabel}>
             <div className="flex items-center gap-1.5">
-              {(['private', 'org'] as const).map((scope) => (
+              {(['private', 'specific', 'org'] as const).map((scope) => (
                 <button
                   key={scope}
                   type="button"
-                  onClick={() => !readOnly && setForm((v) => ({ ...v, sharingScope: scope }))}
+                  onClick={() =>
+                    !readOnly && setForm((v) => ({ ...v, sharingScope: scope as SharingScope }))
+                  }
                   className={`px-2.5 py-1.5 text-xs rounded-lg border transition-colors ${
                     form.sharingScope === scope
                       ? 'border-gray-300 bg-gray-50 text-gray-900'
                       : 'border-gray-100 text-gray-500'
                   } ${readOnly ? 'cursor-default' : 'cursor-pointer hover:border-gray-200'}`}
                 >
-                  {scope === 'private' ? 'Private' : 'Org-wide'}
+                  {SHARING_SCOPE_LABELS[scope]}
                 </button>
               ))}
             </div>
+            {form.sharingScope === 'specific' && (
+              <div className="mt-3">
+                <RecipientPicker
+                  label=""
+                  placeholder="Search team members..."
+                  recipients={form.sharedUsers}
+                  onChange={(next) => setForm((v) => ({ ...v, sharedUsers: next }))}
+                  availableRecipients={teamMembers?.filter((m) => m.id !== currentUser?.id) ?? []}
+                  readOnly={readOnly}
+                />
+              </div>
+            )}
           </Accordion>
 
           {/* Schedule — collapsible (hidden when teamMembers is not provided) */}

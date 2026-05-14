@@ -68,7 +68,13 @@ export function apiCommandToUICommand(
     }),
     references: cmd.references,
     actionType: "no_action",
-    sharingScope: cmd.accessLevel === "tenant" ? "org" : "private",
+    sharingScope:
+      cmd.accessLevel === "tenant"
+        ? "org"
+        : cmd.accessLevel === "specific"
+          ? "specific"
+          : "private",
+    sharedUserIds: cmd.sharedUserIds ?? [],
     isFavorite: cmd.isBookmarked,
     usageCount: cmd.usageCount,
     lastUsedAt: cmd.lastUsedAt ?? undefined,
@@ -88,11 +94,19 @@ export function apiCommandToUICommand(
 export function uiCommandToApiInput(
   data: Omit<Command, "id" | "createdAt" | "updatedAt">,
 ): Omit<CreateQuickCommandInput, "dataSources"> {
+  const accessLevel: "tenant" | "user" | "specific" =
+    data.sharingScope === "org"
+      ? "tenant"
+      : data.sharingScope === "specific"
+        ? "specific"
+        : "user";
   return {
     name: data.name,
     prompt: data.prompt,
     prefillText: data.prefillText,
-    accessLevel: data.sharingScope === "org" ? "tenant" : "user",
+    accessLevel,
+    sharedUserIds:
+      accessLevel === "specific" ? (data.sharedUserIds ?? []) : undefined,
   };
 }
 

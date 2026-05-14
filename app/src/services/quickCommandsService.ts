@@ -49,7 +49,8 @@ export interface QuickCommand {
   slug: string;
   prompt: string;
   prefillText: string;
-  accessLevel: "tenant" | "user";
+  accessLevel: "tenant" | "user" | "specific";
+  sharedUserIds?: string[];
   dataSources: CommandDataSourceResponse[];
   references?: QuickCommandReference[];
   lastUsedAt: string | null;
@@ -109,7 +110,8 @@ export interface CreateQuickCommandInput {
   name: string;
   prompt: string;
   prefillText?: string;
-  accessLevel?: "tenant" | "user";
+  accessLevel?: "tenant" | "user" | "specific";
+  sharedUserIds?: string[];
   dataSources?: CommandDataSource[];
   references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig;
@@ -120,7 +122,8 @@ export interface UpdateQuickCommandInput {
   name?: string;
   prompt?: string;
   prefillText?: string;
-  accessLevel?: "tenant" | "user";
+  accessLevel?: "tenant" | "user" | "specific";
+  sharedUserIds?: string[];
   dataSources?: CommandDataSource[];
   references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig | null;

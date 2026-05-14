@@ -64,6 +64,7 @@ export function useCommandsPanel(userId?: string) {
         | "prompt"
         | "prefillText"
         | "sharingScope"
+        | "sharedUserIds"
         | "schedule"
         | "references"
       >,
@@ -71,9 +72,14 @@ export function useCommandsPanel(userId?: string) {
       dataSources?: CommandAttachment[],
       commandId?: string,
     ) => {
-      const accessLevel = (data.sharingScope === "org" ? "tenant" : "user") as
-        | "tenant"
-        | "user";
+      const accessLevel: "tenant" | "user" | "specific" =
+        data.sharingScope === "org"
+          ? "tenant"
+          : data.sharingScope === "specific"
+            ? "specific"
+            : "user";
+      const sharedUserIds =
+        accessLevel === "specific" ? (data.sharedUserIds ?? []) : [];
 
       const apiDataSources = (dataSources ?? [])
         .filter((ds) => ds.s3Key)
@@ -107,6 +113,7 @@ export function useCommandsPanel(userId?: string) {
               prompt: data.prompt,
               prefillText: data.prefillText || undefined,
               accessLevel,
+              sharedUserIds,
               dataSources: apiDataSources,
               references: apiReferences,
               triggerConfig: scheduleConfigs?.triggerConfig ?? null,
@@ -121,6 +128,8 @@ export function useCommandsPanel(userId?: string) {
             prompt: data.prompt,
             prefillText: data.prefillText || undefined,
             accessLevel,
+            sharedUserIds:
+              accessLevel === "specific" ? sharedUserIds : undefined,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
             references: apiReferences.length > 0 ? apiReferences : undefined,
             ...(scheduleConfigs ?? {}),
