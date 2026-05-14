@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { appCatalogService } from "../services/appCatalogService";
 import type {
   AvailabilityStatus,
@@ -14,10 +19,40 @@ export function useAppCatalog(opts?: {
   catalogType?: "native_integration" | "mcp";
   statusFilter?: "all" | "published" | "unsubscribed";
   includeBuiltins?: boolean;
+  search?: string;
+  page?: number;
+  pageSize?: number;
 }) {
   return useQuery({
     queryKey: [...APP_CATALOG_KEY, opts],
-    queryFn: () => appCatalogService.getCatalog(opts),
+    queryFn: async () => {
+      const res = await appCatalogService.getCatalog(opts);
+      return res;
+    },
+    select: (res) => res.items,
+  });
+}
+
+export function useAppCatalogInfinite(opts?: {
+  catalogType?: "native_integration" | "mcp";
+  statusFilter?: "all" | "published" | "unsubscribed";
+  includeBuiltins?: boolean;
+  search?: string;
+  pageSize?: number;
+}) {
+  return useInfiniteQuery({
+    queryKey: [...APP_CATALOG_KEY, "infinite", opts],
+    queryFn: ({ pageParam = 1 }) =>
+      appCatalogService.getCatalog({ ...opts, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined,
+    select: (data) => ({
+      pages: data.pages,
+      pageParams: data.pageParams,
+      items: data.pages.flatMap((p) => p.items),
+      total: data.pages[data.pages.length - 1]?.total ?? 0,
+    }),
   });
 }
 

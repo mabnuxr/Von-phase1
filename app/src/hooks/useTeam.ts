@@ -19,7 +19,18 @@ export const teamKeys = {
   members: (tenantId: string) =>
     [...teamKeys.all, "members", tenantId] as const,
   roles: (tenantId: string) => [...teamKeys.all, "roles", tenantId] as const,
+  user: (userId: string) => [...teamKeys.all, "user", userId] as const,
 };
+
+export function useTeamUser(userId: string | undefined) {
+  return useQuery({
+    queryKey: userId ? teamKeys.user(userId) : ["team", "user", "none"],
+    queryFn: () => teamService.getTeamUser(userId!),
+    enabled: !!userId,
+    staleTime: 300000,
+    retry: false,
+  });
+}
 
 /**
  * Fetch team members for the current tenant

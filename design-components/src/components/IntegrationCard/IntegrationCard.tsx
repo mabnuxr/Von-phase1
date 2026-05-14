@@ -230,7 +230,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
           {note && <span className="text-xs text-gray-400 italic">Note: {note}</span>}
 
           {/* Modified By */}
-          {modifiedBy && <span className="text-xs text-gray-500">Modified by: {modifiedBy}</span>}
+          {modifiedBy && <span className="text-xs text-gray-500">Connected by {modifiedBy}</span>}
 
           {/* Instance URL */}
           {instanceUrl && (

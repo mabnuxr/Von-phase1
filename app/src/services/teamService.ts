@@ -179,6 +179,10 @@ export class TeamService {
       permissions,
     );
   }
+
+  async getTeamUser(userId: string): Promise<TeamMember> {
+    return apiClient.get<TeamMember>(`/api/v1/team/user/${userId}`);
+  }
 }
 
 export interface UpdateMemberRequest {

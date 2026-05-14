@@ -27,6 +27,7 @@ import type { Integration } from "./IntegrationsPanel";
 import type { TenantIntegrationEnriched } from "../types/appCatalog";
 import { getUserContext } from "../lib/auth";
 import { useUser } from "../hooks/useUser";
+import { useTeamUser } from "../hooks/useTeam";
 import {
   DotsThreeVerticalIcon,
   CaretRightIcon,
@@ -121,6 +122,13 @@ function MCPCatalogItem({
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const { data: workspaceOwner } = useTeamUser(
+    entry.workspace_published_by ?? undefined,
+  );
+  const modifiedBy =
+    workspaceOwner?.firstName && workspaceOwner?.lastName
+      ? `${workspaceOwner.firstName} ${workspaceOwner.lastName}`
+      : undefined;
 
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [disconnectMode, setDisconnectMode] = useState<
@@ -161,12 +169,10 @@ function MCPCatalogItem({
   const chips: Array<"workspace" | "personal" | "connected"> = [];
   if (isWorkspaceActuallyConnected) chips.push("workspace");
   if (isPersonalActuallyConnected) chips.push("personal");
-  if (
-    !isWorkspaceActuallyConnected &&
-    !isPersonalActuallyConnected &&
-    isWorkspace
-  )
-    chips.push("workspace");
+  if (!isWorkspaceActuallyConnected && !isPersonalActuallyConnected) {
+    if (isWorkspace) chips.push("workspace");
+    if (isPersonal) chips.push("personal");
+  }
   if (isAuthenticated) chips.push("connected");
 
   const canDisconnectWorkspace = isWorkspaceActuallyConnected && isAdmin;
@@ -213,6 +219,7 @@ function MCPCatalogItem({
         description={entry.description}
         integrationLogoPath={entry.logo_url ?? ""}
         chips={chips}
+        modifiedBy={modifiedBy}
         isAvailable={!isAuthenticated}
         onToggle={!isAuthenticated ? handleConnectClick : undefined}
         onDelete={
@@ -503,6 +510,8 @@ function IntegrationItem({
   // Determine workspace and personal instances
   const workspace = connectedInstances.find((i) => i.accessLevel === "tenant");
   const personal = connectedInstances.find((i) => i.accessLevel === "user");
+
+  const { data: workspaceOwner } = useTeamUser(workspace?.userId);
   const hasBoth = workspace && personal;
 
   // Get backend data for workspace integration
@@ -605,6 +614,7 @@ function IntegrationItem({
         name={item.name}
         description={item.description}
         integrationLogoPath={item.logoPath}
+        chips={availableChips}
         isAvailable={true}
         disabled={item.disabled}
         note={item.note}
@@ -621,8 +631,8 @@ function IntegrationItem({
   // Delete the personal connection - backend will cascade to workspace if user is owner
   if (hasBoth && workspace && personal) {
     const modifiedBy =
-      workspace.ownerFirstName && workspace.ownerLastName
-        ? `${workspace.ownerFirstName} ${workspace.ownerLastName}`
+      workspaceOwner?.firstName && workspaceOwner?.lastName
+        ? `${workspaceOwner.firstName} ${workspaceOwner.lastName}`
         : undefined;
 
     const instanceUrl = workspaceBackendIntegration?.config
@@ -694,8 +704,8 @@ function IntegrationItem({
   // Case 3: Workspace only
   if (workspace) {
     const modifiedBy =
-      workspace.ownerFirstName && workspace.ownerLastName
-        ? `${workspace.ownerFirstName} ${workspace.ownerLastName}`
+      workspaceOwner?.firstName && workspaceOwner?.lastName
+        ? `${workspaceOwner.firstName} ${workspaceOwner.lastName}`
         : undefined;
 
     const canConnectPersonal = item.catalogEntry

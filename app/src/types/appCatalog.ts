@@ -114,6 +114,14 @@ export interface TenantIntegrationEnriched {
   connection: IntegrationConnectionSummary | null;
 }
 
+export interface PaginatedCatalogResponse {
+  items: AppCatalogEntry[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+}
+
 export interface AppCatalogSeedResult {
   created: number;
   updated: number;
