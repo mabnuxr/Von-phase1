@@ -40,13 +40,71 @@ export const DashboardStatus = {
 export type DashboardStatus =
   (typeof DashboardStatus)[keyof typeof DashboardStatus];
 
+/**
+ * Caller's resolved access on a dashboard. Surfaced by the M2 backend
+ * (VON-1283) as `access_level` on the dashboard response. Optional on the
+ * FE type because legacy responses (pre-M2 deploy) won't include it; the
+ * UI derives a `"owner" | "viewer"` fallback from `isOwner` until then.
+ */
+export type DashboardAccessLevel = "viewer" | "editor" | "owner";
+
+/**
+ * Scope persisted on `VonDashboardMetadata` after M2 lands. The legacy
+ * boolean `isSharedWithTenant` is kept on this interface and continues to
+ * be derived from `scope === "tenant"` until the §3.5 cleanup PR drops it.
+ */
+export type DashboardScope = "restricted" | "tenant";
+
+/**
+ * Explicit user grant on a dashboard (M2). Excludes the owner — ownership
+ * is implicit. `viewer` and `editor` are the only grant-time roles; owner
+ * is reached only via ownership transfer (deferred to a future workstream).
+ *
+ * Fields are snake_case to match the BE response shape verbatim; the
+ * dashboard adapter passes the array through without rekeying.
+ */
+export interface DashboardUserGrant {
+  user_id: string;
+  role: "viewer" | "editor";
+  granted_by: string;
+  granted_at: string;
+}
+
+/**
+ * Embedded edit-lock state surfaced on dashboard responses (M1). `null`
+ * means no one currently holds the lock. The `dashboard_id` is implicit
+ * from the parent dashboard.
+ */
+export interface DashboardEditLock {
+  userId: string;
+  acquiredAt: string;
+}
+
 export interface Dashboard {
   id: string;
   title: string;
   description?: string;
   status: DashboardStatus;
   dashboardVersion: number;
+  /**
+   * @deprecated Use `accessLevel === "owner"` (BE M2 — VON-1283). Kept on
+   * the type until the BE cleanup PR drops `is_owner` from the response.
+   */
   isOwner: boolean;
+  /** Caller's resolved level on this dashboard (M2). Populated by the
+   *  adapter — falls back to `"owner" | "viewer"` from `is_owner` when
+   *  the BE hasn't shipped `access_level` yet. */
+  accessLevel?: DashboardAccessLevel;
+  /** Sharing scope (M2). When absent, derive from `isSharedWithTenant`. */
+  scope?: DashboardScope;
+  /** Explicit per-user grants (M2). When absent, treat as `[]`. */
+  userGrants?: DashboardUserGrant[];
+  /**
+   * Current edit-lock holder (M1). `null` when nobody holds the lock.
+   * Drives the "currently edited by X" badge without a separate
+   * `GET /lock` round-trip.
+   */
+  editLock?: DashboardEditLock | null;
   isSharedWithTenant: boolean;
   sharedDataScope?:
     | "MY_RECORDS"

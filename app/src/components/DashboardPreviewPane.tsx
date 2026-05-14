@@ -52,6 +52,14 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     revertPhase,
     handleShare,
     sharePhase,
+    handleShareV2,
+    shareV2Phase,
+    handleAcquireLock,
+    acquireLockPhase,
+    handleDiscardDraft,
+    discardDraftPhase,
+    handleSaveDraft,
+    saveDraftPhase,
     handleRefresh,
     editModeMutation,
     editModePhase,
@@ -113,7 +121,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
       panelState: dashboard?.filters?.panel_state,
       lockedFilterState: dashboard?.filters?.locked_filter_state,
       lockedPanelFilterState: dashboard?.filters?.locked_panel_filter_state,
-      isOwner: dashboard?.isOwner,
+      isOwner: dashboard?.accessLevel === "owner",
     },
   );
 
@@ -234,6 +242,14 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             revertPhase={revertPhase}
             onShare={handleShare}
             sharePhase={sharePhase}
+            onShareV2={handleShareV2}
+            shareV2Phase={shareV2Phase}
+            onAcquireLock={handleAcquireLock}
+            acquireLockPhase={acquireLockPhase}
+            onDiscardDraft={handleDiscardDraft}
+            discardDraftPhase={discardDraftPhase}
+            onSaveDraft={handleSaveDraft}
+            saveDraftPhase={saveDraftPhase}
             onExpand={handleExpand}
             onClose={onClose}
             onTablePageChange={handlePageChange}
@@ -270,7 +286,9 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onApplyPanelFilter={handleApplyPanelFilter}
             canApplyPanelFilter={canApplyPanelFilter}
             onTogglePanelLock={
-              dashboard.isOwner ? handleCommitPanelLock : undefined
+              dashboard.accessLevel === "owner"
+                ? handleCommitPanelLock
+                : undefined
             }
             canLockPanelFilter={canLockPanelFilter}
             lockedPanelFilterState={lockedPanelFilterState}

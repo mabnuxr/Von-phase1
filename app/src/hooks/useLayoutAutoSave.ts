@@ -114,17 +114,21 @@ export function useLayoutAutoSave(
 
   const handleLayoutChange = useCallback(
     (layout: readonly LayoutItem[]) => {
-      // Forward unconditionally. User drags are gated by RGL's
-      // `static: !isEditMode`, so the only non-equal layouts produced
-      // outside edit mode are auto-fit-driven height changes from
-      // useDashboardAutoFit — those still need to PATCH so the next
-      // page load reflects the fitted heights.
+      // Only forward when the caller actually holds the lock. RGL fires
+      // `onLayoutChange` as part of layout-prop reconciliation — after a
+      // discard / save-draft refetch swaps the dashboard's layout to a
+      // different snapshot, that reconciliation looks like a layout
+      // change to us. Without this gate we'd debounce a PATCH that the
+      // BE rejects with 409 (no lock). User drags are already gated by
+      // RGL's `static: !isEditMode`, and auto-fit only runs inside edit
+      // mode too — so nothing legitimate is dropped here.
+      if (!isEditMode) return;
       const next = toPanelLayouts(layout);
       pendingRef.current = next;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(flushNow, AUTOSAVE_DEBOUNCE_MS);
     },
-    [flushNow],
+    [flushNow, isEditMode],
   );
 
   // Flush any pending change when leaving edit mode or unmounting, so the

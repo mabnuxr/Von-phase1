@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
+import { useDashboardMetadata } from "./useDashboardMetadata";
 import { DashboardStatus } from "../types/dashboard";
 import type {
   Dashboard,
@@ -15,10 +16,20 @@ import type {
 
 /**
  * Query keys for dashboard data.
+ *
+ * `detail(id)` is the **parent** key shared by every per-dashboard
+ * query (render, metadata, versions, etc.). Invalidating it cascades
+ * through all of them. Writes target the leaf keys directly.
+ *
+ * `render(id, version)` is keyed by version so `is_editable` flips and
+ * `acquireLock` responses (which carry a new `editable_version`)
+ * naturally bust the cache and trigger a refetch with the new param.
  */
 export const dashboardKeys = {
   all: ["dashboards"] as const,
   detail: (id: string) => [...dashboardKeys.all, id] as const,
+  render: (id: string, version: number | null) =>
+    [...dashboardKeys.all, id, "render", version] as const,
 };
 
 // ─── Raw API Response Types ─────────────────────────────────────
@@ -77,7 +88,20 @@ interface RawApiDashboardResponse {
   status: string;
   dashboard_version: number;
   is_owner: boolean;
+  /** M2 (VON-1283): canonical caller access level. Replaces `is_owner`. */
+  access_level?: "viewer" | "editor" | "owner";
   is_shared_with_tenant: boolean;
+  /** M2: canonical sharing scope. Replaces `is_shared_with_tenant`. */
+  scope?: "restricted" | "tenant";
+  /** M2: explicit per-user grants (excludes the owner). */
+  user_grants?: Array<{
+    user_id: string;
+    role: "viewer" | "editor";
+    granted_by: string;
+    granted_at: string;
+  }>;
+  /** M1: embedded edit-lock — drives the "currently edited" badge. */
+  edit_lock?: { user_id: string; acquired_at: string } | null;
   shared_data_scope?: string | null;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
@@ -239,6 +263,20 @@ function adaptApiResponse(
         status: (raw.status as DashboardStatus) ?? DashboardStatus.Draft,
         dashboardVersion: raw.dashboard_version ?? 1,
         isOwner: raw.is_owner ?? false,
+        // M2 — `access_level` is canonical; fall back from `is_owner` when
+        // BE is on an older deploy. Equivalent to the legacy boolean once
+        // BE serves the new field (owner→"owner", everyone else→"viewer").
+        accessLevel: raw.access_level ?? (raw.is_owner ? "owner" : "viewer"),
+        // M2 — `scope` is canonical; fall back from `is_shared_with_tenant`.
+        scope:
+          raw.scope ?? (raw.is_shared_with_tenant ? "tenant" : "restricted"),
+        userGrants: raw.user_grants ?? [],
+        editLock: raw.edit_lock
+          ? {
+              userId: raw.edit_lock.user_id,
+              acquiredAt: raw.edit_lock.acquired_at,
+            }
+          : null,
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         sharedDataScope: (raw.shared_data_scope ??
           null) as Dashboard["sharedDataScope"],
@@ -319,15 +357,40 @@ interface DashboardQueryData {
 
 /**
  * Fetch and transform a single dashboard by ID.
- * Uses `select` to apply widget theme and extract default filters.
+ *
+ * Two-step flow (BE M1+M2):
+ *
+ *   1. Fetch metadata via `useDashboardMetadata`. It carries
+ *      `is_editable` plus the version pair (`editable_version` /
+ *      `latest_published_version`).
+ *   2. Pick the version: editable when the caller holds the lock,
+ *      latest published otherwise. That version is in the render
+ *      query key, so any flip — entering edit mode, discarding,
+ *      publishing — naturally busts the render cache and refetches
+ *      the right snapshot.
+ *
+ * Consumers see the same `{ dashboard, refreshInfo, activeFilters }`
+ * shape and `isLoading` semantics (true while either step is in
+ * flight) so no caller code changes shape.
  */
 export function useDashboardQuery(dashboardId: string | undefined) {
-  return useQuery<DashboardQueryData>({
-    queryKey: dashboardKeys.detail(dashboardId!),
+  const metadataQuery = useDashboardMetadata(dashboardId, {
+    enabled: !!dashboardId,
+  });
+
+  const version = metadataQuery.data
+    ? metadataQuery.data.is_editable
+      ? metadataQuery.data.editable_version
+      : metadataQuery.data.latest_published_version
+    : null;
+
+  const renderQuery = useQuery<DashboardQueryData>({
+    queryKey: dashboardKeys.render(dashboardId ?? "", version),
     queryFn: async () => {
       try {
         const rawResponse = await dashboardService.getDashboardWithRenderData(
           dashboardId!,
+          version,
         );
 
         if (
@@ -354,7 +417,6 @@ export function useDashboardQuery(dashboardId: string | undefined) {
 
         const { dashboard, refreshInfo } = response.data;
 
-        // Extract active filter values from the filter state
         const activeFilters: Record<string, unknown> =
           dashboard.filters?.state ?? {};
 
@@ -364,8 +426,22 @@ export function useDashboardQuery(dashboardId: string | undefined) {
         throw error;
       }
     },
-    enabled: !!dashboardId,
+    // Render waits for metadata. Metadata may legitimately return
+    // `null` for both versions on a brand-new draft that hasn't been
+    // published yet — we still call render in that case (omitting the
+    // version param) so the BE returns its default "latest".
+    enabled: !!dashboardId && metadataQuery.isSuccess,
   });
+
+  return {
+    data: renderQuery.data,
+    error: metadataQuery.error ?? renderQuery.error,
+    isLoading: metadataQuery.isLoading || renderQuery.isLoading,
+    isFetching: metadataQuery.isFetching || renderQuery.isFetching,
+    isError: metadataQuery.isError || renderQuery.isError,
+    isSuccess: metadataQuery.isSuccess && renderQuery.isSuccess,
+    refetch: renderQuery.refetch,
+  };
 }
 
 /**

@@ -30,6 +30,30 @@ import { useLayoutAutoSave } from "../../../hooks/useLayoutAutoSave";
 import { useDashboardAutoFit } from "../../../hooks/useDashboardAutoFit";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { ShareDashboardDialog } from "./ShareDashboardDialog";
+import { ShareDashboardDialogV2 } from "./ShareDashboardDialogV2";
+import { EditLockBadge } from "./EditLockBadge";
+import { EditLockModal } from "./EditLockModal";
+import { EditModeActionsV2 } from "./EditModeActionsV2";
+import {
+  VersionHistoryDrawer,
+  mapVersionsResponse,
+} from "./VersionHistoryDrawer";
+import { useDashboardVersions } from "../../../hooks/useDashboardVersions";
+import { useDashboardMetadata } from "../../../hooks/useDashboardMetadata";
+import type {
+  DashboardScopeV2,
+  DataScopeOptionV2,
+  DirectoryPersonV2,
+  GrantableRoleV2,
+  ShareDialogPersonV2,
+} from "./ShareDashboardDialogV2";
+import { useTeamMembers } from "../../../hooks/useTeam";
+import { useUser } from "../../../hooks/useUser";
+import type {
+  DashboardUserGrantRequest,
+  ShareDashboardV2Request,
+} from "../../../services/dashboardService";
+import type { DashboardUserGrant } from "../../../types/dashboard";
 import { DashboardMoreMenu } from "../DashboardMoreMenu";
 import { RefreshButton } from "./RefreshButton";
 import { DashboardStatus } from "../../../types/dashboard";
@@ -93,6 +117,41 @@ interface AnalyticsViewProps {
     sharedDataScope?: string | null,
   ) => void;
   sharePhase: MutationPhase;
+  /**
+   * Unified share mutation (M2) — accepts the full desired sharing state
+   * in a single round-trip. Used by the dashboardCollab share dialog.
+   */
+  onShareV2?: (payload: ShareDashboardV2Request) => void;
+  shareV2Phase?: MutationPhase;
+  /**
+   * Acquire the dashboard's edit lock (M1). When the dashboardCollab
+   * flag is on, the Edit button routes through this instead of the
+   * legacy `is_editable` PATCH. Callbacks let us surface the
+   * EditLockModal when another user holds the lock.
+   */
+  onAcquireLock?: (callbacks?: {
+    onHeldByOther?: () => void;
+    onUnknownError?: (error: unknown) => void;
+  }) => Promise<void> | void;
+  acquireLockPhase?: MutationPhase;
+  /**
+   * Discard the active draft (M1 — VON-1282). Fires `POST /draft/discard`
+   * which soft-deletes the draft (or just releases the lock for an
+   * unedited clone) and returns 204. Wires the dashboardCollab triad's
+   * Discard button.
+   */
+  onDiscardDraft?: () => Promise<void> | void;
+  discardDraftPhase?: MutationPhase;
+  /**
+   * Save the active draft (M1 — VON-1282). Fires `POST /draft/save`
+   * which freezes the current draft as a `draft_saved` snapshot,
+   * inserts a fresh unedited clone, and releases the lock. The
+   * response carries new version pair + `is_editable=false`, used to
+   * re-render with `latest_published_version`. Wires the
+   * dashboardCollab triad's Save-as-draft button.
+   */
+  onSaveDraft?: () => Promise<void> | void;
+  saveDraftPhase?: MutationPhase;
   /** Show expand icon — navigates to full dashboard page */
   onExpand?: () => void;
   /** Show close (X) icon — closes the dashboard/preview pane */
@@ -140,7 +199,7 @@ interface AnalyticsViewProps {
    * mode/flag.
    */
   isPreview?: boolean;
-  /** Schedule state and handlers (required when dashboard.isOwner) */
+  /** Schedule state and handlers (required when isDashboardOwner) */
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
   isSchedulePaused: boolean;
@@ -241,6 +300,14 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   revertPhase,
   onShare,
   sharePhase,
+  onShareV2,
+  shareV2Phase = "idle",
+  onAcquireLock,
+  acquireLockPhase = "idle",
+  onDiscardDraft,
+  discardDraftPhase = "idle",
+  onSaveDraft,
+  saveDraftPhase = "idle",
   onExpand,
   onClose,
   onChatClick,
@@ -286,7 +353,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
   // can roll the manual-layout feature out per tenant. Edit mode itself
   // (filters, rename, save) stays available regardless.
-  const { isDashboardDragDropEnabled } = useFeatureFlag();
+  const { isDashboardDragDropEnabled, isDashboardCollabEnabled } =
+    useFeatureFlag();
+  const { user } = useUser();
+  const { data: teamMembers } = useTeamMembers(user?.tenantId);
 
   const { handleLayoutChange: saveLayoutChange } = useLayoutAutoSave(
     dashboard.id,
@@ -317,8 +387,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // widgetIds, widgetQueryRefMap, widgetAppliedFilters, and widgetFilterSlot
   // memos removed — restore when re-enabling widget-level filters.
 
+  const isDashboardOwner = dashboard.accessLevel === "owner";
+  // Editors share the owner's edit affordances — Edit button, Discard /
+  // Save-as-draft / Publish triad — under BE M2's editor+ rule. Strictly
+  // owner-only actions (transfer, delete via more-menu in the future)
+  // stay gated by `isDashboardOwner`.
+  const canEditDashboard =
+    dashboard.accessLevel === "owner" || dashboard.accessLevel === "editor";
   const { name: creatorName, isLoading: isCreatorLoading } = useCreatorName({
-    isOwner: dashboard.isOwner,
+    isOwner: isDashboardOwner,
     createdBy: dashboard.createdBy,
     createdByName: dashboard.createdByName,
   });
@@ -326,6 +403,168 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const handleCopyLink = useCallback(async () => {
     await navigator.clipboard.writeText(window.location.href);
   }, []);
+
+  // ── ShareDashboardDialogV2 wiring (behind `dashboardCollab`) ─────
+  //
+  // The dialog emits five intent callbacks (scope, data-scope, grant
+  // add/update/remove). Each one builds the next full sharing state and
+  // funnels through `onShareV2` — the unified M2 endpoint that accepts
+  // `{scope, user_grants, shared_data_scope}` in a single round-trip.
+  //
+  // Sharing state is sourced from the on-demand `GET /metadata` query
+  // when the share dialog is open — that way every open re-reads the
+  // authoritative scope/grants instead of relying on the render cache,
+  // which can drift if another collaborator changed access. The render
+  // response acts as a render-time default for the Created-by chip
+  // (icon) until the first metadata fetch lands.
+  //
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const { data: shareMetadata } = useDashboardMetadata(dashboard.id, {
+    enabled: isShareDialogOpen && isDashboardCollabEnabled,
+    // Every open must refetch — sharing state can change while the
+    // user is away on another tab. Conservative caching is only for
+    // the dashboard-load caller.
+    forceFresh: true,
+  });
+
+  const dataScopingAvailable =
+    dashboard.data_sources?.some((s) => s.type === "salesforce") ?? false;
+  const currentScope: "restricted" | "tenant" =
+    shareMetadata?.scope ??
+    dashboard.scope ??
+    (dashboard.isSharedWithTenant ? "tenant" : "restricted");
+  const currentUserGrants: DashboardUserGrant[] = useMemo(
+    () => shareMetadata?.user_grants ?? dashboard.userGrants ?? [],
+    [shareMetadata?.user_grants, dashboard.userGrants],
+  );
+  // `shared_data_scope` is the one share-state field that legitimately
+  // carries `null` (== "no data scoping"). `??` would fall through to
+  // the render cache's value in that case and the toggle would
+  // misleadingly read as ON. Switch the metadata source unconditionally
+  // once it's loaded so an explicit `null` from BE stays `null`.
+  const currentSharedDataScope = shareMetadata
+    ? shareMetadata.shared_data_scope
+    : (dashboard.sharedDataScope ?? null);
+  const currentAccessLevel =
+    shareMetadata?.access_level ?? dashboard.accessLevel ?? "viewer";
+  const ownerUserId = shareMetadata?.created_by ?? dashboard.createdBy;
+  // Directory excludes the dashboard owner (cannot be a grant target — backend
+  // rejects with `cannot_grant_to_owner`) and inactive members.
+  const dashboardCollabDirectory = useMemo<DirectoryPersonV2[]>(
+    () =>
+      (teamMembers ?? [])
+        .filter((m) => m.isActive && m.id !== ownerUserId)
+        .map((m) => ({
+          userId: m.id,
+          name: `${m.firstName} ${m.lastName}`.trim() || m.email,
+          email: m.email,
+        })),
+    [teamMembers, ownerUserId],
+  );
+  // People list shown in the dialog body — explicit grants only. The owner
+  // is implicit (covered by ownership) and intentionally hidden here, since
+  // their access is conveyed by the artifact identity itself.
+  const dashboardCollabGrants = useMemo<ShareDialogPersonV2[]>(() => {
+    return currentUserGrants.map((grant) => {
+      const member = teamMembers?.find((m) => m.id === grant.user_id);
+      const displayName = member
+        ? `${member.firstName} ${member.lastName}`.trim() || member.email
+        : grant.user_id;
+      return {
+        userId: grant.user_id,
+        name: displayName,
+        email: member?.email ?? "",
+        role: grant.role,
+        isYou: grant.user_id === user?.id,
+      };
+    });
+  }, [currentUserGrants, teamMembers, user?.id]);
+
+  const grantsToRequest = useCallback(
+    (grants: DashboardUserGrant[]): DashboardUserGrantRequest[] =>
+      grants.map((g) => ({ user_id: g.user_id, role: g.role })),
+    [],
+  );
+  const buildSharePayload = useCallback(
+    (overrides: Partial<ShareDashboardV2Request>): ShareDashboardV2Request => ({
+      // BE rollout: send the legacy boolean; backend derives `scope` from
+      // it. Swap to a `scope` field when BE PR 2.3 lands.
+      is_shared_with_tenant: currentScope === "tenant",
+      user_grants: grantsToRequest(currentUserGrants),
+      shared_data_scope: currentSharedDataScope,
+      ...overrides,
+    }),
+    [currentScope, currentUserGrants, currentSharedDataScope, grantsToRequest],
+  );
+
+  const handleCollabScopeChange = useCallback(
+    (nextScope: DashboardScopeV2) => {
+      onShareV2?.(
+        buildSharePayload({
+          is_shared_with_tenant: nextScope === "org_wide",
+        }),
+      );
+    },
+    [onShareV2, buildSharePayload],
+  );
+  const handleCollabDataScopeChange = useCallback(
+    (next: DataScopeOptionV2 | null) => {
+      onShareV2?.(buildSharePayload({ shared_data_scope: next }));
+    },
+    [onShareV2, buildSharePayload],
+  );
+  const handleCollabGrantAdd = useCallback(
+    (
+      userIds: string[],
+      role: GrantableRoleV2,
+      dataScope: DataScopeOptionV2 | null,
+    ) => {
+      // Merge new grants; if a user already has one, the new role wins.
+      const merged = new Map<string, DashboardUserGrantRequest>();
+      for (const g of currentUserGrants) {
+        merged.set(g.user_id, { user_id: g.user_id, role: g.role });
+      }
+      for (const id of userIds) {
+        merged.set(id, { user_id: id, role });
+      }
+      onShareV2?.(
+        buildSharePayload({
+          user_grants: Array.from(merged.values()),
+          // The Add-people view's data-scope toggle is meaningful only when
+          // the batch role is "viewer"; for editor batches we don't touch
+          // the existing data-scope.
+          ...(role === "viewer" ? { shared_data_scope: dataScope } : {}),
+        }),
+      );
+    },
+    [onShareV2, buildSharePayload, currentUserGrants],
+  );
+  const handleCollabGrantUpdate = useCallback(
+    (userId: string, role: GrantableRoleV2) => {
+      onShareV2?.(
+        buildSharePayload({
+          user_grants: currentUserGrants.map((g) =>
+            g.user_id === userId
+              ? { user_id: g.user_id, role }
+              : { user_id: g.user_id, role: g.role },
+          ),
+        }),
+      );
+    },
+    [onShareV2, buildSharePayload, currentUserGrants],
+  );
+  const handleCollabGrantRemove = useCallback(
+    (userId: string) => {
+      onShareV2?.(
+        buildSharePayload({
+          user_grants: currentUserGrants
+            .filter((g) => g.user_id !== userId)
+            .map((g) => ({ user_id: g.user_id, role: g.role })),
+        }),
+      );
+    },
+    [onShareV2, buildSharePayload, currentUserGrants],
+  );
 
   // ── Inline rename state ─────────────────────────────────────────
   const [isRenamingTitle, setIsRenamingTitle] = useState(false);
@@ -369,12 +608,164 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // ── Dashboard edit mode (API-driven via is_editable) ────────────
   const isEditMode = dashboard.isEditable;
 
+  // ── Edit-lock conflict (M1 — VON-1281) ───────────────────────
+  // When the dashboardCollab flag is on and another user holds the lock,
+  // clicking Edit surfaces an informational modal instead of entering
+  // edit mode. The full POST /lock flow (acquire on click, handle 409
+  // race) is a follow-up; this gates off the embedded `edit_lock` so
+  // the modal is reachable today.
+  const [isLockModalOpen, setLockModalOpen] = useState(false);
+  const lockHeldByOther = !!(
+    isDashboardCollabEnabled &&
+    dashboard.editLock &&
+    dashboard.editLock.userId !== user?.id
+  );
+  const lockHolderMember = useMemo(() => {
+    if (!dashboard.editLock) return null;
+    return (
+      teamMembers?.find((m) => m.id === dashboard.editLock?.userId) ?? null
+    );
+  }, [dashboard.editLock, teamMembers]);
+  const lockHolderName = lockHolderMember
+    ? `${lockHolderMember.firstName} ${lockHolderMember.lastName}`.trim() ||
+      lockHolderMember.email
+    : null;
+
   const handleEnterEditMode = useCallback(() => {
-    if (dashboard.isOwner) {
+    if (lockHeldByOther) {
+      setLockModalOpen(true);
+      return;
+    }
+    if (isDashboardCollabEnabled && onAcquireLock) {
+      // M1 path — Edit goes through POST /lock. The 200 path silently
+      // promotes the caller into edit mode on the next refetch; the 409
+      // HELD_BY_OTHER path surfaces the modal (the embedded `edit_lock`
+      // refreshes too so the modal can show the holder name).
+      void onAcquireLock({
+        onHeldByOther: () => setLockModalOpen(true),
+      });
+      onChatClick?.();
+      return;
+    }
+    // Legacy path — toggle `is_editable` directly.
+    if (isDashboardOwner) {
       onEditModeChange?.(true);
     }
     onChatClick?.();
-  }, [dashboard.isOwner, onEditModeChange, onChatClick]);
+  }, [
+    lockHeldByOther,
+    isDashboardCollabEnabled,
+    onAcquireLock,
+    isDashboardOwner,
+    onEditModeChange,
+    onChatClick,
+  ]);
+
+  // ── Version history drawer ───────────────────────────────────
+  //
+  // `GET /api/v1/dashboards/{id}/versions` (M1 — VON-1282) feeds the
+  // drawer with the active draft + `draft_saved` snapshots and the
+  // singleton currently-live published row. Query is gated on
+  // `isVersionHistoryOpen` so we don't fetch eagerly.
+  const [isVersionHistoryOpen, setVersionHistoryOpen] = useState(false);
+  const versionsQuery = useDashboardVersions(dashboard.id, {
+    enabled: isVersionHistoryOpen,
+  });
+  const versionsForDrawer = useMemo(
+    () => mapVersionsResponse(versionsQuery.data, teamMembers),
+    [versionsQuery.data, teamMembers],
+  );
+  const handleRestorePlaceholder = useCallback((versionId: string) => {
+    console.info(
+      "[AnalyticsView] Restore stub triggered for version:",
+      versionId,
+    );
+    setVersionHistoryOpen(false);
+  }, []);
+  const handleContinueDraftPlaceholder = useCallback((versionId: string) => {
+    console.info(
+      "[AnalyticsView] Continue draft stub triggered for version:",
+      versionId,
+    );
+    setVersionHistoryOpen(false);
+  }, []);
+
+  // ── Edit-mode triad cluster (M1 draft lifecycle) ──────────────
+  //
+  // Both Discard and Save-as-draft are wired to parent-supplied
+  // mutations (`POST /draft/discard`, `POST /draft/save` — VON-1282).
+  // They fall back to a local exit-edit-mode no-op when the parent
+  // didn't pass a handler (legacy flag-off path).
+  const handleDiscardDraftClick = useCallback(() => {
+    if (onDiscardDraft) {
+      void onDiscardDraft();
+      return;
+    }
+    onEditModeChange?.(false);
+  }, [onDiscardDraft, onEditModeChange]);
+  const handleSaveDraftClick = useCallback(() => {
+    if (onSaveDraft) {
+      void onSaveDraft();
+      return;
+    }
+    onEditModeChange?.(false);
+  }, [onSaveDraft, onEditModeChange]);
+
+  // Edit / Save cluster (flat — no nested ternaries):
+  //   1. dashboardCollab ON + in edit mode  → triad (Discard / Save / Publish)
+  //   2. dashboardCollab OFF + save-able    → legacy SaveButton
+  //   3. otherwise                          → Edit button (entry phase
+  //      sourced from acquireLock under flag, legacy is_editable PATCH
+  //      otherwise).
+  const renderEditCluster = () => {
+    if (isDashboardCollabEnabled && isEditMode) {
+      return (
+        <EditModeActionsV2
+          isDiscarding={discardDraftPhase === "pending"}
+          isSavingDraft={saveDraftPhase === "pending"}
+          isPublishing={savePhase === "pending"}
+          onDiscard={handleDiscardDraftClick}
+          onSaveDraft={handleSaveDraftClick}
+          onPublish={handleSaveFromEditMode}
+        />
+      );
+    }
+    if (
+      !isDashboardCollabEnabled &&
+      (isEditMode || savePhase !== "idle" || dashboard.dashboardVersion < 1)
+    ) {
+      return (
+        <SaveButton
+          savePhase={savePhase}
+          onSave={handleSaveFromEditMode}
+          isSaved={false}
+        />
+      );
+    }
+    const entryPhase = isDashboardCollabEnabled
+      ? acquireLockPhase
+      : editModePhase;
+    return (
+      <Tooltip content="Edit dashboard">
+        <button
+          onClick={entryPhase === "idle" ? handleEnterEditMode : undefined}
+          disabled={entryPhase !== "idle"}
+          className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+            entryPhase === "pending"
+              ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
+              : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+          }`}
+        >
+          {entryPhase === "pending" ? (
+            <SpinnerGapIcon size={13} className="animate-spin" />
+          ) : (
+            <PencilSimpleIcon size={13} />
+          )}
+          Edit
+        </button>
+      </Tooltip>
+    );
+  };
 
   const handleSaveFromEditMode = useCallback(() => {
     onSave({
@@ -389,198 +780,264 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const isSaved = dashboard.status === DashboardStatus.Published;
 
   return (
-    <DashboardLayout
-      className={
-        isEditMode
-          ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
-          : "transition-all duration-200"
-      }
-    >
-      <DashboardLayout.Header>
-        {/* Title row: name + description | chat + close */}
-        <DashboardLayout.HeaderRow
-          className={isDrilldownOpen ? "relative z-[45] bg-white" : ""}
-        >
-          <DashboardLayout.HeaderRow.Left>
-            <div className="min-w-0">
-              {isRenamingTitle ? (
-                <input
-                  ref={inputRef}
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  onBlur={commitRename}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitRename();
-                    if (e.key === "Escape") {
-                      setEditValue(dashboard.title);
-                      setIsRenamingTitle(false);
+    <>
+      <EditLockModal
+        isOpen={isLockModalOpen}
+        onClose={() => setLockModalOpen(false)}
+        holderName={lockHolderName}
+      />
+      <VersionHistoryDrawer
+        isOpen={isVersionHistoryOpen}
+        onClose={() => setVersionHistoryOpen(false)}
+        drafts={versionsForDrawer.drafts}
+        publishedVersions={versionsForDrawer.publishedVersions}
+        isLoading={versionsQuery.isLoading}
+        currentUserId={user?.id}
+        onContinueDraft={handleContinueDraftPlaceholder}
+        onRestoreAsDraft={handleRestorePlaceholder}
+      />
+      <DashboardLayout
+        className={
+          isEditMode
+            ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
+            : "transition-all duration-200"
+        }
+      >
+        <DashboardLayout.Header>
+          {/* Title row: name + description | chat + close */}
+          <DashboardLayout.HeaderRow
+            className={isDrilldownOpen ? "relative z-[45] bg-white" : ""}
+          >
+            <DashboardLayout.HeaderRow.Left>
+              <div className="min-w-0">
+                {isRenamingTitle ? (
+                  <input
+                    ref={inputRef}
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitRename();
+                      if (e.key === "Escape") {
+                        setEditValue(dashboard.title);
+                        setIsRenamingTitle(false);
+                      }
+                    }}
+                    style={
+                      renameWidth != null ? { width: renameWidth } : undefined
                     }
-                  }}
-                  style={
-                    renameWidth != null ? { width: renameWidth } : undefined
-                  }
-                  className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400"
-                />
-              ) : (
-                <div className="flex items-center gap-1.5">
-                  <h1
-                    ref={titleRef}
-                    className={`text-base font-semibold text-gray-900 truncate ${
-                      dashboard.isOwner && onRename ? "cursor-pointer" : ""
-                    }`}
-                    onDoubleClick={
-                      dashboard.isOwner && onRename ? startRename : undefined
-                    }
-                  >
-                    {dashboard.title}
-                  </h1>
-                  {dashboard.description && (
-                    <Tooltip
-                      content={
-                        <span className="block max-w-[240px] whitespace-normal">
-                          {dashboard.description}
-                        </span>
+                    className="text-base font-semibold text-gray-900 bg-transparent border border-gray-300 rounded-lg px-1.5 py-0.5 outline-none focus:border-gray-400"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <h1
+                      ref={titleRef}
+                      className={`text-base font-semibold text-gray-900 truncate ${
+                        isDashboardOwner && onRename ? "cursor-pointer" : ""
+                      }`}
+                      onDoubleClick={
+                        isDashboardOwner && onRename ? startRename : undefined
                       }
                     >
-                      <button className="text-gray-700 hover:text-gray-600 transition-colors">
-                        <InfoIcon size={16} />
-                      </button>
-                    </Tooltip>
-                  )}
-                </div>
-              )}
-            </div>
-            {!isEditMode && !isRefetchingData && !isRefreshing && (
-              <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
-            )}
-          </DashboardLayout.HeaderRow.Left>
-
-          <DashboardLayout.HeaderRow.Right>
-            {/* Visibility indicator */}
-            {/* Created by indicator */}
-            {!hideCreatorChip && (
-              <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
-                <Tooltip
-                  content={
-                    dashboard.isSharedWithTenant
-                      ? "This dashboard is shared with your organization"
-                      : "This dashboard is private"
-                  }
-                >
-                  <span className="inline-flex items-center justify-center text-gray-700 cursor-default">
-                    {dashboard.isSharedWithTenant ? (
-                      <BuildingsIcon size={14} />
-                    ) : (
-                      <LockSimpleIcon size={14} />
+                      {dashboard.title}
+                    </h1>
+                    {dashboard.description && (
+                      <Tooltip
+                        content={
+                          <span className="block max-w-[240px] whitespace-normal">
+                            {dashboard.description}
+                          </span>
+                        }
+                      >
+                        <button className="text-gray-700 hover:text-gray-600 transition-colors">
+                          <InfoIcon size={16} />
+                        </button>
+                      </Tooltip>
                     )}
-                  </span>
-                </Tooltip>
-                <span className="text-gray-800">Created by</span>
-                {isCreatorLoading ? (
-                  <span className="bg-gray-200 rounded animate-pulse w-16 h-3" />
-                ) : (
-                  <span className="text-gray-800 font-medium">
-                    {creatorName}
-                  </span>
+                    {/* Edit-lock badge — editor+ only. Viewers don't have
+                        an Edit affordance, so the "who's editing" hint is
+                        noise for them. */}
+                    {isDashboardCollabEnabled &&
+                      canEditDashboard &&
+                      dashboard.editLock && (
+                        <EditLockBadge
+                          editLock={dashboard.editLock}
+                          currentUserId={user?.id}
+                          teamMembers={teamMembers}
+                        />
+                      )}
+                  </div>
                 )}
-              </span>
-            )}
-            {onExpand && !isEditMode && (
-              <button
-                onClick={isSaved ? onExpand : undefined}
-                disabled={!isSaved}
-                className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
-                  !isSaved
-                    ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
-                    : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
-                }`}
-              >
-                <ArrowsOutSimpleIcon size={13} />
-                View in Dashboards
-              </button>
-            )}
+              </div>
+              {!isEditMode && !isRefetchingData && !isRefreshing && (
+                <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
+              )}
+            </DashboardLayout.HeaderRow.Left>
 
-            {/* Data sources pill — header-right, next to Ask Von */}
-            {dashboard.data_sources && (
-              <DataSourcesSlot dataSources={dashboard.data_sources} />
-            )}
-
-            {/* "Ask Von" button — only shown when chat panel is closed */}
-            {onChatClick && !isChatOpen && (
-              <motion.button
-                key="ask-von"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.15 }}
-                onClick={onChatClick}
-                title="Ask Von"
-                className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                <img
-                  src={vonFilledLogo}
-                  alt="Von"
-                  width={15}
-                  height={15}
-                  className="flex-shrink-0"
-                />
-                Ask Von
-              </motion.button>
-            )}
-
-            {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
-            {!onChatClick && onClose && (
-              <Tooltip content="Close">
+            <DashboardLayout.HeaderRow.Right>
+              {/* Visibility indicator */}
+              {/* Created by indicator */}
+              {!hideCreatorChip && (
+                <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
+                  <Tooltip
+                    content={
+                      currentScope === "tenant"
+                        ? "This dashboard is shared with your organization"
+                        : "This dashboard is private"
+                    }
+                  >
+                    <span className="inline-flex items-center justify-center text-gray-700 cursor-default">
+                      {currentScope === "tenant" ? (
+                        <BuildingsIcon size={14} />
+                      ) : (
+                        <LockSimpleIcon size={14} />
+                      )}
+                    </span>
+                  </Tooltip>
+                  <span className="text-gray-800">Created by</span>
+                  {isCreatorLoading ? (
+                    <span className="bg-gray-200 rounded animate-pulse w-16 h-3" />
+                  ) : (
+                    <span className="text-gray-800 font-medium">
+                      {creatorName}
+                    </span>
+                  )}
+                </span>
+              )}
+              {onExpand && !isEditMode && (
                 <button
-                  onClick={onClose}
-                  className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={isSaved ? onExpand : undefined}
+                  disabled={!isSaved}
+                  className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
+                    !isSaved
+                      ? "text-gray-400 bg-gray-100 border-gray-200/70 cursor-not-allowed"
+                      : "text-gray-800 bg-white border-gray-200/70 hover:bg-gray-50 cursor-pointer"
+                  }`}
                 >
-                  <XIcon size={14} />
+                  <ArrowsOutSimpleIcon size={13} />
+                  View in Dashboards
                 </button>
-              </Tooltip>
-            )}
-          </DashboardLayout.HeaderRow.Right>
-        </DashboardLayout.HeaderRow>
+              )}
 
-        {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
-        <DashboardLayout.HeaderRow bordered>
-          <DashboardLayout.HeaderRow.Left>
-            <DashboardFilterBarV2
-              definitions={filterDefinitions}
-              filterState={filterState}
-              isApplying={filterIsApplying}
-              canApply={filterCanApply}
-              isOwner={dashboard.isOwner}
-              onFilterChange={onFilterChange}
-              onRemoveFilter={onRemoveFilter}
-              onClearFilter={onClearFilter}
-              onToggleLock={onToggleLock}
-              canLockFilter={canLockFilter}
-              onApply={onApplyFilters}
-              onRevertFilter={onRevertFilter}
-            />
-          </DashboardLayout.HeaderRow.Left>
+              {/* Data sources pill — header-right, next to Ask Von */}
+              {dashboard.data_sources && (
+                <DataSourcesSlot dataSources={dashboard.data_sources} />
+              )}
 
-          <DashboardLayout.HeaderRow.Right>
-            <RefreshButton
-              onRefresh={onRefresh}
-              canRefresh={isSaved}
-              isOwner={dashboard.isOwner}
-              isRefreshing={isRefreshing}
-              schedule={schedule}
-              isScheduled={isScheduled}
-              isPaused={isSchedulePaused}
-              isMutating={isScheduleMutating}
-              onCreateSchedule={onCreateSchedule}
-              onUpdateSchedule={onUpdateSchedule}
-              onPauseSchedule={onPauseSchedule}
-              onResumeSchedule={onResumeSchedule}
-              onDeleteSchedule={onDeleteSchedule}
-            />
-            {dashboard.isOwner && (
-              <>
-                {/* Revert — only in edit mode when there's a previous version */}
-                {isEditMode && dashboard.dashboardVersion >= 1 && (
+              {/* "Ask Von" button — only shown when chat panel is closed */}
+              {onChatClick && !isChatOpen && (
+                <motion.button
+                  key="ask-von"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={onChatClick}
+                  title="Ask Von"
+                  className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <img
+                    src={vonFilledLogo}
+                    alt="Von"
+                    width={15}
+                    height={15}
+                    className="flex-shrink-0"
+                  />
+                  Ask Von
+                </motion.button>
+              )}
+
+              {/* Standalone close for panes that pass onClose but no chat (e.g. DashboardPreviewPane) */}
+              {!onChatClick && onClose && (
+                <Tooltip content="Close">
+                  <button
+                    onClick={onClose}
+                    className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 bg-white border border-gray-200/70 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                </Tooltip>
+              )}
+            </DashboardLayout.HeaderRow.Right>
+          </DashboardLayout.HeaderRow>
+
+          {/* Toolbar row: filters | edit/save, revert, customize, refresh, share */}
+          <DashboardLayout.HeaderRow bordered>
+            <DashboardLayout.HeaderRow.Left>
+              <DashboardFilterBarV2
+                definitions={filterDefinitions}
+                filterState={filterState}
+                isApplying={filterIsApplying}
+                canApply={filterCanApply}
+                isOwner={isDashboardOwner}
+                onFilterChange={onFilterChange}
+                onRemoveFilter={onRemoveFilter}
+                onClearFilter={onClearFilter}
+                onToggleLock={onToggleLock}
+                canLockFilter={canLockFilter}
+                onApply={onApplyFilters}
+                onRevertFilter={onRevertFilter}
+              />
+            </DashboardLayout.HeaderRow.Left>
+
+            <DashboardLayout.HeaderRow.Right>
+              <RefreshButton
+                onRefresh={onRefresh}
+                canRefresh={isSaved}
+                isOwner={isDashboardOwner}
+                isRefreshing={isRefreshing}
+                schedule={schedule}
+                isScheduled={isScheduled}
+                isPaused={isSchedulePaused}
+                isMutating={isScheduleMutating}
+                onCreateSchedule={onCreateSchedule}
+                onUpdateSchedule={onUpdateSchedule}
+                onPauseSchedule={onPauseSchedule}
+                onResumeSchedule={onResumeSchedule}
+                onDeleteSchedule={onDeleteSchedule}
+              />
+              {/* Version history moved into the ⋯ overflow menu (editor+
+                  only) per design — see DashboardMoreMenu below. */}
+              {/* Share — V2 is visible to viewer+ (anyone with access). Legacy
+                stays owner-only since BE without M2 only honours owner shares. */}
+              {isDashboardCollabEnabled && (
+                <ShareDashboardDialogV2
+                  dashboardTitle={dashboard.title}
+                  currentUserId={user?.id ?? ""}
+                  // Adapter always populates `accessLevel` (falls back to
+                  // owner|viewer from `is_owner` when BE hasn't migrated).
+                  // Once the on-demand metadata fetch lands, prefer that
+                  // fresher value.
+                  myAccessLevel={currentAccessLevel}
+                  workspaceLabel={user?.tenant ?? "your org"}
+                  canShare={isSaved}
+                  scope={currentScope === "tenant" ? "org_wide" : "private"}
+                  scopeDefaultRole="viewer"
+                  grants={dashboardCollabGrants}
+                  directory={dashboardCollabDirectory}
+                  dataScopingAvailable={dataScopingAvailable}
+                  dataScopeOwnership={
+                    (currentSharedDataScope as DataScopeOptionV2 | null) ?? null
+                  }
+                  onScopeChange={handleCollabScopeChange}
+                  onGrantAdd={handleCollabGrantAdd}
+                  onGrantUpdate={handleCollabGrantUpdate}
+                  onGrantRemove={handleCollabGrantRemove}
+                  onDataScopeChange={handleCollabDataScopeChange}
+                  onCopyLink={handleCopyLink}
+                  isAddingPeople={shareV2Phase === "pending"}
+                  isSavingShare={shareV2Phase === "pending"}
+                  onOpenChange={setIsShareDialogOpen}
+                />
+              )}
+              {/* Legacy owner-only actions — only relevant when the
+                  dashboardCollab flag is off. The triad cluster
+                  supersedes Revert, and the legacy share dialog is
+                  replaced by ShareDashboardDialogV2 above. */}
+              {isDashboardOwner &&
+                !isDashboardCollabEnabled &&
+                isEditMode &&
+                dashboard.dashboardVersion >= 1 && (
                   <Tooltip content="Reverts to previous saved version">
                     <button
                       onClick={
@@ -610,139 +1067,113 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
+              {isDashboardOwner && !isDashboardCollabEnabled && (
                 <ShareDashboardDialog
                   isSharedWithTenant={dashboard.isSharedWithTenant}
                   sharedDataScope={dashboard.sharedDataScope}
-                  dataScopingAvailable={
-                    dashboard.data_sources?.some(
-                      (s) => s.type === "salesforce",
-                    ) ?? false
-                  }
+                  dataScopingAvailable={dataScopingAvailable}
                   canShare={isSaved}
                   sharePhase={sharePhase}
                   onShare={onShare}
                   onCopyLink={handleCopyLink}
                 />
+              )}
 
-                <DashboardMoreMenu
-                  dashboardId={dashboard.id}
-                  dashboardName={dashboard.title}
-                />
-
-                {/* Edit / Save toggle */}
-                {isEditMode ||
-                savePhase !== "idle" ||
-                dashboard.dashboardVersion < 1 ? (
-                  <SaveButton
-                    savePhase={savePhase}
-                    onSave={handleSaveFromEditMode}
-                    isSaved={false}
+              {/* Editor+ surface — folder menu and the Edit / Save cluster.
+                  Editors are treated identically to owners here per the
+                  BE M2 editor+ permission model. */}
+              {canEditDashboard && (
+                <>
+                  <DashboardMoreMenu
+                    dashboardId={dashboard.id}
+                    dashboardName={dashboard.title}
+                    showVersionHistory={isDashboardCollabEnabled}
+                    onOpenVersionHistory={() => setVersionHistoryOpen(true)}
+                    hasActiveDraft={isEditMode}
                   />
-                ) : (
-                  <Tooltip content="Edit dashboard">
-                    <button
-                      onClick={
-                        editModePhase === "idle"
-                          ? handleEnterEditMode
-                          : undefined
-                      }
-                      disabled={editModePhase !== "idle"}
-                      className={`flex items-center gap-1.5 h-[34px] px-2.5 text-sm font-medium rounded-xl border transition-colors whitespace-nowrap ${
-                        editModePhase === "pending"
-                          ? "border-gray-800 bg-gray-800 text-white cursor-not-allowed"
-                          : "border-gray-900 bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-                      }`}
-                    >
-                      {editModePhase === "pending" ? (
-                        <SpinnerGapIcon size={13} className="animate-spin" />
-                      ) : (
-                        <PencilSimpleIcon size={13} />
-                      )}
-                      Edit
-                    </button>
-                  </Tooltip>
-                )}
-              </>
+                  {renderEditCluster()}
+                </>
+              )}
+            </DashboardLayout.HeaderRow.Right>
+          </DashboardLayout.HeaderRow>
+        </DashboardLayout.Header>
+
+        <DashboardLayout.Canvas
+          className={`relative transition-colors duration-200 ${
+            isEditMode ? "bg-gray-100" : "bg-gray-50"
+          }`}
+        >
+          {/* Save toast — absolute top-center, no layout impact */}
+          <AnimatePresence>
+            {showSaveToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
+              >
+                <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
+                  <CheckCircleIcon size={16} weight="fill" />
+                  {isFirstSave
+                    ? "Dashboard is created. You can access the dashboard from the side panel."
+                    : "Dashboard is updated. You can access the dashboard from the side panel."}
+                </div>
+              </motion.div>
             )}
-          </DashboardLayout.HeaderRow.Right>
-        </DashboardLayout.HeaderRow>
-      </DashboardLayout.Header>
+          </AnimatePresence>
 
-      <DashboardLayout.Canvas
-        className={`relative transition-colors duration-200 ${
-          isEditMode ? "bg-gray-100" : "bg-gray-50"
-        }`}
-      >
-        {/* Save toast — absolute top-center, no layout impact */}
-        <AnimatePresence>
-          {showSaveToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
-            >
-              <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
-                <CheckCircleIcon size={16} weight="fill" />
-                {isFirstSave
-                  ? "Dashboard is created. You can access the dashboard from the side panel."
-                  : "Dashboard is updated. You can access the dashboard from the side panel."}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          {/* Refresh-in-progress banner */}
+          <AnimatePresence>
+            {isRefreshing && (
+              <motion.div
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
+              >
+                <div className="inline-flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
+                  <SpinnerGapIcon size={16} className="animate-spin" />
+                  Refreshing dashboard data…
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* Refresh-in-progress banner */}
-        <AnimatePresence>
-          {isRefreshing && (
-            <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="absolute top-4 left-0 right-0 z-10 flex justify-center pointer-events-none"
-            >
-              <div className="inline-flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 text-blue-800 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
-                <SpinnerGapIcon size={16} className="animate-spin" />
-                Refreshing dashboard data…
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          <ErrorBoundary>
+            <AutoFitContext.Provider value={autoFitController}>
+              <DashboardGrid
+                layout={layout}
+                widgets={widgets}
+                gridConfig={gridConfig}
+                onTablePageChange={onTablePageChange}
+                loadingTablePanels={loadingTablePanels}
+                onDrillDown={onDrillDown}
+                onPointDrillDown={onPointDrillDown}
+                onAddToChat={onAddWidgetToChat}
+                onTableSortChange={onTableSortChange}
+                tableSortStates={tableSortStates}
+                isEditMode={isEditMode}
+                isDragDropEnabled={isDashboardDragDropEnabled}
+                isLoading={isRefetchingData || isRefreshing}
+                variablesByWidget={variablesByWidget}
+                onLayoutChange={handleLayoutChange}
+                // Widget-level filter UI hidden until panel-filter designs are ready
+                // widgetAppliedFilters={widgetAppliedFilters}
+                // widgetFilterSlot={widgetFilterSlot}
+              />
+            </AutoFitContext.Provider>
+          </ErrorBoundary>
 
-        <ErrorBoundary>
-          <AutoFitContext.Provider value={autoFitController}>
-            <DashboardGrid
-              layout={layout}
-              widgets={widgets}
-              gridConfig={gridConfig}
-              onTablePageChange={onTablePageChange}
-              loadingTablePanels={loadingTablePanels}
-              onDrillDown={onDrillDown}
-              onPointDrillDown={onPointDrillDown}
-              onAddToChat={onAddWidgetToChat}
-              onTableSortChange={onTableSortChange}
-              tableSortStates={tableSortStates}
-              isEditMode={isEditMode}
-              isDragDropEnabled={isDashboardDragDropEnabled}
-              isLoading={isRefetchingData || isRefreshing}
-              variablesByWidget={variablesByWidget}
-              onLayoutChange={handleLayoutChange}
-              // Widget-level filter UI hidden until panel-filter designs are ready
-              // widgetAppliedFilters={widgetAppliedFilters}
-              // widgetFilterSlot={widgetFilterSlot}
-            />
-          </AutoFitContext.Provider>
-        </ErrorBoundary>
-
-        {/* Edit mode banner — full-width sticky bottom (hidden when drilldown is open; parent renders its own) */}
-        <EditModeBanner
-          visible={isEditMode && !isDrilldownOpen}
-          className="sticky bottom-0 z-10 -mx-4"
-        />
-      </DashboardLayout.Canvas>
-    </DashboardLayout>
+          {/* Edit mode banner — full-width sticky bottom (hidden when drilldown is open; parent renders its own) */}
+          <EditModeBanner
+            visible={isEditMode && !isDrilldownOpen}
+            className="sticky bottom-0 z-10 -mx-4"
+          />
+        </DashboardLayout.Canvas>
+      </DashboardLayout>
+    </>
   );
 };
 
