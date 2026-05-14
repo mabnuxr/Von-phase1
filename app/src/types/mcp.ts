@@ -52,6 +52,7 @@ export interface CatalogEntry {
   catalog_id: string;
   name: string;
   description: string;
+  short_description?: string | null;
   server_url: string;
   auth_type: MCPAuthType;
   credential_label: string;
