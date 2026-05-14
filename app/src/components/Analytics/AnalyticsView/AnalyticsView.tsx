@@ -681,20 +681,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     () => mapVersionsResponse(versionsQuery.data, teamMembers),
     [versionsQuery.data, teamMembers],
   );
-  const handleRestorePlaceholder = useCallback((versionId: string) => {
-    console.info(
-      "[AnalyticsView] Restore stub triggered for version:",
-      versionId,
-    );
-    setVersionHistoryOpen(false);
-  }, []);
-  const handleContinueDraftPlaceholder = useCallback((versionId: string) => {
-    console.info(
-      "[AnalyticsView] Continue draft stub triggered for version:",
-      versionId,
-    );
-    setVersionHistoryOpen(false);
-  }, []);
 
   // ── Edit-mode triad cluster (M1 draft lifecycle) ──────────────
   //
@@ -799,8 +785,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         publishedVersions={versionsForDrawer.publishedVersions}
         isLoading={versionsQuery.isLoading}
         currentUserId={user?.id}
-        onContinueDraft={handleContinueDraftPlaceholder}
-        onRestoreAsDraft={handleRestorePlaceholder}
       />
       <DashboardLayout
         className={
@@ -1004,9 +988,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               />
               {/* Version history moved into the ⋯ overflow menu (editor+
                   only) per design — see DashboardMoreMenu below. */}
-              {/* Share — V2 is visible to viewer+ (anyone with access). Legacy
-                stays owner-only since BE without M2 only honours owner shares. */}
-              {isDashboardCollabEnabled && (
+              {/* Share — editor+ only. Viewers can't change scope or
+                  grants in any practical way (BE permits viewer scope
+                  flips but the UI doesn't expose them as a v1), so the
+                  trigger button is hidden from them entirely. */}
+              {isDashboardCollabEnabled && canEditDashboard && (
                 <ShareDashboardDialogV2
                   dashboardTitle={dashboard.title}
                   currentUserId={user?.id ?? ""}
@@ -1015,7 +1001,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   // Once the on-demand metadata fetch lands, prefer that
                   // fresher value.
                   myAccessLevel={currentAccessLevel}
-                  workspaceLabel={user?.tenant ?? "your org"}
                   canShare={isSaved}
                   scope={currentScope === "tenant" ? "org_wide" : "private"}
                   scopeDefaultRole="viewer"

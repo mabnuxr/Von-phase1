@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ClockCounterClockwiseIcon,
@@ -20,10 +20,6 @@ interface VersionHistoryDrawerProps {
   /** Whether the versions query is in-flight. Suppresses the empty state so
    *  the list doesn't flash empty between open and first response. */
   isLoading?: boolean;
-  /** Continue the active draft (head of the current-draft tab). */
-  onContinueDraft?: (versionId: string) => void;
-  /** Restore any non-head row as a new draft (forks from that version). */
-  onRestoreAsDraft?: (versionId: string) => void;
 }
 
 // ─── Empty states (per tab) ──────────────────────────────────────
@@ -45,8 +41,8 @@ const EmptyState: React.FC<{ tab: VersionHistoryTab }> = ({ tab }) => (
     </div>
     <div className="mx-auto max-w-[220px] text-[11.5px] leading-snug text-gray-500">
       {tab === "current"
-        ? "Drafts appear here while you're editing. Switch to Publish history to start a new draft from a published version."
-        : "Once you publish a draft, every published version lands here and can be restored as a new draft."}
+        ? "Drafts appear here while you're editing. Switch to Published to browse past versions."
+        : "Once you publish a draft, every published version lands here."}
     </div>
   </div>
 );
@@ -57,11 +53,11 @@ const EmptyState: React.FC<{ tab: VersionHistoryTab }> = ({ tab }) => (
  * Right-side version-history drawer (VON-1282). Slides in from the
  * right edge with two tabs:
  *   - Current draft : the active draft + `draft_saved` snapshots.
- *   - Publish history : the published lineage.
+ *   - Published     : the published lineage.
  *
- * The footer CTA is selection-aware:
- *   - Selected row is the active draft head → "Continue draft".
- *   - Any other row → "Restore as a draft" (forks a new draft).
+ * The restore / continue-draft CTA is intentionally absent in v1; the
+ * drawer is a read-only browser today. The wiring for those actions
+ * will land in a follow-up.
  *
  * Visual treatment follows the design's `HistoryEditEntry` artboard.
  */
@@ -72,8 +68,6 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   publishedVersions,
   currentUserId,
   isLoading,
-  onContinueDraft,
-  onRestoreAsDraft,
 }) => {
   const [tab, setTab] = useState<VersionHistoryTab>("current");
   const activeDraftHeadId =
@@ -107,28 +101,6 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   }, [isOpen, onClose]);
 
   const rows = tab === "current" ? drafts : publishedVersions;
-  const selectedRow = useMemo(
-    () => rows.find((r) => r.id === selectedId) ?? null,
-    [rows, selectedId],
-  );
-
-  const isOnActiveDraftHead =
-    tab === "current" &&
-    !!activeDraftHeadId &&
-    selectedId === activeDraftHeadId;
-  const ctaLabel = isOnActiveDraftHead
-    ? "Continue draft"
-    : "Restore as a draft";
-  const canAct = !!selectedRow;
-
-  const handlePrimary = useCallback(() => {
-    if (!selectedRow) return;
-    if (isOnActiveDraftHead) {
-      onContinueDraft?.(selectedRow.id);
-    } else {
-      onRestoreAsDraft?.(selectedRow.id);
-    }
-  }, [selectedRow, isOnActiveDraftHead, onContinueDraft, onRestoreAsDraft]);
 
   return (
     <AnimatePresence>
@@ -175,7 +147,7 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
               {(
                 [
                   { id: "current", label: "Current draft" },
-                  { id: "published", label: "Publish history" },
+                  { id: "published", label: "Published" },
                 ] as const
               ).map((t) => {
                 const active = t.id === tab;
@@ -233,27 +205,9 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
               )}
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center gap-2 border-t border-gray-100 px-4 py-3">
-              <div className="flex-1" />
-              {selectedRow && !isOnActiveDraftHead && (
-                <span className="mr-1 max-w-[180px] text-right text-[11px] leading-snug text-gray-400">
-                  Restoring creates a new draft.
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={handlePrimary}
-                disabled={!canAct}
-                className={`rounded-lg px-3.5 py-1.5 text-[12.5px] font-medium ${
-                  canAct
-                    ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {ctaLabel}
-              </button>
-            </div>
+            {/* Footer intentionally omitted — Continue draft / Restore
+                as a draft CTAs land in a follow-up. The drawer is a
+                read-only browser today. */}
           </motion.aside>
         </>
       )}
