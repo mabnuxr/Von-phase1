@@ -40,9 +40,11 @@ function toItem(
   return {
     id: entry.id,
     versionLabel: versionLabel(entry),
-    // `updated_at` is nominally nullable for pre-migration edge cases; the
-    // row's spine still needs an anchor, so fall back to epoch when absent.
-    timestamp: entry.updated_at ?? new Date(0).toISOString(),
+    // `updated_at` is nominally nullable for pre-migration edge cases.
+    // Pass through as null and let `VersionRow` render a "Date unknown"
+    // placeholder — a synthesized epoch would render as `Jan 1, 1970` and
+    // look like a UI bug.
+    timestamp: entry.updated_at,
     kind: statusToKind(entry.status),
     authorId: entry.updated_by ?? "",
     authorName: resolveAuthorName(entry.updated_by, teamMembers),

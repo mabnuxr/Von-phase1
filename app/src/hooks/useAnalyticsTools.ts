@@ -329,6 +329,16 @@ export function useAnalyticsTools(dashboardId: string) {
 
   const handleShareV2 = useCallback(
     (payload: ShareDashboardV2Request) => {
+      // Serialize: drop new calls while a prior share is in flight.
+      // Concurrent mutations would corrupt the rollback context —
+      // mutation B's onMutate would snapshot the cache *after* A's
+      // optimistic write, so A failing then B succeeding would
+      // overwrite B's response with A's pre-state on rollback. The
+      // dialog already disables the scope toggle on pending
+      // (`isSavingShare`); this guards the per-row paths too. Users
+      // see no response for the dropped click and can retry once the
+      // spinner clears.
+      if (shareV2Mutation.isPending) return;
       shareV2Mutation.mutate(payload, {
         onError: (error) => {
           console.error("[useAnalyticsTools] Share V2 failed:", error);
@@ -468,11 +478,16 @@ export function useAnalyticsTools(dashboardId: string) {
 
   const handleAcquireLock = useCallback(
     async (callbacks?: {
+      onSuccess?: () => void;
       onHeldByOther?: () => void;
       onUnknownError?: (error: unknown) => void;
     }) => {
       try {
         await acquireLockMutation.mutateAsync();
+        // Lock acquired — `onSuccess` runs side effects that should only
+        // happen on the 200 path (e.g. opening the chat panel). A 409
+        // HELD_BY_OTHER takes the catch branch below instead.
+        callbacks?.onSuccess?.();
       } catch (error) {
         const code =
           error instanceof ApiError
@@ -480,10 +495,12 @@ export function useAnalyticsTools(dashboardId: string) {
             : undefined;
         if (code === "APP_DASHBOARD_LOCK_ALREADY_HELD") {
           // No-op — we already hold the lock. Refresh so the FE state
-          // catches up if it was stale.
+          // catches up if it was stale, then treat as success so the
+          // caller's success side effects still run.
           queryClient.invalidateQueries({
             queryKey: dashboardKeys.detail(dashboardId),
           });
+          callbacks?.onSuccess?.();
           return;
         }
         if (code === "APP_DASHBOARD_LOCK_HELD_BY_OTHER") {

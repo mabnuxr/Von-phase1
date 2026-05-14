@@ -130,6 +130,7 @@ interface AnalyticsViewProps {
    * EditLockModal when another user holds the lock.
    */
   onAcquireLock?: (callbacks?: {
+    onSuccess?: () => void;
     onHeldByOther?: () => void;
     onUnknownError?: (error: unknown) => void;
   }) => Promise<void> | void;
@@ -615,10 +616,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // race) is a follow-up; this gates off the embedded `edit_lock` so
   // the modal is reachable today.
   const [isLockModalOpen, setLockModalOpen] = useState(false);
+  // `user?.id` can be undefined while `useUser` is still resolving on a
+  // fresh load. Without the explicit presence guard we'd flag the lock
+  // as "held by other" against the caller themselves (any non-undefined
+  // userId !== undefined is true), and a quick Edit-click would surface
+  // EditLockModal against the current user.
   const lockHeldByOther = !!(
     isDashboardCollabEnabled &&
     dashboard.editLock &&
-    dashboard.editLock.userId !== user?.id
+    user?.id !== undefined &&
+    dashboard.editLock.userId !== user.id
   );
   const lockHolderMember = useMemo(() => {
     if (!dashboard.editLock) return null;
@@ -637,14 +644,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       return;
     }
     if (isDashboardCollabEnabled && onAcquireLock) {
-      // M1 path — Edit goes through POST /lock. The 200 path silently
-      // promotes the caller into edit mode on the next refetch; the 409
-      // HELD_BY_OTHER path surfaces the modal (the embedded `edit_lock`
-      // refreshes too so the modal can show the holder name).
+      // M1 path — Edit goes through POST /lock. Chat-open is deferred
+      // into the success callback so a 409 HELD_BY_OTHER (which surfaces
+      // the EditLockModal) doesn't also pop the chat panel underneath.
       void onAcquireLock({
+        onSuccess: () => onChatClick?.(),
         onHeldByOther: () => setLockModalOpen(true),
       });
-      onChatClick?.();
       return;
     }
     // Legacy path — toggle `is_editable` directly.

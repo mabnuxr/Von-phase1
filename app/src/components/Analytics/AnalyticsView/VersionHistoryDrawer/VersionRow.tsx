@@ -1,3 +1,4 @@
+import { formatRelativeTime } from "@vonlabs/design-components";
 import type { VersionHistoryItem, VersionHistoryTab } from "./types";
 
 const AVATAR_PALETTE = [
@@ -23,23 +24,18 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso);
-  // Match the design's "May 06, 2026 at 1:16 PM" cadence — concise enough
-  // for narrow rows, unambiguous about the year for older entries.
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+// Display copy for the row timestamp — defers to the shared
+// `formatRelativeTime` helper used by EditLockBadge / AnalyticsHeader /
+// ChatPicker / StatusLine so the cadence stays consistent across the
+// app. `null` happens on pre-migration rows that lack `updated_at`.
+function describeTimestamp(iso: string | null): string {
+  return iso ? formatRelativeTime(iso) : "Date unknown";
 }
 
 function roleLabel(item: VersionHistoryItem): string {
   if (item.kind === "last_published") return "Last published";
   if (item.restoredFromTimestamp) {
-    return `Restored from ${formatTimestamp(item.restoredFromTimestamp)}`;
+    return `Restored from ${formatRelativeTime(item.restoredFromTimestamp)}`;
   }
   if (item.kind === "published") return "Published";
   return "Draft";
@@ -102,8 +98,12 @@ export const VersionRow: React.FC<VersionRowProps> = ({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-[12.5px] font-medium text-gray-900">
-            {formatTimestamp(item.timestamp)}
+          <span
+            className={`text-[12.5px] font-medium ${
+              item.timestamp ? "text-gray-900" : "text-gray-400 italic"
+            }`}
+          >
+            {describeTimestamp(item.timestamp)}
           </span>
           {tab === "published" && isLatestPublished && (
             <span className="rounded-full bg-blue-50 px-1.5 py-px text-[10px] font-semibold text-blue-700">

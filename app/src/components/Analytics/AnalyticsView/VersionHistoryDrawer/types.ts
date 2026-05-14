@@ -23,8 +23,11 @@ export interface VersionHistoryItem {
   id: string;
   /** Short label rendered in the row chip — "v3", "v3.2", "Last published". */
   versionLabel: string;
-  /** ISO datetime — drives the formatted "Today, 2:14 PM" line. */
-  timestamp: string;
+  /** ISO datetime — drives the formatted "Today, 2:14 PM" line. `null`
+   *  on pre-migration rows that don't carry `updated_at`; the row falls
+   *  back to a "Date unknown" placeholder rather than synthesizing a
+   *  bogus epoch value. */
+  timestamp: string | null;
   /** Stable category for badges + row labels. */
   kind: VersionEntryKind;
   /** User who created / saved / published this entry. */
