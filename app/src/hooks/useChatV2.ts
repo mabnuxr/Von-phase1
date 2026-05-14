@@ -564,49 +564,56 @@ export function useChatV2(props: UseChatV2Props) {
     prevConversationId.current = conversationId;
   }, [conversationId]);
 
-  // Restore draftAiField from persisted events on page refresh
+  // Restore draftAiField from persisted events on page refresh / when
+  // re-entering a conversation. The same workflow can emit multiple
+  // AI_FIELD_READY events as the user iterates ("create field for X" →
+  // "change prompt to Y"); only the most recent one reflects the current
+  // state, so we walk every message/event and keep the *last* match.
+  // Picking the first one (the previous behavior) left users seeing a
+  // stale version of their own iterations when navigating away and back.
   useEffect(() => {
     const store = useAiFieldsStore.getState();
     if (store.draftAiField) return; // already have draft data
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let latest: any = null;
     for (const rawMsg of conversationMessages) {
       if (!rawMsg.events) continue;
-      const aiFieldEvent = rawMsg.events.find(
+      for (const e of rawMsg.events) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (e: any) => e.event?.type === "AI_FIELD_READY",
-      );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const af = (aiFieldEvent as any)?.event?.ai_field;
-      if (af) {
-        store.setDraftAiField({
-          fieldId: af.fieldId ?? af.field_id ?? null,
-          workflowId: af.workflowId ?? af.workflow_id ?? "",
-          name: af.name ?? "",
-          displayName: af.displayName ?? af.display_name,
-          description: af.description ?? "",
-          objectType: (af.objectType ?? af.object_type ?? "opportunity") as
-            | "opportunity"
-            | "account",
-          columnsToGenerate:
-            af.columnsToGenerate ??
-            af.columns_to_generate ??
-            (af.columnsGenerated ?? af.columns_generated ?? []).map(
-              (name: string) => ({ name, description: "", type: "string" }),
-            ),
-          columnsGenerated: af.columnsGenerated ?? af.columns_generated ?? [],
-          sources: af.sources ?? [],
-          opportunityFilter:
-            af.opportunityFilter ?? af.opportunity_filter ?? null,
-          displayFilter: af.displayFilter ?? af.display_filter,
-          matchCount: af.matchCount ?? af.match_count ?? null,
-          totalRecords: af.totalRecords ?? af.total_records ?? null,
-          sampleOpportunities:
-            af.sampleOpportunities ?? af.sample_opportunities,
-          conversationId: af.conversationId ?? af.conversation_id ?? null,
-        });
-        break;
+        if ((e as any)?.event?.type === "AI_FIELD_READY") {
+          latest = e;
+        }
       }
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const af = (latest as any)?.event?.ai_field;
+    if (!af) return;
+
+    store.setDraftAiField({
+      fieldId: af.fieldId ?? af.field_id ?? null,
+      workflowId: af.workflowId ?? af.workflow_id ?? "",
+      name: af.name ?? "",
+      displayName: af.displayName ?? af.display_name,
+      description: af.description ?? "",
+      objectType: (af.objectType ?? af.object_type ?? "opportunity") as
+        | "opportunity"
+        | "account",
+      columnsToGenerate:
+        af.columnsToGenerate ??
+        af.columns_to_generate ??
+        (af.columnsGenerated ?? af.columns_generated ?? []).map(
+          (name: string) => ({ name, description: "", type: "string" }),
+        ),
+      columnsGenerated: af.columnsGenerated ?? af.columns_generated ?? [],
+      sources: af.sources ?? [],
+      opportunityFilter: af.opportunityFilter ?? af.opportunity_filter ?? null,
+      displayFilter: af.displayFilter ?? af.display_filter,
+      matchCount: af.matchCount ?? af.match_count ?? null,
+      totalRecords: af.totalRecords ?? af.total_records ?? null,
+      sampleOpportunities: af.sampleOpportunities ?? af.sample_opportunities,
+      conversationId: af.conversationId ?? af.conversation_id ?? null,
+    });
   }, [conversationMessages]);
 
   // Message filtering state

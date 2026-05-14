@@ -32,6 +32,8 @@ import { FieldDetailPane } from "../components/FieldDetailPane";
 import { VonAiFieldsTab } from "../components/tabs/VonAiFieldsTab";
 import { VonAiFieldsDefaultTab } from "../components/tabs/VonAiFieldsDefaultTab";
 import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
+import { VonAiFieldDefaultPreviewPane } from "../components/VonAiFieldDefaultPreviewPane";
+import type { DefaultAiFieldDefinition } from "../types/vonAiFields";
 import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
 import { AddTeamMembersPane } from "../components/AddTeamMembersPane";
 import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
@@ -91,24 +93,29 @@ const Settings = () => {
   // (V2 splits the tab into memory-org/memory-user children); under V1 the
   // single `memory` tab is the only one so we leave the URL alone.
   //
-  // The legacy `custom-iq` deep-link lands on the Default sub-page since
-  // Von AI Fields is now split into Default and Custom children.
+  // The legacy `custom-iq` deep-link lands on the Custom sub-page since
+  // that's the leading sub-tab in the AI Fields nav.
   const tabFromUrl = searchParams.get("tab");
   const normalizedTab =
     isMemoryV2Enabled && tabFromUrl === "memory"
       ? "memory-org"
       : tabFromUrl === "custom-iq"
-        ? "custom-iq-default"
+        ? "custom-iq-custom"
         : tabFromUrl;
   const initialTab = normalizedTab || "integrations";
   const [selectedSettingId, setSelectedSettingId] = useState(initialTab);
   const [detailFieldId, setDetailFieldId] = useState<string | null>(
     searchParams.get("fieldId"),
   );
+  // Holds a not-yet-enabled default's definition while the user previews
+  // it. The preview pane sources its content from this rather than from a
+  // backend record (which doesn't exist until enable).
+  const [previewDefault, setPreviewDefault] =
+    useState<DefaultAiFieldDefinition | null>(null);
 
   // Set default tab in URL if not present, and rewrite legacy tabs that have
-  // been split into children. For custom-iq, a fieldId deep-link (from chat's
-  // "View in Settings") routes to the Custom sub-page; otherwise to Default.
+  // been split into children. For custom-iq, route to the Custom sub-page
+  // (it's the leading sub-tab; deep-links with a fieldId go there too).
   useEffect(() => {
     if (!tabFromUrl) {
       navigate(`/settings?tab=integrations`, { replace: true });
@@ -118,7 +125,7 @@ const Settings = () => {
       const fieldIdFromUrl = searchParams.get("fieldId");
       const target = fieldIdFromUrl
         ? `/settings?tab=custom-iq-custom&fieldId=${fieldIdFromUrl}`
-        : `/settings?tab=custom-iq-default`;
+        : `/settings?tab=custom-iq-custom`;
       navigate(target, { replace: true });
     }
   }, [tabFromUrl, navigate, isMemoryV2Enabled, searchParams]);
@@ -300,8 +307,8 @@ const Settings = () => {
               label: "AI Fields",
               icon: <ColumnsIcon size={20} weight="regular" />,
               children: [
-                { id: "custom-iq-default", label: "Default Fields" },
                 { id: "custom-iq-custom", label: "Custom Fields" },
+                { id: "custom-iq-default", label: "Default Fields" },
               ],
             },
           ]
@@ -355,10 +362,10 @@ const Settings = () => {
           <OrgContextTabV2 view="user" />
         ) : null;
       case "custom-iq":
-        // Legacy id — useEffect above redirects URL to custom-iq-default.
-        // Until that runs, render the Default tab to avoid a blank frame.
+        // Legacy id — useEffect above redirects URL to custom-iq-custom.
+        // Until that runs, render the Custom tab to avoid a blank frame.
         return showVonAiFields ? (
-          <VonAiFieldsDefaultTab onRowClick={(id) => setDetailFieldId(id)} />
+          <VonAiFieldsTab onRowClick={(id) => setDetailFieldId(id)} />
         ) : null;
       case "custom-iq-default":
         if (!showVonAiFields) return null;
@@ -370,8 +377,23 @@ const Settings = () => {
             />
           );
         }
+        if (previewDefault) {
+          return (
+            <VonAiFieldDefaultPreviewPane
+              definition={previewDefault}
+              onBack={() => setPreviewDefault(null)}
+              onEnabled={(id) => {
+                setPreviewDefault(null);
+                setDetailFieldId(id);
+              }}
+            />
+          );
+        }
         return (
-          <VonAiFieldsDefaultTab onRowClick={(id) => setDetailFieldId(id)} />
+          <VonAiFieldsDefaultTab
+            onRowClick={(id) => setDetailFieldId(id)}
+            onDefaultPreview={(def) => setPreviewDefault(def)}
+          />
         );
       case "custom-iq-custom":
         if (!showVonAiFields) return null;

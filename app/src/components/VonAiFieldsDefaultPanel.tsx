@@ -26,15 +26,16 @@ interface DefaultRow {
 
 interface VonAiFieldsDefaultPanelProps {
   onRowClick: (fieldId: string) => void;
+  onDefaultPreview?: (definition: DefaultAiFieldDefinition) => void;
 }
 
 export function VonAiFieldsDefaultPanel({
   onRowClick,
+  onDefaultPreview,
 }: VonAiFieldsDefaultPanelProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [filterOpen, setFilterOpen] = useState(false);
-  const [openingName, setOpeningName] = useState<string | null>(null);
 
   // Fetch materialized default fields. Backend should respect isDefault=true;
   // we also filter client-side as a defensive measure until that's wired up.
@@ -62,27 +63,19 @@ export function VonAiFieldsDefaultPanel({
     [materializedByName],
   );
 
-  const enableMutation = useEnableDefaultAiField();
-
-  // Clicking a row opens the same detail experience as the Custom panel. For
-  // already-materialized defaults that's a direct hop; for non-materialized
-  // ones we materialize first (the user can disable it from the detail view
-  // if they didn't intend to enable it).
+  // Clicking a row never enables the field — that's a side effect users
+  // didn't ask for. Materialized rows open the full detail pane; rows that
+  // haven't been enabled yet open a read-only preview built from the local
+  // DEFAULT_AI_FIELDS catalog. Enabling stays explicit (toggle or preview CTA).
   const handleRowClick = useCallback(
-    async (row: DefaultRow) => {
+    (row: DefaultRow) => {
       if (row.materialized) {
         onRowClick(row.materialized.fieldId);
         return;
       }
-      setOpeningName(row.definition.name);
-      try {
-        const created = await enableMutation.mutateAsync(row.definition);
-        onRowClick(created.fieldId);
-      } finally {
-        setOpeningName(null);
-      }
+      onDefaultPreview?.(row.definition);
     },
-    [enableMutation, onRowClick],
+    [onRowClick, onDefaultPreview],
   );
 
   const filteredRows = rows.filter(({ definition, materialized }) => {
@@ -227,7 +220,6 @@ export function VonAiFieldsDefaultPanel({
                 <DefaultFieldRow
                   key={row.definition.name}
                   row={row}
-                  isOpening={openingName === row.definition.name}
                   onClick={() => handleRowClick(row)}
                 />
               ))}
@@ -246,11 +238,10 @@ export function VonAiFieldsDefaultPanel({
 
 interface DefaultFieldRowProps {
   row: DefaultRow;
-  isOpening: boolean;
   onClick: () => void;
 }
 
-function DefaultFieldRow({ row, isOpening, onClick }: DefaultFieldRowProps) {
+function DefaultFieldRow({ row, onClick }: DefaultFieldRowProps) {
   const { definition, materialized } = row;
   const enableMutation = useEnableDefaultAiField();
   const disableMutation = useDisableField();
@@ -312,9 +303,7 @@ function DefaultFieldRow({ row, isOpening, onClick }: DefaultFieldRowProps) {
 
   return (
     <tr
-      className={`hover:bg-gray-50/80 transition-colors border-b border-gray-100 last:border-b-0 ${
-        isOpening ? "cursor-wait opacity-70" : "cursor-pointer"
-      }`}
+      className="hover:bg-gray-50/80 transition-colors border-b border-gray-100 last:border-b-0 cursor-pointer"
       onClick={onClick}
     >
       {/* AI Field */}

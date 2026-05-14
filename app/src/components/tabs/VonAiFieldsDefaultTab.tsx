@@ -1,11 +1,14 @@
 import { VonAiFieldsDefaultPanel } from "../VonAiFieldsDefaultPanel";
+import type { DefaultAiFieldDefinition } from "../../types/vonAiFields";
 
 interface VonAiFieldsDefaultTabProps {
   onRowClick: (fieldId: string) => void;
+  onDefaultPreview?: (definition: DefaultAiFieldDefinition) => void;
 }
 
 export function VonAiFieldsDefaultTab({
   onRowClick,
+  onDefaultPreview,
 }: VonAiFieldsDefaultTabProps) {
   return (
     <div className="flex flex-col h-full p-2">
@@ -28,7 +31,10 @@ export function VonAiFieldsDefaultTab({
 
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
         <div className="pt-6 pb-12 w-full max-w-4xl mx-auto">
-          <VonAiFieldsDefaultPanel onRowClick={onRowClick} />
+          <VonAiFieldsDefaultPanel
+            onRowClick={onRowClick}
+            onDefaultPreview={onDefaultPreview}
+          />
         </div>
       </div>
 
