@@ -54,6 +54,7 @@ export interface AppCatalogEntry {
   logo_url: string | null;
   category_code: string;
   category_name: string;
+  short_description: string | null;
   auth_type: "oauth2" | "api_key" | "token" | "none";
   allowed_access_levels: ConnectionMode[];
   credential_label: string | null;
@@ -61,9 +62,6 @@ export interface AppCatalogEntry {
   scalekit_connection_name: string | null;
   // MCP-only
   server_url: string | null;
-  author: string | null;
-  support_url: string | null;
-  privacy_policy_url: string | null;
   // Native-only
   integration_type: string | null;
   is_builtin: boolean;
@@ -93,6 +91,7 @@ export interface TenantIntegrationEnriched {
   catalog_type: CatalogType;
   name: string;
   description: string;
+  short_description: string | null;
   connection_mode: ConnectionMode;
   availability_status: AvailabilityStatus;
   availability_type: string;

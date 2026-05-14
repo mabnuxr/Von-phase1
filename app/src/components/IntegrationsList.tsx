@@ -216,7 +216,7 @@ function MCPCatalogItem({
     <div>
       <IntegrationCard
         name={entry.name}
-        description={entry.description}
+        description={entry.short_description ?? entry.description}
         integrationLogoPath={entry.logo_url ?? ""}
         chips={chips}
         modifiedBy={modifiedBy}
@@ -882,8 +882,8 @@ export function IntegrationsList({
       }
     >();
     for (const ti of tenantIntegrations ?? []) {
-      if (!ti.integration_type) continue;
-      const key = ti.integration_type.toUpperCase();
+      if (ti.catalog_type !== "native_integration") continue;
+      const key = ti.catalog_id;
       if (!map.has(key)) {
         map.set(key, {
           tenant_integrations: { workspace: null, personal: null },
@@ -940,8 +940,7 @@ export function IntegrationsList({
         // HubSpot and Salesforce are always visible regardless of catalog state
         if (app.id === "hubspot" || app.id === "salesforce") return true;
 
-        const backendType = getBackendIntegrationType(app.id).toUpperCase();
-        const catalogEntry = catalogMap.get(backendType);
+        const catalogEntry = catalogMap.get(app.id);
         const isInCatalog = !!catalogEntry;
         const isConnected = integrations.some(
           (i) =>

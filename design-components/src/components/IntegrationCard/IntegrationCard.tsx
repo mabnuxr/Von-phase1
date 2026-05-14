@@ -201,12 +201,16 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
       {/* Left side - Icon and Info */}
       <div className="flex items-center gap-4">
         {/* Integration Logo */}
-        <div className="w-10 h-10 flex items-center justify-center shrink-0">
-          <img
-            src={integrationLogoPath}
-            alt={`${name} logo`}
-            className="w-full h-full object-contain"
-          />
+        <div
+          className={`w-10 h-10 flex items-center justify-center shrink-0 ${!integrationLogoPath ? 'bg-gray-100 rounded-lg' : ''}`}
+        >
+          {integrationLogoPath ? (
+            <img
+              src={integrationLogoPath}
+              alt={`${name} logo`}
+              className="w-full h-full object-contain"
+            />
+          ) : null}
         </div>
 
         {/* Name, Description, and Metadata */}

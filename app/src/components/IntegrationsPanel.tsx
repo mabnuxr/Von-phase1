@@ -207,6 +207,7 @@ export function IntegrationsPanel() {
           catalog_id: catalogId,
           name: primaryTi.name,
           description: primaryTi.description,
+          short_description: primaryTi.short_description ?? null,
           server_url: primaryTi.server_url ?? "",
           auth_type: primaryTi.auth_type as MCPAuthType,
           credential_label: primaryTi.credential_label ?? "API Key",

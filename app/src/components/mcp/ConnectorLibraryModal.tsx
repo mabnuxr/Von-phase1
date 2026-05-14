@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   MagnifyingGlassIcon,
   XIcon,
@@ -6,7 +6,6 @@ import {
   PlugsIcon,
   ArrowSquareOutIcon,
   CaretDownIcon,
-  UserIcon,
 } from "@phosphor-icons/react";
 import { Banner } from "@vonlabs/design-components";
 import {
@@ -40,8 +39,7 @@ function entryCategoryName(e: AppCatalogEntry): string {
 }
 
 function isEntryBuiltByVon(e: AppCatalogEntry): boolean {
-  if (e.catalog_type === "native_integration") return e.is_builtin;
-  return e.author?.toLowerCase().includes("von") ?? false;
+  return e.catalog_type === "native_integration" && e.is_builtin;
 }
 
 type TISlots = {
@@ -101,7 +99,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   } = useAppCatalogInfinite({
     statusFilter: "all",
     includeBuiltins: true,
-    pageSize: 100,
+    pageSize: 20,
     search: debouncedSearch || undefined,
   });
   const catalog = useMemo(() => catalogData?.items ?? [], [catalogData]);
@@ -175,11 +173,8 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">
-                  App Library
+                  Manage Integrations
                 </h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  Manage integrations for your workspace
-                </p>
               </div>
               <button
                 onClick={onClose}
@@ -202,7 +197,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
               >
-                <span>All apps</span>
+                <span>All</span>
                 <span className="text-xs text-gray-400">{catalog.length}</span>
               </button>
               {categories.map((cat) => (
@@ -278,18 +273,20 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
 
 /* ─── Proceed Confirm Modal ─── */
 function ProceedConfirmModal({
-  fromMode,
-  toMode,
+  title,
+  description,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: {
-  fromMode: "workspace" | "personal";
-  toMode: "workspace" | "personal";
+  title: string;
+  description: React.ReactNode;
+  confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
   const [input, setInput] = useState("");
-  const canProceed = input.trim() === "PROCEED";
+  const canProceed = input.trim().toUpperCase() === "PROCEED";
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
@@ -298,9 +295,9 @@ function ProceedConfirmModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-3">
-          <div className="shrink-0 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+          <div className="shrink-0 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
             <svg
-              className="size-4 text-red-600"
+              className="size-4 text-gray-700"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -314,18 +311,8 @@ function ProceedConfirmModal({
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              Switch to {toMode}?
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Switching from{" "}
-              <span className="font-medium capitalize">{fromMode}</span> to{" "}
-              <span className="font-medium capitalize">{toMode}</span> will{" "}
-              <span className="font-medium text-red-600">
-                delete all existing connections
-              </span>{" "}
-              for this integration. This cannot be undone.
-            </p>
+            <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+            <p className="mt-1 text-sm text-gray-500">{description}</p>
           </div>
         </div>
         <div>
@@ -342,7 +329,7 @@ function ProceedConfirmModal({
             onChange={(e) => setInput(e.target.value)}
             autoFocus
             placeholder="PROCEED"
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent font-mono"
           />
         </div>
         <div className="flex justify-end gap-2">
@@ -355,9 +342,9 @@ function ProceedConfirmModal({
           <button
             onClick={onConfirm}
             disabled={!canProceed}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            Switch to {toMode}
+            {confirmLabel}
           </button>
         </div>
       </div>
@@ -419,7 +406,9 @@ function AppCard({
       onClick={onClick}
       className="border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all cursor-pointer flex gap-3"
     >
-      <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+      <div
+        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden ${!logoUrl ? "bg-gray-100" : ""}`}
+      >
         {logoUrl ? (
           <img src={logoUrl} alt="" className="w-10 h-10 object-contain" />
         ) : (
@@ -439,7 +428,7 @@ function AppCard({
         </div>
         <p className="text-xs text-gray-400">{sourceLabel}</p>
         <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
-          {entry.description}
+          {entry.short_description ?? entry.description}
         </p>
       </div>
     </div>
@@ -478,33 +467,26 @@ function NativeDetailView({
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<
     "workspace" | "personal" | null
   >(null);
-  const [showPublishConfirm, setShowPublishConfirm] = useState<
-    "workspace" | "personal" | null
-  >(null);
   const [switchConfirmMode, setSwitchConfirmMode] = useState<
     "workspace" | "personal" | null
   >(null);
-  const [splitOpen, setSplitOpen] = useState(false);
-  const splitRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!splitOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (splitRef.current && !splitRef.current.contains(e.target as Node)) {
-        setSplitOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [splitOpen]);
 
   const isWorkspacePublished =
     tiEntry.workspace?.availability_status === "published";
   const isPersonalPublished =
     tiEntry.personal?.availability_status === "published";
+
+  const [selectedMode, setSelectedMode] = useState<
+    "workspace" | "personal" | null
+  >(
+    isWorkspacePublished
+      ? "workspace"
+      : isPersonalPublished
+        ? "personal"
+        : null,
+  );
   const isWorkspaceConnected = isWorkspacePublished;
   const isPersonalConnected = isPersonalPublished;
-  const isAdded = isWorkspacePublished || isPersonalPublished;
   const isBusy =
     publishMutation.isPending ||
     deleteConnectionsMutation.isPending ||
@@ -623,7 +605,9 @@ function NativeDetailView({
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                <div
+                  className={`w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${!logoUrl ? "bg-gray-100" : ""}`}
+                >
                   {logoUrl ? (
                     <img
                       src={logoUrl}
@@ -681,195 +665,69 @@ function NativeDetailView({
                 </div>
               </div>
 
-              {isAdmin &&
-                (isWorkspacePublished && isPersonalPublished ? (
-                  /* Both published — split remove */
-                  <div ref={splitRef} className="relative flex shrink-0">
+              {isAdmin && (hasWorkspaceLevel || hasPersonalLevel) && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {hasWorkspaceLevel && hasPersonalLevel && (
+                    <span className="text-sm text-gray-400">Set as</span>
+                  )}
+                  {hasWorkspaceLevel && (
                     <button
-                      onClick={() => setShowRemoveConfirm("workspace")}
+                      onClick={() => setSelectedMode("workspace")}
                       disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                        isWorkspacePublished || selectedMode === "workspace"
+                          ? "border-purple-400 text-purple-600 font-semibold bg-purple-50"
+                          : "border-gray-300 text-gray-500 hover:border-gray-400"
+                      }`}
                     >
-                      Remove workspace
+                      Workspace
                     </button>
+                  )}
+                  {hasPersonalLevel && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSplitOpen((o) => !o);
-                      }}
+                      onClick={() => setSelectedMode("personal")}
                       disabled={isBusy}
-                      className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                        isPersonalPublished || selectedMode === "personal"
+                          ? "border-blue-400 text-blue-600 font-semibold bg-blue-50"
+                          : "border-gray-300 text-gray-500 hover:border-gray-400"
+                      }`}
                     >
-                      <CaretDownIcon size={13} weight="bold" />
+                      Personal
                     </button>
-                    {splitOpen && (
-                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSplitOpen(false);
-                            setShowRemoveConfirm("personal");
-                          }}
-                          disabled={isBusy}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                        >
-                          Remove personal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : isWorkspacePublished ? (
-                  /* Only workspace published */
-                  hasPersonalLevel ? (
-                    <div ref={splitRef} className="relative flex shrink-0">
+                  )}
+                  {selectedMode ? (
+                    (
+                      selectedMode === "workspace"
+                        ? isWorkspacePublished
+                        : isPersonalPublished
+                    ) ? (
                       <button
-                        onClick={() => setShowRemoveConfirm("workspace")}
+                        onClick={() => setShowRemoveConfirm(selectedMode)}
                         disabled={isBusy}
-                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                        className="px-3 py-1.5 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
                       >
                         Remove
                       </button>
+                    ) : (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSplitOpen((o) => !o);
-                        }}
+                        onClick={() => handlePublish(selectedMode)}
                         disabled={isBusy}
-                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                        className="px-4 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <CaretDownIcon size={13} weight="bold" />
+                        {isBusy ? "Adding…" : "Add"}
                       </button>
-                      {splitOpen && (
-                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSplitOpen(false);
-                              setShowPublishConfirm("personal");
-                            }}
-                            disabled={isBusy}
-                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                          >
-                            <UserIcon size={12} className="text-gray-500" />
-                            Add as personal
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    )
                   ) : (
                     <button
-                      onClick={() => setShowRemoveConfirm("workspace")}
-                      disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                      disabled
+                      className="px-4 py-1.5 text-sm font-medium text-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
                     >
-                      Remove
+                      Add
                     </button>
-                  )
-                ) : isPersonalPublished ? (
-                  /* Only personal published */
-                  hasWorkspaceLevel ? (
-                    <div ref={splitRef} className="relative flex shrink-0">
-                      <button
-                        onClick={() => setShowRemoveConfirm("personal")}
-                        disabled={isBusy}
-                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        Remove
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSplitOpen((o) => !o);
-                        }}
-                        disabled={isBusy}
-                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        <CaretDownIcon size={13} weight="bold" />
-                      </button>
-                      {splitOpen && (
-                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSplitOpen(false);
-                              setShowPublishConfirm("workspace");
-                            }}
-                            disabled={isBusy}
-                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                          >
-                            Add as workspace
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowRemoveConfirm("personal")}
-                      disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )
-                ) : isAdded ? (
-                  /* Connected but not yet published */
-                  <span className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg shrink-0">
-                    Connected
-                  </span>
-                ) : hasWorkspaceLevel && hasPersonalLevel ? (
-                  /* Both levels — split button */
-                  <div ref={splitRef} className="relative flex shrink-0">
-                    <button
-                      onClick={() => setShowPublishConfirm("workspace")}
-                      disabled={isBusy}
-                      className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-l-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isBusy ? "Adding…" : "Add as workspace"}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSplitOpen((o) => !o);
-                      }}
-                      disabled={isBusy}
-                      className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
-                    >
-                      <CaretDownIcon size={13} weight="bold" />
-                    </button>
-                    {splitOpen && (
-                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSplitOpen(false);
-                            setShowPublishConfirm("personal");
-                          }}
-                          disabled={isBusy}
-                          className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                        >
-                          <UserIcon size={12} className="text-gray-500" />
-                          Add as personal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : hasWorkspaceLevel ? (
-                  <button
-                    onClick={() => setShowPublishConfirm("workspace")}
-                    disabled={isBusy}
-                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
-                  >
-                    {isBusy ? "Adding…" : "Add as workspace"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowPublishConfirm("personal")}
-                    disabled={isBusy}
-                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
-                  >
-                    {isBusy ? "Adding…" : "Add as personal"}
-                  </button>
-                ))}
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -895,7 +753,9 @@ function NativeDetailView({
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
                   Integration Type
                 </p>
-                <p className="text-gray-900">{entry.category_name}</p>
+                <p className="text-gray-900">
+                  {entry.integration_type ?? "Read & Write"}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
@@ -924,96 +784,40 @@ function NativeDetailView({
         </div>
       </div>
 
-      {/* Publish confirmation */}
-      {showPublishConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div
-            className="fixed inset-0 bg-black/20"
-            onClick={() => setShowPublishConfirm(null)}
-          />
-          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
-              Add as{" "}
-              {showPublishConfirm === "workspace" ? "Workspace" : "Personal"}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              You are adding <strong>{entry.name}</strong> as a{" "}
-              {showPublishConfirm === "workspace" ? "workspace" : "personal"}{" "}
-              integration.{" "}
-              {showPublishConfirm === "workspace"
-                ? "All workspace members will be able to use it."
-                : "Members will be able to connect their personal accounts."}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowPublishConfirm(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const mode = showPublishConfirm;
-                  setShowPublishConfirm(null);
-                  handlePublish(mode);
-                }}
-                disabled={isBusy}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors"
-              >
-                {isBusy ? "Adding…" : "Proceed"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remove confirmation */}
       {showRemoveConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div
-            className="fixed inset-0 bg-black/20"
-            onClick={() => setShowRemoveConfirm(null)}
-          />
-          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
-              Remove{" "}
-              {showRemoveConfirm === "workspace" ? "Workspace" : "Personal"}{" "}
-              Integration
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
+        <ProceedConfirmModal
+          title={`Remove ${showRemoveConfirm === "workspace" ? "Workspace" : "Personal"} Integration`}
+          description={
+            <>
               Are you sure you want to remove <strong>{entry.name}</strong>{" "}
               {showRemoveConfirm === "workspace"
                 ? "from the workspace? Members will no longer have access."
                 : "as a personal integration? Members will no longer be able to connect their personal accounts."}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRemoveConfirm(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const mode = showRemoveConfirm;
-                  setShowRemoveConfirm(null);
-                  handleRemove(mode);
-                }}
-                disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
-              >
-                {deleteMutation.isPending ? "Removing…" : "Remove"}
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          confirmLabel="Remove"
+          onConfirm={() => {
+            const mode = showRemoveConfirm;
+            setShowRemoveConfirm(null);
+            handleRemove(mode);
+          }}
+          onCancel={() => setShowRemoveConfirm(null)}
+        />
       )}
       {switchConfirmMode && (
         <ProceedConfirmModal
-          fromMode={
-            switchConfirmMode === "workspace" ? "personal" : "workspace"
+          title={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}?`}
+          description={
+            <>
+              Switching from{" "}
+              <strong>
+                {switchConfirmMode === "workspace" ? "personal" : "workspace"}
+              </strong>{" "}
+              to <strong>{switchConfirmMode}</strong> will delete all existing
+              connections. This cannot be undone.
+            </>
           }
-          toMode={switchConfirmMode}
+          confirmLabel={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}`}
           onConfirm={() => {
             const mode = switchConfirmMode;
             setSwitchConfirmMode(null);
@@ -1059,24 +863,10 @@ function MCPDetailView({
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<
     "workspace" | "personal" | null
   >(null);
-  const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
   const [switchConfirmMode, setSwitchConfirmMode] = useState<
     "workspace" | "personal" | null
   >(null);
   const [toolsExpanded, setToolsExpanded] = useState(false);
-  const [splitOpen, setSplitOpen] = useState(false);
-  const splitRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!splitOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (splitRef.current && !splitRef.current.contains(e.target as Node)) {
-        setSplitOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [splitOpen]);
 
   const isBusy =
     publishMutation.isPending ||
@@ -1094,7 +884,16 @@ function MCPDetailView({
     tiEntry.personal?.availability_status === "published";
   const isWorkspaceConnected = isWorkspacePublished;
   const isPersonalConnected = isPersonalPublished;
-  const isAdded = isWorkspacePublished || isPersonalPublished;
+
+  const [selectedMode, setSelectedMode] = useState<
+    "workspace" | "personal" | null
+  >(
+    isWorkspacePublished
+      ? "workspace"
+      : isPersonalPublished
+        ? "personal"
+        : null,
+  );
 
   const authTypeLabel =
     entry.auth_type === "oauth2"
@@ -1105,7 +904,6 @@ function MCPDetailView({
 
   const writeOpsCount = tools.filter((t) => t.is_write).length;
   const totalTools = tools.length;
-  const isReadWrite = writeOpsCount > 0;
 
   const executePublish = async (mode: "workspace" | "personal") => {
     setError(null);
@@ -1203,7 +1001,9 @@ function MCPDetailView({
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                <div
+                  className={`w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 ${!entry.logo_url ? "bg-gray-100" : ""}`}
+                >
                   {entry.logo_url ? (
                     <img
                       src={entry.logo_url}
@@ -1245,195 +1045,69 @@ function MCPDetailView({
                 </div>
               </div>
 
-              {isAdmin &&
-                (isWorkspacePublished && isPersonalPublished ? (
-                  /* Both published — split remove */
-                  <div ref={splitRef} className="relative flex shrink-0">
+              {isAdmin && (hasWorkspaceLevel || hasPersonalLevel) && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {hasWorkspaceLevel && hasPersonalLevel && (
+                    <span className="text-sm text-gray-400">Set as</span>
+                  )}
+                  {hasWorkspaceLevel && (
                     <button
-                      onClick={() => setShowRemoveConfirm("workspace")}
+                      onClick={() => setSelectedMode("workspace")}
                       disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                        isWorkspacePublished || selectedMode === "workspace"
+                          ? "border-purple-400 text-purple-600 font-semibold bg-purple-50"
+                          : "border-gray-300 text-gray-500 hover:border-gray-400"
+                      }`}
                     >
-                      Remove workspace
+                      Workspace
                     </button>
+                  )}
+                  {hasPersonalLevel && (
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSplitOpen((o) => !o);
-                      }}
+                      onClick={() => setSelectedMode("personal")}
                       disabled={isBusy}
-                      className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
+                        isPersonalPublished || selectedMode === "personal"
+                          ? "border-blue-400 text-blue-600 font-semibold bg-blue-50"
+                          : "border-gray-300 text-gray-500 hover:border-gray-400"
+                      }`}
                     >
-                      <CaretDownIcon size={13} weight="bold" />
+                      Personal
                     </button>
-                    {splitOpen && (
-                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSplitOpen(false);
-                            setShowRemoveConfirm("personal");
-                          }}
-                          disabled={isBusy}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                        >
-                          Remove personal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : isWorkspacePublished ? (
-                  /* Only workspace published */
-                  hasPersonalLevel ? (
-                    <div ref={splitRef} className="relative flex shrink-0">
+                  )}
+                  {selectedMode ? (
+                    (
+                      selectedMode === "workspace"
+                        ? isWorkspacePublished
+                        : isPersonalPublished
+                    ) ? (
                       <button
-                        onClick={() => setShowRemoveConfirm("workspace")}
+                        onClick={() => setShowRemoveConfirm(selectedMode)}
                         disabled={isBusy}
-                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                        className="px-3 py-1.5 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
                       >
                         Remove
                       </button>
+                    ) : (
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSplitOpen((o) => !o);
-                        }}
+                        onClick={() => handlePublish(selectedMode)}
                         disabled={isBusy}
-                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
+                        className="px-4 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        <CaretDownIcon size={13} weight="bold" />
+                        {isBusy ? "Adding…" : "Add"}
                       </button>
-                      {splitOpen && (
-                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSplitOpen(false);
-                              handlePublish("personal");
-                            }}
-                            disabled={isBusy}
-                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                          >
-                            <UserIcon size={12} className="text-gray-500" />
-                            Add as personal
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    )
                   ) : (
                     <button
-                      onClick={() => setShowRemoveConfirm("workspace")}
-                      disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
+                      disabled
+                      className="px-4 py-1.5 text-sm font-medium text-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
                     >
-                      Remove
+                      Add
                     </button>
-                  )
-                ) : isPersonalPublished ? (
-                  /* Only personal published */
-                  hasWorkspaceLevel ? (
-                    <div ref={splitRef} className="relative flex shrink-0">
-                      <button
-                        onClick={() => setShowRemoveConfirm("personal")}
-                        disabled={isBusy}
-                        className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-l-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        Remove
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSplitOpen((o) => !o);
-                        }}
-                        disabled={isBusy}
-                        className="px-2 py-2 text-gray-800 border border-gray-300 border-l-gray-200 rounded-r-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 transition-colors"
-                      >
-                        <CaretDownIcon size={13} weight="bold" />
-                      </button>
-                      {splitOpen && (
-                        <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-44 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSplitOpen(false);
-                              setShowWorkspaceConfirm(true);
-                            }}
-                            disabled={isBusy}
-                            className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                          >
-                            Add as workspace
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowRemoveConfirm("personal")}
-                      disabled={isBusy}
-                      className="px-4 py-2 text-sm font-medium text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer disabled:opacity-50 shrink-0 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  )
-                ) : isAdded ? (
-                  /* Connected but not published */
-                  <span className="px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg shrink-0">
-                    Connected
-                  </span>
-                ) : hasWorkspaceLevel && hasPersonalLevel ? (
-                  /* Both levels — split button */
-                  <div ref={splitRef} className="relative flex shrink-0">
-                    <button
-                      onClick={() => setShowWorkspaceConfirm(true)}
-                      disabled={isBusy}
-                      className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-l-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isBusy ? "Adding…" : "Add as workspace"}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSplitOpen((o) => !o);
-                      }}
-                      disabled={isBusy}
-                      className="px-2 py-2 text-white bg-gray-900 rounded-r-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 border-l border-white/20 transition-colors"
-                    >
-                      <CaretDownIcon size={13} weight="bold" />
-                    </button>
-                    {splitOpen && (
-                      <div className="absolute top-full right-0 mt-1.5 bg-white rounded-xl border border-gray-200 shadow-lg z-10 min-w-40 py-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSplitOpen(false);
-                            handlePublish("personal");
-                          }}
-                          disabled={isBusy}
-                          className="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors disabled:opacity-50"
-                        >
-                          <UserIcon size={12} className="text-gray-500" />
-                          Add as personal
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : hasWorkspaceLevel ? (
-                  <button
-                    onClick={() => setShowWorkspaceConfirm(true)}
-                    disabled={isBusy}
-                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
-                  >
-                    {isBusy ? "Adding…" : "Add as workspace"}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handlePublish("personal")}
-                    disabled={isBusy}
-                    className="px-5 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 cursor-pointer disabled:opacity-50 transition-colors shrink-0"
-                  >
-                    {isBusy ? "Adding…" : "Add as personal"}
-                  </button>
-                ))}
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Description */}
@@ -1524,7 +1198,7 @@ function MCPDetailView({
                   Integration Type
                 </p>
                 <p className="text-gray-900">
-                  {isReadWrite ? "Read & Write" : "Read"}
+                  {entry.integration_type ?? "Read & Write"}
                 </p>
               </div>
               <div>
@@ -1556,104 +1230,44 @@ function MCPDetailView({
         </div>
       </div>
 
-      {/* Enable as Workspace confirmation */}
-      {showWorkspaceConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div
-            className="fixed inset-0 bg-black/20"
-            onClick={() => setShowWorkspaceConfirm(false)}
-          />
-          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
-              Add as Workspace
-            </h2>
-            <p className="text-sm text-gray-600 mb-4">
-              You are enabling <strong>{entry.name}</strong> as a workspace
-              integration.
-            </p>
-            {writeOpsCount > 0 && (
-              <div className="flex gap-2.5 px-3 py-3 bg-orange-50 border border-orange-200 rounded-lg mb-5">
-                <span className="text-orange-500 shrink-0 mt-0.5">⚠</span>
-                <p className="text-sm text-orange-700 leading-snug">
-                  This integration includes{" "}
-                  <strong>
-                    {writeOpsCount} write operation
-                    {writeOpsCount > 1 ? "s" : ""}
-                  </strong>
-                  . All writes made by any team member will be executed under
-                  the connecting admin's account.
-                </p>
-              </div>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowWorkspaceConfirm(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowWorkspaceConfirm(false);
-                  handlePublish("workspace");
-                }}
-                disabled={isBusy}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
-              >
-                {isBusy ? "Adding…" : "Proceed"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remove confirmation */}
       {showRemoveConfirm && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-8">
-          <div
-            className="fixed inset-0 bg-black/20"
-            onClick={() => setShowRemoveConfirm(null)}
-          />
-          <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-sm p-6 pointer-events-auto">
-            <h2 className="text-base font-semibold text-gray-900 mb-2">
-              {showRemoveConfirm === "personal"
-                ? "Remove Personal Integration"
-                : "Remove from Workspace"}
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
+        <ProceedConfirmModal
+          title={
+            showRemoveConfirm === "personal"
+              ? "Remove Personal Integration"
+              : "Remove from Workspace"
+          }
+          description={
+            <>
               Are you sure you want to remove <strong>{entry.name}</strong>{" "}
               {showRemoveConfirm === "personal"
                 ? "? Users who have connected their personal accounts will be disconnected."
                 : "from workspace? This will remove the workspace connection."}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRemoveConfirm(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const mode = showRemoveConfirm;
-                  setShowRemoveConfirm(null);
-                  handleRemove(mode);
-                }}
-                disabled={deleteMutation.isPending}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 cursor-pointer disabled:opacity-50 transition-colors"
-              >
-                {deleteMutation.isPending ? "Removing…" : "Remove"}
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          confirmLabel="Remove"
+          onConfirm={() => {
+            const mode = showRemoveConfirm;
+            setShowRemoveConfirm(null);
+            handleRemove(mode);
+          }}
+          onCancel={() => setShowRemoveConfirm(null)}
+        />
       )}
       {switchConfirmMode && (
         <ProceedConfirmModal
-          fromMode={
-            switchConfirmMode === "workspace" ? "personal" : "workspace"
+          title={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}?`}
+          description={
+            <>
+              Switching from{" "}
+              <strong>
+                {switchConfirmMode === "workspace" ? "personal" : "workspace"}
+              </strong>{" "}
+              to <strong>{switchConfirmMode}</strong> will delete all existing
+              connections. This cannot be undone.
+            </>
           }
-          toMode={switchConfirmMode}
+          confirmLabel={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}`}
           onConfirm={() => {
             const mode = switchConfirmMode;
             setSwitchConfirmMode(null);
