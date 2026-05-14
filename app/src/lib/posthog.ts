@@ -16,8 +16,6 @@ export function initPosthog() {
     api_host: apiHost,
     defaults: "2026-01-30",
     capture_pageview: false,
-    capture_pageleave: false,
-    autocapture: false,
   });
 
   isInitialized = true;
