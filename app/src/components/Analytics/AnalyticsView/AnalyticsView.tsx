@@ -1029,36 +1029,42 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {/* Share — editor+ only. Viewers can't change scope or
                   grants in any practical way (BE permits viewer scope
                   flips but the UI doesn't expose them as a v1), so the
-                  trigger button is hidden from them entirely. */}
-              {isDashboardCollabEnabled && canEditDashboard && (
-                <ShareDashboardDialogV2
-                  dashboardTitle={dashboard.title}
-                  currentUserId={user?.id ?? ""}
-                  // Adapter always populates `accessLevel` (falls back to
-                  // owner|viewer from `is_owner` when BE hasn't migrated).
-                  // Once the on-demand metadata fetch lands, prefer that
-                  // fresher value.
-                  myAccessLevel={currentAccessLevel}
-                  canShare={isSaved}
-                  scope={currentScope === "tenant" ? "org_wide" : "private"}
-                  scopeDefaultRole="viewer"
-                  grants={dashboardCollabGrants}
-                  directory={dashboardCollabDirectory}
-                  dataScopingAvailable={dataScopingAvailable}
-                  dataScopeOwnership={
-                    (currentSharedDataScope as DataScopeOptionV2 | null) ?? null
-                  }
-                  onScopeChange={handleCollabScopeChange}
-                  onGrantAdd={handleCollabGrantAdd}
-                  onGrantUpdate={handleCollabGrantUpdate}
-                  onGrantRemove={handleCollabGrantRemove}
-                  onDataScopeChange={handleCollabDataScopeChange}
-                  onCopyLink={handleCopyLink}
-                  isAddingPeople={shareV2Phase === "pending"}
-                  isSavingShare={shareV2Phase === "pending"}
-                  onOpenChange={setIsShareDialogOpen}
-                />
-              )}
+                  trigger button is hidden from them entirely. Also
+                  suppressed in version-history preview mode — sharing
+                  acts on the live dashboard, not the previewed
+                  snapshot, so the trigger would be misleading. */}
+              {isDashboardCollabEnabled &&
+                canEditDashboard &&
+                !isVersionPreview && (
+                  <ShareDashboardDialogV2
+                    dashboardTitle={dashboard.title}
+                    currentUserId={user?.id ?? ""}
+                    // Adapter always populates `accessLevel` (falls back to
+                    // owner|viewer from `is_owner` when BE hasn't migrated).
+                    // Once the on-demand metadata fetch lands, prefer that
+                    // fresher value.
+                    myAccessLevel={currentAccessLevel}
+                    canShare={isSaved}
+                    scope={currentScope === "tenant" ? "org_wide" : "private"}
+                    scopeDefaultRole="viewer"
+                    grants={dashboardCollabGrants}
+                    directory={dashboardCollabDirectory}
+                    dataScopingAvailable={dataScopingAvailable}
+                    dataScopeOwnership={
+                      (currentSharedDataScope as DataScopeOptionV2 | null) ??
+                      null
+                    }
+                    onScopeChange={handleCollabScopeChange}
+                    onGrantAdd={handleCollabGrantAdd}
+                    onGrantUpdate={handleCollabGrantUpdate}
+                    onGrantRemove={handleCollabGrantRemove}
+                    onDataScopeChange={handleCollabDataScopeChange}
+                    onCopyLink={handleCopyLink}
+                    isAddingPeople={shareV2Phase === "pending"}
+                    isSavingShare={shareV2Phase === "pending"}
+                    onOpenChange={setIsShareDialogOpen}
+                  />
+                )}
               {/* Legacy owner-only actions — only relevant when the
                   dashboardCollab flag is off. The triad cluster
                   supersedes Revert, and the legacy share dialog is
@@ -1096,17 +1102,19 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     </button>
                   </Tooltip>
                 )}
-              {isDashboardOwner && !isDashboardCollabEnabled && (
-                <ShareDashboardDialog
-                  isSharedWithTenant={dashboard.isSharedWithTenant}
-                  sharedDataScope={dashboard.sharedDataScope}
-                  dataScopingAvailable={dataScopingAvailable}
-                  canShare={isSaved}
-                  sharePhase={sharePhase}
-                  onShare={onShare}
-                  onCopyLink={handleCopyLink}
-                />
-              )}
+              {isDashboardOwner &&
+                !isDashboardCollabEnabled &&
+                !isVersionPreview && (
+                  <ShareDashboardDialog
+                    isSharedWithTenant={dashboard.isSharedWithTenant}
+                    sharedDataScope={dashboard.sharedDataScope}
+                    dataScopingAvailable={dataScopingAvailable}
+                    canShare={isSaved}
+                    sharePhase={sharePhase}
+                    onShare={onShare}
+                    onCopyLink={handleCopyLink}
+                  />
+                )}
 
               {/* Editor+ surface — Edit / Save cluster + the More
                   menu. Editors are treated identically to owners here
