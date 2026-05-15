@@ -98,6 +98,9 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   // live published row. Fires exactly once per open session — the
   // ref resets when the panel closes so re-opening re-selects (and
   // re-establishes the preview state the parent cleared on close).
+  // Also forces the tab to match the auto-selected row so the user
+  // lands directly on the row whose preview is rendered — no need
+  // to manually switch when the dashboard has no drafts.
   const autoSelectedRef = useRef(false);
   useEffect(() => {
     if (!isOpen) {
@@ -106,11 +109,17 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
     }
     if (autoSelectedRef.current) return;
     if (!versionsQuery.data) return;
-    const target =
-      drafts[0]?.dashboardVersion ?? publishedVersions[0]?.dashboardVersion;
-    if (target === undefined) return;
-    autoSelectedRef.current = true;
-    onSelectVersion?.(target);
+    const draftHead = drafts[0]?.dashboardVersion;
+    const publishedHead = publishedVersions[0]?.dashboardVersion;
+    if (draftHead !== undefined) {
+      autoSelectedRef.current = true;
+      setTab("current");
+      onSelectVersion?.(draftHead);
+    } else if (publishedHead !== undefined) {
+      autoSelectedRef.current = true;
+      setTab("published");
+      onSelectVersion?.(publishedHead);
+    }
   }, [isOpen, versionsQuery.data, drafts, publishedVersions, onSelectVersion]);
 
   // Esc to dismiss — only while the panel is open.
