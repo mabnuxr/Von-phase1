@@ -140,7 +140,7 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
     if (totalCount > SlackComposerConfig.maxTabs) {
       console.warn(
         `[SlackMessageComposer] truncated ${totalCount - SlackComposerConfig.maxTabs} of ${totalCount} drafts; ` +
-          `only the first ${SlackComposerConfig.maxTabs} are reachable. Agent should cap variants upstream.`,
+          `only the first ${SlackComposerConfig.maxTabs} are reachable. Agent should cap variants upstream.`
       );
     }
   }, [totalCount]);
@@ -244,10 +244,8 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
         <div className="text-sm text-gray-900 leading-relaxed markdown-content">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            urlTransform={(url, key, node) =>
-              url.startsWith(SlackComposerConfig.mentionScheme)
-                ? url
-                : defaultUrlTransform(url, key, node)
+            urlTransform={(url) =>
+              url.startsWith(SlackComposerConfig.mentionScheme) ? url : defaultUrlTransform(url)
             }
             components={{
               a: ({ href, children, ...rest }) => {
