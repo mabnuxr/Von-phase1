@@ -382,9 +382,18 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { user } = useUser();
   const { data: teamMembers } = useTeamMembers(user?.tenantId);
 
+  // ── Dashboard edit mode (API-driven via is_editable) ────────────
+  // While version-history is driving the canvas, force edit mode off
+  // even if the rendered dashboard's `is_editable` is true (happens
+  // when the user is holding the lock on the same version they're
+  // previewing). This strips the edit chrome (ring, gray bg, banner,
+  // drag/drop, layout autosave) so the preview always reads as
+  // read-only, no matter which version is rendered.
+  const isEditMode = dashboard.isEditable && !isVersionPreview;
+
   const { handleLayoutChange: saveLayoutChange } = useLayoutAutoSave(
     dashboard.id,
-    dashboard.isEditable,
+    isEditMode,
     layout,
   );
   const { controller: autoFitController, handleLayoutChange } =
@@ -393,8 +402,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       onLayoutChange: saveLayoutChange,
       // Auto-fit runs only in the preview pane, only when in edit mode,
       // only when the drag-drop flag is on. All three required.
-      isEnabled:
-        !!isPreview && dashboard.isEditable && isDashboardDragDropEnabled,
+      isEnabled: !!isPreview && isEditMode && isDashboardDragDropEnabled,
     });
 
   const variablesByWidget = useMemo(
@@ -628,9 +636,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       setEditValue(dashboard.title);
     }
   }, [editValue, dashboard.title, onRename]);
-
-  // ── Dashboard edit mode (API-driven via is_editable) ────────────
-  const isEditMode = dashboard.isEditable;
 
   // ── Edit-lock conflict (M1 — VON-1281) ───────────────────────
   // When the dashboardCollab flag is on and another user holds the lock,
