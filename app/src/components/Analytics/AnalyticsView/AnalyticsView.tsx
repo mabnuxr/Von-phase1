@@ -1079,7 +1079,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     dashboardId={dashboard.id}
                     dashboardName={dashboard.title}
                     showVersionHistory={isDashboardCollabEnabled}
-                    onOpenVersionHistory={() => setVersionHistoryOpen(true)}
+                    onOpenVersionHistory={() => {
+                      // The history drawer and the chat side-pane both
+                      // live on the right edge — close the chat first so
+                      // the drawer doesn't sit on top of it.
+                      if (isChatOpen) onChatClick?.();
+                      setVersionHistoryOpen(true);
+                    }}
                     hasActiveDraft={isEditMode}
                   />
                   {renderEditCluster()}
