@@ -53,6 +53,10 @@ class SlackComposerConfig {
 export type SlackConversationType = 'channel' | 'dm' | 'group_dm';
 
 export interface SlackMessageData {
+  /** Stable identifier per draft (e.g. artifact file id). Used as the React
+   *  key so tab state survives reorders and stale sent/permalink state doesn't
+   *  bleed onto a different draft. Falls back to a composite if omitted. */
+  id?: string;
   /** Opaque Slack ID — channel (C…), DM (D…), or MPIM (G…). Sent verbatim to the API. */
   conversationId: string;
   /** Human label rendered in the pill ("ext-globex-deal", "Sarah Chen", "Sarah, Mike"). */
@@ -197,7 +201,7 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
           <div className="flex items-center gap-1 px-3 py-2 shrink-0 overflow-x-auto">
             {dedupedMessages.map((m, i) => (
               <button
-                key={i}
+                key={m.id ?? `${m.conversationId}::${m.threadTs ?? ''}::${m.tabLabel ?? i}`}
                 onClick={() => {
                   setActiveTab(i);
                   setBodyCopied(false);

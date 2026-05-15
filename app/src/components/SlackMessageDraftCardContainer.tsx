@@ -175,7 +175,7 @@ export const SlackMessageDraftCardContainer: React.FC<
 
   return (
     <SlackMessageComposer
-      messages={[payloadToMessage(parsedQuery.data)]}
+      messages={[{ ...payloadToMessage(parsedQuery.data), id: artifact.fileId }]}
       onSend={() => void handleSend()}
       isSending={isSending}
       sentIndices={sentIndices}
@@ -256,7 +256,7 @@ export const SlackMessageComposerContainer: React.FC<
     const payload = pq.data;
     if (!payload) return;
     messageToArtifactIndex.push(i);
-    messages.push(payloadToMessage(payload));
+    messages.push({ ...payloadToMessage(payload), id: artifacts[i].fileId });
   });
 
   if (messages.length === 0) {
