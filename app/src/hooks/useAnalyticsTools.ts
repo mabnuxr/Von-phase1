@@ -310,7 +310,7 @@ export function useAnalyticsTools(dashboardId: string) {
         );
       }
     },
-    onSuccess: (response) => {
+    onSuccess: (response, variables, context) => {
       // The share endpoint returns the same flat metadata payload as
       // GET /metadata. Drop it straight into the metadata cache so the
       // open dialog picks up authoritative `granted_by` / `granted_at`
@@ -324,6 +324,21 @@ export function useAnalyticsTools(dashboardId: string) {
           flat,
         );
       }
+
+      // Surface a success toast on every successful share mutation —
+      // scope toggles, data-scope toggles, grant add/update/remove.
+      // Scope flips get a tailored message so the user sees explicitly
+      // what changed; everything else falls back to generic copy.
+      const prevTenant = context?.previousMetadata?.is_shared_with_tenant;
+      const nextTenant = variables.is_shared_with_tenant;
+      const scopeFlipped =
+        prevTenant !== undefined && prevTenant !== nextTenant;
+      const message = scopeFlipped
+        ? nextTenant
+          ? "Dashboard is now shared with everyone at your org"
+          : "Dashboard is now restricted to specific people"
+        : "Sharing updated";
+      showToast({ message, variant: "success" });
     },
   });
 

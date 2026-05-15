@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ClockCounterClockwiseIcon,
   FileTextIcon,
@@ -24,11 +24,11 @@ interface VersionHistoryDrawerProps {
    */
   selectedVersion?: number | null;
   /**
-   * Fires when the user clicks a row, carrying the entry's
-   * `dashboard_version`. Auto-selection on panel open / tab switch
-   * does **not** fire this — preview is only meant to engage on an
-   * explicit click, so the dashboard isn't silently re-rendered just
-   * by opening the panel.
+   * Fires when a version is selected — either by an explicit row
+   * click or by the one-shot auto-selection that runs on panel open
+   * (latest draft when one exists, otherwise the latest published
+   * row). Tab switches do **not** fire this; reflecting the actual
+   * preview is the parent's job.
    */
   onSelectVersion?: (dashboardVersion: number) => void;
 }
@@ -93,6 +93,25 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   const [tab, setTab] = useState<VersionHistoryTab>("current");
   const activeDraftHeadId =
     drafts[0]?.kind === "active_draft" ? drafts[0].id : null;
+
+  // Auto-select on panel open: latest draft if any, otherwise the
+  // live published row. Fires exactly once per open session — the
+  // ref resets when the panel closes so re-opening re-selects (and
+  // re-establishes the preview state the parent cleared on close).
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen) {
+      autoSelectedRef.current = false;
+      return;
+    }
+    if (autoSelectedRef.current) return;
+    if (!versionsQuery.data) return;
+    const target =
+      drafts[0]?.dashboardVersion ?? publishedVersions[0]?.dashboardVersion;
+    if (target === undefined) return;
+    autoSelectedRef.current = true;
+    onSelectVersion?.(target);
+  }, [isOpen, versionsQuery.data, drafts, publishedVersions, onSelectVersion]);
 
   // Esc to dismiss — only while the panel is open.
   useEffect(() => {

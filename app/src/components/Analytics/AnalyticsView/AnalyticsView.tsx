@@ -1108,11 +1108,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 />
               )}
 
-              {/* Editor+ surface — folder menu and the Edit / Save cluster.
-                  Editors are treated identically to owners here per the
-                  BE M2 editor+ permission model. */}
+              {/* Editor+ surface — Edit / Save cluster + the More
+                  menu. Editors are treated identically to owners here
+                  per the BE M2 editor+ permission model. The Edit
+                  cluster is suppressed in version-history preview
+                  mode so users don't try to edit / publish a
+                  historical snapshot; More-options stays (folder
+                  management + Version history entry are still valid). */}
               {canEditDashboard && (
                 <>
+                  {!isVersionPreview && renderEditCluster()}
                   <DashboardMoreMenu
                     dashboardId={dashboard.id}
                     dashboardName={dashboard.title}
@@ -1124,7 +1129,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     }
                     onOpenVersionHistory={onOpenVersionHistory}
                   />
-                  {renderEditCluster()}
                 </>
               )}
             </DashboardLayout.HeaderRow.Right>
