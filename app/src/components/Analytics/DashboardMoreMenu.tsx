@@ -38,7 +38,6 @@ export function DashboardMoreMenu({
   dashboardName,
   showVersionHistory = false,
   onOpenVersionHistory,
-  hasActiveDraft = false,
 }: DashboardMoreMenuProps) {
   const {
     isVisible: isMenuOpen,
