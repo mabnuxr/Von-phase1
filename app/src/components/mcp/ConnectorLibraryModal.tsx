@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   MagnifyingGlassIcon,
   XIcon,
@@ -138,10 +138,36 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     }));
   }, [catalog]);
 
+  const textMatch = useCallback(
+    (q: string) => (e: AppCatalogEntry) =>
+      e.name.toLowerCase().includes(q) ||
+      (e.short_description ?? e.description)?.toLowerCase().includes(q),
+    [],
+  );
+
   const filtered = useMemo(() => {
-    if (!selectedCategory) return catalog;
-    return catalog.filter((e) => entryCategoryCode(e) === selectedCategory);
-  }, [catalog, selectedCategory]);
+    const q = search.trim().toLowerCase();
+    let result = catalog;
+    if (selectedCategory) {
+      result = result.filter((e) => entryCategoryCode(e) === selectedCategory);
+    }
+    if (q) {
+      const inCategory = result.filter(textMatch(q));
+      if (inCategory.length > 0 || !selectedCategory) return inCategory;
+      return catalog.filter(textMatch(q));
+    }
+    return result;
+  }, [catalog, selectedCategory, search, textMatch]);
+
+  const isSearchFallback = useMemo(() => {
+    if (!selectedCategory || !search.trim()) return false;
+    const q = search.trim().toLowerCase();
+    return (
+      catalog
+        .filter((e) => entryCategoryCode(e) === selectedCategory)
+        .filter(textMatch(q)).length === 0
+    );
+  }, [catalog, selectedCategory, search, textMatch]);
 
   if (detailEntry) {
     if (detailEntry.catalog_type === "mcp") {
@@ -172,7 +198,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
       {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-8 pointer-events-none">
         <div
-          className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-4xl h-[80vh] flex flex-col pointer-events-auto"
+          className="bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-4xl h-[630px] flex flex-col pointer-events-auto overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -199,7 +225,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`w-full flex items-center justify-between px-4 py-1.5 text-sm cursor-pointer transition-colors ${
-                  !selectedCategory
+                  !selectedCategory || isSearchFallback
                     ? "font-semibold text-gray-900 bg-gray-50"
                     : "text-gray-600 hover:bg-gray-50"
                 }`}
@@ -212,7 +238,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                   key={cat.code}
                   onClick={() => setSelectedCategory(cat.code)}
                   className={`w-full flex items-center justify-between px-4 py-1.5 text-sm cursor-pointer transition-colors ${
-                    selectedCategory === cat.code
+                    selectedCategory === cat.code && !isSearchFallback
                       ? "font-semibold text-gray-900 bg-gray-50"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
@@ -234,7 +260,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                   />
                   <input
                     type="text"
-                    placeholder="Search apps..."
+                    placeholder="Search integrations..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent placeholder:text-gray-400"
@@ -285,12 +311,14 @@ function ProceedConfirmModal({
   confirmLabel,
   onConfirm,
   onCancel,
+  destructive = false,
 }: {
   title: string;
   description: React.ReactNode;
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  destructive?: boolean;
 }) {
   const [input, setInput] = useState("");
   const canProceed = input.trim().toUpperCase() === "PROCEED";
@@ -301,22 +329,7 @@ function ProceedConfirmModal({
         className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md p-6 flex flex-col gap-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100">
-            <svg
-              className="size-4 text-gray-700"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
-              />
-            </svg>
-          </div>
+        <div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
             <p className="mt-1 text-sm text-gray-500">{description}</p>
@@ -349,9 +362,62 @@ function ProceedConfirmModal({
           <button
             onClick={onConfirm}
             disabled={!canProceed}
-            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${destructive ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}`}
           >
             {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Write Warning Modal ─── */
+function WriteWarningModal({
+  entryName,
+  onConfirm,
+  onCancel,
+}: {
+  entryName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md p-6 flex flex-col gap-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">
+            Enable as Workspace
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            You are enabling <strong>{entryName}</strong> as a workspace
+            integration.
+          </p>
+        </div>
+        <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 flex gap-2">
+          <span className="text-orange-500 mt-0.5 shrink-0">⚠</span>
+          <p className="text-sm text-orange-700">
+            This integration includes <strong>write operations</strong>. All
+            writes made by any team member will be executed under the connecting
+            admin&apos;s account.
+          </p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            Proceed
           </button>
         </div>
       </div>
@@ -469,6 +535,9 @@ function NativeDetailView({
   const deleteConnectionsMutation = useDeleteConnections();
   const deleteMutation = useDeleteTenantIntegration();
   const { showToast } = useToast();
+  const hasWriteOps = (entry.integration_type ?? "Read & Write")
+    .toLowerCase()
+    .includes("write");
 
   const [error, setError] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState<
@@ -477,6 +546,7 @@ function NativeDetailView({
   const [switchConfirmMode, setSwitchConfirmMode] = useState<
     "workspace" | "personal" | null
   >(null);
+  const [showWriteWarning, setShowWriteWarning] = useState(false);
 
   const isWorkspacePublished =
     tiEntry.workspace?.availability_status === "published";
@@ -501,8 +571,7 @@ function NativeDetailView({
           : null,
     );
   }, [isWorkspacePublished, isPersonalPublished]);
-  const isWorkspaceConnected = isWorkspacePublished;
-  const isPersonalConnected = isPersonalPublished;
+
   const isBusy =
     publishMutation.isPending ||
     deleteConnectionsMutation.isPending ||
@@ -565,6 +634,10 @@ function NativeDetailView({
       mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     if (isOppositePublished) {
       setSwitchConfirmMode(mode);
+      return;
+    }
+    if (mode === "workspace" && hasWriteOps) {
+      setShowWriteWarning(true);
       return;
     }
     executePublish(mode);
@@ -642,42 +715,7 @@ function NativeDetailView({
                     <span className="text-sm text-gray-500">
                       {entry.category_name}
                     </span>
-                    {isWorkspaceConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-purple-600">
-                          Workspace
-                        </span>
-                      </>
-                    )}
-                    {isPersonalConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-blue-600">
-                          Personal
-                        </span>
-                      </>
-                    )}
-                    {isWorkspacePublished && !isWorkspaceConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-green-600">
-                          Workspace
-                        </span>
-                      </>
-                    )}
-                    {isPersonalPublished && !isPersonalConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-green-600">
-                          Personal
-                        </span>
-                      </>
-                    )}
                   </div>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-300 rounded-full">
-                    Built by Von
-                  </span>
                 </div>
               </div>
 
@@ -691,7 +729,7 @@ function NativeDetailView({
                       onClick={() => setSelectedMode("workspace")}
                       disabled={isBusy}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
-                        isWorkspacePublished || selectedMode === "workspace"
+                        selectedMode === "workspace"
                           ? "border-purple-400 text-purple-600 font-semibold bg-purple-50"
                           : "border-gray-300 text-gray-500 hover:border-gray-400"
                       }`}
@@ -704,7 +742,7 @@ function NativeDetailView({
                       onClick={() => setSelectedMode("personal")}
                       disabled={isBusy}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
-                        isPersonalPublished || selectedMode === "personal"
+                        selectedMode === "personal"
                           ? "border-blue-400 text-blue-600 font-semibold bg-blue-50"
                           : "border-gray-300 text-gray-500 hover:border-gray-400"
                       }`}
@@ -723,7 +761,7 @@ function NativeDetailView({
                         disabled={isBusy}
                         className="px-3 py-1.5 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        Remove
+                        Disable
                       </button>
                     ) : (
                       <button
@@ -731,7 +769,13 @@ function NativeDetailView({
                         disabled={isBusy}
                         className="px-4 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        {isBusy ? "Adding…" : "Add"}
+                        {isBusy
+                          ? isWorkspacePublished || isPersonalPublished
+                            ? "Updating…"
+                            : "Enabling…"
+                          : isWorkspacePublished || isPersonalPublished
+                            ? "Update"
+                            : "Enable"}
                       </button>
                     )
                   ) : (
@@ -739,7 +783,7 @@ function NativeDetailView({
                       disabled
                       className="px-4 py-1.5 text-sm font-medium text-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
                     >
-                      Add
+                      Enable
                     </button>
                   )}
                 </div>
@@ -802,16 +846,17 @@ function NativeDetailView({
 
       {showRemoveConfirm && (
         <ProceedConfirmModal
-          title={`Remove ${showRemoveConfirm === "workspace" ? "Workspace" : "Personal"} Integration`}
+          title={`Disable ${showRemoveConfirm === "workspace" ? "Workspace" : "Personal"} Integration`}
           description={
             <>
-              Are you sure you want to remove <strong>{entry.name}</strong>{" "}
+              Are you sure you want to disable <strong>{entry.name}</strong>{" "}
               {showRemoveConfirm === "workspace"
                 ? "from the workspace? Members will no longer have access."
                 : "as a personal integration? Members will no longer be able to connect their personal accounts."}
             </>
           }
-          confirmLabel="Remove"
+          confirmLabel="Disable"
+          destructive
           onConfirm={() => {
             const mode = showRemoveConfirm;
             setShowRemoveConfirm(null);
@@ -825,12 +870,21 @@ function NativeDetailView({
           title={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}?`}
           description={
             <>
-              Switching from{" "}
+              Switching from a{" "}
               <strong>
                 {switchConfirmMode === "workspace" ? "personal" : "workspace"}
               </strong>{" "}
-              to <strong>{switchConfirmMode}</strong> will delete all existing
-              connections. This cannot be undone.
+              integration to a <strong>{switchConfirmMode}</strong> integration
+              will remove all existing personal connections. This action cannot
+              be undone.
+              {switchConfirmMode === "workspace" && hasWriteOps && (
+                <span className="flex items-start gap-2 mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
+                  <span className="text-orange-500 shrink-0 mt-0.5">⚠</span>
+                  <span className="text-sm text-orange-700">
+                    Write actions will use the connected admin account.
+                  </span>
+                </span>
+              )}
             </>
           }
           confirmLabel={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}`}
@@ -840,6 +894,16 @@ function NativeDetailView({
             executePublish(mode);
           }}
           onCancel={() => setSwitchConfirmMode(null)}
+        />
+      )}
+      {showWriteWarning && (
+        <WriteWarningModal
+          entryName={entry.name}
+          onConfirm={() => {
+            setShowWriteWarning(false);
+            executePublish("workspace");
+          }}
+          onCancel={() => setShowWriteWarning(false)}
         />
       )}
     </>
@@ -882,6 +946,7 @@ function MCPDetailView({
   const [switchConfirmMode, setSwitchConfirmMode] = useState<
     "workspace" | "personal" | null
   >(null);
+  const [showWriteWarning, setShowWriteWarning] = useState(false);
   const [toolsExpanded, setToolsExpanded] = useState(false);
 
   const isBusy =
@@ -892,14 +957,10 @@ function MCPDetailView({
   const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
   const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
 
-  const sourceLabel = isEntryBuiltByVon(entry) ? "Built by Von" : "MCP";
-
   const isWorkspacePublished =
     tiEntry.workspace?.availability_status === "published";
   const isPersonalPublished =
     tiEntry.personal?.availability_status === "published";
-  const isWorkspaceConnected = isWorkspacePublished;
-  const isPersonalConnected = isPersonalPublished;
 
   const [selectedMode, setSelectedMode] = useState<
     "workspace" | "personal" | null
@@ -929,6 +990,9 @@ function MCPDetailView({
 
   const writeOpsCount = tools.filter((t) => t.is_write).length;
   const totalTools = tools.length;
+  const hasWriteOps = (entry.integration_type ?? "Read & Write")
+    .toLowerCase()
+    .includes("write");
 
   const executePublish = async (mode: "workspace" | "personal") => {
     setError(null);
@@ -974,6 +1038,10 @@ function MCPDetailView({
       mode === "workspace" ? isPersonalPublished : isWorkspacePublished;
     if (isOppositePublished) {
       setSwitchConfirmMode(mode);
+      return;
+    }
+    if (mode === "workspace" && hasWriteOps) {
+      setShowWriteWarning(true);
       return;
     }
     executePublish(mode);
@@ -1047,26 +1115,7 @@ function MCPDetailView({
                     <span className="text-sm text-gray-500">
                       {entry.category_name}
                     </span>
-                    {isPersonalConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-blue-600">
-                          Personal
-                        </span>
-                      </>
-                    )}
-                    {isWorkspaceConnected && (
-                      <>
-                        <span className="text-sm text-gray-400">·</span>
-                        <span className="text-sm font-semibold text-purple-600">
-                          Workspace
-                        </span>
-                      </>
-                    )}
                   </div>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 text-[11px] font-medium text-gray-600 border border-gray-300 rounded-full">
-                    {sourceLabel}
-                  </span>
                 </div>
               </div>
 
@@ -1080,7 +1129,7 @@ function MCPDetailView({
                       onClick={() => setSelectedMode("workspace")}
                       disabled={isBusy}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
-                        isWorkspacePublished || selectedMode === "workspace"
+                        selectedMode === "workspace"
                           ? "border-purple-400 text-purple-600 font-semibold bg-purple-50"
                           : "border-gray-300 text-gray-500 hover:border-gray-400"
                       }`}
@@ -1093,7 +1142,7 @@ function MCPDetailView({
                       onClick={() => setSelectedMode("personal")}
                       disabled={isBusy}
                       className={`px-3 py-1.5 text-sm rounded-lg border transition-colors cursor-pointer disabled:opacity-50 ${
-                        isPersonalPublished || selectedMode === "personal"
+                        selectedMode === "personal"
                           ? "border-blue-400 text-blue-600 font-semibold bg-blue-50"
                           : "border-gray-300 text-gray-500 hover:border-gray-400"
                       }`}
@@ -1112,7 +1161,7 @@ function MCPDetailView({
                         disabled={isBusy}
                         className="px-3 py-1.5 text-sm font-medium text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        Remove
+                        Disable
                       </button>
                     ) : (
                       <button
@@ -1120,7 +1169,13 @@ function MCPDetailView({
                         disabled={isBusy}
                         className="px-4 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
                       >
-                        {isBusy ? "Adding…" : "Add"}
+                        {isBusy
+                          ? isWorkspacePublished || isPersonalPublished
+                            ? "Updating…"
+                            : "Enabling…"
+                          : isWorkspacePublished || isPersonalPublished
+                            ? "Update"
+                            : "Enable"}
                       </button>
                     )
                   ) : (
@@ -1128,7 +1183,7 @@ function MCPDetailView({
                       disabled
                       className="px-4 py-1.5 text-sm font-medium text-gray-300 bg-gray-100 rounded-lg cursor-not-allowed"
                     >
-                      Add
+                      Enable
                     </button>
                   )}
                 </div>
@@ -1259,18 +1314,19 @@ function MCPDetailView({
         <ProceedConfirmModal
           title={
             showRemoveConfirm === "personal"
-              ? "Remove Personal Integration"
-              : "Remove from Workspace"
+              ? "Disable Personal Integration"
+              : "Disable Workspace Integration"
           }
           description={
             <>
-              Are you sure you want to remove <strong>{entry.name}</strong>{" "}
+              Are you sure you want to disable <strong>{entry.name}</strong>{" "}
               {showRemoveConfirm === "personal"
                 ? "? Users who have connected their personal accounts will be disconnected."
                 : "from workspace? This will remove the workspace connection."}
             </>
           }
-          confirmLabel="Remove"
+          confirmLabel="Disable"
+          destructive
           onConfirm={() => {
             const mode = showRemoveConfirm;
             setShowRemoveConfirm(null);
@@ -1284,12 +1340,21 @@ function MCPDetailView({
           title={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}?`}
           description={
             <>
-              Switching from{" "}
+              Switching from a{" "}
               <strong>
                 {switchConfirmMode === "workspace" ? "personal" : "workspace"}
               </strong>{" "}
-              to <strong>{switchConfirmMode}</strong> will delete all existing
-              connections. This cannot be undone.
+              integration to a <strong>{switchConfirmMode}</strong> integration
+              will remove all existing personal connections. This action cannot
+              be undone.
+              {switchConfirmMode === "workspace" && hasWriteOps && (
+                <span className="flex items-start gap-2 mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2">
+                  <span className="text-orange-500 shrink-0 mt-0.5">⚠</span>
+                  <span className="text-sm text-orange-700">
+                    Write actions will use the connected admin account.
+                  </span>
+                </span>
+              )}
             </>
           }
           confirmLabel={`Switch to ${switchConfirmMode === "workspace" ? "Workspace" : "Personal"}`}
@@ -1299,6 +1364,16 @@ function MCPDetailView({
             executePublish(mode);
           }}
           onCancel={() => setSwitchConfirmMode(null)}
+        />
+      )}
+      {showWriteWarning && (
+        <WriteWarningModal
+          entryName={entry.name}
+          onConfirm={() => {
+            setShowWriteWarning(false);
+            executePublish("workspace");
+          }}
+          onCancel={() => setShowWriteWarning(false)}
         />
       )}
     </>
