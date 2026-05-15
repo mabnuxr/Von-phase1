@@ -111,9 +111,7 @@ export function DashboardMoreMenu({
                     Version history
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
-                    {hasActiveDraft
-                      ? "Restore an older draft or published version."
-                      : "Browse past versions."}
+                    {"Browse past versions."}
                   </div>
                 </div>
               </button>
