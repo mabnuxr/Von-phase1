@@ -175,11 +175,11 @@ const Settings = () => {
   const handleBackToHome = useCallback(() => {
     report.settingsBackToHomeClicked(getTabLabel(selectedSettingId));
     navigate("/chat");
-  }, [report, selectedSettingId, navigate]);
+  }, [report, selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {
     report.settingsHelpDocsClicked(getTabLabel(selectedSettingId));
-  }, [report, selectedSettingId]);
+  }, [report, selectedSettingId, getTabLabel]);
 
   // Handle Logout click
   const handleLogoutClick = async () => {
