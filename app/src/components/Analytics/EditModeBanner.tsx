@@ -19,9 +19,10 @@ export const EditModeBanner: React.FC<EditModeBannerProps> = ({
         className={className}
       >
         <div className="bg-gray-900 text-white text-sm px-4 py-4 items-center text-center rounded-2xl w-fit mx-auto">
-          You're in edit mode. Use the chat to make changes, then click{" "}
-          <span className="font-semibold">Save</span> in the toolbar to save
-          them.
+          You're in draft mode. Use the chat to make changes, then click{" "}
+          <span className="font-semibold">Save as draft</span> or{" "}
+          <span className="font-semibold">Publish</span> to publish the
+          dashboard.
         </div>
       </motion.div>
     )}

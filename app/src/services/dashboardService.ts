@@ -183,6 +183,9 @@ export interface DashboardMetadataApiResponse {
   status: string | null;
   configuration: Record<string, unknown> | null;
   change_summary: string | null;
+  /** BE PR #1109 — last meaningful editor (commit / publish / discard).
+   *  `null` on pre-deploy dashboards until their next lifecycle event. */
+  last_edited_by?: string | null;
 }
 
 /**
@@ -281,10 +284,24 @@ class DashboardService {
    */
   async acquireEditLock(dashboardId: string): Promise<{
     dashboard_id: string;
+    /** @deprecated Prefer `edit_lock.user_id` — same value, canonical shape. */
     user_id: string;
+    /** @deprecated Prefer `edit_lock.acquired_at` — same value, canonical shape. */
     acquired_at: string;
     editable_version: number | null;
     latest_published_version: number | null;
+    /**
+     * Canonical nested lock object (BE PR #1109). Mirrors the shape on
+     * the other dashboard surfaces (metadata / render) so the FE can
+     * write it straight into those caches without re-shaping.
+     */
+    edit_lock?: { user_id: string; acquired_at: string } | null;
+    /**
+     * Last meaningful editor at the time the lock was acquired
+     * (BE PR #1109). Lets the FE refresh the EditLockBadge
+     * attribution without a follow-up /metadata round-trip.
+     */
+    last_edited_by?: string | null;
   }> {
     return apiClient.post<{
       dashboard_id: string;
@@ -292,6 +309,8 @@ class DashboardService {
       acquired_at: string;
       editable_version: number | null;
       latest_published_version: number | null;
+      edit_lock?: { user_id: string; acquired_at: string } | null;
+      last_edited_by?: string | null;
     }>(`/api/v1/dashboards/${dashboardId}/lock`);
   }
 

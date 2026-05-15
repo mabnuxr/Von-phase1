@@ -52,7 +52,7 @@ const EmptyState: React.FC<{ tab: VersionHistoryTab }> = ({ tab }) => (
     </div>
     <div className="mx-auto max-w-[220px] text-[11.5px] leading-snug text-gray-500">
       {tab === "current"
-        ? "Drafts appear here while you're editing. Switch to Published to browse past versions."
+        ? "Drafts of latest published version appear. Switch to Published to browse past versions."
         : "Once you publish a draft, every published version lands here."}
     </div>
   </div>

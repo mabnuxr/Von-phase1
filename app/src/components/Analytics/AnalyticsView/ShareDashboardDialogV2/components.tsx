@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   CaretDownIcon,
   CheckIcon,
@@ -130,13 +131,59 @@ export const PerRowRoleMenu: React.FC<PerRowRoleMenuProps> = ({
   onRemove,
   onClose,
 }) => {
-  const ref = useRef<HTMLDivElement | null>(null);
+  // The menu used to be rendered inline (`absolute top-full`) inside
+  // the row's `relative` parent. With the people list now wrapped in
+  // a `max-h-[300px] overflow-y-auto` scroller (so long rosters
+  // scroll in place), the inline menu was getting clipped at the
+  // scroll boundary for rows near the bottom. Render it via a
+  // portal at body level instead, anchored to the trigger's
+  // bounding rect — that way the menu escapes every ancestor's
+  // overflow clip.
+  const anchorHostRef = useRef<HTMLSpanElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(
+    null,
+  );
 
-  // Click-outside / Esc to close. The parent renders a single menu at a time,
-  // so we don't need to scope to a portal here.
+  // Measure the trigger and reposition on scroll / resize. We anchor
+  // against the closest positioned ancestor (PersonRow's `.relative`
+  // wrapper around the suffix slot), since the host span itself has
+  // zero size.
+  useLayoutEffect(() => {
+    const updatePosition = () => {
+      const anchor = anchorHostRef.current?.parentElement;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + 4,
+        right: Math.max(8, window.innerWidth - rect.right),
+      });
+    };
+    updatePosition();
+    // `capture: true` catches scrolls in any ancestor (the modal body
+    // and the people-list scroller both bubble through). Without
+    // capture, the listener on `window` would miss those internal
+    // scrolls.
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, []);
+
+  // Click-outside / Esc to close. The host span stays in the row's
+  // DOM, so we also exempt clicks on its parent (the trigger pill)
+  // from "outside" — otherwise clicking the pill to close would
+  // double-fire (close from outside, then immediately re-open via
+  // onRoleClick).
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      const target = e.target as Node;
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      const anchor = anchorHostRef.current?.parentElement;
+      if (anchor && anchor.contains(target)) return;
+      onClose();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -150,49 +197,64 @@ export const PerRowRoleMenu: React.FC<PerRowRoleMenuProps> = ({
   }, [onClose]);
 
   return (
-    <div
-      ref={ref}
-      className="absolute right-0 top-full z-10 mt-1 min-w-[200px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)]"
-    >
-      {options.map((opt) => {
-        const lockedEditor = opt === "editor" && !allowEditor;
-        return (
-          <button
-            key={opt}
-            type="button"
-            disabled={lockedEditor}
-            onClick={() => {
-              if (lockedEditor) return;
-              onSelect(opt);
+    <>
+      {/* Zero-size DOM marker — stays in the row so we can read its
+          parent's coordinates without a forwarded ref. */}
+      <span ref={anchorHostRef} aria-hidden style={{ display: "none" }} />
+      {coords &&
+        createPortal(
+          <div
+            ref={menuRef}
+            style={{
+              position: "fixed",
+              top: coords.top,
+              right: coords.right,
+              zIndex: 10000,
             }}
-            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
-              lockedEditor
-                ? "cursor-not-allowed text-gray-400"
-                : opt === current
-                  ? "bg-gray-100 text-gray-900 cursor-pointer"
-                  : "text-gray-800 hover:bg-gray-50 cursor-pointer"
-            }`}
+            className="min-w-[200px] rounded-xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)]"
           >
-            <span className="flex-1">{ROLE_LABEL[opt]}</span>
-            {opt === current && (
-              <CheckIcon size={12} className="text-gray-900" />
+            {options.map((opt) => {
+              const lockedEditor = opt === "editor" && !allowEditor;
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  disabled={lockedEditor}
+                  onClick={() => {
+                    if (lockedEditor) return;
+                    onSelect(opt);
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs ${
+                    lockedEditor
+                      ? "cursor-not-allowed text-gray-400"
+                      : opt === current
+                        ? "bg-gray-100 text-gray-900 cursor-pointer"
+                        : "text-gray-800 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  <span className="flex-1">{ROLE_LABEL[opt]}</span>
+                  {opt === current && (
+                    <CheckIcon size={12} className="text-gray-900" />
+                  )}
+                </button>
+              );
+            })}
+            {onRemove && (
+              <>
+                <div className="my-1 h-px bg-gray-100" />
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 cursor-pointer"
+                >
+                  Remove access
+                </button>
+              </>
             )}
-          </button>
-        );
-      })}
-      {onRemove && (
-        <>
-          <div className="my-1 h-px bg-gray-100" />
-          <button
-            type="button"
-            onClick={onRemove}
-            className="flex w-full items-center rounded-md px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 cursor-pointer"
-          >
-            Remove access
-          </button>
-        </>
-      )}
-    </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 };
 
@@ -319,10 +381,9 @@ export const GeneralAccessRow: React.FC<GeneralAccessRowProps> = ({
         General access
       </div>
       {/* The row + dropdown share a `relative` parent so the dropdown's
-          `top-full` anchors to the row's bottom (not the section header).
-          A sibling spacer (rendered when open) reserves modal-body height
-          so the dropdown doesn't overlap the footer — same trick the
-          design's `minHeight: 200` wrapper uses. */}
+          `top-full` anchors to the row's bottom (not the section
+          header). The dropdown overlays the rows below — opening it
+          does not reflow the modal layout. */}
       <div className="relative">
         <div
           className={`flex w-full items-center gap-2.5 rounded-lg py-1.5 pl-1.5 pr-2 transition-colors ${
@@ -413,9 +474,9 @@ export const GeneralAccessRow: React.FC<GeneralAccessRowProps> = ({
           </div>
         )}
       </div>
-      {/* Spacer — only rendered while the dropdown is open. Pushes the
-          modal footer down by the dropdown's height + a comfortable gap. */}
-      {open && <div aria-hidden className="h-[100px]" />}
+      {/* No spacer — the dropdown is absolutely positioned, so it
+          overlays whatever sits below the row (data-scope toggle /
+          footer) instead of expanding the modal vertically. */}
     </div>
   );
 };

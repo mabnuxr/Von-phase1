@@ -121,6 +121,8 @@ interface RawApiDashboardResponse {
   updated_at: string;
   created_by?: string;
   created_by_name?: string;
+  /** BE PR #1109 — last meaningful editor of the dashboard's content. */
+  last_edited_by?: string | null;
   refresh_info: {
     last_refreshed_at: string;
   };
@@ -326,6 +328,7 @@ function adaptApiResponse(
         updatedAt: raw.updated_at,
         createdBy: raw.created_by ?? "",
         createdByName: raw.created_by_name ?? undefined,
+        lastEditedBy: raw.last_edited_by ?? null,
         analysisId: "",
         isEditable: raw.is_editable ?? false,
         uiConfig: raw.ui_config

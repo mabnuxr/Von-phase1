@@ -47,6 +47,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleSave,
     savePhase,
     showSaveToast,
+    saveToastKind,
     isFirstSave,
     handleRevert,
     revertPhase,
@@ -237,6 +238,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onSave={handleSave}
             savePhase={savePhase}
             showSaveToast={showSaveToast}
+            saveToastKind={saveToastKind}
             isFirstSave={isFirstSave}
             onRevert={handleRevert}
             revertPhase={revertPhase}

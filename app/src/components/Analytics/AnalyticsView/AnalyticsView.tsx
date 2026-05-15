@@ -102,9 +102,16 @@ interface AnalyticsViewProps {
   onRefresh: () => Promise<void>;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   savePhase: MutationPhase;
-  /** Whether to show the inline save success toast */
+  /** Whether to show the in-canvas top-center save toast. */
   showSaveToast: boolean;
-  /** Whether the last save was the first publish (for toast message) */
+  /**
+   * Which lifecycle event triggered the toast — drives the copy:
+   *   - "publish" + isFirstSave → "Dashboard is created …"
+   *   - "publish" (subsequent)  → "Published. Your changes are live …"
+   *   - "draft"                 → "Draft saved. Editors or owners …"
+   */
+  saveToastKind: "publish" | "draft";
+  /** True when the most recent publish was the dashboard's first save. */
   isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
@@ -316,6 +323,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onSave,
   savePhase,
   showSaveToast,
+  saveToastKind,
   isFirstSave,
   onRevert,
   revertPhase,
@@ -644,17 +652,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // race) is a follow-up; this gates off the embedded `edit_lock` so
   // the modal is reachable today.
   const [isLockModalOpen, setLockModalOpen] = useState(false);
-  // `user?.id` can be undefined while `useUser` is still resolving on a
-  // fresh load. Without the explicit presence guard we'd flag the lock
-  // as "held by other" against the caller themselves (any non-undefined
-  // userId !== undefined is true), and a quick Edit-click would surface
-  // EditLockModal against the current user.
-  const lockHeldByOther = !!(
-    isDashboardCollabEnabled &&
-    dashboard.editLock &&
-    user?.id !== undefined &&
-    dashboard.editLock.userId !== user.id
-  );
+  // Snapshot the lock-holder's display name *only* when the API tells
+  // us a foreign lock blocked the acquire (409 HELD_BY_OTHER). The
+  // embedded `dashboard.editLock` can be stale — another user may have
+  // released their lock since the last refetch — so we never pre-branch
+  // off it. The acquire-lock API is the source of truth.
   const lockHolderMember = useMemo(() => {
     if (!dashboard.editLock) return null;
     return (
@@ -667,14 +669,16 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     : null;
 
   const handleEnterEditMode = useCallback(() => {
-    if (lockHeldByOther) {
-      setLockModalOpen(true);
-      return;
-    }
     if (isDashboardCollabEnabled && onAcquireLock) {
-      // M1 path — Edit goes through POST /lock. Chat-open is deferred
-      // into the success callback so a 409 HELD_BY_OTHER (which surfaces
-      // the EditLockModal) doesn't also pop the chat panel underneath.
+      // M1 path — Edit always calls POST /lock. We don't pre-branch on
+      // `dashboard.editLock`; it's a cached snapshot and a different
+      // user may have released their lock since the last refetch.
+      // Server response decides the next step:
+      //   - 2xx              → we hold the lock, open chat
+      //   - 409 HELD_BY_OTHER → show EditLockModal
+      //   - other 4xx        → handled inside `handleAcquireLock`
+      // Chat-open is deferred into onSuccess so a HELD_BY_OTHER doesn't
+      // also pop the chat panel underneath the modal.
       void onAcquireLock({
         onSuccess: () => onChatClick?.(),
         onHeldByOther: () => setLockModalOpen(true),
@@ -687,7 +691,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     }
     onChatClick?.();
   }, [
-    lockHeldByOther,
     isDashboardCollabEnabled,
     onAcquireLock,
     isDashboardOwner,
@@ -859,20 +862,30 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         (no Edit affordance → no useful signal). */}
                     {isDashboardCollabEnabled &&
                       canEditDashboard &&
+                      isEditMode &&
                       !isVersionPreview &&
                       dashboard.editLock && (
                         <EditLockBadge
                           editLock={dashboard.editLock}
                           currentUserId={user?.id}
                           teamMembers={teamMembers}
+                          lastEditedBy={dashboard.lastEditedBy}
+                          // Chip is the version-history entry point per
+                          // the "Edit · clean" design — click opens the
+                          // panel (mutual-exclusion with chat is handled
+                          // at the page level by the same handler).
+                          onClick={onOpenVersionHistory}
                         />
                       )}
                   </div>
                 )}
               </div>
-              {!isEditMode && !isRefetchingData && !isRefreshing && (
-                <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
-              )}
+              {!isEditMode &&
+                !isRefetchingData &&
+                !isRefreshing &&
+                !isVersionPreview && (
+                  <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
+                )}
               {/* Version-history preview chip — inline pill that sits
                   right after the "Refreshed Xh ago" chip. Same chip
                   chrome (rounded-full + text-xs + amber tint) so it
@@ -912,8 +925,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
             <DashboardLayout.HeaderRow.Right>
               {/* Visibility indicator */}
-              {/* Created by indicator */}
-              {!hideCreatorChip && (
+              {/* Created by indicator — hidden in version-history
+                  preview because the chip references the live
+                  dashboard's owner; while previewing, sharing /
+                  ownership context isn't actionable. */}
+              {!hideCreatorChip && !isVersionPreview && (
                 <span className="flex items-center gap-1 text-xs bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1.5 leading-none whitespace-nowrap">
                   <Tooltip
                     content={
@@ -1020,21 +1036,26 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
-              <RefreshButton
-                onRefresh={onRefresh}
-                canRefresh={isSaved}
-                isOwner={isDashboardOwner}
-                isRefreshing={isRefreshing}
-                schedule={schedule}
-                isScheduled={isScheduled}
-                isPaused={isSchedulePaused}
-                isMutating={isScheduleMutating}
-                onCreateSchedule={onCreateSchedule}
-                onUpdateSchedule={onUpdateSchedule}
-                onPauseSchedule={onPauseSchedule}
-                onResumeSchedule={onResumeSchedule}
-                onDeleteSchedule={onDeleteSchedule}
-              />
+              {/* Refresh trigger + schedule menu — both bind to the
+                  live dashboard, so they're hidden in version-history
+                  preview to match the rest of the read-only chrome. */}
+              {!isVersionPreview && (
+                <RefreshButton
+                  onRefresh={onRefresh}
+                  canRefresh={isSaved}
+                  isOwner={isDashboardOwner}
+                  isRefreshing={isRefreshing}
+                  schedule={schedule}
+                  isScheduled={isScheduled}
+                  isPaused={isSchedulePaused}
+                  isMutating={isScheduleMutating}
+                  onCreateSchedule={onCreateSchedule}
+                  onUpdateSchedule={onUpdateSchedule}
+                  onPauseSchedule={onPauseSchedule}
+                  onResumeSchedule={onResumeSchedule}
+                  onDeleteSchedule={onDeleteSchedule}
+                />
+              )}
               {/* Version history moved into the ⋯ overflow menu (editor+
                   only) per design — see DashboardMoreMenu below. */}
               {/* Share — editor+ only. Viewers can't change scope or
@@ -1129,14 +1150,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
               {/* Editor+ surface — Edit / Save cluster + the More
                   menu. Editors are treated identically to owners here
-                  per the BE M2 editor+ permission model. The Edit
-                  cluster is suppressed in version-history preview
-                  mode so users don't try to edit / publish a
-                  historical snapshot; More-options stays (folder
-                  management + Version history entry are still valid). */}
-              {canEditDashboard && (
+                  per the BE M2 editor+ permission model. Both
+                  affordances are suppressed in version-history preview
+                  mode — the toolbar collapses to filters only so the
+                  preview reads as a read-only browse. */}
+              {canEditDashboard && !isVersionPreview && (
                 <>
-                  {!isVersionPreview && renderEditCluster()}
+                  {renderEditCluster()}
                   <DashboardMoreMenu
                     dashboardId={dashboard.id}
                     dashboardName={dashboard.title}
@@ -1171,9 +1191,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               >
                 <div className="inline-flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-300 text-green-900 text-sm font-medium rounded-xl shadow-sm pointer-events-auto">
                   <CheckCircleIcon size={16} weight="fill" />
-                  {isFirstSave
-                    ? "Dashboard is created. You can access the dashboard from the side panel."
-                    : "Dashboard is updated. You can access the dashboard from the side panel."}
+                  {saveToastKind === "draft"
+                    ? "Draft saved. Editors or owners can continue from your draft."
+                    : isFirstSave
+                      ? "Dashboard is created. You can access the dashboard from the side panel."
+                      : "Published. Your changes are live to all viewers."}
                 </div>
               </motion.div>
             )}

@@ -124,6 +124,14 @@ export interface Dashboard {
   updatedAt: string;
   createdBy: string;
   createdByName?: string;
+  /**
+   * User ID of the last meaningful editor — set by commit / publish /
+   * discard (BE PR #1109). `null` on dashboards created before the
+   * deploy with no lifecycle event since. Distinct from `edit_lock`
+   * (the lock holder), which can differ when a user just acquired
+   * the lock but hasn't committed anything yet.
+   */
+  lastEditedBy?: string | null;
   analysisId: string;
   isEditable: boolean;
   uiConfig?: {
