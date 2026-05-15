@@ -48,6 +48,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
   },
+  slack_workspace: {
+    id: "slack_workspace",
+    name: "Slack Workspace",
+    description:
+      "Sync workspace Slack data (channels, messages, users) into Von via a workspace bot token.",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg",
+    category: "Communication",
+  },
   gong: {
     id: "gong",
     name: "Gong",
@@ -350,6 +359,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     gmail: "GMAIL",
     granola: "GRANOLA",
     notion: "NOTION",
+    slack_workspace: "SLACK_WORKSPACE",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -392,6 +402,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     GMAIL: "gmail",
     GRANOLA: "granola",
     NOTION: "notion",
+    SLACK_WORKSPACE: "slack_workspace",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -456,6 +467,10 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   // Personal (per-user OAuth for write attribution) modes
   salesforce: ["tenant", "user"],
   hubspot: ["tenant", "user"],
+
+  // Slack Workspace — workspace-only bot token; Slack Personal is a separate
+  // OAuth integration managed via the AppCatalogEntry / connector library flow.
+  slack_workspace: ["tenant"],
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],
