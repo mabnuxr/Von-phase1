@@ -72,14 +72,14 @@ export function useCommandsPanel(userId?: string) {
       dataSources?: CommandAttachment[],
       commandId?: string,
     ) => {
-      const accessLevel: "tenant" | "user" | "specific" =
-        data.sharingScope === "org"
-          ? "tenant"
-          : data.sharingScope === "specific"
-            ? "specific"
-            : "user";
+      const accessLevel: "tenant" | "user" =
+        data.sharingScope === "org" ? "tenant" : "user";
+      // shared_user_ids only makes sense for user-level commands; tenant-level commands
+      // are visible to everyone, so we always clear the list there.
       const sharedUserIds =
-        accessLevel === "specific" ? (data.sharedUserIds ?? []) : [];
+        accessLevel === "user" && data.sharingScope === "specific"
+          ? (data.sharedUserIds ?? [])
+          : [];
 
       const apiDataSources = (dataSources ?? [])
         .filter((ds) => ds.s3Key)
@@ -128,8 +128,7 @@ export function useCommandsPanel(userId?: string) {
             prompt: data.prompt,
             prefillText: data.prefillText || undefined,
             accessLevel,
-            sharedUserIds:
-              accessLevel === "specific" ? sharedUserIds : undefined,
+            sharedUserIds: sharedUserIds.length > 0 ? sharedUserIds : undefined,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
             references: apiReferences.length > 0 ? apiReferences : undefined,
             ...(scheduleConfigs ?? {}),

@@ -71,7 +71,7 @@ export function apiCommandToUICommand(
     sharingScope:
       cmd.accessLevel === "tenant"
         ? "org"
-        : cmd.accessLevel === "specific"
+        : (cmd.sharedUserIds ?? []).length > 0
           ? "specific"
           : "private",
     sharedUserIds: cmd.sharedUserIds ?? [],
@@ -94,19 +94,17 @@ export function apiCommandToUICommand(
 export function uiCommandToApiInput(
   data: Omit<Command, "id" | "createdAt" | "updatedAt">,
 ): Omit<CreateQuickCommandInput, "dataSources"> {
-  const accessLevel: "tenant" | "user" | "specific" =
-    data.sharingScope === "org"
-      ? "tenant"
-      : data.sharingScope === "specific"
-        ? "specific"
-        : "user";
+  const accessLevel: "tenant" | "user" =
+    data.sharingScope === "org" ? "tenant" : "user";
   return {
     name: data.name,
     prompt: data.prompt,
     prefillText: data.prefillText,
     accessLevel,
     sharedUserIds:
-      accessLevel === "specific" ? (data.sharedUserIds ?? []) : undefined,
+      accessLevel === "user" && data.sharingScope === "specific"
+        ? (data.sharedUserIds ?? [])
+        : undefined,
   };
 }
 
