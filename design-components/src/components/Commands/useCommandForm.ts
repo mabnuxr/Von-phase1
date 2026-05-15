@@ -85,14 +85,19 @@ export function useCommandForm({
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [commandId, setCommandId] = useState(() => generateCommandId());
 
-  // Reset form whenever the drawer opens (new or edit). teamMembers is a dep so
-  // that sharedUserIds re-hydrate to Recipient chips once the team list loads.
+  // Reset form on open or when switching to a different command.
+  // Key on editingCommand.id (not the object identity) and omit teamMembers —
+  // the parent re-renders constantly during agent streaming and hands down a
+  // fresh teamMembers array each time, which would otherwise wipe in-progress
+  // edits. If teamMembers hasn't loaded by the time the drawer opens, the
+  // sharedUsers chips will appear blank — closing and reopening fixes it.
   useEffect(() => {
     if (isOpen) {
       setForm(editingCommand ? commandToForm(editingCommand, teamMembers) : emptyForm);
       setCommandId(editingCommand ? editingCommand.id : generateCommandId());
     }
-  }, [isOpen, editingCommand, teamMembers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingCommand?.id]);
 
   // Stable curried onChange factory — only recreated when setForm identity changes.
   // The 'name' field is slug-transformed on every keystroke.

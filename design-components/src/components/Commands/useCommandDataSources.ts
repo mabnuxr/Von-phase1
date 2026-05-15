@@ -52,7 +52,10 @@ export function useCommandDataSources({
   const fetchingPreviewIdsRef = useRef<Set<string>>(new Set());
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
 
-  // Reset whenever the drawer opens
+  // Reset whenever the drawer opens (or the user switches to a different
+  // command). Key on editingCommand.id rather than the object identity so that
+  // parent re-renders during agent streaming don't clobber in-progress uploads,
+  // removals, or the preview state.
   useEffect(() => {
     if (isOpen) {
       setFetchedPreviewUrls({});
@@ -63,7 +66,8 @@ export function useCommandDataSources({
         editingCommand?.dataSources?.map((ds) => ds.name) ?? []
       );
     }
-  }, [isOpen, editingCommand]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingCommand?.id]);
 
   const handleRemoveDataSource = useCallback((id: string) => {
     setPreviewFileId((current) => (current === id ? null : current));
