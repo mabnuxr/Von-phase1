@@ -1,4 +1,3 @@
-import { formatRelativeTime } from "@vonlabs/design-components";
 import type { VersionHistoryItem, VersionHistoryTab } from "./types";
 
 const AVATAR_PALETTE = [
@@ -24,18 +23,30 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-// Display copy for the row timestamp — defers to the shared
-// `formatRelativeTime` helper used by EditLockBadge / AnalyticsHeader /
-// ChatPicker / StatusLine so the cadence stays consistent across the
-// app. `null` happens on pre-migration rows that lack `updated_at`.
+// Absolute datetime — "Jan 31, 2025 at 3:05 PM" per design spec. The
+// drawer is a historical log; relative cadence ("5h ago") loses meaning
+// once entries span weeks/months. Same `toLocaleDateString` shape as
+// the other in-app `formatDate` helpers (`AIFieldSidePanel`,
+// `ManageUsersTab`) — date pieces match exactly, time is appended.
 function describeTimestamp(iso: string | null): string {
-  return iso ? formatRelativeTime(iso) : "Date unknown";
+  if (!iso) return "Date unknown";
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const timePart = d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return `${datePart} at ${timePart}`;
 }
 
 function roleLabel(item: VersionHistoryItem): string {
   if (item.kind === "last_published") return "Last published";
   if (item.restoredFromTimestamp) {
-    return `Restored from ${formatRelativeTime(item.restoredFromTimestamp)}`;
+    return `Restored from ${describeTimestamp(item.restoredFromTimestamp)}`;
   }
   if (item.kind === "published") return "Published";
   return "Draft";
