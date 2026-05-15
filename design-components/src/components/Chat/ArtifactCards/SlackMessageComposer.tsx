@@ -195,7 +195,7 @@ function renderSlackNode(node: Node, key: string): React.ReactNode {
       return (
         <a
           key={key}
-          href={node.url}
+          href={safeHref(node.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-600 hover:underline"
@@ -232,6 +232,22 @@ function renderSlackNode(node: Node, key: string): React.ReactNode {
       return <React.Fragment key={key}>{renderSlackChildren(node.children, key)}</React.Fragment>;
     default:
       return null;
+  }
+}
+
+/**
+ * Allowlist navigable URL schemes. Since `displayText` is LLM/agent-authored,
+ * a crafted `<javascript:alert(1)|click>` would otherwise render as a live
+ * XSS vector in both the React tree and the clipboard `text/html` payload.
+ * The old react-markdown pipeline ran `defaultUrlTransform` which did the
+ * same — re-introducing the gate at the AST boundary keeps that protection.
+ */
+function safeHref(url: string): string {
+  try {
+    const scheme = new URL(url, window.location.href).protocol.toLowerCase();
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(scheme) ? url : '#';
+  } catch {
+    return '#';
   }
 }
 
@@ -278,7 +294,7 @@ function nodeToHtml(node: Node): string {
     }
     case NodeType.URL: {
       const label = node.label ? node.label.map(nodeToHtml).join('') : escapeHtml(node.url);
-      return `<a href="${escapeHtml(node.url)}">${label}</a>`;
+      return `<a href="${escapeHtml(safeHref(node.url))}">${label}</a>`;
     }
     case NodeType.UserLink: {
       const label = node.label
