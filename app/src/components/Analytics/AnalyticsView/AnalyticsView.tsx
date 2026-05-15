@@ -849,11 +849,17 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                         </button>
                       </Tooltip>
                     )}
-                    {/* Edit-lock badge — editor+ only. Viewers don't have
-                        an Edit affordance, so the "who's editing" hint is
-                        noise for them. */}
+                    {/* Edit-lock badge — editor+ only, and hidden in
+                        version-history preview mode. The "who's
+                        editing" hint refers to the live dashboard, not
+                        the historical snapshot the user is currently
+                        viewing — surfacing it during preview would
+                        misleadingly imply the displayed version is
+                        being edited. Viewers also don't see it
+                        (no Edit affordance → no useful signal). */}
                     {isDashboardCollabEnabled &&
                       canEditDashboard &&
+                      !isVersionPreview &&
                       dashboard.editLock && (
                         <EditLockBadge
                           editLock={dashboard.editLock}
