@@ -21,7 +21,7 @@ import {
  */
 class SlackComposerConfig {
   static readonly iconUrl =
-    'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Slack.svg';
+    'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg';
 
   static readonly label = 'Slack';
 
