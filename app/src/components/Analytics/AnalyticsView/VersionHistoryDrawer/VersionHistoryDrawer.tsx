@@ -126,12 +126,11 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="fixed right-0 top-0 z-[9999] flex h-full w-[380px] max-w-[92vw] flex-col bg-white shadow-[-12px_0_40px_rgba(0,0,0,0.14),-2px_0_8px_rgba(0,0,0,0.06)]"
           >
-            {/* Header */}
-            <div className="flex items-center gap-2 border-b border-gray-100 px-4 pb-3 pt-4">
-              <ClockCounterClockwiseIcon size={16} className="text-gray-500" />
-              <div className="min-w-0 flex-1 text-[14px] font-semibold text-gray-900">
-                Version history
-              </div>
+            {/* Close affordance — design drops the title + leading
+                icon, so only the X sits in the top row. The dialog's
+                `aria-label` still announces "Version history" for AT
+                users. */}
+            <div className="flex justify-end px-3 pt-3">
               <button
                 type="button"
                 onClick={onClose}
