@@ -28,9 +28,13 @@ function initials(name: string): string {
 // once entries span weeks/months. Same `toLocaleDateString` shape as
 // the other in-app `formatDate` helpers (`AIFieldSidePanel`,
 // `ManageUsersTab`) — date pieces match exactly, time is appended.
+// Returns an empty string for both null + malformed input so the
+// timestamp simply renders blank instead of `Invalid Date at Invalid
+// Date`.
 function describeTimestamp(iso: string | null): string {
-  if (!iso) return "Date unknown";
+  if (!iso) return "";
   const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
   const datePart = d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -46,7 +50,8 @@ function describeTimestamp(iso: string | null): string {
 function roleLabel(item: VersionHistoryItem): string {
   if (item.kind === "last_published") return "Last published";
   if (item.restoredFromTimestamp) {
-    return `Restored from ${describeTimestamp(item.restoredFromTimestamp)}`;
+    const restoredAt = describeTimestamp(item.restoredFromTimestamp);
+    return restoredAt ? `Restored from ${restoredAt}` : "Restored";
   }
   if (item.kind === "published") return "Published";
   return "Draft";
@@ -109,11 +114,7 @@ export const VersionRow: React.FC<VersionRowProps> = ({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <span
-            className={`text-[12.5px] font-medium ${
-              item.timestamp ? "text-gray-900" : "text-gray-400 italic"
-            }`}
-          >
+          <span className="text-[12.5px] font-medium text-gray-900">
             {describeTimestamp(item.timestamp)}
           </span>
           {tab === "published" && isLatestPublished && (
