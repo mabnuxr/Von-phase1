@@ -49,7 +49,13 @@ export interface CommandsOverlayProps {
   onSaveCommand: (
     data: Pick<
       Command,
-      'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+      | 'name'
+      | 'prompt'
+      | 'prefillText'
+      | 'sharingScope'
+      | 'sharedUserIds'
+      | 'schedule'
+      | 'references'
     >,
     editingId?: string,
     dataSources?: import('./types').CommandAttachment[],
@@ -206,7 +212,13 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
     async (
       data: Pick<
         Command,
-        'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+        | 'name'
+        | 'prompt'
+        | 'prefillText'
+        | 'sharingScope'
+        | 'sharedUserIds'
+        | 'schedule'
+        | 'references'
       >,
       dataSources: import('./types').CommandAttachment[],
       commandId: string

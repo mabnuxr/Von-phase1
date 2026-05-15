@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Command, CommandReference, CommandSchedule, ScheduleRecipient } from './types';
-import { generateCommandId, DEFAULT_SCHEDULE } from './types';
+import type {
+  Command,
+  CommandReference,
+  CommandSchedule,
+  ScheduleRecipient,
+  SharingScope,
+} from './types';
+import { generateCommandId, DEFAULT_SCHEDULE, SHARING_SCOPE_LABELS } from './types';
+import type { Recipient } from '../RecipientPicker';
 import { toSlug } from './utils';
 
 // ---------------------------------------------------------------------------
@@ -11,7 +18,8 @@ export interface FormValues {
   name: string;
   prompt: string;
   prefillText: string;
-  sharingScope: 'private' | 'org';
+  sharingScope: SharingScope;
+  sharedUsers: Recipient[];
   schedule: CommandSchedule;
   references: CommandReference[];
 }
@@ -21,16 +29,23 @@ const emptyForm: FormValues = {
   prompt: '',
   prefillText: '',
   sharingScope: 'private',
+  sharedUsers: [],
   schedule: { ...DEFAULT_SCHEDULE },
   references: [],
 };
 
-function commandToForm(cmd: Command): FormValues {
+function commandToForm(cmd: Command, teamMembers?: Recipient[]): FormValues {
+  const ids = cmd.sharedUserIds ?? [];
+  const lookup = new Map((teamMembers ?? []).map((m) => [m.id, m]));
+  const sharedUsers = ids
+    .map((id) => lookup.get(id))
+    .filter((r): r is Recipient => r !== undefined);
   return {
     name: cmd.name,
     prompt: cmd.prompt,
     prefillText: cmd.prefillText ?? '',
     sharingScope: cmd.sharingScope ?? 'private',
+    sharedUsers,
     schedule: cmd.schedule ? { ...cmd.schedule } : { ...DEFAULT_SCHEDULE },
     references: cmd.references ? [...cmd.references] : [],
   };
@@ -40,6 +55,8 @@ export interface UseCommandFormOptions {
   isOpen: boolean;
   editingCommand?: Command | null;
   currentUser?: ScheduleRecipient;
+  /** Used to hydrate sharedUserIds into Recipient chips when editing */
+  teamMembers?: Recipient[];
 }
 
 export interface UseCommandFormReturn {
@@ -63,17 +80,19 @@ export function useCommandForm({
   isOpen,
   editingCommand,
   currentUser,
+  teamMembers,
 }: UseCommandFormOptions): UseCommandFormReturn {
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [commandId, setCommandId] = useState(() => generateCommandId());
 
-  // Reset form whenever the drawer opens (new or edit)
+  // Reset form whenever the drawer opens (new or edit). teamMembers is a dep so
+  // that sharedUserIds re-hydrate to Recipient chips once the team list loads.
   useEffect(() => {
     if (isOpen) {
-      setForm(editingCommand ? commandToForm(editingCommand) : emptyForm);
+      setForm(editingCommand ? commandToForm(editingCommand, teamMembers) : emptyForm);
       setCommandId(editingCommand ? editingCommand.id : generateCommandId());
     }
-  }, [isOpen, editingCommand]);
+  }, [isOpen, editingCommand, teamMembers]);
 
   // Stable curried onChange factory — only recreated when setForm identity changes.
   // The 'name' field is slug-transformed on every keystroke.
@@ -106,7 +125,12 @@ export function useCommandForm({
   );
 
   const isEditing = Boolean(editingCommand);
-  const sharingLabel = form.sharingScope === 'org' ? 'Org-wide' : 'Private';
+  const sharingLabel =
+    form.sharingScope === 'specific'
+      ? form.sharedUsers.length > 0
+        ? `${form.sharedUsers.length} ${form.sharedUsers.length === 1 ? 'person' : 'people'}`
+        : SHARING_SCOPE_LABELS.specific
+      : SHARING_SCOPE_LABELS[form.sharingScope];
 
   return { form, setForm, setField, commandId, isEditing, sharingLabel, setSchedule };
 }
