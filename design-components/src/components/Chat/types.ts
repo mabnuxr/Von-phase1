@@ -1362,6 +1362,15 @@ export interface ChatProps {
   disableSubmit?: boolean;
 
   /**
+   * Fully disable the input — blocks typing AND submission. Pair with
+   * a custom `placeholder` to explain why the input is unavailable
+   * (e.g. while a sibling panel has the user's attention). Stronger
+   * than `disableSubmit`, which still lets the user type.
+   * @default false
+   */
+  disableInput?: boolean;
+
+  /**
    * Whether the example prompts in empty state are disabled
    * @default false
    */

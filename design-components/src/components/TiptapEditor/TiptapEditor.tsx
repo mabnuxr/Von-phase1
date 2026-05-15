@@ -253,6 +253,23 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     }
   }, [disabled, editor]);
 
+  // Update placeholder when prop changes. The Placeholder extension's
+  // text is captured at editor-creation time (`extensions: [Placeholder.configure(...)]`),
+  // so prop changes after mount are ignored unless we mutate the
+  // extension's option and force a view re-render.
+  useEffect(() => {
+    if (!editor) return;
+    const placeholderExt = editor.extensionManager.extensions.find(
+      (ext) => ext.name === 'placeholder'
+    );
+    if (!placeholderExt) return;
+    if (placeholderExt.options.placeholder === placeholder) return;
+    placeholderExt.options.placeholder = placeholder;
+    // Dispatch an empty transaction so ProseMirror re-runs decorations
+    // (Placeholder draws via decoration on the empty doc).
+    editor.view.dispatch(editor.state.tr);
+  }, [placeholder, editor]);
+
   const handleWrapperClick = useCallback(
     (e: React.MouseEvent) => {
       // Only focus editor if clicking on the wrapper itself, not on the editor content

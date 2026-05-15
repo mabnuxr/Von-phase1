@@ -50,8 +50,9 @@ interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
   isChatOpen: boolean;
-  /** Open the version-history docked panel. Mutual exclusion with the
-   *  chat panel is handled by the page-level handler. */
+  /** Open the version-history docked panel. The panel docks between
+   *  the dashboard canvas and the chat pane — both can be open at
+   *  the same time. */
   onOpenVersionHistory: () => void;
   /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
   onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
@@ -281,6 +282,7 @@ function DashboardCanvas({
     <>
       <AnalyticsView
         dashboard={dashboard}
+        embedded
         refreshInfo={refreshInfo}
         filterDefinitions={filterDefinitions}
         filterState={filterState}
@@ -583,9 +585,9 @@ const Analytics = () => {
     [],
   );
 
-  // Version history is the second right-edge surface. Mutually
-  // exclusive with the chat panel — opening one closes the other so
-  // the dashboard view doesn't end up sandwiched between two panes.
+  // Version history is the second right-edge surface. It docks
+  // between the dashboard canvas and the chat pane, so both can be
+  // open at the same time — opening one no longer closes the other.
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   // Historical `dashboard_version` the user picked from the panel.
   // Drives render + filter PATCHes downstream; cleared when the panel
@@ -594,10 +596,6 @@ const Analytics = () => {
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
 
   const handleAskVonClick = useCallback(() => {
-    // Unconditional setter — sidesteps re-creating the callback on
-    // every `isVersionHistoryOpen` toggle. `setState(false)` on an
-    // already-false value is a no-op for React.
-    setIsVersionHistoryOpen(false);
     if (!isChatPanelOpen) openChatPanel();
     requestAnimationFrame(() => {
       chatSessionRef.current?.focus();
@@ -605,9 +603,8 @@ const Analytics = () => {
   }, [isChatPanelOpen, openChatPanel]);
 
   const handleOpenVersionHistory = useCallback(() => {
-    if (isChatPanelOpen) closeChatPanel();
     setIsVersionHistoryOpen(true);
-  }, [isChatPanelOpen, closeChatPanel]);
+  }, []);
 
   const handleCloseVersionHistory = useCallback(() => {
     setIsVersionHistoryOpen(false);
@@ -632,17 +629,47 @@ const Analytics = () => {
 
   return (
     <div className="flex h-full w-full gap-1.5">
-      <div className="flex-1 min-w-0 h-full relative">
-        {/* key={dashboardId} resets all dashboard-specific state on navigation */}
-        <DashboardCanvas
-          key={dashboardId}
-          dashboardId={dashboardId}
-          onChatClick={handleAskVonClick}
-          isChatOpen={isChatPanelOpen}
-          onOpenVersionHistory={handleOpenVersionHistory}
-          onAddWidgetToChat={handleAddWidgetToChat}
-          previewVersion={previewVersion}
-        />
+      {/* Shared dashboard card. The dashboard canvas and the version
+          history side-pane sit inside this wrapper so they read as
+          one continuous panel: the wrapper owns the card chrome
+          (rounded corners, border, shadow), AnalyticsView is
+          rendered with `embedded` so DashboardLayout drops its own
+          chrome, and the version history pane sits flush against
+          the canvas with just a 1px left divider. */}
+      <div className="flex-1 min-w-0 h-full flex bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden">
+        <div className="flex-1 min-w-0 h-full relative flex flex-col">
+          {/* key={dashboardId} resets all dashboard-specific state on navigation */}
+          <DashboardCanvas
+            key={dashboardId}
+            dashboardId={dashboardId}
+            onChatClick={handleAskVonClick}
+            isChatOpen={isChatPanelOpen}
+            onOpenVersionHistory={handleOpenVersionHistory}
+            onAddWidgetToChat={handleAddWidgetToChat}
+            previewVersion={previewVersion}
+          />
+        </div>
+
+        <div
+          className="h-full flex-shrink-0 relative flex flex-col bg-white border-l border-gray-100"
+          style={{
+            width: isVersionHistoryOpen ? "380px" : "0px",
+            overflow: isVersionHistoryOpen ? undefined : "hidden",
+            transition: "width 0.3s ease",
+          }}
+          aria-hidden={!isVersionHistoryOpen}
+          // `inert` removes the collapsed panel + its focusable controls
+          // (close button, tabs) from screen readers and the tab order.
+          inert={!isVersionHistoryOpen}
+        >
+          <VersionHistoryDrawer
+            dashboardId={dashboardId}
+            isOpen={isVersionHistoryOpen}
+            onClose={handleCloseVersionHistory}
+            selectedVersion={previewVersion}
+            onSelectVersion={handleSelectVersion}
+          />
+        </div>
       </div>
 
       <div
@@ -706,7 +733,12 @@ const Analytics = () => {
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
-            placeholder="Ask questions or make changes..."
+            placeholder={
+              isVersionHistoryOpen
+                ? "Close dashboard history preview to chat"
+                : "Ask questions or make changes..."
+            }
+            disableInput={isVersionHistoryOpen}
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}
@@ -719,31 +751,6 @@ const Analytics = () => {
             </ChatSession.EmptyState>
           </ChatSession>
         </div>
-      </div>
-
-      {/* Version-history docked panel. Mutually exclusive with the
-          chat pane above — opening either collapses the other. Width
-          animation mirrors the chat pane so the dashboard view
-          shrinks smoothly when the panel opens. */}
-      <div
-        className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
-        style={{
-          width: isVersionHistoryOpen ? "380px" : "0px",
-          overflow: isVersionHistoryOpen ? undefined : "hidden",
-          transition: "width 0.3s ease",
-        }}
-        aria-hidden={!isVersionHistoryOpen}
-        // `inert` removes the collapsed panel + its focusable controls
-        // (close button, tabs) from screen readers and the tab order.
-        inert={!isVersionHistoryOpen}
-      >
-        <VersionHistoryDrawer
-          dashboardId={dashboardId}
-          isOpen={isVersionHistoryOpen}
-          onClose={handleCloseVersionHistory}
-          selectedVersion={previewVersion}
-          onSelectVersion={handleSelectVersion}
-        />
       </div>
     </div>
   );
