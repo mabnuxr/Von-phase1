@@ -219,7 +219,7 @@ function MCPCatalogItem({
         description={entry.short_description ?? entry.description}
         integrationLogoPath={entry.logo_url ?? ""}
         chips={chips}
-        modifiedBy={modifiedBy}
+        modifiedBy={isAuthenticated ? modifiedBy : undefined}
         isAvailable={!isAuthenticated}
         onToggle={!isAuthenticated ? handleConnectClick : undefined}
         onDelete={
@@ -999,8 +999,9 @@ export function IntegrationsList({
           i.authenticationStatus === AuthenticationStatus.AUTHENTICATING
         );
       });
-      const backendType = getBackendIntegrationType(app.id).toUpperCase();
-      const catalogEntry = catalogMap.get(backendType);
+      const catalogEntry =
+        catalogMap.get(app.id) ??
+        catalogMap.get(getBackendIntegrationType(app.id).toLowerCase());
       return {
         ...app,
         disabled: app.disabled,

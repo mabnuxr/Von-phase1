@@ -160,23 +160,26 @@ export function IntegrationsPanel() {
           auth: null as string | null,
           id: null as string | null,
           active: false,
+          userId: null as string | null,
         };
-      if (ti.connection?.authentication_status) {
-        return {
-          auth: ti.connection.authentication_status as string,
-          id: ti.connection.id,
-          active: ti.connection.is_active,
-        };
-      }
       const match = integrationsData?.integrations.find(
         (i) =>
           i.name.toLowerCase() === ti.name.toLowerCase() &&
           i.accessLevel === accessLevel,
       );
+      if (ti.connection?.authentication_status) {
+        return {
+          auth: ti.connection.authentication_status as string,
+          id: ti.connection.id,
+          active: ti.connection.is_active,
+          userId: match?.userId ?? null,
+        };
+      }
       return {
         auth: match?.authenticationStatus ?? null,
         id: match?.id ?? null,
         active: match?.isActive ?? false,
+        userId: match?.userId ?? null,
       };
     };
 
@@ -232,7 +235,7 @@ export function IntegrationsPanel() {
           is_active: ws.active || personal.active,
           connection_mode: wsTi ? "workspace" : "personal",
           is_ti_based: true,
-          workspace_published_by: wsTi?.published_by ?? null,
+          workspace_published_by: ws.userId ?? null,
         };
       },
     );

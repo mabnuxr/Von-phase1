@@ -74,15 +74,14 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fathom.svg",
     category: "Calls & Engagement",
   },
-  zoom: {
-    id: "zoom",
-    name: "Zoom",
-    description: "Connect Zoom to import meeting recordings and transcripts",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/zoom.svg",
-    category: "Calls & Engagement",
-    disabled: true,
-  },
+  //   id: "zoom",
+  //   name: "Zoom",
+  //   description: "Connect Zoom to import meeting recordings and transcripts",
+  //   logoPath:
+  //     "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/zoom.svg",
+  //   category: "Calls & Engagement",
+  //   disabled: true,
+  // },
   googlecalendar: {
     id: "googlecalendar",
     name: "Google Calendar",
@@ -169,51 +168,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg",
     category: "Communication",
   },
-  highspot: {
-    id: "highspot",
-    name: "Highspot",
-    description: "Access sales enablement content and analytics from Highspot",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Highspot.svg",
-    category: "Knowledge base",
-    disabled: true,
-  },
-  seismic: {
-    id: "seismic",
-    name: "Seismic",
-    description: "Sync sales content and enablement materials from Seismic",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Seismic.svg",
-    category: "Knowledge base",
-    disabled: true,
-  },
-  confluence: {
-    id: "confluence",
-    name: "Confluence",
-    description: "Connect Confluence to access team documentation and wikis",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Confluence.svg",
-    category: "Knowledge base",
-    disabled: true,
-  },
-  guru: {
-    id: "guru",
-    name: "Guru",
-    description: "Access knowledge base and team wiki from Guru",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Guru.svg",
-    category: "Knowledge base",
-    disabled: true,
-  },
-  intercom: {
-    id: "intercom",
-    name: "Intercom",
-    description: "Import customer conversations and support data from Intercom",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Intercom.svg",
-    category: "Knowledge base",
-    disabled: true,
-  },
+
   outreachengage: {
     id: "outreachengage",
     name: "Outreach",
@@ -290,15 +245,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Zendesk.svg",
     category: "Customer Support",
   },
-  // pylon: {
-  //   id: "pylon",
-  //   name: "Pylon",
-  //   description: "Import customer support data and insights from Pylon",
-  //   logoPath:
-  //     "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Pylon.png",
-  //   category: "Customer Support",
-  //   disabled: true,
-  // },
+
   granola: {
     id: "granola",
     name: "Granola",
