@@ -20,10 +20,6 @@ interface DashboardMoreMenuProps {
    */
   showVersionHistory?: boolean;
   onOpenVersionHistory?: () => void;
-  /** Whether the dashboard has an active draft. Toggles the subtitle copy:
-   *  "Restore an older draft or published version." vs "Browse past
-   *  published versions." */
-  hasActiveDraft?: boolean;
 }
 
 /**
