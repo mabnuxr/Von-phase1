@@ -14,6 +14,7 @@ import {
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
+import { VersionHistoryDrawer } from "../components/Analytics/AnalyticsView/VersionHistoryDrawer";
 import {
   Tooltip,
   useVisibilityToggle,
@@ -48,10 +49,10 @@ import {
 interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
-  /** Explicit close handler — `onChatClick` is open-only here. The
-   *  version-history drawer uses this to vacate the right-edge slot. */
-  onCloseChat: () => void;
   isChatOpen: boolean;
+  /** Open the version-history docked panel. Mutual exclusion with the
+   *  chat panel is handled by the page-level handler. */
+  onOpenVersionHistory: () => void;
   /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
   onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
 }
@@ -64,8 +65,8 @@ interface DashboardCanvasProps {
 function DashboardCanvas({
   dashboardId,
   onChatClick,
-  onCloseChat,
   isChatOpen,
+  onOpenVersionHistory,
   onAddWidgetToChat,
 }: DashboardCanvasProps) {
   const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
@@ -292,7 +293,7 @@ function DashboardCanvas({
         onSaveDraft={handleSaveDraft}
         saveDraftPhase={saveDraftPhase}
         onChatClick={onChatClick}
-        onCloseChat={onCloseChat}
+        onOpenVersionHistory={onOpenVersionHistory}
         isChatOpen={isChatOpen}
         onEditModeChange={editModeMutation.mutate}
         editModePhase={editModePhase}
@@ -557,12 +558,27 @@ const Analytics = () => {
     [],
   );
 
+  // Version history is the second right-edge surface. Mutually
+  // exclusive with the chat panel — opening one closes the other so
+  // the dashboard view doesn't end up sandwiched between two panes.
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+
   const handleAskVonClick = useCallback(() => {
+    if (isVersionHistoryOpen) setIsVersionHistoryOpen(false);
     if (!isChatPanelOpen) openChatPanel();
     requestAnimationFrame(() => {
       chatSessionRef.current?.focus();
     });
-  }, [isChatPanelOpen, openChatPanel]);
+  }, [isChatPanelOpen, openChatPanel, isVersionHistoryOpen]);
+
+  const handleOpenVersionHistory = useCallback(() => {
+    if (isChatPanelOpen) closeChatPanel();
+    setIsVersionHistoryOpen(true);
+  }, [isChatPanelOpen, closeChatPanel]);
+
+  const handleCloseVersionHistory = useCallback(() => {
+    setIsVersionHistoryOpen(false);
+  }, []);
 
   const {
     widthCss: chatPaneWidth,
@@ -580,8 +596,8 @@ const Analytics = () => {
           key={dashboardId}
           dashboardId={dashboardId}
           onChatClick={handleAskVonClick}
-          onCloseChat={closeChatPanel}
           isChatOpen={isChatPanelOpen}
+          onOpenVersionHistory={handleOpenVersionHistory}
           onAddWidgetToChat={handleAddWidgetToChat}
         />
       </div>
@@ -660,6 +676,25 @@ const Analytics = () => {
             </ChatSession.EmptyState>
           </ChatSession>
         </div>
+      </div>
+
+      {/* Version-history docked panel. Mutually exclusive with the
+          chat pane above — opening either collapses the other. Width
+          animation mirrors the chat pane so the dashboard view
+          shrinks smoothly when the panel opens. */}
+      <div
+        className="h-full flex-shrink-0 relative flex flex-col bg-white rounded-xl shadow-xs border border-gray-100"
+        style={{
+          width: isVersionHistoryOpen ? "380px" : "0px",
+          overflow: isVersionHistoryOpen ? undefined : "hidden",
+          transition: "width 0.3s ease",
+        }}
+      >
+        <VersionHistoryDrawer
+          dashboardId={dashboardId}
+          isOpen={isVersionHistoryOpen}
+          onClose={handleCloseVersionHistory}
+        />
       </div>
     </div>
   );

@@ -34,11 +34,6 @@ import { ShareDashboardDialogV2 } from "./ShareDashboardDialogV2";
 import { EditLockBadge } from "./EditLockBadge";
 import { EditLockModal } from "./EditLockModal";
 import { EditModeActionsV2 } from "./EditModeActionsV2";
-import {
-  VersionHistoryDrawer,
-  mapVersionsResponse,
-} from "./VersionHistoryDrawer";
-import { useDashboardVersions } from "../../../hooks/useDashboardVersions";
 import { useDashboardMetadata } from "../../../hooks/useDashboardMetadata";
 import type {
   DashboardScopeV2,
@@ -159,13 +154,13 @@ interface AnalyticsViewProps {
   onClose?: () => void;
   /** Show Von Chat button */
   onChatClick?: () => void;
-  /** Close the chat side-pane. Fires when another right-edge surface
-   *  (e.g. the version-history drawer) needs to take its slot.
-   *  `onChatClick` is open-only — it doesn't toggle — so callers need
-   *  this separate close hook. */
-  onCloseChat?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
+  /** Open the version-history side-panel. The panel itself lives at
+   *  the page level (docked alongside the chat panel) and the caller
+   *  is responsible for mutual exclusion with the chat. The
+   *  More-options menu item is hidden when this prop is absent. */
+  onOpenVersionHistory?: () => void;
   /** Toggle edit mode via PATCH API (is_editable) */
   onEditModeChange?: (isEditable: boolean) => void;
   /** Edit mode mutation phase (pending while API + refetch in flight) */
@@ -317,8 +312,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onExpand,
   onClose,
   onChatClick,
-  onCloseChat,
   isChatOpen,
+  onOpenVersionHistory,
   onEditModeChange,
   editModePhase = "idle",
   onTablePageChange,
@@ -673,21 +668,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onChatClick,
   ]);
 
-  // ── Version history drawer ───────────────────────────────────
-  //
-  // `GET /api/v1/dashboards/{id}/versions` (M1 — VON-1282) feeds the
-  // drawer with the active draft + `draft_saved` snapshots and the
-  // singleton currently-live published row. Query is gated on
-  // `isVersionHistoryOpen` so we don't fetch eagerly.
-  const [isVersionHistoryOpen, setVersionHistoryOpen] = useState(false);
-  const versionsQuery = useDashboardVersions(dashboard.id, {
-    enabled: isVersionHistoryOpen,
-  });
-  const versionsForDrawer = useMemo(
-    () => mapVersionsResponse(versionsQuery.data, teamMembers),
-    [versionsQuery.data, teamMembers],
-  );
-
   // ── Edit-mode triad cluster (M1 draft lifecycle) ──────────────
   //
   // Both Discard and Save-as-draft are wired to parent-supplied
@@ -783,14 +763,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         isOpen={isLockModalOpen}
         onClose={() => setLockModalOpen(false)}
         holderName={lockHolderName}
-      />
-      <VersionHistoryDrawer
-        isOpen={isVersionHistoryOpen}
-        onClose={() => setVersionHistoryOpen(false)}
-        drafts={versionsForDrawer.drafts}
-        publishedVersions={versionsForDrawer.publishedVersions}
-        isLoading={versionsQuery.isLoading}
-        currentUserId={user?.id}
       />
       <DashboardLayout
         className={
@@ -1084,16 +1056,13 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                   <DashboardMoreMenu
                     dashboardId={dashboard.id}
                     dashboardName={dashboard.title}
-                    showVersionHistory={isDashboardCollabEnabled}
-                    onOpenVersionHistory={() => {
-                      // The history drawer and the chat side-pane both
-                      // live on the right edge — close the chat first so
-                      // the drawer doesn't sit on top of it. `onChatClick`
-                      // is open-only on the page side, so we use the
-                      // dedicated close handler.
-                      if (isChatOpen) onCloseChat?.();
-                      setVersionHistoryOpen(true);
-                    }}
+                    // Hide the entry when the caller didn't wire a
+                    // handler — happens in surfaces (e.g. the chat-side
+                    // preview pane) that don't render a docked panel.
+                    showVersionHistory={
+                      isDashboardCollabEnabled && !!onOpenVersionHistory
+                    }
+                    onOpenVersionHistory={onOpenVersionHistory}
                     hasActiveDraft={isEditMode}
                   />
                   {renderEditCluster()}
