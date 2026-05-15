@@ -159,6 +159,11 @@ interface AnalyticsViewProps {
   onClose?: () => void;
   /** Show Von Chat button */
   onChatClick?: () => void;
+  /** Close the chat side-pane. Fires when another right-edge surface
+   *  (e.g. the version-history drawer) needs to take its slot.
+   *  `onChatClick` is open-only — it doesn't toggle — so callers need
+   *  this separate close hook. */
+  onCloseChat?: () => void;
   /** Whether the chat pane is currently open */
   isChatOpen?: boolean;
   /** Toggle edit mode via PATCH API (is_editable) */
@@ -312,6 +317,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onExpand,
   onClose,
   onChatClick,
+  onCloseChat,
   isChatOpen,
   onEditModeChange,
   editModePhase = "idle",
@@ -1079,7 +1085,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                     dashboardId={dashboard.id}
                     dashboardName={dashboard.title}
                     showVersionHistory={isDashboardCollabEnabled}
-                    onOpenVersionHistory={() => setVersionHistoryOpen(true)}
+                    onOpenVersionHistory={() => {
+                      // The history drawer and the chat side-pane both
+                      // live on the right edge — close the chat first so
+                      // the drawer doesn't sit on top of it. `onChatClick`
+                      // is open-only on the page side, so we use the
+                      // dedicated close handler.
+                      if (isChatOpen) onCloseChat?.();
+                      setVersionHistoryOpen(true);
+                    }}
                     hasActiveDraft={isEditMode}
                   />
                   {renderEditCluster()}
