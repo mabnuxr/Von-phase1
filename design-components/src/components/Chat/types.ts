@@ -1447,7 +1447,10 @@ export interface ChatProps {
    * `commandId`  — pre-generated ObjectId used for presigning; pass as `id` on create.
    */
   onSaveCommand?: (
-    data: Pick<Command, 'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule'>,
+    data: Pick<
+      Command,
+      'name' | 'prompt' | 'prefillText' | 'sharingScope' | 'schedule' | 'references'
+    >,
     editingId?: string,
     dataSources?: import('../Commands/types').CommandAttachment[],
     commandId?: string

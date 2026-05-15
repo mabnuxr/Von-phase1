@@ -1,4 +1,5 @@
 import posthog from "posthog-js";
+import type { User } from "../services";
 
 let isInitialized = false;
 
@@ -34,6 +35,24 @@ export function identifyPosthogUser(
   if (properties?.tenantId) {
     posthog.group("company", properties.tenantId);
   }
+}
+
+// Registers user + company properties as PostHog super properties so they are
+// automatically attached to every future event — no need to spread them manually.
+export function registerPosthogSuperProps(user: User) {
+  if (!isInitialized) return;
+
+  posthog.register({
+    user_role: !user.roles?.length
+      ? null
+      : user.roles.some((r) => r.toLowerCase() === "admin")
+        ? "Admin"
+        : "Member",
+    company: user.tenant ?? null,
+    company_id: user.tenantId ?? null,
+    user_id: user.id,
+    user_email: user.email,
+  });
 }
 
 export function resetPosthogUser() {

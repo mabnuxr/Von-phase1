@@ -1,12 +1,5 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  useMemo,
-  Profiler,
-} from "react";
-import { usePostHog } from "@posthog/react";
+import { useState, useRef, useEffect, useCallback, Profiler } from "react";
+import { report } from "../lib/analytics/tracker";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -60,7 +53,7 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const posthog = usePostHog();
+
   const {
     isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
@@ -68,21 +61,6 @@ const Settings = () => {
     isVonAiFieldsEnabled,
     isMemoryV2Enabled,
   } = useFeatureFlag();
-
-  const basePostHogProps = useMemo(
-    () => ({
-      company: user?.tenant ?? null,
-      company_id: user?.tenantId ?? null,
-      user_id: user?.id ?? null,
-      user_email: user?.email ?? null,
-      user_role: !user?.roles?.length
-        ? null
-        : user.roles.some((r) => r.toLowerCase() === "admin")
-          ? "Admin"
-          : "Member",
-    }),
-    [user],
-  );
 
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
@@ -150,24 +128,22 @@ const Settings = () => {
   );
 
   const pageViewCaptured = useRef(false);
-  useEffect(() => {
-    if (!user || !posthog || pageViewCaptured.current) return;
-    posthog.capture("Settings - Page Viewed", {
-      ...basePostHogProps,
-      entry_point: "Settings option in chat bottom-left menu",
-    });
+  const trackSettingsPageView = useCallback(() => {
+    if (!user || pageViewCaptured.current) return;
+    report.settingsPageViewed();
     pageViewCaptured.current = true;
-  }, [user, posthog, basePostHogProps]);
+  }, [user]);
+
+  useEffect(() => {
+    trackSettingsPageView();
+  }, [trackSettingsPageView]);
 
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {
     setSelectedSettingId(tabId);
     setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
-    posthog?.capture("Settings - Tab Clicked", {
-      ...basePostHogProps,
-      tab_name: getTabLabel(tabId),
-    });
+    report.settingsTabClicked(getTabLabel(tabId));
   };
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
@@ -204,26 +180,17 @@ const Settings = () => {
   };
 
   const handleBackToHome = useCallback(() => {
-    posthog?.capture("Settings - Back to Home Clicked", {
-      ...basePostHogProps,
-      current_tab: getTabLabel(selectedSettingId),
-    });
+    report.settingsBackToHomeClicked(getTabLabel(selectedSettingId));
     navigate("/chat");
-  }, [posthog, basePostHogProps, selectedSettingId, navigate, getTabLabel]);
+  }, [selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {
-    posthog?.capture("Settings - Help Docs Clicked", {
-      ...basePostHogProps,
-      current_tab: getTabLabel(selectedSettingId),
-    });
-  }, [posthog, basePostHogProps, selectedSettingId, getTabLabel]);
+    report.settingsHelpDocsClicked(getTabLabel(selectedSettingId));
+  }, [selectedSettingId, getTabLabel]);
 
   // Handle Logout click
   const handleLogoutClick = async () => {
-    posthog?.capture("Settings - Logout Clicked", {
-      ...basePostHogProps,
-      current_tab: getTabLabel(selectedSettingId),
-    });
+    report.settingsLogoutClicked(getTabLabel(selectedSettingId));
     const { clearAllAuth } = await import("../lib/auth");
 
     if (import.meta.env.DEV) {

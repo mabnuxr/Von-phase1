@@ -28,7 +28,7 @@ import { MentionItemType } from "@vonlabs/design-components";
 
 import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
-import { usePostHog } from "@posthog/react";
+import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
@@ -43,7 +43,7 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
-  const posthog = usePostHog();
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -156,21 +156,10 @@ const NewConversation = () => {
   }, []);
   const pageViewCaptured = useRef(false);
   useEffect(() => {
-    if (!user || !posthog || pageViewCaptured.current) return;
-
-    posthog.capture("Chat - Page Viewed", {
-      company: user.tenant ?? null,
-      company_id: user.tenantId ?? null,
-      user_id: user.id,
-      user_email: user.email,
-      user_role: !user.roles?.length
-        ? null
-        : user.roles.some((r) => r.toLowerCase() === "admin")
-          ? "Admin"
-          : "Member",
-    });
+    if (!user || pageViewCaptured.current) return;
+    report.chatPageViewed();
     pageViewCaptured.current = true;
-  }, [user, posthog]);
+  }, [user]);
 
   const {
     isAgentV2: isAgentV2Flag,
@@ -337,41 +326,26 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
-  const basePostHogProps = useMemo(
-    () => ({
-      company: user?.tenant ?? null,
-      company_id: user?.tenantId ?? null,
-      user_id: user?.id ?? null,
-      user_email: user?.email ?? null,
-      user_role: !user?.roles?.length
-        ? null
-        : user.roles.some((r) => r.toLowerCase() === "admin")
-          ? "Admin"
-          : "Member",
-    }),
-    [user],
-  );
+  const handleTemplateCategoryClick = useCallback((category: string) => {
+    report.chatTemplateCategoryClicked(category);
+  }, []);
 
   const handleTemplateClick = useCallback(
     (template: { prompt: string; category: string }, position: number) => {
-      posthog?.capture("Chat - Suggested Prompt Clicked", {
-        ...basePostHogProps,
-        prompt_text: template.prompt,
-        category_name: template.category,
-        prompt_position: position,
-      });
+      report.chatSuggestedPromptClicked(
+        template.prompt,
+        template.category,
+        position,
+      );
     },
-    [posthog, basePostHogProps],
+    [],
   );
 
   const handleTemplateArrowClick = useCallback(
     (_direction: string, activeCategory: string) => {
-      posthog?.capture("Chat - Suggested Prompt Arrow Clicked", {
-        ...basePostHogProps,
-        category_name: activeCategory,
-      });
+      report.chatSuggestedPromptArrowClicked(activeCategory);
     },
-    [posthog, basePostHogProps],
+    [],
   );
 
   const banner = isTenantDisabled ? (
@@ -435,6 +409,7 @@ const NewConversation = () => {
         onMentionsActivated={handleMentionsActivated}
         widgetMentions={preloadedWidgetMentions}
         onWidgetMentionRemoved={handleWidgetMentionRemoved}
+        onTemplateCategoryClick={handleTemplateCategoryClick}
         onTemplateClick={handleTemplateClick}
         onTemplateArrowClick={handleTemplateArrowClick}
       />
