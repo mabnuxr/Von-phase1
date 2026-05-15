@@ -8,6 +8,7 @@ import {
   InfoIcon,
   LockSimpleIcon,
   SpinnerGapIcon,
+  WarningIcon,
   XIcon,
   PencilSimpleIcon,
 } from "@phosphor-icons/react";
@@ -161,6 +162,25 @@ interface AnalyticsViewProps {
    *  is responsible for mutual exclusion with the chat. The
    *  More-options menu item is hidden when this prop is absent. */
   onOpenVersionHistory?: () => void;
+  /**
+   * True while the dashboard is rendering a historical version
+   * selected from the version-history panel. Used to strip the
+   * Ask-Von affordances (header button + per-widget add-to-chat icons)
+   * — preview is read-only by intent, and chat actions would
+   * misleadingly bind to the previewed snapshot. Filter edits stay
+   * enabled, but PATCHes carry the previewed `dashboard_version`
+   * (wired upstream in `useDashboardFilters`).
+   */
+  isVersionPreview?: boolean;
+  /**
+   * Latest live published version of the dashboard, sourced from the
+   * metadata query. Used by the preview chip to decide whether the
+   * previewed version is the current live one — that case gets a
+   * "(published - latest)" suffix instead of plain "(published)".
+   * `null` while metadata is loading or for a brand-new dashboard
+   * that has never been published.
+   */
+  latestPublishedVersion?: number | null;
   /** Toggle edit mode via PATCH API (is_editable) */
   onEditModeChange?: (isEditable: boolean) => void;
   /** Edit mode mutation phase (pending while API + refetch in flight) */
@@ -314,6 +334,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onChatClick,
   isChatOpen,
   onOpenVersionHistory,
+  isVersionPreview = false,
+  latestPublishedVersion = null,
   onEditModeChange,
   editModePhase = "idle",
   onTablePageChange,
@@ -840,6 +862,41 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               {!isEditMode && !isRefetchingData && !isRefreshing && (
                 <StatusLine lastRefreshedAt={refreshInfo?.lastRefreshedAt} />
               )}
+              {/* Version-history preview chip — inline pill that sits
+                  right after the "Refreshed Xh ago" chip. Same chip
+                  chrome (rounded-full + text-xs + amber tint) so it
+                  reads as a sibling status indicator rather than a
+                  separate banner. Suffix tells the user what KIND of
+                  snapshot they're on: a draft, a non-latest published
+                  archive, or the live latest published version. */}
+              {isVersionPreview &&
+                (() => {
+                  const isPublished =
+                    dashboard.status === DashboardStatus.Published;
+                  const isLatestLive =
+                    isPublished &&
+                    latestPublishedVersion !== null &&
+                    dashboard.dashboardVersion === latestPublishedVersion;
+                  const suffix = isLatestLive
+                    ? "(published - latest)"
+                    : isPublished
+                      ? "(published)"
+                      : "(draft)";
+                  return (
+                    <span className="flex items-center gap-1 text-xs rounded-full px-2.5 py-1.5 leading-none border bg-amber-50 border-amber-200 text-amber-800 whitespace-nowrap">
+                      <WarningIcon
+                        size={12}
+                        weight="fill"
+                        className="shrink-0 text-amber-600"
+                      />
+                      You are previewing{" "}
+                      <span className="font-semibold">
+                        v{dashboard.dashboardVersion}
+                      </span>{" "}
+                      {suffix}
+                    </span>
+                  );
+                })()}
             </DashboardLayout.HeaderRow.Left>
 
             <DashboardLayout.HeaderRow.Right>
@@ -892,8 +949,11 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <DataSourcesSlot dataSources={dashboard.data_sources} />
               )}
 
-              {/* "Ask Von" button — only shown when chat panel is closed */}
-              {onChatClick && !isChatOpen && (
+              {/* "Ask Von" button — only shown when chat panel is closed
+                  and we're not previewing a historical version. Chat
+                  binds to the live dashboard; surfacing it while
+                  previewing v3 would create a confusing entry point. */}
+              {onChatClick && !isChatOpen && !isVersionPreview && (
                 <motion.button
                   key="ask-von"
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -1124,7 +1184,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 loadingTablePanels={loadingTablePanels}
                 onDrillDown={onDrillDown}
                 onPointDrillDown={onPointDrillDown}
-                onAddToChat={onAddWidgetToChat}
+                // Suppress per-widget add-to-chat icons during version
+                // preview — same reasoning as the header Ask-Von button.
+                onAddToChat={isVersionPreview ? undefined : onAddWidgetToChat}
                 onTableSortChange={onTableSortChange}
                 tableSortStates={tableSortStates}
                 isEditMode={isEditMode}

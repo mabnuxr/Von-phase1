@@ -15,6 +15,22 @@ interface VersionHistoryDrawerProps {
   dashboardId: string;
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Currently-previewed `dashboard_version` from the parent. Drives
+   * the row highlight directly so the selection always matches what's
+   * actually on screen — switching tabs doesn't conjure a fake
+   * selection on the new tab's head. `null` means no preview is
+   * active and no row should appear selected.
+   */
+  selectedVersion?: number | null;
+  /**
+   * Fires when the user clicks a row, carrying the entry's
+   * `dashboard_version`. Auto-selection on panel open / tab switch
+   * does **not** fire this — preview is only meant to engage on an
+   * explicit click, so the dashboard isn't silently re-rendered just
+   * by opening the panel.
+   */
+  onSelectVersion?: (dashboardVersion: number) => void;
 }
 
 // ─── Empty states (per tab) ──────────────────────────────────────
@@ -63,6 +79,8 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   dashboardId,
   isOpen,
   onClose,
+  selectedVersion = null,
+  onSelectVersion,
 }) => {
   const { user } = useUser();
   const { data: teamMembers } = useTeamMembers(user?.tenantId);
@@ -75,23 +93,6 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   const [tab, setTab] = useState<VersionHistoryTab>("current");
   const activeDraftHeadId =
     drafts[0]?.kind === "active_draft" ? drafts[0].id : null;
-  const defaultSelectedId =
-    tab === "current"
-      ? (activeDraftHeadId ?? drafts[0]?.id ?? null)
-      : (publishedVersions[0]?.id ?? null);
-  const [selectedId, setSelectedId] = useState<string | null>(
-    defaultSelectedId,
-  );
-
-  // Reset selection whenever the panel reopens or the tab switches —
-  // matches the "fresh open, latest highlighted" expectation.
-  useEffect(() => {
-    if (!isOpen) return;
-    setSelectedId(defaultSelectedId);
-    // We intentionally omit `defaultSelectedId` from the deps — it would
-    // re-fire on every row change. We only want a reset on tab swap / open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, tab]);
 
   // Esc to dismiss — only while the panel is open.
   useEffect(() => {
@@ -172,7 +173,14 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
                   key={item.id}
                   item={item}
                   tab={tab}
-                  selected={item.id === selectedId}
+                  // Highlight reflects the actual previewed version
+                  // (lifted to the page). When the user is on a draft
+                  // and switches to the Published tab, no row matches
+                  // → no row appears selected. Matches reality.
+                  selected={
+                    selectedVersion !== null &&
+                    item.dashboardVersion === selectedVersion
+                  }
                   isCurrentDraftHead={
                     tab === "current" && item.id === activeDraftHeadId
                   }
@@ -180,7 +188,7 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
                   // rows are archived lineage entries.
                   isLatestPublished={tab === "published" && index === 0}
                   isYou={item.authorId === user?.id}
-                  onSelect={() => setSelectedId(item.id)}
+                  onSelect={() => onSelectVersion?.(item.dashboardVersion)}
                 />
               ))}
             </div>

@@ -55,6 +55,14 @@ interface DashboardCanvasProps {
   onOpenVersionHistory: () => void;
   /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
   onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
+  /**
+   * Historical version selected from the version-history panel.
+   * Non-null pins both the render call and filter PATCHes to that
+   * `dashboard_version`, and flips the canvas into preview mode
+   * (Ask-Von hidden, widget chat icons hidden). `null` keeps the
+   * default metadata-driven render.
+   */
+  previewVersion: number | null;
 }
 
 /**
@@ -68,8 +76,11 @@ function DashboardCanvas({
   isChatOpen,
   onOpenVersionHistory,
   onAddWidgetToChat,
+  previewVersion,
 }: DashboardCanvasProps) {
-  const { data, isLoading, isFetching, error } = useDashboardQuery(dashboardId);
+  const { data, isLoading, isFetching, error, latestPublishedVersion } =
+    useDashboardQuery(dashboardId, previewVersion);
+  const isVersionPreview = previewVersion !== null;
 
   const {
     handleSave,
@@ -138,6 +149,12 @@ function DashboardCanvas({
       lockedFilterState: dashboard?.filters?.locked_filter_state,
       lockedPanelFilterState: dashboard?.filters?.locked_panel_filter_state,
       isOwner: dashboard?.accessLevel === "owner",
+      // Always pin filter PATCHes to the dashboard version we're
+      // currently rendering. `dashboard.dashboardVersion` reflects the
+      // metadata-driven version in the default view and the previewed
+      // version while version history is driving the canvas, so the BE
+      // sees a consistent `dashboard_version` in either mode.
+      dashboardVersion: dashboard?.dashboardVersion,
     },
   );
   const {
@@ -295,6 +312,8 @@ function DashboardCanvas({
         onChatClick={onChatClick}
         onOpenVersionHistory={onOpenVersionHistory}
         isChatOpen={isChatOpen}
+        isVersionPreview={isVersionPreview}
+        latestPublishedVersion={latestPublishedVersion}
         onEditModeChange={editModeMutation.mutate}
         editModePhase={editModePhase}
         onTablePageChange={handlePageChange}
@@ -456,6 +475,10 @@ const Analytics = () => {
     activeDashboardIdRef.current = dashboardId;
     setCreatedConversationId(null);
     setPendingWidgetMentions([]);
+    // Tear down version-history preview on dashboard switch so the
+    // new dashboard never inherits another's preview selection.
+    setIsVersionHistoryOpen(false);
+    setPreviewVersion(null);
     if (!conversationIdFromParams) {
       setActiveChatId(null);
     }
@@ -562,6 +585,11 @@ const Analytics = () => {
   // exclusive with the chat panel — opening one closes the other so
   // the dashboard view doesn't end up sandwiched between two panes.
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  // Historical `dashboard_version` the user picked from the panel.
+  // Drives render + filter PATCHes downstream; cleared when the panel
+  // closes (or the dashboard switches) so we never leak preview state
+  // across navigations.
+  const [previewVersion, setPreviewVersion] = useState<number | null>(null);
 
   const handleAskVonClick = useCallback(() => {
     // Unconditional setter — sidesteps re-creating the callback on
@@ -581,6 +609,15 @@ const Analytics = () => {
 
   const handleCloseVersionHistory = useCallback(() => {
     setIsVersionHistoryOpen(false);
+    // Closing the panel pops the user back onto the live dashboard.
+    // Clearing here (rather than on the dashboardId effect alone)
+    // makes sure the canvas re-renders the metadata-driven version
+    // immediately, even when the user stays on the same dashboard.
+    setPreviewVersion(null);
+  }, []);
+
+  const handleSelectVersion = useCallback((dashboardVersion: number) => {
+    setPreviewVersion(dashboardVersion);
   }, []);
 
   const {
@@ -602,6 +639,7 @@ const Analytics = () => {
           isChatOpen={isChatPanelOpen}
           onOpenVersionHistory={handleOpenVersionHistory}
           onAddWidgetToChat={handleAddWidgetToChat}
+          previewVersion={previewVersion}
         />
       </div>
 
@@ -701,6 +739,8 @@ const Analytics = () => {
           dashboardId={dashboardId}
           isOpen={isVersionHistoryOpen}
           onClose={handleCloseVersionHistory}
+          selectedVersion={previewVersion}
+          onSelectVersion={handleSelectVersion}
         />
       </div>
     </div>
