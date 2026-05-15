@@ -267,10 +267,13 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
   // the two pinned rows float to the top.
   const sortedGrants = useMemo(() => {
     const owner = grants.find((g) => g.role === "owner");
+    // Only pin "you" when the caller isn't the owner — the owner row
+    // already covers that user, so a duplicate "you" pin would render
+    // them twice.
     const youGrant = grants.find((g) => g.isYou && g.role !== "owner");
-    const rest = grants.filter(
-      (g) => g.role !== "owner" && !(g.isYou && g.role !== "owner"),
-    );
+    // Rest = non-owner, non-self grants in original order. Owner +
+    // youGrant are already pinned above.
+    const rest = grants.filter((g) => g.role !== "owner" && !g.isYou);
     const pinned: ShareDialogPersonV2[] = [];
     if (owner) pinned.push(owner);
     if (youGrant) pinned.push(youGrant);
