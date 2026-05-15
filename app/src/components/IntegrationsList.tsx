@@ -954,12 +954,15 @@ export function IntegrationsList({
         );
         if (!isInCatalog && !isConnected) return false;
 
-        // Members only see apps they can act on: already connected OR personal is published
+        // Members see: already connected, personal is published, or workspace is published
         if (!isAdmin && !isConnected) {
+          const wsPublished =
+            catalogEntry?.tenant_integrations.workspace?.availability_status ===
+            "published";
           const personalPublished =
             catalogEntry?.tenant_integrations.personal?.availability_status ===
             "published";
-          if (!personalPublished) return false;
+          if (!wsPublished && !personalPublished) return false;
         }
       }
 

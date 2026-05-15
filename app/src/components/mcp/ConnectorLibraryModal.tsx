@@ -589,7 +589,9 @@ function NativeDetailView({
         ? "API Key"
         : entry.auth_type === "token"
           ? "Token"
-          : "None";
+          : entry.auth_type === "none"
+            ? "None"
+            : (entry.auth_type ?? "None");
 
   const hasWorkspaceLevel = entry.allowed_access_levels.includes("workspace");
   const hasPersonalLevel = entry.allowed_access_levels.includes("personal");
@@ -986,7 +988,11 @@ function MCPDetailView({
       ? "OAuth"
       : entry.auth_type === "api_key"
         ? "API Key"
-        : "None";
+        : entry.auth_type === "token"
+          ? "Token"
+          : entry.auth_type === "none"
+            ? "None"
+            : (entry.auth_type ?? "None");
 
   const writeOpsCount = tools.filter((t) => t.is_write).length;
   const totalTools = tools.length;
