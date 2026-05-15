@@ -46,7 +46,7 @@ export const EditModeActionsV2: React.FC<EditModeActionsV2Props> = ({
     <div className="inline-flex items-center gap-1.5">
       {/* Discard — amber, never red. The discarded draft stays restorable
           from version history, so the tone is "you can undo this." */}
-      <Tooltip content="Discard draft — moves the draft to version history (tagged ‘discarded’) and stays restorable.">
+      <Tooltip content="Discard this draft.">
         <button
           type="button"
           onClick={onDiscard}
@@ -71,7 +71,7 @@ export const EditModeActionsV2: React.FC<EditModeActionsV2Props> = ({
 
       {/* Save as draft — neutral. Stores the snapshot + releases the lock
           so other editors can continue. Border tightens when dirty. */}
-      <Tooltip content="Save as draft — stores your changes and releases the edit lock so others can continue. Captured in version history.">
+      <Tooltip content="Save your changes and let others continue editing.">
         <button
           type="button"
           onClick={onSaveDraft}
@@ -92,7 +92,7 @@ export const EditModeActionsV2: React.FC<EditModeActionsV2Props> = ({
       {/* Publish — primary, dark. Drop shadow only when dirty so the
           "ready to promote" state pops without competing in the resting
           edit view. */}
-      <Tooltip content="Publish — promote the draft to a new live version for all viewers.">
+      <Tooltip content="Publish your changes live to all viewers.">
         <button
           type="button"
           onClick={onPublish}

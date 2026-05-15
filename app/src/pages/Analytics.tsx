@@ -86,6 +86,7 @@ function DashboardCanvas({
     handleSave,
     savePhase,
     showSaveToast,
+    saveToastKind,
     isFirstSave,
     handleRevert,
     revertPhase,
@@ -296,6 +297,7 @@ function DashboardCanvas({
         onSave={handleSave}
         savePhase={savePhase}
         showSaveToast={showSaveToast}
+        saveToastKind={saveToastKind}
         isFirstSave={isFirstSave}
         onRevert={handleRevert}
         revertPhase={revertPhase}

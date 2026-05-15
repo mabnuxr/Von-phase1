@@ -103,7 +103,15 @@ const StandardFooter: React.FC<FooterProps> = ({ helpHref, onCopyLink }) => {
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12.5px] font-medium text-gray-600 hover:bg-gray-50 cursor-pointer"
+          // Swap to a green-tinted pill while the "Copied" confirmation
+          // is showing — `transition-colors` animates the border / text /
+          // background swap so the success state reads as a deliberate
+          // affirmation rather than a gray state flicker.
+          className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12.5px] font-medium cursor-pointer transition-colors ${
+            copied
+              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
         >
           {copied ? (
             <>
@@ -252,16 +260,24 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
     setOpen(false);
   }, []);
 
-  // Stable derivations for the people list — owner first, "you" second,
-  // then alphabetical by name. Stable order avoids row-shuffle on grant edits.
+  // People list ordering: owner first, then the current user (if
+  // they have a grant), then everyone else in the caller's original
+  // `grants` order. The remainder is left untouched so it tracks the
+  // BE's `user_grants` payload (typically `granted_at` order) — only
+  // the two pinned rows float to the top.
   const sortedGrants = useMemo(() => {
-    return [...grants].sort((a, b) => {
-      if (a.role === "owner" && b.role !== "owner") return -1;
-      if (b.role === "owner" && a.role !== "owner") return 1;
-      if (a.isYou && !b.isYou) return -1;
-      if (b.isYou && !a.isYou) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    const owner = grants.find((g) => g.role === "owner");
+    // Only pin "you" when the caller isn't the owner — the owner row
+    // already covers that user, so a duplicate "you" pin would render
+    // them twice.
+    const youGrant = grants.find((g) => g.isYou && g.role !== "owner");
+    // Rest = non-owner, non-self grants in original order. Owner +
+    // youGrant are already pinned above.
+    const rest = grants.filter((g) => g.role !== "owner" && !g.isYou);
+    const pinned: ShareDialogPersonV2[] = [];
+    if (owner) pinned.push(owner);
+    if (youGrant) pinned.push(youGrant);
+    return [...pinned, ...rest];
   }, [grants]);
 
   // Permission matrix (BE M2 — VON-1283 §3.3):
@@ -481,18 +497,21 @@ const DefaultView: React.FC<DefaultViewProps> = ({
   const scopeRowApplies =
     (scope === "org_wide" || hasViewerGrant) && dataScopingAvailable;
 
-  // Render at most the first 6 grants in the modal body; the scroll affordance
-  // belongs to the people list, not the modal shell. Bigger lists later.
-  const visibleGrants = sortedGrants.slice(0, 6);
-  const hiddenCount = sortedGrants.length - visibleGrants.length;
-
   return (
     <>
       <AddPeopleTrigger onClick={onAddPeople} />
 
-      <div className="h-1" />
-      <div className="flex flex-col">
-        {visibleGrants.map((p) => {
+      {/* Section header — mirrors the "General access" label below
+          so the two groups read as parallel sections. */}
+      <div className="mb-1.5 mt-3 text-[11.5px] font-medium text-gray-400">
+        People with access
+      </div>
+      {/* People list — scrolls in place when the roster gets long
+          (keeps the modal compact regardless of grant count). The
+          modal shell itself stays the same fixed width / non-growing
+          height; only this strip scrolls. */}
+      <div className="flex max-h-[300px] flex-col overflow-y-auto pr-1">
+        {sortedGrants.map((p) => {
           const isOpen = rowMenuFor === p.userId;
           const current: GrantableRoleV2 =
             p.role === "owner" ? "viewer" : (p.role as GrantableRoleV2);
@@ -537,11 +556,6 @@ const DefaultView: React.FC<DefaultViewProps> = ({
             />
           );
         })}
-        {hiddenCount > 0 && (
-          <div className="px-1 py-1.5 text-[11.5px] text-gray-400">
-            and {hiddenCount} more
-          </div>
-        )}
       </div>
 
       <div className="my-2.5 h-px bg-gray-100" />

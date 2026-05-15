@@ -40,6 +40,15 @@ export function useAnalyticsTools(dashboardId: string) {
   const { showToast } = useToast();
 
   // ─── Save ─────────────────────────────────────────────────────
+  // The in-canvas top-center toast is shared by two flows now:
+  //   - Publish first time (handleSave + isFirstSave) → "Dashboard is created …"
+  //   - Publish subsequent  (handleSave)              → "Published. Your changes …"
+  //   - Save as draft       (handleSaveDraft)         → "Draft saved. Editors or owners …"
+  // `saveToastKindRef` + `isFirstSaveRef` together pick the copy. Both
+  // are refs (not state) because `showSaveToast` is the visibility
+  // flag that drives re-renders — flipping it already re-runs the
+  // caller with the latest `current` values.
+  const saveToastKindRef = useRef<"publish" | "draft">("publish");
   const isFirstSaveRef = useRef(false);
   const {
     isVisible: showSaveToast,
@@ -80,11 +89,10 @@ export function useAnalyticsTools(dashboardId: string) {
       onSuccess,
     }: { isFirstSave?: boolean; onSuccess?: () => void } = {}) => {
       isFirstSaveRef.current = isFirstSave ?? false;
-
       saveMutation.mutate(undefined, {
         onSuccess: () => {
           onSuccess?.();
-          // Show inline save toast
+          saveToastKindRef.current = "publish";
           showToastNow();
           clearTimeout(saveToastTimerRef.current);
           saveToastTimerRef.current = setTimeout(
@@ -310,7 +318,7 @@ export function useAnalyticsTools(dashboardId: string) {
         );
       }
     },
-    onSuccess: (response) => {
+    onSuccess: (response, variables, context) => {
       // The share endpoint returns the same flat metadata payload as
       // GET /metadata. Drop it straight into the metadata cache so the
       // open dialog picks up authoritative `granted_by` / `granted_at`
@@ -324,6 +332,21 @@ export function useAnalyticsTools(dashboardId: string) {
           flat,
         );
       }
+
+      // Surface a success toast on every successful share mutation —
+      // scope toggles, data-scope toggles, grant add/update/remove.
+      // Scope flips get a tailored message so the user sees explicitly
+      // what changed; everything else falls back to generic copy.
+      const prevTenant = context?.previousMetadata?.is_shared_with_tenant;
+      const nextTenant = variables.is_shared_with_tenant;
+      const scopeFlipped =
+        prevTenant !== undefined && prevTenant !== nextTenant;
+      const message = scopeFlipped
+        ? nextTenant
+          ? "Dashboard is now shared with everyone at your org"
+          : "Dashboard is now restricted to specific people"
+        : "Sharing updated";
+      showToast({ message, variant: "success" });
     },
   });
 
@@ -434,30 +457,43 @@ export function useAnalyticsTools(dashboardId: string) {
       });
     },
     onSuccess: (response) => {
-      // The lock response carries `editable_version` — the snapshot the
-      // caller can now edit. Write it directly into the metadata cache
-      // so `useDashboardQuery` sees `is_editable=true` and an updated
-      // `editable_version`, which flips the render queryKey and pulls
-      // the editable snapshot in a single round-trip. Falls back to a
-      // full invalidate when no metadata is cached yet (e.g., initial
-      // load raced with Edit click).
-      const cached = queryClient.getQueryData<DashboardMetadataApiResponse>(
-        dashboardMetadataKey(dashboardId),
-      );
-      if (cached) {
+      // The lock response carries everything needed to flip the FE
+      // into edit mode without a follow-up /metadata round-trip:
+      // `editable_version` (which snapshot is editable), the canonical
+      // nested `edit_lock` object (matches the shape on /metadata and
+      // /render), and `last_edited_by` (drives the EditLockBadge
+      // attribution). Prefer the nested `edit_lock` when present;
+      // fall back to the flat fields for BE deploys that haven't
+      // shipped PR #1109 yet.
+      const lockObject = response.edit_lock ?? {
+        user_id: response.user_id,
+        acquired_at: response.acquired_at,
+      };
+
+      // Patch the metadata cache so `useDashboardQuery` sees the new
+      // editable state. Falls back to a full invalidate when no
+      // metadata is cached yet (e.g. initial load raced with Edit).
+      const cachedMetadata =
+        queryClient.getQueryData<DashboardMetadataApiResponse>(
+          dashboardMetadataKey(dashboardId),
+        );
+      if (cachedMetadata) {
         queryClient.setQueryData<DashboardMetadataApiResponse>(
           dashboardMetadataKey(dashboardId),
           {
-            ...cached,
+            ...cachedMetadata,
             is_editable: true,
             editable_version: response.editable_version,
             latest_published_version:
               response.latest_published_version ??
-              cached.latest_published_version,
-            edit_lock: {
-              user_id: response.user_id,
-              acquired_at: response.acquired_at,
-            },
+              cachedMetadata.latest_published_version,
+            edit_lock: lockObject,
+            // Only overwrite when the lock response carries the field —
+            // BE deploys without PR #1109 omit it, in which case the
+            // previous value is the freshest we have.
+            ...(response.last_edited_by !== undefined && {
+              last_edited_by: response.last_edited_by,
+            }),
           },
         );
       } else {
@@ -465,9 +501,34 @@ export function useAnalyticsTools(dashboardId: string) {
           queryKey: dashboardKeys.detail(dashboardId),
         });
       }
+
+      // Patch any cached render entries so `dashboard.editLock` /
+      // `dashboard.lastEditedBy` reflect the acquire immediately —
+      // the EditLockBadge reads them before the next refetch lands.
+      queryClient.setQueriesData<DashboardQueryCacheShape>(
+        { queryKey: renderCachePrefix },
+        (prev) => {
+          if (!prev?.dashboard) return prev;
+          return {
+            ...prev,
+            dashboard: {
+              ...prev.dashboard,
+              isEditable: true,
+              editLock: {
+                userId: lockObject.user_id,
+                acquiredAt: lockObject.acquired_at,
+              },
+              ...(response.last_edited_by !== undefined && {
+                lastEditedBy: response.last_edited_by,
+              }),
+            },
+          };
+        },
+      );
+
       // Invalidate every render entry under this dashboard. A previous
-      // save/discard cycle may have populated the now-active version key
-      // with view-mode data (`is_editable: false`); without this
+      // save/discard cycle may have populated the now-active version
+      // key with view-mode data (`is_editable: false`); without this
       // invalidate the second Edit-click would serve that stale entry
       // and the UI would stay in view mode despite the lock being held.
       queryClient.invalidateQueries({
@@ -666,10 +727,15 @@ export function useAnalyticsTools(dashboardId: string) {
   const handleSaveDraft = useCallback(async () => {
     try {
       await saveDraftMutation.mutateAsync();
-      showToast({
-        message: "Draft saved.",
-        variant: "success",
-      });
+      // Reuse the in-canvas centered toast so success feedback for
+      // Save-as-draft matches the Publish surface.
+      saveToastKindRef.current = "draft";
+      showToastNow();
+      clearTimeout(saveToastTimerRef.current);
+      saveToastTimerRef.current = setTimeout(
+        hideToastNow,
+        SAVE_TOAST_DURATION_MS,
+      );
     } catch (error) {
       console.error("[useAnalyticsTools] Save draft failed:", error);
       const code =
@@ -704,7 +770,14 @@ export function useAnalyticsTools(dashboardId: string) {
         variant: "error",
       });
     }
-  }, [saveDraftMutation, queryClient, dashboardId, showToast]);
+  }, [
+    saveDraftMutation,
+    queryClient,
+    dashboardId,
+    showToast,
+    showToastNow,
+    hideToastNow,
+  ]);
 
   const saveDraftPhase = useMutationPhase(
     saveDraftMutation.isPending,
@@ -766,8 +839,9 @@ export function useAnalyticsTools(dashboardId: string) {
     handleSave,
     savePhase,
     saveMutation,
-    // Save toast state (consumed by AnalyticsView for inline toast rendering)
+    // In-canvas centered toast — same surface for Publish + Save Draft.
     showSaveToast,
+    saveToastKind: saveToastKindRef.current,
     isFirstSave: isFirstSaveRef.current,
     handleRevert,
     revertPhase,

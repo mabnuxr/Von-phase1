@@ -75,6 +75,22 @@ export function useLayoutAutoSave(
   // exactly the seed-once semantics we want.
   const lastSavedRef = useRef<PanelLayouts | null>(toPanelLayouts(layout));
 
+  // Mirror the latest `layout` prop into a ref so `flushNow` can
+  // compare a pending change against what's currently rendered — not
+  // just against the original baseline. RGL fires `onLayoutChange`
+  // when its `static` flag toggles on edit-mode entry, emitting the
+  // editable version's layout into `pendingRef`. If the user quickly
+  // exits (discard / save-draft) before the debounce fires, the
+  // `isEditMode → false` flush sees that pending value vs the new
+  // (post-discard) layout. Without this ref, the equality check is
+  // only vs the original seed, so the stale pending PATCH still
+  // fires — exactly the spurious post-discard `ui_config` write the
+  // bug report flagged.
+  const layoutPropRef = useRef<readonly LayoutItem[]>(layout);
+  useEffect(() => {
+    layoutPropRef.current = layout;
+  }, [layout]);
+
   const mutation = useMutation({
     mutationFn: async (panelLayouts: PanelLayouts) => {
       await dashboardService.updateDashboard(dashboardId, {
@@ -106,7 +122,18 @@ export function useLayoutAutoSave(
     const next = pendingRef.current;
     if (!next) return;
     pendingRef.current = null;
+    // No-op when pending matches the last server-confirmed save.
     if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, next)) {
+      return;
+    }
+    // No-op when pending matches what's actually on screen right
+    // now. After a discard / save-draft / lock-acquire, the `layout`
+    // prop swaps to a different snapshot and any stale `pendingRef`
+    // (from the static-toggle RGL reconcile that fired on the prior
+    // transition) no longer represents a real user gesture. PATCHing
+    // it would either fail the BE lock check or stomp the displayed
+    // layout — neither is what the user asked for.
+    if (layoutsEqual(toPanelLayouts(layoutPropRef.current), next)) {
       return;
     }
     mutation.mutate(next);
