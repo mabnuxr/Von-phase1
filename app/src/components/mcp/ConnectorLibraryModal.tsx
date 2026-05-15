@@ -108,7 +108,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     const items = catalogData?.items;
     const safe = Array.isArray(items) ? items : [];
     if (isSlackMcpEnabled) return safe;
-    return safe.filter((e) => e.name.toLowerCase() !== "slack");
+    return safe.filter((e) => e.catalog_id !== "slack");
   }, [catalogData, isSlackMcpEnabled]);
 
   const loadMoreRef = useInfiniteScroll({

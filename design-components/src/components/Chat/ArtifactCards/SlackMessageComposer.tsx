@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   CopyIcon,
@@ -136,6 +136,15 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
     [labelsKey, totalCount]
   );
 
+  useEffect(() => {
+    if (totalCount > SlackComposerConfig.maxTabs) {
+      console.warn(
+        `[SlackMessageComposer] truncated ${totalCount - SlackComposerConfig.maxTabs} of ${totalCount} drafts; ` +
+          `only the first ${SlackComposerConfig.maxTabs} are reachable. Agent should cap variants upstream.`,
+      );
+    }
+  }, [totalCount]);
+
   const [activeTab, setActiveTab] = useState(0);
   const [bodyCopied, setBodyCopied] = useState(false);
 
@@ -235,7 +244,11 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
         <div className="text-sm text-gray-900 leading-relaxed markdown-content">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            urlTransform={(url) => url}
+            urlTransform={(url, key, node) =>
+              url.startsWith(SlackComposerConfig.mentionScheme)
+                ? url
+                : defaultUrlTransform(url, key, node)
+            }
             components={{
               a: ({ href, children, ...rest }) => {
                 if (href?.startsWith(SlackComposerConfig.mentionScheme)) {
