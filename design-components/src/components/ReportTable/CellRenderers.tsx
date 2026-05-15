@@ -172,7 +172,7 @@ export const OwnerCell: React.FC<OwnerCellProps> = ({ value }) => {
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`flex items-center justify-center w-6 h-6 rounded-full ${bgColor} text-white text-[10px] font-medium flex-shrink-0`}
+        className={`flex items-center justify-center w-6 h-6 rounded-full ${bgColor} text-white text-[10px] font-medium shrink-0`}
       >
         {initials}
       </div>
@@ -197,7 +197,7 @@ export const MultiPicklistCell: React.FC<MultiPicklistCellProps> = ({ value }) =
       {items.map((item, index) => (
         <span
           key={index}
-          className="px-2 py-0.5 text-sm font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap flex-shrink-0"
+          className="px-2 py-0.5 text-sm font-medium bg-gray-50 border border-gray-100 shadow-xs rounded-full text-gray-800 whitespace-nowrap shrink-0"
         >
           {item}
         </span>
@@ -306,7 +306,7 @@ export const LongTextCell: React.FC<LongTextCellProps> = ({ value, maxLength = 5
       {showPopover &&
         createPortal(
           <div
-            className="fixed w-80 max-h-48 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] p-3"
+            className="fixed w-80 max-h-48 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-10000 p-3"
             style={{ top: popoverPosition.top, left: popoverPosition.left }}
             onMouseEnter={() => setShowPopover(true)}
             onMouseLeave={() => setShowPopover(false)}
@@ -342,12 +342,15 @@ export const PicklistCell: React.FC<PicklistCellProps> = ({ value }) => {
 interface TruncatedTextCellProps {
   value: string | number | null | undefined;
   maxWidth?: number;
+  /** When > 1, clamp the cell to N visible lines instead of single-line truncation. */
+  lines?: number;
   className?: string;
 }
 
 export const TruncatedTextCell: React.FC<TruncatedTextCellProps> = ({
   value,
   maxWidth = 200,
+  lines = 1,
   className = '',
 }) => {
   const [showPopover, setShowPopover] = useState(false);
@@ -355,11 +358,14 @@ export const TruncatedTextCell: React.FC<TruncatedTextCellProps> = ({
   const cellRef = useRef<HTMLDivElement>(null);
 
   const displayValue = value == null ? '—' : String(value);
+  const isMultiLine = lines > 1;
 
   const handleMouseEnter = () => {
     if (!cellRef.current) return;
-    // Calculate truncation on hover to handle column resize/layout changes
-    const truncated = cellRef.current.scrollWidth > cellRef.current.clientWidth;
+    // Horizontal overflow for single-line; vertical overflow for multi-line clamp.
+    const truncated = isMultiLine
+      ? cellRef.current.scrollHeight > cellRef.current.clientHeight + 1
+      : cellRef.current.scrollWidth > cellRef.current.clientWidth;
 
     if (truncated) {
       const rect = cellRef.current.getBoundingClientRect();
@@ -377,26 +383,36 @@ export const TruncatedTextCell: React.FC<TruncatedTextCellProps> = ({
     setShowPopover(false);
   };
 
+  const cellStyle: React.CSSProperties = isMultiLine
+    ? {
+        maxWidth,
+        display: '-webkit-box',
+        WebkitLineClamp: lines,
+        WebkitBoxOrient: 'vertical',
+        overflow: 'hidden',
+      }
+    : { maxWidth };
+
   return (
     <>
       <div
         ref={cellRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`truncate ${className}`}
-        style={{ maxWidth }}
+        className={`${isMultiLine ? 'wrap-break-word whitespace-pre-wrap' : 'truncate'} ${className}`}
+        style={cellStyle}
       >
         {displayValue}
       </div>
       {showPopover &&
         createPortal(
           <div
-            className="fixed max-w-[320px] max-h-48 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-[10000] p-3"
+            className="fixed max-w-[320px] max-h-48 overflow-y-auto bg-white rounded-lg shadow-xl border border-gray-200 z-10000 p-3"
             style={{ top: popoverPosition.top, left: popoverPosition.left }}
             onMouseEnter={() => setShowPopover(true)}
             onMouseLeave={() => setShowPopover(false)}
           >
-            <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap break-words">
+            <p className="text-[12px] text-gray-700 leading-relaxed whitespace-pre-wrap wrap-break-word">
               {displayValue}
             </p>
           </div>,

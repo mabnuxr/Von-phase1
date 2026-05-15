@@ -1237,10 +1237,13 @@ export interface ChatProps {
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
 
   /**
-   * Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs).
-   * When provided, email artifacts are separated from other artifacts and passed here as a group.
+   * Per-artifact-type grouped renderers. Each key is an artifactType (e.g.
+   * `"email_draft"`, `"slack_message_draft"`); artifacts of that type are
+   * collected and passed to the matching renderer as a single batch (e.g.
+   * EmailComposer with tabs, SlackMessageComposer with tabs). Artifact types
+   * absent from the map fall through to per-card rendering.
    */
-  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
+  groupedArtifactRenderers?: Record<string, (artifacts: FileArtifact[]) => React.ReactNode | null>;
 
   /**
    * Callback when user clicks on a file artifact card (agent-generated documents)

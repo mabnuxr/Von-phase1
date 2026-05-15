@@ -15,5 +15,12 @@ export type { GmailDraftCardProps } from './GmailDraftCard';
 export { EmailComposer } from './EmailComposer';
 export type { EmailComposerProps, EmailData } from './EmailComposer';
 
+export { SlackMessageComposer } from './SlackMessageComposer';
+export type {
+  SlackMessageComposerProps,
+  SlackMessageData,
+  SlackConversationType,
+} from './SlackMessageComposer';
+
 // Shared types
 export type { ArtifactType, FileArtifact, EmailDraftArtifact } from './types';

@@ -158,12 +158,12 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       {/* Tabs — only shown when multiple emails */}
       {dedupedEmails.length > 1 && (
         <>
-          <div className="flex items-center gap-1 px-3 py-2 flex-shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-1 px-3 py-2 shrink-0 overflow-x-auto">
             {dedupedEmails.map((email, i) => (
               <button
                 key={i}
                 onClick={() => handleTabChange(i)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer truncate max-w-[160px] flex-shrink-0 ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer truncate max-w-40 shrink-0 ${
                   i === activeTab
                     ? 'bg-gray-900 text-white'
                     : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
@@ -184,13 +184,13 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       )}
 
       {/* To row */}
-      <div className="flex items-center px-3 py-2 border-b border-gray-100 flex-shrink-0 gap-2">
-        <span className="text-xs text-gray-700 flex-shrink-0">To</span>
+      <div className="flex items-center px-3 py-2 border-b border-gray-100 shrink-0 gap-2">
+        <span className="text-xs text-gray-700 shrink-0">To</span>
         <div className="flex-1 min-w-0 truncate">
           <span className="text-sm text-gray-900">{currentEmail.to.join(', ')}</span>
         </div>
         {/* Cc / Bcc toggle buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-1 shrink-0 ml-2">
           {currentEmail.cc && currentEmail.cc.length > 0 && (
             <button
               onClick={() => setShowCc(!showCc)}
@@ -199,7 +199,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
               }`}
             >
               Cc
-              <span className="text-[10px] text-gray-800/80 bg-gray-50 border border-gray-100 rounded px-1 min-w-[16px] text-center leading-4">
+              <span className="text-[10px] text-gray-800/80 bg-gray-50 border border-gray-100 rounded px-1 min-w-4 text-center leading-4">
                 {currentEmail.cc.length}
               </span>
             </button>
@@ -212,7 +212,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
               }`}
             >
               Bcc
-              <span className="text-[10px] text-gray-800/80 bg-gray-50 border border-gray-100 rounded px-1 min-w-[16px] text-center leading-4">
+              <span className="text-[10px] text-gray-800/80 bg-gray-50 border border-gray-100 rounded px-1 min-w-4 text-center leading-4">
                 {currentEmail.bcc.length}
               </span>
             </button>
@@ -228,10 +228,10 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="border-b border-gray-100 flex-shrink-0"
+            className="border-b border-gray-100 shrink-0"
           >
             <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto">
-              <span className="text-xs text-gray-700 flex-shrink-0">Cc</span>
+              <span className="text-xs text-gray-700 shrink-0">Cc</span>
               <span className="text-sm text-gray-900 whitespace-nowrap">
                 {currentEmail.cc?.join(', ') || '—'}
               </span>
@@ -248,10 +248,10 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="border-b border-gray-100 flex-shrink-0"
+            className="border-b border-gray-100 shrink-0"
           >
             <div className="flex items-center gap-2 px-3 py-2 overflow-x-auto">
-              <span className="text-xs text-gray-700 flex-shrink-0">Bcc</span>
+              <span className="text-xs text-gray-700 shrink-0">Bcc</span>
               <span className="text-sm text-gray-900 whitespace-nowrap">
                 {currentEmail.bcc?.join(', ') || '—'}
               </span>
@@ -262,13 +262,13 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
 
       {/* Subject line */}
       <div
-        className="flex items-center px-3 py-2 gap-1.5 border-b border-gray-100 flex-shrink-0 relative"
+        className="flex items-center px-3 py-2 gap-1.5 border-b border-gray-100 shrink-0 relative"
         onMouseEnter={() => {
           if (isSubjectTruncated()) setShowSubjectTooltip(true);
         }}
         onMouseLeave={() => setShowSubjectTooltip(false)}
       >
-        <span className="text-xs text-gray-700 flex-shrink-0">Subject</span>
+        <span className="text-xs text-gray-700 shrink-0">Subject</span>
         <p ref={subjectTextRef} className="flex-1 text-sm text-gray-900 truncate min-w-0">
           {currentEmail.subject}
         </p>
@@ -301,7 +301,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
       </div>
 
       {/* Footer CTAs — right-aligned */}
-      <div className="flex items-center justify-end gap-1.5 px-3 py-2.5 border-t border-gray-100 flex-shrink-0">
+      <div className="flex items-center justify-end gap-1.5 px-3 py-2.5 border-t border-gray-100 shrink-0">
         <button
           onClick={handleCopyBody}
           className="flex items-center justify-center rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -315,28 +315,22 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
           )}
         </button>
         {isCreatingDraft ? (
-          <div className="flex items-center gap-2 h-[34px] px-3 rounded-xl border border-gray-200/70 bg-gradient-to-r from-gray-400 via-gray-600 to-gray-400 bg-clip-text text-transparent animate-shimmer">
+          <div className="flex items-center gap-2 h-8.5 px-3 rounded-xl border border-gray-200/70 bg-linear-to-r from-gray-400 via-gray-600 to-gray-400 bg-clip-text text-transparent animate-shimmer">
             <img
               src={GMAIL_ICON_URL}
               alt="Gmail"
               width={16}
               height={16}
-              className="flex-shrink-0 opacity-40"
+              className="shrink-0 opacity-40"
             />
             <span className="text-sm font-medium">Opening in Gmail…</span>
           </div>
         ) : (
           <button
             onClick={() => onOpenInGmail?.(activeTab)}
-            className="flex items-center gap-2 h-[34px] px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-8.5 px-3 text-sm font-medium text-gray-900 bg-white rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer"
           >
-            <img
-              src={GMAIL_ICON_URL}
-              alt="Gmail"
-              width={16}
-              height={16}
-              className="flex-shrink-0"
-            />
+            <img src={GMAIL_ICON_URL} alt="Gmail" width={16} height={16} className="shrink-0" />
             Open in Gmail
           </button>
         )}

@@ -55,6 +55,7 @@ export {
   DashboardArtifactCard,
   GmailDraftCard,
   EmailComposer,
+  SlackMessageComposer,
   ArtifactCardSkeleton,
 } from './ArtifactCards';
 export type {
@@ -63,6 +64,9 @@ export type {
   GmailDraftCardProps,
   EmailComposerProps,
   EmailData,
+  SlackMessageComposerProps,
+  SlackMessageData,
+  SlackConversationType,
   FileArtifact,
   EmailDraftArtifact,
   ArtifactType,

@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   XIcon,
   DatabaseIcon,
@@ -92,13 +94,20 @@ export interface ConversationsViewProps extends BaseDrawerProps {
   emails: EmailTranscript[];
 }
 
+/** Props for markdown view mode - renders agent-friendly markdown payloads (e.g. unwrapped MCP tool responses). */
+export interface MarkdownViewProps extends BaseDrawerProps {
+  viewMode: 'markdown';
+  markdown: string;
+}
+
 /** Discriminated union: props depend on viewMode */
 export type SingleArtifactDrawerProps =
   | DataViewProps
   | CallsViewProps
   | MemoryViewProps
   | IQViewProps
-  | ConversationsViewProps;
+  | ConversationsViewProps
+  | MarkdownViewProps;
 
 // ============================================================================
 // Subcomponents
@@ -113,7 +122,7 @@ const DrawerBackdrop = React.memo<{ onClose: () => void }>(({ onClose }) => (
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
     transition={{ duration: 0.2 }}
-    className="fixed inset-0 bg-black/20 z-[9998]"
+    className="fixed inset-0 bg-black/20 z-9998"
     onClick={onClose}
   />
 ));
@@ -260,6 +269,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const isMemoryView = viewMode === 'memory';
   const isIQView = viewMode === 'iq';
   const isConversationsView = viewMode === 'conversations';
+  const isMarkdownView = viewMode === 'markdown';
 
   // Determine if there's data based on view mode
   const hasData = isConversationsView
@@ -269,9 +279,11 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       ? ((props as CallsViewProps).calls?.length ?? 0) > 0
       : isMemoryView
         ? true // Memory always has data if we got here
-        : isIQView
-          ? ((props as IQViewProps).data?.length ?? 0) > 0
-          : ((props as DataViewProps).rows?.length ?? 0) > 0;
+        : isMarkdownView
+          ? ((props as MarkdownViewProps).markdown?.length ?? 0) > 0
+          : isIQView
+            ? ((props as IQViewProps).data?.length ?? 0) > 0
+            : ((props as DataViewProps).rows?.length ?? 0) > 0;
 
   // Header icon based on view mode
   const HeaderIcon = isMemoryView ? BrainIcon : isCallsView ? PhoneIcon : DatabaseIcon;
@@ -328,6 +340,17 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       return (
         <div className="p-4 overflow-auto flex-1 min-h-0">
           <MemoryResultRenderer result={{ type: 'memory', memory: memoryData, raw: {} }} />
+        </div>
+      );
+    }
+
+    if (isMarkdownView) {
+      const { markdown } = props as MarkdownViewProps;
+      return (
+        <div className="p-4 overflow-auto flex-1 min-h-0">
+          <div className="markdown-content text-sm text-gray-900 leading-relaxed">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+          </div>
         </div>
       );
     }
@@ -407,7 +430,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
             exit={{ x: '100%' }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             style={{ width: `${width}px` }}
-            className="fixed right-0 top-0 h-full max-w-[90vw] pr-2 py-2 z-[9999]"
+            className="fixed right-0 top-0 h-full max-w-[90vw] pr-2 py-2 z-9999"
           >
             {/* Resize Handle - transparent, wider hit area for easier dragging */}
             <div

@@ -90,7 +90,7 @@ export interface ChatMessageProps {
   boxTooltip?: string;
   boxLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
-  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
+  groupedArtifactRenderers?: Record<string, (artifacts: FileArtifact[]) => React.ReactNode | null>;
   command?: Command;
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   integrationBlocks?: Array<{
@@ -166,7 +166,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   boxTooltip,
   boxLoadingFileId,
   renderArtifactCard,
-  renderGroupedEmailArtifacts,
+  groupedArtifactRenderers,
   command,
   onRequestFilePreviewUrl,
   integrationBlocks,
@@ -341,7 +341,7 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         boxTooltip={boxTooltip}
                         boxLoadingFileId={boxLoadingFileId}
                         renderArtifactCard={renderArtifactCard}
-                        renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
+                        groupedArtifactRenderers={groupedArtifactRenderers}
                       />
                     )}
 

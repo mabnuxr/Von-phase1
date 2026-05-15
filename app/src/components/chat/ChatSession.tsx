@@ -76,6 +76,10 @@ import {
   GmailDraftCardContainer,
   EmailComposerContainer,
 } from "../GmailDraftCardContainer";
+import {
+  SlackMessageDraftCardContainer,
+  SlackMessageComposerContainer,
+} from "../SlackMessageDraftCardContainer";
 import { AIFieldArtifactCard } from "../ai-fields/AIFieldArtifactCard";
 import { AIFieldSidePanel } from "../ai-fields/AIFieldSidePanel";
 import useAiFieldsStore from "../../store/vonAiFieldsStore";
@@ -404,7 +408,7 @@ function ExistingChatInner(
   const { chatPanelFieldId, closeChatPanel } = useAiFieldsStore();
 
   // ── Artifact card renderers ──────────────────────────────────────
-  // Single email fallback (used when renderGroupedEmailArtifacts is not available)
+  // Single-artifact fallback used when a matching grouped renderer is absent.
   const renderArtifactCard = useCallback(
     (artifact: FileArtifact) => {
       // AI Field artifact — injected by useChatV2 from AI_FIELD_READY event
@@ -428,22 +432,39 @@ function ExistingChatInner(
           />
         );
       }
+      // Slack message draft artifact
+      if (artifact.artifactType === "slack_message_draft") {
+        return (
+          <SlackMessageDraftCardContainer
+            conversationId={conversationId}
+            artifact={artifact}
+          />
+        );
+      }
       return null;
     },
     [conversationId],
   );
 
-  // Group all email_draft artifacts into a single EmailComposer with tabs
-  const renderGroupedEmailArtifacts = useCallback(
-    (artifacts: FileArtifact[]) => {
-      if (artifacts.length === 0) return null;
-      return (
-        <EmailComposerContainer
-          conversationId={conversationId}
-          artifacts={artifacts}
-        />
-      );
-    },
+  // Per-artifact-type grouped renderers — each receives all artifacts of its
+  // type so the consumer can render them in a single tabbed composer.
+  const groupedArtifactRenderers = useMemo(
+    () => ({
+      email_draft: (artifacts: FileArtifact[]) =>
+        artifacts.length === 0 ? null : (
+          <EmailComposerContainer
+            conversationId={conversationId}
+            artifacts={artifacts}
+          />
+        ),
+      slack_message_draft: (artifacts: FileArtifact[]) =>
+        artifacts.length === 0 ? null : (
+          <SlackMessageComposerContainer
+            conversationId={conversationId}
+            artifacts={artifacts}
+          />
+        ),
+    }),
     [conversationId],
   );
 
@@ -733,7 +754,7 @@ function ExistingChatInner(
       onArtifactClick={chatV2.handleArtifactClick}
       showArtifacts={base.features.isArtifactsEnabled}
       renderArtifactCard={renderArtifactCard}
-      renderGroupedEmailArtifacts={renderGroupedEmailArtifacts}
+      groupedArtifactRenderers={groupedArtifactRenderers}
       onFileArtifactClick={chatV2.handleFileArtifactClick}
       onArtifactDownload={chatV2.handleArtifactDownload}
       // Integrations
@@ -810,7 +831,7 @@ function ExistingChatInner(
           <>
             <div
               {...getSplitHandleProps(0)}
-              className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              className="shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
             >
               <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
             </div>
@@ -876,7 +897,7 @@ function ExistingChatInner(
           <>
             <div
               {...getAiFieldHandleProps(0)}
-              className="flex-shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
+              className="shrink-0 w-1.5 cursor-ew-resize group flex items-center justify-center hover:bg-blue-100 active:bg-blue-200 rounded transition-colors"
             >
               <div className="w-0.5 h-8 rounded-full bg-gray-300 group-hover:bg-blue-400 group-active:bg-blue-500 transition-colors" />
             </div>

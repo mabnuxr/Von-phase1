@@ -1,9 +1,14 @@
 import { Fragment, useMemo } from 'react';
 import { FileArtifactCard, type FileArtifact } from './ArtifactCards';
 
-function isEmailArtifact(artifact: FileArtifact): boolean {
-  return artifact.artifactType === 'email_draft' || (artifact.fileName?.endsWith('.eml') ?? false);
+/** Normalize artifactType — `.eml` files predate the artifactType field and still flow through. */
+function effectiveArtifactType(artifact: FileArtifact): string {
+  if (artifact.artifactType === 'email_draft') return 'email_draft';
+  if (artifact.fileName?.endsWith('.eml')) return 'email_draft';
+  return artifact.artifactType;
 }
+
+export type GroupedArtifactRenderer = (artifacts: FileArtifact[]) => React.ReactNode | null;
 
 interface FileArtifactsSectionProps {
   artifacts: FileArtifact[];
@@ -26,8 +31,15 @@ interface FileArtifactsSectionProps {
   boxTooltip?: string;
   boxLoadingFileId?: string | null;
   renderArtifactCard?: (artifact: FileArtifact) => React.ReactNode | null;
-  /** Render all email_draft artifacts as a single grouped component (e.g. EmailComposer with tabs) */
-  renderGroupedEmailArtifacts?: (artifacts: FileArtifact[]) => React.ReactNode | null;
+  /**
+   * Per-artifact-type grouped renderers. Each key is an artifactType (e.g.
+   * `"email_draft"`, `"slack_message_draft"`); artifacts of that type are
+   * collected and passed to the matching renderer as a single batch (e.g.
+   * EmailComposer with tabs, SlackMessageComposer with tabs). Artifact types
+   * absent from the map fall through to per-card rendering via
+   * `renderArtifactCard` / `FileArtifactCard`.
+   */
+  groupedArtifactRenderers?: Record<string, GroupedArtifactRenderer>;
 }
 
 export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
@@ -45,23 +57,36 @@ export const FileArtifactsSection: React.FC<FileArtifactsSectionProps> = ({
   boxTooltip,
   boxLoadingFileId,
   renderArtifactCard,
-  renderGroupedEmailArtifacts,
+  groupedArtifactRenderers,
 }) => {
-  const { emailArtifacts, otherArtifacts } = useMemo(() => {
-    if (!renderGroupedEmailArtifacts) return { emailArtifacts: [], otherArtifacts: artifacts };
-    const email: FileArtifact[] = [];
+  const { groups, otherArtifacts } = useMemo(() => {
+    if (!groupedArtifactRenderers) {
+      return {
+        groups: new Map<string, FileArtifact[]>(),
+        otherArtifacts: artifacts,
+      };
+    }
+    const grouped = new Map<string, FileArtifact[]>();
     const other: FileArtifact[] = [];
     for (const a of artifacts) {
-      if (isEmailArtifact(a)) email.push(a);
-      else other.push(a);
+      const type = effectiveArtifactType(a);
+      if (groupedArtifactRenderers[type]) {
+        const bucket = grouped.get(type);
+        if (bucket) bucket.push(a);
+        else grouped.set(type, [a]);
+      } else {
+        other.push(a);
+      }
     }
-    return { emailArtifacts: email, otherArtifacts: other };
-  }, [artifacts, renderGroupedEmailArtifacts]);
+    return { groups: grouped, otherArtifacts: other };
+  }, [artifacts, groupedArtifactRenderers]);
 
   return (
     <div className="mt-3 space-y-3">
-      {/* Render grouped email artifacts as a single component */}
-      {emailArtifacts.length > 0 && renderGroupedEmailArtifacts?.(emailArtifacts)}
+      {/* Per-artifact-type grouped renderers (EmailComposer, SlackMessageComposer, …) */}
+      {Array.from(groups.entries()).map(([type, group]) => (
+        <Fragment key={`group-${type}`}>{groupedArtifactRenderers?.[type]?.(group)}</Fragment>
+      ))}
 
       {otherArtifacts.map((artifact) => {
         // Allow app layer to override rendering for specific artifact types

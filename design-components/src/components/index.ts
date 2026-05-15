@@ -129,6 +129,7 @@ export {
   DashboardArtifactCard,
   GmailDraftCard,
   EmailComposer,
+  SlackMessageComposer,
   ArtifactCardSkeleton,
 } from './Chat';
 export type {
@@ -137,6 +138,9 @@ export type {
   GmailDraftCardProps,
   EmailComposerProps,
   EmailData,
+  SlackMessageComposerProps,
+  SlackMessageData,
+  SlackConversationType,
   FileArtifact,
   ArtifactType,
   EmailDraftArtifact,
