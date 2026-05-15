@@ -564,12 +564,15 @@ const Analytics = () => {
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
 
   const handleAskVonClick = useCallback(() => {
-    if (isVersionHistoryOpen) setIsVersionHistoryOpen(false);
+    // Unconditional setter — sidesteps re-creating the callback on
+    // every `isVersionHistoryOpen` toggle. `setState(false)` on an
+    // already-false value is a no-op for React.
+    setIsVersionHistoryOpen(false);
     if (!isChatPanelOpen) openChatPanel();
     requestAnimationFrame(() => {
       chatSessionRef.current?.focus();
     });
-  }, [isChatPanelOpen, openChatPanel, isVersionHistoryOpen]);
+  }, [isChatPanelOpen, openChatPanel]);
 
   const handleOpenVersionHistory = useCallback(() => {
     if (isChatPanelOpen) closeChatPanel();
@@ -689,6 +692,10 @@ const Analytics = () => {
           overflow: isVersionHistoryOpen ? undefined : "hidden",
           transition: "width 0.3s ease",
         }}
+        aria-hidden={!isVersionHistoryOpen}
+        // `inert` removes the collapsed panel + its focusable controls
+        // (close button, tabs) from screen readers and the tab order.
+        inert={!isVersionHistoryOpen}
       >
         <VersionHistoryDrawer
           dashboardId={dashboardId}

@@ -1063,7 +1063,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                       isDashboardCollabEnabled && !!onOpenVersionHistory
                     }
                     onOpenVersionHistory={onOpenVersionHistory}
-                    hasActiveDraft={isEditMode}
                   />
                   {renderEditCluster()}
                 </>
