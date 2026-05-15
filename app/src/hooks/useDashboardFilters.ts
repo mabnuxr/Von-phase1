@@ -239,6 +239,15 @@ export interface UseDashboardFiltersOptions {
   lockedPanelFilterState?: Record<string, Record<string, FilterValue>>;
   /** Whether the current viewer owns the dashboard (controls lock toggle). */
   isOwner?: boolean;
+  /**
+   * `dashboard_version` of the snapshot being rendered. Sent on every
+   * filter PATCH so the BE always knows which version the edit
+   * targets — the metadata-driven version in the default view, the
+   * previewed version while version history drives the canvas. When
+   * `null`/`undefined` (e.g. during initial load before render data
+   * resolves), the field is omitted and BE falls back to its default.
+   */
+  dashboardVersion?: number | null;
 }
 
 /**
@@ -264,6 +273,7 @@ export function useDashboardFilters(
     lockedFilterState: serverLockedStateRaw,
     lockedPanelFilterState: serverLockedPanelStateRaw,
     isOwner = false,
+    dashboardVersion = null,
   } = options;
 
   const queryClient = useQueryClient();
@@ -371,6 +381,13 @@ export function useDashboardFilters(
 
   const safeDefinitions = Array.isArray(definitions) ? definitions : [];
 
+  // Read the preview version through a ref so the latest value is
+  // captured even after the mutation has already been queued — avoids
+  // stale closures if the user toggles preview while a PATCH is in
+  // flight.
+  const dashboardVersionRef = useRef(dashboardVersion);
+  dashboardVersionRef.current = dashboardVersion;
+
   const mutation = useMutation({
     mutationFn: async (
       calls: Array<{
@@ -382,20 +399,29 @@ export function useDashboardFilters(
         isLocked?: boolean;
       }>,
     ) => {
+      const previewVersion = dashboardVersionRef.current;
       // Fan out PATCH requests in parallel. Each call targets a different
       // scope (dashboard or a specific panel), so there's no write-ordering
       // concern between them.
       await Promise.all(
-        calls.map((call) =>
-          dashboardService.updateFilters(
+        calls.map((call) => {
+          const hasOpts =
+            call.panelId !== undefined ||
+            call.isLocked !== undefined ||
+            (previewVersion !== undefined && previewVersion !== null);
+          return dashboardService.updateFilters(
             dashboardId!,
             call.payload,
             undefined,
-            call.panelId !== undefined || call.isLocked !== undefined
-              ? { panelId: call.panelId, isLocked: call.isLocked }
+            hasOpts
+              ? {
+                  panelId: call.panelId,
+                  isLocked: call.isLocked,
+                  dashboardVersion: previewVersion,
+                }
               : undefined,
-          ),
-        ),
+          );
+        }),
       );
       if (dashboardId) {
         await queryClient.invalidateQueries({

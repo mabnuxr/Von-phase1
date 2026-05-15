@@ -491,13 +491,29 @@ class DashboardService {
     dashboardId: string,
     filters?: FilterPatchPayload | null,
     resetFields?: string[],
-    opts?: { panelId?: string; isLocked?: boolean },
+    opts?: {
+      panelId?: string;
+      isLocked?: boolean;
+      /**
+       * `dashboard_version` of the snapshot currently rendered. Sent
+       * on every PATCH (default view + version-history preview) so the
+       * BE always knows which version the edit targets. Omitted when
+       * null/undefined.
+       */
+      dashboardVersion?: number | null;
+    },
   ): Promise<FilterPatchResponse> {
     const body: Record<string, unknown> = {};
     if (filters) body.filters = filters;
     if (resetFields?.length) body.reset_fields = resetFields;
     if (opts?.panelId) body.panel_id = opts.panelId;
     if (opts?.isLocked !== undefined) body.is_locked = opts.isLocked;
+    if (
+      opts?.dashboardVersion !== undefined &&
+      opts.dashboardVersion !== null
+    ) {
+      body.dashboard_version = opts.dashboardVersion;
+    }
     return apiClient.patch<FilterPatchResponse>(
       `/api/v1/dashboards/${dashboardId}/filters`,
       body,

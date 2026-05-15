@@ -39,6 +39,7 @@ function toItem(
 ): VersionHistoryItem {
   return {
     id: entry.id,
+    dashboardVersion: entry.dashboard_version,
     versionLabel: versionLabel(entry),
     // `updated_at` is nominally nullable for pre-migration edge cases.
     // Pass through as null and let `VersionRow` render a "Date unknown"

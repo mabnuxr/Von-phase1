@@ -21,6 +21,13 @@ export type VersionEntryKind =
 export interface VersionHistoryItem {
   /** Server version id (e.g. dashboard_version + status discriminator). */
   id: string;
+  /**
+   * Numeric `dashboard_version` from the BE — integer on published rows,
+   * decimal float on drafts (e.g. 3.0001). Fed into the render call's
+   * `?version=` param when the row is selected for preview from the
+   * version-history panel.
+   */
+  dashboardVersion: number;
   /** Short label rendered in the row chip — "v3", "v3.2", "Last published". */
   versionLabel: string;
   /** ISO datetime — drives the formatted "Today, 2:14 PM" line. `null`

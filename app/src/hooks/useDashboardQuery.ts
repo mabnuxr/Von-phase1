@@ -369,20 +369,35 @@ interface DashboardQueryData {
  *      publishing — naturally busts the render cache and refetches
  *      the right snapshot.
  *
+ * `previewVersion` (when provided) bypasses step 2 and pins render to
+ * a specific historical `dashboard_version`. Used by the
+ * version-history panel: clicking a row swaps the canvas to that
+ * version without touching metadata. Passing `null` (the default)
+ * keeps the metadata-driven version.
+ *
  * Consumers see the same `{ dashboard, refreshInfo, activeFilters }`
  * shape and `isLoading` semantics (true while either step is in
  * flight) so no caller code changes shape.
  */
-export function useDashboardQuery(dashboardId: string | undefined) {
+export function useDashboardQuery(
+  dashboardId: string | undefined,
+  previewVersion?: number | null,
+) {
   const metadataQuery = useDashboardMetadata(dashboardId, {
     enabled: !!dashboardId,
   });
 
-  const version = metadataQuery.data
+  const metadataVersion = metadataQuery.data
     ? metadataQuery.data.is_editable
       ? metadataQuery.data.editable_version
       : metadataQuery.data.latest_published_version
     : null;
+  // Preview wins — the version-history panel's selection takes
+  // precedence over the metadata-derived default while open.
+  const version =
+    previewVersion !== undefined && previewVersion !== null
+      ? previewVersion
+      : metadataVersion;
 
   const renderQuery = useQuery<DashboardQueryData>({
     queryKey: dashboardKeys.render(dashboardId ?? "", version),
@@ -441,6 +456,12 @@ export function useDashboardQuery(dashboardId: string | undefined) {
     isError: metadataQuery.isError || renderQuery.isError,
     isSuccess: metadataQuery.isSuccess && renderQuery.isSuccess,
     refetch: renderQuery.refetch,
+    // Surfaced separately because consumers (e.g. the version-history
+    // preview chip) need to compare the currently-rendered version
+    // against the live published pointer — and that pointer lives only
+    // on the metadata payload, not on the render response itself.
+    latestPublishedVersion:
+      metadataQuery.data?.latest_published_version ?? null,
   };
 }
 
