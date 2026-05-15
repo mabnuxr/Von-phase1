@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import parse, { NodeType, type Node } from 'slack-message-parser';
+import * as emoji from 'node-emoji';
 import {
   CopyIcon,
   CheckIcon,
@@ -9,7 +9,6 @@ import {
   AtIcon,
   UsersThreeIcon,
   ArrowSquareOutIcon,
-  ChatTeardropTextIcon,
 } from '@phosphor-icons/react';
 
 /**
@@ -46,8 +45,13 @@ class SlackComposerConfig {
     text: 'text-indigo-700',
   } as const;
 
-  /** URL scheme the backend uses to mark a resolved user mention. */
-  static readonly mentionScheme = 'mention:';
+  /**
+   * Backend convention: `[@Name](mention:U…)` markdown link → bridged to
+   * Slack-native `<@U…|@Name>` before parsing so the AST emits a labelled
+   * UserLink node. Brackets/backslashes inside the name come pre-escaped
+   * from the backend; we strip those escapes when bridging.
+   */
+  static readonly mentionLinkRe = /\[@((?:\\[\\[\]]|[^\]])+)\]\(mention:(U[A-Z0-9]+)\)/g;
 }
 
 export type SlackConversationType = 'channel' | 'dm' | 'group_dm';
@@ -110,15 +114,224 @@ function deduplicateLabels(messages: SlackMessageData[]): SlackMessageData[] {
   });
 }
 
+/**
+ * Bridge the backend's `[@Name](mention:U…)` markdown-link convention back to
+ * Slack-native `<@U…|@Name>` so `slack-message-parser` emits a labelled
+ * UserLink node. Unescapes `\[`, `\]`, `\\` that the backend inserted to keep
+ * the markdown link parseable.
+ */
+function bridgeMentionLinks(text: string): string {
+  return text.replace(SlackComposerConfig.mentionLinkRe, (_match, escapedName, userId) => {
+    const name = (escapedName as string)
+      .replace(/\\\\/g, '\\')
+      .replace(/\\\[/g, '[')
+      .replace(/\\\]/g, ']');
+    return `<@${userId}|@${name}>`;
+  });
+}
+
+/** Render a `slack-message-parser` AST as React, preserving Slack formatting. */
+function renderSlackMrkdwn(text: string): React.ReactNode {
+  const tree = parse(bridgeMentionLinks(text));
+  return renderSlackChildren(tree.children, 'root');
+}
+
+function renderSlackChildren(nodes: Node[], parentKey: string): React.ReactNode {
+  return nodes.map((node, i) => renderSlackNode(node, `${parentKey}.${i}`));
+}
+
+function renderSlackNode(node: Node, key: string): React.ReactNode {
+  switch (node.type) {
+    case NodeType.Text:
+      return <React.Fragment key={key}>{node.text}</React.Fragment>;
+    case NodeType.Bold:
+      return (
+        <strong key={key} className="font-semibold">
+          {renderSlackChildren(node.children, key)}
+        </strong>
+      );
+    case NodeType.Italic:
+      return <em key={key}>{renderSlackChildren(node.children, key)}</em>;
+    case NodeType.Strike:
+      return (
+        <span key={key} className="line-through">
+          {renderSlackChildren(node.children, key)}
+        </span>
+      );
+    case NodeType.Code:
+      return (
+        <code
+          key={key}
+          className="px-1 py-0.5 rounded bg-gray-100 text-[0.85em] text-gray-800 font-mono"
+        >
+          {node.text}
+        </code>
+      );
+    case NodeType.PreText:
+      return (
+        <pre
+          key={key}
+          className="my-1.5 p-2 rounded bg-gray-100 text-xs font-mono whitespace-pre overflow-x-auto"
+        >
+          <code>{node.text}</code>
+        </pre>
+      );
+    case NodeType.Quote:
+      return (
+        <blockquote key={key} className="border-l-2 border-gray-300 pl-2 my-1 text-gray-700">
+          {renderSlackChildren(node.children, key)}
+        </blockquote>
+      );
+    case NodeType.Emoji: {
+      const unicode = emoji.get(node.name);
+      return (
+        <span key={key} aria-label={node.name}>
+          {unicode ?? `:${node.name}:`}
+        </span>
+      );
+    }
+    case NodeType.URL: {
+      const label = node.label ? renderSlackChildren(node.label, key) : node.url;
+      return (
+        <a
+          key={key}
+          href={safeHref(node.url)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          {label}
+        </a>
+      );
+    }
+    case NodeType.UserLink: {
+      const label = node.label ? renderSlackChildren(node.label, key) : `@${node.userID}`;
+      return (
+        <span key={key} className={`font-medium ${SlackComposerConfig.mention.text}`}>
+          {label}
+        </span>
+      );
+    }
+    case NodeType.ChannelLink: {
+      const label = node.label ? renderSlackChildren(node.label, key) : `#${node.channelID}`;
+      return (
+        <span key={key} className="font-medium text-indigo-700">
+          {label}
+        </span>
+      );
+    }
+    case NodeType.Command: {
+      const label = node.label ? renderSlackChildren(node.label, key) : `@${node.name}`;
+      return (
+        <span key={key} className="font-medium text-indigo-700">
+          {label}
+        </span>
+      );
+    }
+    case NodeType.Root:
+      return <React.Fragment key={key}>{renderSlackChildren(node.children, key)}</React.Fragment>;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Allowlist navigable URL schemes. Since `displayText` is LLM/agent-authored,
+ * a crafted `<javascript:alert(1)|click>` would otherwise render as a live
+ * XSS vector in both the React tree and the clipboard `text/html` payload.
+ * The old react-markdown pipeline ran `defaultUrlTransform` which did the
+ * same — re-introducing the gate at the AST boundary keeps that protection.
+ */
+function safeHref(url: string): string {
+  try {
+    const scheme = new URL(url, window.location.href).protocol.toLowerCase();
+    return ['http:', 'https:', 'mailto:', 'tel:'].includes(scheme) ? url : '#';
+  } catch {
+    return '#';
+  }
+}
+
+/** HTML-escape so AST text content can't break out of the clipboard payload. */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Render the Slack AST to HTML for the clipboard's `text/html` payload.
+ * Mirrors the React renderer's tag choices so paste-into-Slack / Notion /
+ * Google Docs sees the same structure the user sees on screen.
+ */
+function slackMrkdwnToHtml(text: string): string {
+  const tree = parse(bridgeMentionLinks(text));
+  return tree.children.map(nodeToHtml).join('');
+}
+
+function nodeToHtml(node: Node): string {
+  switch (node.type) {
+    case NodeType.Text:
+      // Preserve intra-paragraph line breaks — HTML otherwise collapses them.
+      return escapeHtml(node.text).replace(/\n/g, '<br>');
+    case NodeType.Bold:
+      return `<strong>${node.children.map(nodeToHtml).join('')}</strong>`;
+    case NodeType.Italic:
+      return `<em>${node.children.map(nodeToHtml).join('')}</em>`;
+    case NodeType.Strike:
+      return `<s>${node.children.map(nodeToHtml).join('')}</s>`;
+    case NodeType.Code:
+      return `<code>${escapeHtml(node.text)}</code>`;
+    case NodeType.PreText:
+      return `<pre><code>${escapeHtml(node.text)}</code></pre>`;
+    case NodeType.Quote:
+      return `<blockquote>${node.children.map(nodeToHtml).join('')}</blockquote>`;
+    case NodeType.Emoji: {
+      const unicode = emoji.get(node.name);
+      return escapeHtml(unicode ?? `:${node.name}:`);
+    }
+    case NodeType.URL: {
+      const label = node.label ? node.label.map(nodeToHtml).join('') : escapeHtml(node.url);
+      return `<a href="${escapeHtml(safeHref(node.url))}">${label}</a>`;
+    }
+    case NodeType.UserLink: {
+      const label = node.label
+        ? node.label.map(nodeToHtml).join('')
+        : `@${escapeHtml(node.userID)}`;
+      return `<span>${label}</span>`;
+    }
+    case NodeType.ChannelLink: {
+      const label = node.label
+        ? node.label.map(nodeToHtml).join('')
+        : `#${escapeHtml(node.channelID)}`;
+      return `<span>${label}</span>`;
+    }
+    case NodeType.Command: {
+      const label = node.label ? node.label.map(nodeToHtml).join('') : `@${escapeHtml(node.name)}`;
+      return `<span>${label}</span>`;
+    }
+    case NodeType.Root:
+      return node.children.map(nodeToHtml).join('');
+    default:
+      return '';
+  }
+}
+
 function ConversationPill({ type, display }: { type: SlackConversationType; display: string }) {
   const Icon = type === 'channel' ? HashIcon : type === 'dm' ? AtIcon : UsersThreeIcon;
   const { text, bg, border } = SlackComposerConfig.pill;
+  // Strip the leading sigil — the icon already conveys channel/DM, so backend payloads
+  // shaped like "#ext-globex" or "@sarah" would otherwise render as "# #ext-globex".
+  const sigil = type === 'channel' ? '#' : type === 'dm' ? '@' : null;
+  const label = sigil && display.startsWith(sigil) ? display.slice(1) : display;
   return (
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-md ${text} ${bg} border ${border}`}
     >
       <Icon size={12} weight="bold" className="shrink-0" />
-      <span className="truncate max-w-50">{display}</span>
+      <span className="truncate max-w-50">{label}</span>
     </span>
   );
 }
@@ -165,12 +378,31 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
   const handleCopyBody = useCallback(async () => {
     if (!current) return;
     const plain = current.textPlain ?? current.text;
+    const html = slackMrkdwnToHtml(current.displayText ?? current.text);
     try {
-      await navigator.clipboard.writeText(plain);
+      // Write both formats — Slack/Notion/Docs pick HTML and preserve styling;
+      // plain editors fall back to text/plain. ClipboardItem isn't on older
+      // Safari / non-secure contexts, so fall through to writeText.
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([plain], { type: 'text/plain' }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plain);
+      }
       setBodyCopied(true);
       setTimeout(() => setBodyCopied(false), 2000);
     } catch {
-      // Clipboard unavailable (permissions denied / non-secure context)
+      try {
+        await navigator.clipboard.writeText(plain);
+        setBodyCopied(true);
+        setTimeout(() => setBodyCopied(false), 2000);
+      } catch {
+        // Clipboard unavailable (permissions denied / non-secure context)
+      }
     }
   }, [current]);
 
@@ -185,7 +417,7 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
       style={{ maxHeight }}
     >
       {/* Provider strip */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 shrink-0">
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-100 shrink-0">
         <img
           src={SlackComposerConfig.iconUrl}
           alt={SlackComposerConfig.label}
@@ -198,7 +430,7 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
       {/* Tabs — only when multiple messages */}
       {dedupedMessages.length > 1 && (
         <>
-          <div className="flex items-center gap-1 px-3 py-2 shrink-0 overflow-x-auto">
+          <div className="flex items-center gap-1 px-3 py-2 shrink-0 overflow-x-auto settings-scrollbar">
             {dedupedMessages.map((m, i) => (
               <button
                 key={m.id ?? `${m.conversationId}::${m.threadTs ?? ''}::${m.tabLabel ?? i}`}
@@ -235,7 +467,9 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
       {/* Thread context */}
       {current.threadTs && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border-b border-gray-100 shrink-0 text-xs text-gray-600">
-          <ChatTeardropTextIcon size={12} className="text-gray-500" />
+          <span aria-hidden="true" className="text-gray-500 leading-none">
+            ↳
+          </span>
           <span>
             {current.threadContext ?? 'Replying in thread'}
             {current.replyBroadcast && ' (also posting to channel)'}
@@ -243,33 +477,10 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
         </div>
       )}
 
-      {/* Body — scrollable */}
+      {/* Body — scrollable, rendered from Slack mrkdwn AST */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
-        <div className="text-sm text-gray-900 leading-relaxed markdown-content">
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            urlTransform={(url) =>
-              url.startsWith(SlackComposerConfig.mentionScheme) ? url : defaultUrlTransform(url)
-            }
-            components={{
-              a: ({ href, children, ...rest }) => {
-                if (href?.startsWith(SlackComposerConfig.mentionScheme)) {
-                  return (
-                    <span className={`font-medium ${SlackComposerConfig.mention.text}`}>
-                      {children}
-                    </span>
-                  );
-                }
-                return (
-                  <a href={href} target="_blank" rel="noopener noreferrer" {...rest}>
-                    {children}
-                  </a>
-                );
-              },
-            }}
-          >
-            {current.displayText ?? current.text}
-          </ReactMarkdown>
+        <div className="text-sm text-gray-900 leading-relaxed markdown-content whitespace-pre-wrap">
+          {renderSlackMrkdwn(current.displayText ?? current.text)}
         </div>
       </div>
 
@@ -305,10 +516,11 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
                 href={currentPermalink}
                 target="_blank"
                 rel="noopener noreferrer"
+                title="View in Slack"
                 className="flex items-center gap-2 h-8.5 px-3 text-sm font-medium text-emerald-700 bg-emerald-50 rounded-xl border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
               >
                 <CheckIcon size={14} weight="bold" />
-                View in Slack
+                Sent
                 <ArrowSquareOutIcon size={12} />
               </a>
             ) : (
@@ -331,7 +543,7 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
           ) : (
             <button
               onClick={() => onSend?.(activeTab)}
-              className="flex items-center gap-2 h-8.5 px-3.5 text-sm font-medium text-white bg-von-purple rounded-xl hover:opacity-90 transition-opacity cursor-pointer"
+              className="flex items-center gap-2 h-8.5 px-3.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
             >
               Send
             </button>
