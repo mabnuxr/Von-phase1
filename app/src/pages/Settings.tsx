@@ -115,14 +115,21 @@ const Settings = () => {
     }
   }, [searchParams]);
 
-  const getTabLabel = (tabId: string) => TAB_LABELS[tabId] ?? tabId;
+  const getTabLabel = useCallback(
+    (tabId: string) => TAB_LABELS[tabId] ?? tabId,
+    [],
+  );
 
   const pageViewCaptured = useRef(false);
-  useEffect(() => {
+  const trackSettingsPageView = useCallback(() => {
     if (!user || pageViewCaptured.current) return;
     report.settingsPageViewed();
     pageViewCaptured.current = true;
   }, [user, report]);
+
+  useEffect(() => {
+    trackSettingsPageView();
+  }, [trackSettingsPageView]);
 
   // Update URL when tab changes
   const handleTabChange = (tabId: string) => {

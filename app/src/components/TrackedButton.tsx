@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { Button, type ButtonProps } from "@vonlabs/design-components";
 import { track } from "../lib/analytics/tracker";
 import type { EventName, EventProps } from "../lib/analytics/events";
@@ -26,12 +26,15 @@ export function TrackedButton<E extends EventName>({
   onClick,
   ...rest
 }: TrackedButtonProps<E>) {
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (phEvent && phProps !== undefined) {
-      track(phEvent, phProps);
-    }
-    onClick?.(e);
-  };
+  const handleClick = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (phEvent && phProps !== undefined) {
+        track(phEvent, phProps);
+      }
+      onClick?.(e);
+    },
+    [phEvent, phProps, onClick],
+  );
 
   return <Button {...rest} onClick={handleClick} />;
 }
