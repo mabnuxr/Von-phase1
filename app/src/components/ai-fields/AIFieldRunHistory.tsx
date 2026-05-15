@@ -7,7 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import { useAiFieldRuns } from "../../hooks/useVonAiFields";
 import useAiFieldsStore from "../../store/vonAiFieldsStore";
-import { formatTimeAgo } from "../../utils/formatTimeAgo";
+import { formatRunTime } from "../../utils/formatRunTime";
 import { config } from "../../config";
 
 // ─── Component ──────────────────────────────────────────────
@@ -114,7 +114,7 @@ export function AIFieldRunHistory() {
                         <td
                           className={`px-3.5 py-2.5 text-gray-900 font-medium ${i < runs.length - 1 ? "border-b border-dashed border-gray-100" : ""}`}
                         >
-                          {formatTimeAgo(run.createdAt)}
+                          {formatRunTime(run.createdAt)}
                         </td>
                         <td
                           className={`px-3.5 py-2.5 text-gray-500 ${i < runs.length - 1 ? "border-b border-dashed border-gray-100" : ""}`}

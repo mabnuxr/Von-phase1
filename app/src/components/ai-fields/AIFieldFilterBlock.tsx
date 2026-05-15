@@ -27,7 +27,7 @@ export function AIFieldFilterBlock({ conditions }: AIFieldFilterBlockProps) {
           size={14}
           className={`text-gray-400 transition-transform ${collapsed ? "-rotate-90" : ""}`}
         />
-        <span className="text-sm font-medium text-gray-900">Filter</span>
+        <span className="text-sm font-medium text-gray-900">Run Criteria</span>
         <span className="text-xs text-gray-400">
           {conditions.length} condition{conditions.length !== 1 ? "s" : ""}
         </span>
@@ -37,10 +37,6 @@ export function AIFieldFilterBlock({ conditions }: AIFieldFilterBlockProps) {
       {/* Body */}
       {!collapsed && (
         <div className="px-3.5 py-3">
-          <p className="text-xs text-gray-400 m-0 mb-3">
-            Which opportunity records this applies to. Use AND or OR within a
-            block. Multiple blocks are joined with OR.
-          </p>
           <div
             className="grid gap-y-1.5 gap-x-2 items-center"
             style={{

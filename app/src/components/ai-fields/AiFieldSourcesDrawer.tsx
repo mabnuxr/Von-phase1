@@ -12,7 +12,8 @@ import { INTEGRATION_METADATA } from "../../constants/integrationMetadata";
 // Identical visual behavior (pill trigger → slide-in panel) but adds support
 // for call-recorder provider logos: when a source string contains the name
 // of a known call recorder (e.g. "Gong calls", "fathom calls"), the matching
-// provider's logo replaces the generic phone icon. Label stays "Calls".
+// provider's logo replaces the generic phone icon, and the label is
+// prefixed with the provider name (e.g. "Gong Calls", "Fathom Calls").
 
 // Call-recorder integrations we recognize. Engagement-only IDs (gongengage,
 // outreachengage, salesloft_engagement) are intentionally excluded.
@@ -54,12 +55,27 @@ interface ResolvedSource {
   providerName?: string;
 }
 
+// When both the CRM (Salesforce) and Emails sources are present, fold them
+// into a single row labelled "Salesforce and Emails" with the Salesforce
+// icon — emails typically come from the same CRM source, so listing them
+// twice is noise. If only one of the two is present, it's left as-is.
+function mergeCrmAndEmails(rows: ResolvedSource[]): ResolvedSource[] {
+  const hasCrm = rows.some((r) => r.kind === "crm");
+  const hasEmails = rows.some((r) => r.kind === "emails");
+  if (!hasCrm || !hasEmails) return rows;
+  return rows
+    .filter((r) => r.kind !== "emails")
+    .map((r) =>
+      r.kind === "crm" ? { ...r, label: "Salesforce and Emails" } : r,
+    );
+}
+
 function resolveSource(source: string): ResolvedSource {
   const provider = matchCallProvider(source);
   if (provider) {
     return {
       key: source,
-      label: "Calls",
+      label: `${provider.name} Calls`,
       kind: "provider",
       logoPath: provider.logoPath,
       providerName: provider.name,
@@ -70,7 +86,8 @@ function resolveSource(source: string): ResolvedSource {
     return { key: source, label: "Calls", kind: "calls" };
   if (lower.includes("email"))
     return { key: source, label: "Emails", kind: "emails" };
-  if (lower.includes("crm")) return { key: source, label: "CRM", kind: "crm" };
+  if (lower.includes("crm"))
+    return { key: source, label: "Salesforce", kind: "crm" };
   return {
     key: source,
     label: source.charAt(0).toUpperCase() + source.slice(1),
@@ -141,7 +158,7 @@ export function AiFieldSourcesDrawer({ sources }: AiFieldSourcesDrawerProps) {
 
   if (!sources || sources.length === 0) return null;
 
-  const resolved = sources.map(resolveSource);
+  const resolved = mergeCrmAndEmails(sources.map(resolveSource));
 
   return (
     <>

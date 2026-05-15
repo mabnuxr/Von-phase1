@@ -6,8 +6,9 @@ import {
   useDisableField,
   useAiFieldConversations,
 } from "../hooks/useVonAiFields";
+import { useUser } from "../hooks/useUser";
 import type { AiField } from "../types/vonAiFields";
-import { formatTimeAgo } from "../utils/formatTimeAgo";
+import { formatRunTime } from "../utils/formatRunTime";
 import { DotsThreeIcon, CaretRightIcon, PlusIcon } from "@phosphor-icons/react";
 
 interface VonAiFieldRowProps {
@@ -18,6 +19,11 @@ interface VonAiFieldRowProps {
 export function VonAiFieldRow({ field, onRowClick }: VonAiFieldRowProps) {
   const navigate = useNavigate();
   const { setDeletingFieldId } = useAiFieldsStore();
+  const { user } = useUser();
+  // Edit / Delete are only available to the field's creator. Until the user
+  // is loaded we hide the kebab to avoid flashing it for non-owners — the
+  // list rerenders once `user` resolves.
+  const isOwner = !!user?.id && field.createdBy === user.id;
   const activateMutation = useActivateField();
   const disableMutation = useDisableField();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -85,7 +91,7 @@ export function VonAiFieldRow({ field, onRowClick }: VonAiFieldRowProps) {
     else handleActivate();
   };
 
-  const lastRun = field.lastRunAt ? formatTimeAgo(field.lastRunAt) : "\u2014";
+  const lastRun = formatRunTime(field.lastRunAt);
 
   return (
     <tr
@@ -144,86 +150,90 @@ export function VonAiFieldRow({ field, onRowClick }: VonAiFieldRowProps) {
         )}
       </td>
 
-      {/* Kebab menu */}
+      {/* Kebab menu — only the field's creator can edit or delete it.
+          Render an empty cell for non-owners so the column width stays
+          consistent across rows. */}
       <td className="px-2 py-4" onClick={(e) => e.stopPropagation()}>
-        <div ref={menuRef}>
-          <button
-            ref={btnRef}
-            onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
-            className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
-          >
-            <DotsThreeIcon size={20} weight="bold" />
-          </button>
-
-          {menuOpen && menuPos && (
-            <div
-              className="fixed w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1"
-              style={{ top: menuPos.top, left: menuPos.left }}
+        {isOwner && (
+          <div ref={menuRef}>
+            <button
+              ref={btnRef}
+              onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
+              className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 cursor-pointer transition-colors"
             >
-              {/* Edit in chat — with submenu */}
+              <DotsThreeIcon size={20} weight="bold" />
+            </button>
+
+            {menuOpen && menuPos && (
               <div
-                className="relative"
-                onMouseEnter={() => setSubMenuOpen(true)}
-                onMouseLeave={() => setSubMenuOpen(false)}
+                className="fixed w-[180px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1"
+                style={{ top: menuPos.top, left: menuPos.left }}
               >
-                <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer">
-                  Edit in chat
-                  <CaretRightIcon size={12} className="text-gray-400" />
-                </button>
+                {/* Edit in chat — with submenu */}
+                <div
+                  className="relative"
+                  onMouseEnter={() => setSubMenuOpen(true)}
+                  onMouseLeave={() => setSubMenuOpen(false)}
+                >
+                  <button className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer">
+                    Edit in chat
+                    <CaretRightIcon size={12} className="text-gray-400" />
+                  </button>
 
-                {subMenuOpen && (
-                  <div className="absolute top-0 right-full mr-1 w-[280px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1">
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
-                      Recent conversations
-                    </div>
-                    {conversations.length > 0 ? (
-                      conversations.slice(0, 5).map((c) => (
-                        <button
-                          key={c.conversationId}
-                          onClick={() => {
-                            navigate(
-                              `/chat/${c.conversationId}?aiFieldId=${field.fieldId}`,
-                            );
-                            setMenuOpen(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer truncate"
-                        >
-                          {c.title}
-                        </button>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-xs text-gray-400">
-                        No conversations yet
+                  {subMenuOpen && (
+                    <div className="absolute top-0 right-full mr-1 w-[280px] bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-1">
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.06em] text-gray-400">
+                        Recent conversations
                       </div>
-                    )}
-                    <div className="h-px bg-gray-100 my-1" />
-                    <button
-                      onClick={() => {
-                        navigate(`/chat?aiFieldId=${field.fieldId}`);
-                        setMenuOpen(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer"
-                    >
-                      <PlusIcon size={12} />
-                      New chat about this field
-                    </button>
-                  </div>
-                )}
-              </div>
+                      {conversations.length > 0 ? (
+                        conversations.slice(0, 5).map((c) => (
+                          <button
+                            key={c.conversationId}
+                            onClick={() => {
+                              navigate(
+                                `/chat/${c.conversationId}?aiFieldId=${field.fieldId}`,
+                              );
+                              setMenuOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer truncate"
+                          >
+                            {c.title}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-xs text-gray-400">
+                          No conversations yet
+                        </div>
+                      )}
+                      <div className="h-px bg-gray-100 my-1" />
+                      <button
+                        onClick={() => {
+                          navigate(`/chat?aiFieldId=${field.fieldId}`);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md cursor-pointer"
+                      >
+                        <PlusIcon size={12} />
+                        New chat about this field
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-              <div className="h-px bg-gray-100 my-1" />
-              <button
-                onClick={() => {
-                  setDeletingFieldId(field.fieldId);
-                  setMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer"
-              >
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
+                <div className="h-px bg-gray-100 my-1" />
+                <button
+                  onClick={() => {
+                    setDeletingFieldId(field.fieldId);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </td>
     </tr>
   );

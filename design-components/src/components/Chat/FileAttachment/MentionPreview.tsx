@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, ChartBarIcon, ChartPieSliceIcon, LightningIcon } from '@phosphor-icons/react';
+import { X, ChartBarIcon, ChartPieSliceIcon } from '@phosphor-icons/react';
 import type { MentionItem } from '../../Mentions/types';
 import { MentionItemType } from '../../Mentions/constants';
+import { AiFieldGlyph } from '../../Mentions/AiFieldGlyph';
 
 export interface MentionPreviewProps {
   /** The mention item to preview */
@@ -14,7 +15,7 @@ export interface MentionPreviewProps {
 
 function getPreviewIcon(mention: MentionItem) {
   if (mention.type === MentionItemType.AiField) {
-    return <LightningIcon size={14} weight="fill" className="text-gray-800 flex-shrink-0" />;
+    return <AiFieldGlyph size={14} className="text-gray-800 flex-shrink-0" />;
   }
   if (mention.type === MentionItemType.Widget) {
     return <ChartPieSliceIcon size={14} weight="regular" className="text-gray-800 flex-shrink-0" />;

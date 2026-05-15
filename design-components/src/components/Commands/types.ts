@@ -121,7 +121,9 @@ export interface Command {
   updatedAt: string;
   // Fields populated when mapped from the API response
   description?: string;
-  sharingScope?: 'private' | 'org';
+  sharingScope?: SharingScope;
+  /** User IDs this command is explicitly shared with (only set when sharingScope === 'specific') */
+  sharedUserIds?: string[];
   isFavorite?: boolean;
   usageCount?: number;
   lastUsedAt?: string;
@@ -166,11 +168,12 @@ export const SORT_OPTIONS: { value: CommandSortOption; label: string }[] = [
   { value: 'created_by_me', label: 'Created by me' },
 ];
 
-export type SharingScope = 'private' | 'org';
+export type SharingScope = 'private' | 'org' | 'specific';
 
 export const SHARING_SCOPE_LABELS: Record<SharingScope, string> = {
   private: 'Private',
   org: 'Org-wide',
+  specific: 'Specific people',
 };
 
 /**

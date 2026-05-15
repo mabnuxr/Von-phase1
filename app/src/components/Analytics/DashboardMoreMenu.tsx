@@ -1,11 +1,29 @@
 import { useEffect, useRef } from "react";
-import { DotsThreeVerticalIcon, FolderSimpleIcon } from "@phosphor-icons/react";
+import {
+  ClockCounterClockwiseIcon,
+  DotsThreeVerticalIcon,
+  FolderSimpleIcon,
+} from "@phosphor-icons/react";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./ManageFoldersModal";
 
 interface DashboardMoreMenuProps {
   dashboardId: string;
   dashboardName: string;
+  /**
+   * Reveals the "Version history" entry. Owner + Editor only — viewers
+   * can't act on history rows (no continue-draft or restore), so the
+   * item is hidden. When this is the only entry and it's hidden, the
+   * caller can drop the whole menu (the design hides the overflow when
+   * empty, but folder-add is always present today so the menu always
+   * renders).
+   */
+  showVersionHistory?: boolean;
+  onOpenVersionHistory?: () => void;
+  /** Whether the dashboard has an active draft. Toggles the subtitle copy:
+   *  "Restore an older draft or published version." vs "Browse past
+   *  published versions." */
+  hasActiveDraft?: boolean;
 }
 
 /**
@@ -18,6 +36,9 @@ interface DashboardMoreMenuProps {
 export function DashboardMoreMenu({
   dashboardId,
   dashboardName,
+  showVersionHistory = false,
+  onOpenVersionHistory,
+  hasActiveDraft = false,
 }: DashboardMoreMenuProps) {
   const {
     isVisible: isMenuOpen,
@@ -57,7 +78,7 @@ export function DashboardMoreMenu({
         </button>
 
         {isMenuOpen && (
-          <div className="absolute top-full right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden p-1 min-w-[12rem]">
+          <div className="absolute top-full right-0 mt-1 bg-white border border-gray-100 rounded-2xl shadow-lg z-50 overflow-hidden p-1.5 w-60">
             <button
               onClick={() => {
                 closeMenu();
@@ -72,6 +93,31 @@ export function DashboardMoreMenu({
               />
               Add to Folder
             </button>
+            {showVersionHistory && (
+              <button
+                onClick={() => {
+                  closeMenu();
+                  onOpenVersionHistory?.();
+                }}
+                className="w-full flex items-start gap-2.5 px-3 py-2 text-left rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <ClockCounterClockwiseIcon
+                  size={14}
+                  weight="regular"
+                  className="flex-shrink-0 mt-0.5 text-gray-500"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[12.5px] font-medium text-gray-900">
+                    Version history
+                  </div>
+                  <div className="text-[11px] text-gray-400 mt-0.5 leading-snug">
+                    {hasActiveDraft
+                      ? "Restore an older draft or published version."
+                      : "Browse past versions."}
+                  </div>
+                </div>
+              </button>
+            )}
           </div>
         )}
       </div>

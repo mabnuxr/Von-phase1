@@ -9,17 +9,20 @@ interface VonAiFieldsTabProps {
 export function VonAiFieldsTab({ onRowClick }: VonAiFieldsTabProps) {
   const navigate = useNavigate();
 
-  // Sends the user to a fresh chat with a starter prompt for creating an AI
-  // field. The first sentence has a `___` blank for the field topic; the
-  // second sentence pins the scope so the assistant knows the field runs
-  // against the open-opps-this-quarter record set.
+  // Sends the user to a fresh chat with a structured template the user
+  // fills in. The two numbered prompts cover what the field should
+  // compute and which records it should run on — matching how the AI
+  // Field creation flow asks for those two pieces of information.
   //
   // Mirrors the SharedConversation → NewConversation router-state pattern.
   const handleCreate = () => {
     navigate("/chat/new", {
       state: {
-        initialInput:
-          "Create an AI field for ___. Run it on all open opportunities created in this quarter.",
+        initialInput: [
+          "Create an AI Field with the following details",
+          "1. Information to compute (what Von should compute for each opp):",
+          "2. Run criteria (which opps should this run on):",
+        ].join("\n"),
       },
     });
   };
@@ -56,6 +59,15 @@ export function VonAiFieldsTab({ onRowClick }: VonAiFieldsTabProps) {
         <div className="pt-6 pb-12 w-full max-w-4xl mx-auto">
           <VonAiFieldsPanel onRowClick={onRowClick} />
         </div>
+      </div>
+
+      {/* Footer note - pinned at the bottom, outside the scroll area */}
+      <div className="border-t border-gray-200 px-6 py-3 shrink-0">
+        <p className="text-xs text-gray-400 m-0 max-w-4xl mx-auto">
+          AI Fields aren&apos;t shown as fields on records. Von uses them across
+          chat and dashboards, and you can export by record with filters and
+          time period.
+        </p>
       </div>
     </div>
   );

@@ -9,7 +9,9 @@ interface ToastProviderProps {
 /**
  * ToastProvider - Global toast notification manager
  *
- * Renders toasts in the top-right corner of the screen.
+ * Renders toasts in the top-right corner of the viewport, offset down
+ * from the top edge so they sit clear of right-aligned header controls
+ * (e.g. the AI field side panel's "View in Settings" / close buttons).
  * Supports multiple simultaneous toasts stacked vertically.
  *
  * @example
@@ -44,8 +46,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
 
-      {/* Toast container - fixed below TopBar, right side */}
-      <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2">
+      {/* Toast container - anchored to the top-right corner of the
+          viewport, offset down so it clears right-aligned header buttons. */}
+      <div className="fixed top-[60px] right-4 z-[9999] flex flex-col items-end gap-2">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}

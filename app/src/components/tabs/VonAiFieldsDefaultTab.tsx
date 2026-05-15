@@ -1,11 +1,14 @@
 import { VonAiFieldsDefaultPanel } from "../VonAiFieldsDefaultPanel";
+import type { DefaultAiFieldDefinition } from "../../types/vonAiFields";
 
 interface VonAiFieldsDefaultTabProps {
   onRowClick: (fieldId: string) => void;
+  onDefaultPreview?: (definition: DefaultAiFieldDefinition) => void;
 }
 
 export function VonAiFieldsDefaultTab({
   onRowClick,
+  onDefaultPreview,
 }: VonAiFieldsDefaultTabProps) {
   return (
     <div className="flex flex-col h-full p-2">
@@ -28,8 +31,20 @@ export function VonAiFieldsDefaultTab({
 
       <div className="flex-1 justify-center overflow-y-auto settings-scrollbar px-6">
         <div className="pt-6 pb-12 w-full max-w-4xl mx-auto">
-          <VonAiFieldsDefaultPanel onRowClick={onRowClick} />
+          <VonAiFieldsDefaultPanel
+            onRowClick={onRowClick}
+            onDefaultPreview={onDefaultPreview}
+          />
         </div>
+      </div>
+
+      {/* Footer note - pinned at the bottom, outside the scroll area */}
+      <div className="border-t border-gray-200 px-6 py-3 shrink-0">
+        <p className="text-xs text-gray-400 m-0 max-w-4xl mx-auto">
+          Default AI Fields are provided by Von and can&apos;t be edited or
+          deleted. Enable the ones you want and they&apos;ll run on the same
+          schedule as your custom fields.
+        </p>
       </div>
     </div>
   );
