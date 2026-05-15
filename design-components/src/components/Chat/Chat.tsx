@@ -55,7 +55,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onArtifactClick,
       showArtifacts = false,
       renderArtifactCard,
-      renderGroupedEmailArtifacts,
+      groupedArtifactRenderers,
       onFileArtifactClick,
       onArtifactDownload,
       onGoogleDriveClick,
@@ -388,9 +388,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                     onRequestFilePreviewUrl={onRequestFilePreviewUrl}
                     disableFileAttachments={disableFileAttachments}
                     renderArtifactCard={showArtifacts ? renderArtifactCard : undefined}
-                    renderGroupedEmailArtifacts={
-                      showArtifacts ? renderGroupedEmailArtifacts : undefined
-                    }
+                    groupedArtifactRenderers={showArtifacts ? groupedArtifactRenderers : undefined}
                     integrationBlocks={message.integrationBlocks}
                     isIntegrationConnected={isIntegrationConnected}
                     onIntegrate={onIntegrate}

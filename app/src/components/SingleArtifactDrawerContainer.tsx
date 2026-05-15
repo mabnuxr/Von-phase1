@@ -83,12 +83,18 @@ interface TransformedIQArtifact {
   rowCount: number;
 }
 
+interface TransformedMarkdownArtifact {
+  viewMode: "markdown";
+  markdown: string;
+}
+
 type TransformedArtifact =
   | TransformedDataArtifact
   | TransformedCallsArtifact
   | TransformedConversationsArtifact
   | TransformedMemoryArtifact
-  | TransformedIQArtifact;
+  | TransformedIQArtifact
+  | TransformedMarkdownArtifact;
 
 /**
  * Transform artifact content to display format
@@ -379,6 +385,13 @@ function transformArtifactToDisplayFormat(
     };
   }
 
+  // Handle markdown artifacts (e.g. unwrapped MCP tool responses)
+  if (artifact.artifact_type === "markdown") {
+    const md = content as { markdown?: string } | string | undefined;
+    const text = typeof md === "string" ? md : (md?.markdown ?? "");
+    return { viewMode: "markdown", markdown: text };
+  }
+
   // Handle generic table artifacts
   if (artifact.artifact_type === "table" || artifact.artifact_type === "json") {
     const genericContent = content as {
@@ -551,6 +564,21 @@ export const SingleArtifactDrawerContainer: React.FC<
         columns={displayData.columns}
         data={displayData.data}
         rowCount={displayData.rowCount}
+        isLoading={isLoading}
+        error={errorMessage}
+      />
+    );
+  }
+
+  if (displayData?.viewMode === "markdown") {
+    return (
+      <SingleArtifactDrawer
+        isOpen={isOpen}
+        onClose={onClose}
+        toolName={toolName}
+        queryName={queryName}
+        viewMode="markdown"
+        markdown={displayData.markdown}
         isLoading={isLoading}
         error={errorMessage}
       />

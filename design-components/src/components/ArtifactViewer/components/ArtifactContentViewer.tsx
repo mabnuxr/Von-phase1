@@ -318,12 +318,23 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
                             );
                           }
 
-                          // For text columns, use TruncatedTextCell with formatted value
+                          // For text columns, use TruncatedTextCell. Width scales
+                          // with column count and is capped so a single huge cell
+                          // can't dominate the viewer; rows clamp to 4 lines and
+                          // hover surfaces the full content.
+                          const cellMaxWidth = Math.max(
+                            220,
+                            Math.min(640, Math.floor(800 / Math.max(columns.length, 1)))
+                          );
                           return (
-                            <td key={col.key} className="px-3 py-2 text-sm text-left text-gray-700">
+                            <td
+                              key={col.key}
+                              className="px-3 py-2 text-sm text-left text-gray-700 align-top"
+                            >
                               <TruncatedTextCell
                                 value={formatValue(row[col.key], col.type)}
-                                maxWidth={200}
+                                maxWidth={cellMaxWidth}
+                                lines={4}
                                 className="text-gray-700"
                               />
                             </td>

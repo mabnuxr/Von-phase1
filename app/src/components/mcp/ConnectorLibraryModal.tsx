@@ -24,6 +24,7 @@ import type {
 } from "../../types/appCatalog";
 import { useToast } from "../../hooks/useToast";
 import { useUser } from "../../hooks/useUser";
+import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
 
 interface ConnectorLibraryModalProps {
@@ -79,6 +80,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+  const { isSlackMcpEnabled } = useFeatureFlag();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -104,8 +106,10 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   });
   const catalog = useMemo(() => {
     const items = catalogData?.items;
-    return Array.isArray(items) ? items : [];
-  }, [catalogData]);
+    const safe = Array.isArray(items) ? items : [];
+    if (isSlackMcpEnabled) return safe;
+    return safe.filter((e) => e.catalog_id !== "slack");
+  }, [catalogData, isSlackMcpEnabled]);
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextPage,
@@ -323,7 +327,7 @@ function ProceedConfirmModal({
   const [input, setInput] = useState("");
   const canProceed = input.trim().toUpperCase() === "PROCEED";
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+    <div className="fixed inset-0 z-60 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div
         className="relative bg-white rounded-2xl shadow-xl border border-gray-200 w-full max-w-md p-6 flex flex-col gap-4"
