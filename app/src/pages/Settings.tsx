@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, Profiler } from "react";
-import { useAnalytics } from "../lib/analytics/useAnalytics";
+import { report } from "../lib/analytics/tracker";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
@@ -51,7 +51,7 @@ const Settings = () => {
   const [searchParams] = useSearchParams();
   useAuthCheck();
   const { user } = useUser();
-  const { report } = useAnalytics();
+
   const {
     isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
@@ -125,7 +125,7 @@ const Settings = () => {
     if (!user || pageViewCaptured.current) return;
     report.settingsPageViewed();
     pageViewCaptured.current = true;
-  }, [user, report]);
+  }, [user]);
 
   useEffect(() => {
     trackSettingsPageView();
@@ -175,11 +175,11 @@ const Settings = () => {
   const handleBackToHome = useCallback(() => {
     report.settingsBackToHomeClicked(getTabLabel(selectedSettingId));
     navigate("/chat");
-  }, [report, selectedSettingId, navigate, getTabLabel]);
+  }, [selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {
     report.settingsHelpDocsClicked(getTabLabel(selectedSettingId));
-  }, [report, selectedSettingId, getTabLabel]);
+  }, [selectedSettingId, getTabLabel]);
 
   // Handle Logout click
   const handleLogoutClick = async () => {

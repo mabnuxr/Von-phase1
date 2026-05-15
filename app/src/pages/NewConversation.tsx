@@ -28,7 +28,7 @@ import { MentionItemType } from "@vonlabs/design-components";
 
 import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
-import { useAnalytics } from "../lib/analytics/useAnalytics";
+import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
@@ -43,7 +43,7 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
-  const { report } = useAnalytics();
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -159,7 +159,7 @@ const NewConversation = () => {
     if (!user || pageViewCaptured.current) return;
     report.chatPageViewed();
     pageViewCaptured.current = true;
-  }, [user, report]);
+  }, [user]);
 
   const {
     isAgentV2: isAgentV2Flag,
@@ -326,12 +326,9 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
-  const handleTemplateCategoryClick = useCallback(
-    (category: string) => {
-      report.chatTemplateCategoryClicked(category);
-    },
-    [report],
-  );
+  const handleTemplateCategoryClick = useCallback((category: string) => {
+    report.chatTemplateCategoryClicked(category);
+  }, []);
 
   const handleTemplateClick = useCallback(
     (template: { prompt: string; category: string }, position: number) => {
@@ -341,14 +338,14 @@ const NewConversation = () => {
         position,
       );
     },
-    [report],
+    [],
   );
 
   const handleTemplateArrowClick = useCallback(
     (_direction: string, activeCategory: string) => {
       report.chatSuggestedPromptArrowClicked(activeCategory);
     },
-    [report],
+    [],
   );
 
   const banner = isTenantDisabled ? (
