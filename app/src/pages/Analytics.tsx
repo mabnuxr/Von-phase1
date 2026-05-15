@@ -48,6 +48,9 @@ import {
 interface DashboardCanvasProps {
   dashboardId: string;
   onChatClick: () => void;
+  /** Explicit close handler — `onChatClick` is open-only here. The
+   *  version-history drawer uses this to vacate the right-edge slot. */
+  onCloseChat: () => void;
   isChatOpen: boolean;
   /** Click handler for the per-widget "Add to chat" icon (opens chat + adds mention). */
   onAddWidgetToChat: (widget: WidgetAddToChatPayload) => void;
@@ -61,6 +64,7 @@ interface DashboardCanvasProps {
 function DashboardCanvas({
   dashboardId,
   onChatClick,
+  onCloseChat,
   isChatOpen,
   onAddWidgetToChat,
 }: DashboardCanvasProps) {
@@ -288,6 +292,7 @@ function DashboardCanvas({
         onSaveDraft={handleSaveDraft}
         saveDraftPhase={saveDraftPhase}
         onChatClick={onChatClick}
+        onCloseChat={onCloseChat}
         isChatOpen={isChatOpen}
         onEditModeChange={editModeMutation.mutate}
         editModePhase={editModePhase}
@@ -575,6 +580,7 @@ const Analytics = () => {
           key={dashboardId}
           dashboardId={dashboardId}
           onChatClick={handleAskVonClick}
+          onCloseChat={closeChatPanel}
           isChatOpen={isChatPanelOpen}
           onAddWidgetToChat={handleAddWidgetToChat}
         />
