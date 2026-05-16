@@ -115,6 +115,12 @@ export function BaseIntegrationConfigPane({
   const [bigqueryServiceAccountJson, setBigqueryServiceAccountJson] =
     useState("");
 
+  // Slack Workspace bot-token state. The token is stored in Scalekit (not Von),
+  // but Von captures it from the user here and forwards to Scalekit via the
+  // standard API-key create path. Channel-pattern config is a separate pane
+  // surfaced via the gear icon on the connected tile.
+  const [slackWorkspaceBotToken, setSlackWorkspaceBotToken] = useState("");
+
   // Validation errors state
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
@@ -170,6 +176,12 @@ export function BaseIntegrationConfigPane({
         if (!attentionApiKey) {
           errors.push("API Key is required");
         }
+      }
+    }
+
+    if (integrationId === "slack_workspace") {
+      if (!hasExistingCredentials && !slackWorkspaceBotToken) {
+        errors.push("Bot Token is required");
       }
     }
 
@@ -345,6 +357,10 @@ export function BaseIntegrationConfigPane({
           if (attentionApiKey) {
             updateData.accessKey = attentionApiKey;
           }
+        } else if (integrationId === "slack_workspace") {
+          if (slackWorkspaceBotToken) {
+            updateData.accessKey = slackWorkspaceBotToken;
+          }
         } else if (integrationId === "salesloft_engagement") {
           if (salesloftApiKey) {
             updateData.accessKey = salesloftApiKey;
@@ -463,17 +479,19 @@ export function BaseIntegrationConfigPane({
           apiKey:
             integrationId === "attention"
               ? attentionApiKey
-              : integrationId === "salesloft_engagement"
-                ? salesloftApiKey
-                : integrationId === "jiminny"
-                  ? jiminnyApiKey
-                  : integrationId === "claricopilot"
-                    ? clariUsername
-                    : integrationId === "snowflake"
-                      ? snowflakeAccountId
-                      : integrationId === "databricks"
-                        ? databricksWorkspaceUrl
-                        : undefined,
+              : integrationId === "slack_workspace"
+                ? slackWorkspaceBotToken
+                : integrationId === "salesloft_engagement"
+                  ? salesloftApiKey
+                  : integrationId === "jiminny"
+                    ? jiminnyApiKey
+                    : integrationId === "claricopilot"
+                      ? clariUsername
+                      : integrationId === "snowflake"
+                        ? snowflakeAccountId
+                        : integrationId === "databricks"
+                          ? databricksWorkspaceUrl
+                          : undefined,
           // BigQuery service account JSON
           serviceAccountJson:
             integrationId === "bigquery"
@@ -492,6 +510,9 @@ export function BaseIntegrationConfigPane({
         }
         if (integrationId === "attention") {
           setAttentionApiKey("");
+        }
+        if (integrationId === "slack_workspace") {
+          setSlackWorkspaceBotToken("");
         }
         if (integrationId === "salesloft_engagement") {
           setSalesloftApiKey("");
@@ -872,6 +893,48 @@ export function BaseIntegrationConfigPane({
               )}
 
               {/* Attention-specific fields */}
+              {integrationId === "slack_workspace" && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Authentication type
+                    </label>
+                    <div className="flex items-center gap-1.5 text-sm text-purple-600">
+                      <svg
+                        className="size-4 shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
+                      </svg>
+                      <span>Bearer Token</span>
+                    </div>
+                  </div>
+                  <Input
+                    type="password"
+                    label="Bot Token"
+                    value={slackWorkspaceBotToken}
+                    onChange={(e) => setSlackWorkspaceBotToken(e.target.value)}
+                    placeholder={
+                      hasExistingCredentials ? "••••••••" : "xoxb-..."
+                    }
+                    helperText={
+                      hasExistingCredentials
+                        ? "Leave empty to keep existing bot token"
+                        : "Your Slack workspace bot token"
+                    }
+                    required={!hasExistingCredentials}
+                    fullWidth
+                  />
+                </>
+              )}
+
               {integrationId === "attention" && (
                 <>
                   {/* API Key */}

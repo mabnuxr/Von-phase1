@@ -34,7 +34,9 @@ import {
   TrashSimpleIcon,
   ShieldCheckIcon,
   CheckIcon,
+  GearIcon,
 } from "@phosphor-icons/react";
+import usePreferencesStore from "../store/preferencesStore";
 
 /**
  * Get backend user ID from stored user context (set during token exchange)
@@ -506,6 +508,9 @@ function IntegrationItem({
   onDelete,
 }: IntegrationItemProps) {
   const { connectedInstances, isConnected } = item;
+  const setConfiguringSlackChannels = usePreferencesStore(
+    (s) => s.setConfiguringSlackChannels,
+  );
 
   // Determine workspace and personal instances
   const workspace = connectedInstances.find((i) => i.accessLevel === "tenant");
@@ -695,6 +700,15 @@ function IntegrationItem({
               }
               onDelete={deleteHandler}
             />
+          ) : item.id === "slack_workspace" && workspace && !isLoading ? (
+            <button
+              onClick={() => setConfiguringSlackChannels(workspace.id)}
+              className="p-1.5 text-gray-500 hover:text-von-purple hover:bg-von-purple-50 rounded-lg cursor-pointer border-none bg-transparent"
+              aria-label="Configure channels"
+              title="Configure channels"
+            >
+              <GearIcon size={18} />
+            </button>
           ) : undefined
         }
       />
@@ -774,7 +788,16 @@ function IntegrationItem({
               : "Removes workspace connection"
           }
           actionSlot={
-            canEditScope && !workspaceIsLoading ? (
+            item.id === "slack_workspace" && !workspaceIsLoading ? (
+              <button
+                onClick={() => setConfiguringSlackChannels(workspace.id)}
+                className="p-1.5 text-gray-500 hover:text-von-purple hover:bg-von-purple-50 rounded-lg cursor-pointer border-none bg-transparent"
+                aria-label="Configure channels"
+                title="Configure channels"
+              >
+                <GearIcon size={18} />
+              </button>
+            ) : canEditScope && !workspaceIsLoading ? (
               <IntegrationScopeMenu
                 currentScope={currentScope}
                 options={
@@ -867,6 +890,7 @@ export function IntegrationsList({
     isBoxEnabled,
     isBigQueryEnabled,
     isMcpServersEnabled,
+    isSlackMcpEnabled,
   } = useFeatureFlag();
 
   // Build a fast lookup: BACKEND_TYPE → { tenant_integrations: { workspace, personal } }
@@ -935,11 +959,19 @@ export function IntegrationsList({
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
       if (app.id === "box" && !isBoxEnabled) return false;
       if (app.id === "bigquery" && !isBigQueryEnabled) return false;
+      if (app.id === "slack_workspace" && !isSlackMcpEnabled) return false;
 
       // Catalog-gating only applies when MCP feature is enabled
       if (isMcpServersEnabled && tenantIntegrations !== undefined) {
-        // HubSpot and Salesforce are always visible regardless of catalog state
-        if (app.id === "hubspot" || app.id === "salesforce") return true;
+        // HubSpot, Salesforce, and Slack Workspace are always visible regardless
+        // of catalog state — they're hardcoded chips that bypass AppCatalogEntry.
+        if (
+          app.id === "hubspot" ||
+          app.id === "salesforce" ||
+          app.id === "slack_workspace"
+        ) {
+          return true;
+        }
 
         // Try app.id directly (e.g. "gmail"), then backend-type lowercase (e.g. "google_calendar")
         const catalogEntry =
@@ -986,6 +1018,7 @@ export function IntegrationsList({
     isBoxEnabled,
     isBigQueryEnabled,
     isMcpServersEnabled,
+    isSlackMcpEnabled,
     isAdmin,
   ]);
 

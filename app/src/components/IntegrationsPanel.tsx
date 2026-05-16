@@ -15,6 +15,7 @@ import {
 } from "../services";
 import usePreferencesStore from "../store/preferencesStore";
 import { WorkspaceIntegrationPane } from "./WorkspaceIntegrationPane";
+import { SlackChannelConfigPane } from "./SlackChannelConfigPane";
 import { PersonalIntegrationPane } from "./PersonalIntegrationPane";
 import { IntegrationsList } from "./IntegrationsList";
 import { ConnectorLibraryModal } from "./mcp/ConnectorLibraryModal";
@@ -493,6 +494,7 @@ export function IntegrationsPanel() {
       {/* Integration Config Panes - Separate for workspace and personal */}
       <WorkspaceIntegrationPane />
       <PersonalIntegrationPane />
+      <SlackChannelConfigPane />
 
       {/* Confirmation Modal - Delete or Disable */}
       <ConfirmationModal

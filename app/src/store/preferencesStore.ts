@@ -2112,6 +2112,10 @@ interface PreferencesState {
   setConfiguringWorkspaceIntegration: (id: string | null) => void;
   configuringPersonalIntegration: string | null;
   setConfiguringPersonalIntegration: (id: string | null) => void;
+  // Slack Workspace channel-pattern pane — opened from the gear icon on the
+  // connected tile. Holds the backend Integration id whose patterns are being edited.
+  configuringSlackChannels: string | null;
+  setConfiguringSlackChannels: (id: string | null) => void;
 
   // Loading state for OAuth authorization (shared between toggle and sidepanel flows)
   loadingIntegrationId: string | null;
@@ -2479,6 +2483,8 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   configuringPersonalIntegration: null,
   setConfiguringPersonalIntegration: (id) =>
     set({ configuringPersonalIntegration: id }),
+  configuringSlackChannels: null,
+  setConfiguringSlackChannels: (id) => set({ configuringSlackChannels: id }),
 
   // Loading state for OAuth authorization
   loadingIntegrationId: null,
