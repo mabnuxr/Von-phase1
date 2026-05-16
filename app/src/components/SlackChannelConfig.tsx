@@ -38,12 +38,25 @@ const CATEGORY_META: Record<
 
 // --- Helpers ---
 
+function newKey(): string {
+  // crypto.randomUUID is available in all evergreen browsers we ship to.
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function createCondition(): ChannelCondition {
-  return { field: "channel_name", operator: "starts_with", value: "" };
+  return {
+    _key: newKey(),
+    field: "channel_name",
+    operator: "starts_with",
+    value: "",
+  };
 }
 
 function createGroup(name: string): ChannelGroup {
   return {
+    _key: newKey(),
     name,
     conditions: [createCondition()],
     condition_logic: "or",
@@ -222,7 +235,7 @@ function GroupCard({
       {/* Conditions */}
       <div className="px-4 pb-3 space-y-2">
         {group.conditions.map((condition, idx) => (
-          <div key={idx}>
+          <div key={condition._key ?? idx}>
             {idx > 0 && (
               <div className="py-1 text-xs text-gray-500 capitalize">
                 {group.condition_logic === "and" ? "And" : "Or"}
@@ -313,11 +326,9 @@ export function SlackChannelConfig({
 
   const addGroup = (type: "external") => {
     if (totalGroups >= MAX_TOTAL_GROUPS) return;
-    const defaultName =
-      type === "external" ? "Customer channels" : "Team channels";
     updateCategory(type, (cat) => ({
       ...cat,
-      groups: [...cat.groups, createGroup(defaultName)],
+      groups: [...cat.groups, createGroup("Customer channels")],
     }));
   };
 
@@ -337,7 +348,10 @@ export function SlackChannelConfig({
   };
 
   const type = "external" as const;
-  const cat = categories.find((c) => c.type === type)!;
+  // Fall back to a fresh default if the backend payload is malformed or
+  // missing the "external" entry — a non-null assertion here would crash
+  // the whole panel on the first stale config it encounters.
+  const cat = categories.find((c) => c.type === type) ?? defaultCategories()[0];
   const meta = CATEGORY_META[type];
 
   return (
@@ -364,7 +378,7 @@ export function SlackChannelConfig({
         <div className="space-y-3">
           {cat.groups.map((group, idx) => (
             <GroupCard
-              key={idx}
+              key={group._key ?? idx}
               group={group}
               onChange={(g) => updateGroup(type, idx, g)}
               onRemove={() => removeGroup(type, idx)}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Banner } from "@vonlabs/design-components";
 import {
   useIntegrations,
@@ -54,9 +54,15 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  // Hydrate local state from backend integration config.
+  // Hydrate local state from backend integration config — once, when the
+  // panel opens. Re-running on every `backendIntegration` reference change
+  // (background refetches on focus, mutation invalidation, etc.) would
+  // silently clobber the user's in-progress edits.
+  const hasHydrated = useRef(false);
   useEffect(() => {
-    const config = backendIntegration?.config;
+    if (hasHydrated.current) return;
+    if (!backendIntegration) return;
+    const config = backendIntegration.config;
     if (
       config?.channel_categories &&
       Array.isArray(config.channel_categories)
@@ -66,6 +72,7 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
           config.channel_categories as SlackChannelConfigData["channel_categories"],
       });
     }
+    hasHydrated.current = true;
   }, [backendIntegration]);
 
   // Slide-in animation on mount.
@@ -82,13 +89,25 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
   const handleSave = async () => {
     setErrorMessage(null);
 
-    const hasAtLeastOneCondition = slackChannelConfig.channel_categories.some(
-      (cat) =>
-        cat.groups.some((g) => g.conditions.some((c) => c.value.trim() !== "")),
+    // Trim each condition's value before validating + persisting. Saving
+    // `"  ext-  "` would otherwise be matched literally with surrounding
+    // whitespace and silently never resolve to a channel.
+    const trimmedCategories = slackChannelConfig.channel_categories.map(
+      (cat) => ({
+        ...cat,
+        groups: cat.groups.map((g) => ({
+          ...g,
+          conditions: g.conditions.map((c) => ({ ...c, value: c.value.trim() })),
+        })),
+      }),
+    );
+
+    const hasAtLeastOneCondition = trimmedCategories.some((cat) =>
+      cat.groups.some((g) => g.conditions.some((c) => c.value !== "")),
     );
     if (!hasAtLeastOneCondition) {
       setValidationErrors([
-        "At least one channel group with a condition is required",
+        "At least one channel group with a non-empty condition is required",
       ]);
       return;
     }
@@ -98,9 +117,7 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
       await updateMutation.mutateAsync({
         integrationId,
         data: {
-          config: {
-            channel_categories: slackChannelConfig.channel_categories,
-          },
+          config: { channel_categories: trimmedCategories },
         },
       });
       handleClose();
