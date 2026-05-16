@@ -65,12 +65,18 @@ const TriggerButton: React.FC<TriggerButtonProps> = ({
 
 // ─── Footer ──────────────────────────────────────────────────────
 
+const SHARING_DOCS_URL =
+  "https://docs.vonlabs.ai/features/von-dashboards/sharing-dashboards";
+
 interface FooterProps {
   helpHref?: string;
   onCopyLink?: () => Promise<void>;
 }
 
-const StandardFooter: React.FC<FooterProps> = ({ helpHref, onCopyLink }) => {
+const StandardFooter: React.FC<FooterProps> = ({
+  helpHref = SHARING_DOCS_URL,
+  onCopyLink,
+}) => {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(copyTimer.current), []);

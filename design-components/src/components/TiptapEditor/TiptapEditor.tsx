@@ -53,6 +53,15 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // setContent after every keystroke, which would destroy suggestion plugin state.
   const isInternalChangeRef = useRef(false);
 
+  // Holds the current placeholder so the Placeholder extension's
+  // function-form callback reads the latest value on each decoration
+  // pass — Tiptap captures the string form in plugin state at
+  // creation, so prop changes are otherwise ignored.
+  const placeholderRef = useRef(placeholder);
+  useEffect(() => {
+    placeholderRef.current = placeholder;
+  }, [placeholder]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -116,8 +125,17 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
         },
       }),
       Placeholder.configure({
-        placeholder,
+        // Function form so the extension re-reads the latest value on
+        // every decoration pass — letting callers swap the copy at
+        // runtime (e.g. "Close version history to chat" while a
+        // sibling panel is open).
+        placeholder: () => placeholderRef.current,
         emptyEditorClass: 'is-editor-empty',
+        // Show the placeholder even when the editor is non-editable
+        // (`disabled` callers use this to surface "why" copy). Default
+        // is true, which hides the placeholder the moment we flip
+        // editable=false.
+        showOnlyWhenEditable: false,
       }),
       Markdown.configure({
         html: true,
@@ -253,20 +271,13 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
     }
   }, [disabled, editor]);
 
-  // Update placeholder when prop changes. The Placeholder extension's
-  // text is captured at editor-creation time (`extensions: [Placeholder.configure(...)]`),
-  // so prop changes after mount are ignored unless we mutate the
-  // extension's option and force a view re-render.
+  // Re-render decorations when the placeholder prop changes. The
+  // Placeholder extension reads `placeholderRef.current` via its
+  // function-form option (configured above), but ProseMirror won't
+  // re-run decorations on its own — dispatch an empty transaction
+  // so the placeholder text updates in-place.
   useEffect(() => {
     if (!editor) return;
-    const placeholderExt = editor.extensionManager.extensions.find(
-      (ext) => ext.name === 'placeholder'
-    );
-    if (!placeholderExt) return;
-    if (placeholderExt.options.placeholder === placeholder) return;
-    placeholderExt.options.placeholder = placeholder;
-    // Dispatch an empty transaction so ProseMirror re-runs decorations
-    // (Placeholder draws via decoration on the empty doc).
     editor.view.dispatch(editor.state.tr);
   }, [placeholder, editor]);
 
