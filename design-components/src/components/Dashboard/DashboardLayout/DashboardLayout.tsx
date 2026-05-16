@@ -81,6 +81,15 @@ AgentChat.displayName = 'DashboardLayout.AgentChat';
 interface DashboardLayoutProps {
   children: React.ReactNode;
   className?: string;
+  /**
+   * When true, drops the inner panel's card chrome (bg-white, rounded
+   * corners, border, shadow). Use this when the layout is rendered
+   * inside an outer wrapper that already provides the chrome — e.g.
+   * the Analytics page wraps the dashboard panel and the version
+   * history side-pane in a single rounded card so they read as one
+   * surface. Defaults to false (the layout owns its own chrome).
+   */
+  embedded?: boolean;
 }
 
 /**
@@ -102,7 +111,11 @@ interface DashboardLayoutProps {
  * </DashboardLayout>
  * ```
  */
-const DashboardLayoutRoot: React.FC<DashboardLayoutProps> = ({ children, className = '' }) => {
+const DashboardLayoutRoot: React.FC<DashboardLayoutProps> = ({
+  children,
+  className = '',
+  embedded = false,
+}) => {
   // Separate AgentChat from the rest
   const childArray = React.Children.toArray(children);
   const chatChild = childArray.find(
@@ -118,7 +131,13 @@ const DashboardLayoutRoot: React.FC<DashboardLayoutProps> = ({ children, classNa
           `relative` anchors absolutely-positioned children (e.g. DataSourcesDrawer);
           combined with `overflow-hidden rounded-xl`, their edges are clipped to the
           panel's rounded corners so they visually merge with the container. */}
-      <div className="relative flex-1 min-w-0 h-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden flex flex-col">
+      <div
+        className={
+          embedded
+            ? 'relative flex-1 min-w-0 h-full overflow-hidden flex flex-col'
+            : 'relative flex-1 min-w-0 h-full bg-white rounded-xl border border-gray-100 shadow-xs overflow-hidden flex flex-col'
+        }
+      >
         {dashboardChildren}
       </div>
 

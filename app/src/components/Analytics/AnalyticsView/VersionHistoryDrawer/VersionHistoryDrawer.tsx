@@ -52,7 +52,7 @@ const EmptyState: React.FC<{ tab: VersionHistoryTab }> = ({ tab }) => (
     </div>
     <div className="mx-auto max-w-[220px] text-[11.5px] leading-snug text-gray-500">
       {tab === "current"
-        ? "Drafts of latest published version appear. Switch to Published to browse past versions."
+        ? "Drafts of latest published version appear here. Switch to Published to browse past versions."
         : "Once you publish a draft, every published version lands here."}
     </div>
   </div>
@@ -141,43 +141,53 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
       aria-label="Version history"
       className="flex h-full flex-col bg-white"
     >
-      {/* Close affordance — design drops the title + leading icon, so
-          only the X sits in the top row. */}
-      <div className="flex justify-end px-3 pt-3">
+      {/* Single header row — tabs on the left, close on the right.
+          Mirrors the dashboard title row's `py-2.5` + 34px content so
+          the bottom border lines up across the seam between the
+          dashboard canvas and this panel. The active-tab underline
+          is rendered via an absolute span tucked at the row's bottom
+          (rather than a `border-b-2` on the button) so the row can
+          use `items-center` and still merge the active marker with
+          the row's `border-b`. */}
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 pr-3 py-2.5">
+        <div className="flex items-center gap-4">
+          {(
+            [
+              { id: "current", label: "Current draft" },
+              { id: "published", label: "Published" },
+            ] as const
+          ).map((t) => {
+            const active = t.id === tab;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`relative inline-flex h-[34px] items-center text-[12.5px] transition-colors cursor-pointer ${
+                  active
+                    ? "font-semibold text-gray-900"
+                    : "font-medium text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t.label}
+                {active && (
+                  <span
+                    aria-hidden
+                    className="absolute left-0 right-0 -bottom-[11px] h-0.5 bg-gray-900"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close version history"
-          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 cursor-pointer"
+          className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 cursor-pointer"
         >
           <XIcon size={14} />
         </button>
-      </div>
-
-      {/* Tabs — labels only, no counts (matches design). */}
-      <div className="flex items-end gap-4 border-b border-gray-100 px-4">
-        {(
-          [
-            { id: "current", label: "Current draft" },
-            { id: "published", label: "Published" },
-          ] as const
-        ).map((t) => {
-          const active = t.id === tab;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`-mb-px border-b-2 px-0 py-2.5 text-[12.5px] transition-colors cursor-pointer ${
-                active
-                  ? "border-gray-900 font-semibold text-gray-900"
-                  : "border-transparent font-medium text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t.label}
-            </button>
-          );
-        })}
       </div>
 
       {/* List */}
@@ -190,10 +200,13 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
           <EmptyState tab={tab} />
         ) : (
           <div className="relative">
-            {/* Vertical spine behind the dots. */}
+            {/* Vertical spine behind the dots. Position lines up with
+                each row's dot center: row's `border` (1px) +
+                `px-3` (12px) + half the 8px dot = 17px from the
+                relative container's left. */}
             <span
               aria-hidden
-              className="absolute bottom-3 left-[19px] top-3 w-px bg-gray-100"
+              className="absolute bottom-3 left-[17px] top-3 w-px bg-gray-100"
             />
             <div className="relative flex flex-col gap-0.5">
               {rows.map((item, index) => (

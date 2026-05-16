@@ -180,6 +180,13 @@ interface AnalyticsViewProps {
    */
   isVersionPreview?: boolean;
   /**
+   * When true, drops the dashboard panel's own card chrome (rounded
+   * corners / border / shadow). Use this when the page wraps the
+   * dashboard + version-history side-pane in a single shared card so
+   * the two surfaces read as one continuous panel.
+   */
+  embedded?: boolean;
+  /**
    * Latest live published version of the dashboard, sourced from the
    * metadata query. Used by the preview chip to decide whether the
    * previewed version is the current live one — that case gets a
@@ -343,6 +350,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isChatOpen,
   onOpenVersionHistory,
   isVersionPreview = false,
+  embedded = false,
   latestPublishedVersion = null,
   onEditModeChange,
   editModePhase = "idle",
@@ -795,6 +803,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         holderName={lockHolderName}
       />
       <DashboardLayout
+        embedded={embedded}
         className={
           isEditMode
             ? "transition-all duration-200 [&>*:first-child]:border-gray-700 [&>*:first-child]:ring-3 [&>*:first-child]:ring-gray-200"
@@ -976,11 +985,14 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 <DataSourcesSlot dataSources={dashboard.data_sources} />
               )}
 
-              {/* "Ask Von" button — only shown when chat panel is closed
-                  and we're not previewing a historical version. Chat
-                  binds to the live dashboard; surfacing it while
-                  previewing v3 would create a confusing entry point. */}
-              {onChatClick && !isChatOpen && !isVersionPreview && (
+              {/* "Ask Von" button — shown whenever the chat panel is
+                  closed. Version-history preview no longer hides it:
+                  the panel docks alongside the dashboard, and users
+                  asked for the chat entry point to stay reachable
+                  while browsing versions. Chat still binds to the
+                  live dashboard regardless of which version the
+                  canvas is currently previewing. */}
+              {onChatClick && !isChatOpen && (
                 <motion.button
                   key="ask-von"
                   initial={{ opacity: 0, scale: 0.8 }}
