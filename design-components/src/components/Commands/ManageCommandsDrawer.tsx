@@ -242,15 +242,13 @@ export const ManageCommandsDrawer: React.FC<ManageCommandsDrawerProps> = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-medium text-gray-900 truncate">{command.name}</span>
-                  {command.sharingScope === 'org' ? (
-                    <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
-                      Org
-                    </span>
-                  ) : (
-                    <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
-                      Private
-                    </span>
-                  )}
+                  <span className="shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
+                    {command.sharingScope === 'org'
+                      ? 'Org'
+                      : command.sharingScope === 'specific'
+                        ? 'Shared'
+                        : 'Private'}
+                  </span>
                   {command.schedule?.enabled && (
                     <span className="inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 rounded">
                       <Clock size={10} />
