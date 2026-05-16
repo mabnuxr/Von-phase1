@@ -97,7 +97,10 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
         ...cat,
         groups: cat.groups.map((g) => ({
           ...g,
-          conditions: g.conditions.map((c) => ({ ...c, value: c.value.trim() })),
+          conditions: g.conditions.map((c) => ({
+            ...c,
+            value: c.value.trim(),
+          })),
         })),
       }),
     );
