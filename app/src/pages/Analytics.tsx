@@ -735,7 +735,7 @@ const Analytics = () => {
             compact
             placeholder={
               isVersionHistoryOpen
-                ? "Close dashboard history preview to chat"
+                ? "Close dashboard history preview to chat..."
                 : "Ask questions or make changes..."
             }
             disableInput={isVersionHistoryOpen}
