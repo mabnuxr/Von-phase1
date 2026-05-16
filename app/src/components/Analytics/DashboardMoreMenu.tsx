@@ -63,10 +63,10 @@ export function DashboardMoreMenu({
 
   return (
     <>
-      <div ref={containerRef} className="relative flex-shrink-0">
+      <div ref={containerRef} className="relative flex-shrink-0 -mr-0.5">
         <button
           onClick={toggleMenu}
-          className="inline-flex items-center justify-center w-[34px] h-[34px] text-gray-800 hover:bg-gray-100 rounded-xl border border-gray-200 transition-colors"
+          className="inline-flex items-center justify-center w-4 h-[34px] text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
           title="More options"
         >
           <DotsThreeVerticalIcon size={16} weight="bold" />
