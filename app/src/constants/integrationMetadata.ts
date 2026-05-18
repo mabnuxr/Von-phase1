@@ -50,7 +50,7 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
   },
   slack_workspace: {
     id: "slack_workspace",
-    name: "Slack Workspace",
+    name: "Slack Data Sync",
     description:
       "Sync workspace Slack data (channels, messages, users) into Von via a workspace bot token.",
     logoPath:
