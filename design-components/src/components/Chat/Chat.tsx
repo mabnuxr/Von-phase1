@@ -138,6 +138,19 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       dashboardMention,
       widgetMentions,
       onWidgetMentionRemoved,
+      // Analytics callbacks
+      onFileUploadClick,
+      onSlashCommandOpened,
+      onSlashCommandSelected,
+      onManageCommandsClicked,
+      onCreateNewCommandClicked,
+      onThinkingStepExpanded,
+      onCopyMessage,
+      onDownloadMessage,
+      onThumbsUp,
+      onThumbsDown,
+      onResponseLinkClicked,
+      onResponseSectionCopied,
       children,
       compact = false,
     },
@@ -211,6 +224,15 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       },
       [onSendMessage, prepareForNewMessage]
     );
+
+    // Precompute 1-based assistant message indices for action callbacks
+    const messageIndices = useMemo(() => {
+      let count = 0;
+      return visibleMessages.map((m) => {
+        if (m.type !== 'user') count++;
+        return count;
+      });
+    }, [visibleMessages]);
 
     // Generate container class names
     const containerClassName = [
@@ -323,9 +345,10 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
           ) : (
             /* Standard message rendering */
             <div className="flex flex-col">
-              {visibleMessages.map((message) => (
+              {visibleMessages.map((message, idx) => (
                 <div key={message.id}>
                   <ChatMessage
+                    messageIndex={messageIndices[idx]}
                     type={message.type}
                     content={message.content}
                     command={message.command}
@@ -395,6 +418,13 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                     onIntegrate={onIntegrate}
                     getIntegrationMetadata={getIntegrationMetadata}
                     compact={compact}
+                    onThinkingStepExpanded={onThinkingStepExpanded}
+                    onCopyMessage={onCopyMessage}
+                    onDownloadMessage={onDownloadMessage}
+                    onThumbsUp={onThumbsUp}
+                    onThumbsDown={onThumbsDown}
+                    onResponseLinkClicked={onResponseLinkClicked}
+                    onResponseSectionCopied={onResponseSectionCopied}
                   />
                 </div>
               ))}
@@ -457,6 +487,11 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             onDismissFileError={onDismissFileError}
             availableAgentModes={availableAgentModes}
             enableFileUpload={enableFileUpload}
+            onFileUploadClick={onFileUploadClick}
+            onSlashCommandOpened={onSlashCommandOpened}
+            onSlashCommandSelected={onSlashCommandSelected}
+            onManageCommandsClicked={onManageCommandsClicked}
+            onCreateNewCommandClicked={onCreateNewCommandClicked}
             enableMentions={enableMentions}
             mentionItems={mentionItems}
             isLoadingMentions={isLoadingMentions}

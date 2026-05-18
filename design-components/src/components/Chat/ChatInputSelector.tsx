@@ -134,6 +134,19 @@ export interface ChatInputSelectorProps {
   /** Agent modes available for selection in the plus menu */
   availableAgentModes?: ConversationMode[];
   // -------------------------------------------------------------------------
+  // Analytics callbacks
+  // -------------------------------------------------------------------------
+  /** Called when the file upload option is clicked in the plus menu */
+  onFileUploadClick?: () => void;
+  /** Called when the slash command overlay opens (user types "/") */
+  onSlashCommandOpened?: () => void;
+  /** Called when the user selects a command from the overlay */
+  onSlashCommandSelected?: (commandName: string, commandType: string, sharingMode: string) => void;
+  /** Called when the user opens the Manage Commands drawer */
+  onManageCommandsClicked?: () => void;
+  /** Called when the user opens the Create New Command drawer */
+  onCreateNewCommandClicked?: () => void;
+  // -------------------------------------------------------------------------
   // @ Mention props
   // -------------------------------------------------------------------------
 
@@ -206,6 +219,12 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSendTest,
       availableDashboards,
       availableAgentModes,
+      // Analytics callbacks
+      onFileUploadClick,
+      onSlashCommandOpened,
+      onSlashCommandSelected,
+      onManageCommandsClicked,
+      onCreateNewCommandClicked,
       // Mention props
       enableMentions = false,
       mentionItems = [],
@@ -243,6 +262,27 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       dismissCommandsList,
     } = useCommandInputState({ enableCommands, onChange });
 
+    // Fire analytics when the slash command overlay opens
+    useEffect(() => {
+      if (showCommandsList) {
+        onSlashCommandOpened?.();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showCommandsList]);
+
+    // Wrap handleSelectCommand to fire analytics before executing
+    const handleSelectCommandWithAnalytics = useCallback(
+      (command: Command) => {
+        onSlashCommandSelected?.(
+          command.name,
+          command.schedule ? 'scheduled' : 'standard',
+          command.sharingScope ?? 'user'
+        );
+        handleSelectCommand(command);
+      },
+      [handleSelectCommand, onSlashCommandSelected]
+    );
+
     // Capture caret position when the commands list opens so the overlay
     // can be anchored near the "/" character rather than the full input.
     const [slashRect, setSlashRect] = useState<{
@@ -264,7 +304,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       commands: enableCommands ? commands : [],
       commandSearch,
       showCommandsList,
-      onSelectCommand: handleSelectCommand,
+      onSelectCommand: handleSelectCommandWithAnalytics,
       useDocumentListener: true,
     });
 
@@ -364,7 +404,10 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         ? (message: string, attachments?: FileAttachment[]) => {
             if (enableCommands && selectedCommand) {
               const plainMessage = getPlainText(message).trim();
-              onSend(plainMessage, attachments, { command: selectedCommand });
+              onSend(plainMessage, attachments, {
+                command: selectedCommand,
+                inputMethod: 'slash_command',
+              });
               onChange?.('');
               clearSelectedCommand();
               const fileCount = selectedCommand.dataSources?.length ?? 0;
@@ -418,7 +461,11 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         ? (message: string, attachments?: FileAttachment[], agentMode?: ConversationMode) => {
             if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
-              onSend(plainMessage, attachments, { agentMode, command: selectedCommand });
+              onSend(plainMessage, attachments, {
+                agentMode,
+                command: selectedCommand,
+                inputMethod: 'slash_command',
+              });
               onChange?.('');
               clearSelectedCommand();
               clearSelectedMentions();
@@ -446,6 +493,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         <StandardChatInput
           ref={setInputRef}
           {...sharedStandardProps}
+          onFileUploadClick={onFileUploadClick}
           onSend={standardOnSend}
           enableCommands={enableCommands}
           ghostCommandName={ghostCommandName}
@@ -477,7 +525,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             commandSearch={commandSearch}
             commands={commands}
             isLoading={isLoadingCommands}
-            onSelectCommand={handleSelectCommand}
+            onSelectCommand={handleSelectCommandWithAnalytics}
             onCloseCommandsList={handleCloseCommandsList}
             onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={handleDeleteCommand}
@@ -489,6 +537,8 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onUploadFile={onUploadFile}
             onSendTest={onSendTest}
             availableDashboards={availableDashboards}
+            onManageCommandsClicked={onManageCommandsClicked}
+            onCreateNewCommandClicked={onCreateNewCommandClicked}
             highlightedIndex={highlightedIndex}
             onHoverIndex={setHighlightedIndex}
             slashRect={slashRect}

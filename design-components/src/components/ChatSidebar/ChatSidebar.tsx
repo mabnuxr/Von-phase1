@@ -182,6 +182,8 @@ export interface ChatSidebarProps {
   onSettingsClick?: () => void;
 
   onSignOutClick?: () => void;
+
+  onHelpDocsClick?: () => void;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -553,6 +555,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   avatarLabel,
   onSettingsClick,
   onSignOutClick,
+  onHelpDocsClick,
   isNewChatActive = false,
   isDashboardsEnabled = true,
   dashboards,
@@ -737,6 +740,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onCloseProfile={handleCloseProfile}
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
+          onHelpDocsClick={onHelpDocsClick}
           isNewChatActive={isNewChatActive}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
@@ -941,6 +945,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onCloseProfile={handleCloseProfile}
                 onSettingsClick={onSettingsClick}
                 onSignOutClick={onSignOutClick}
+                onHelpDocsClick={onHelpDocsClick}
               />
             </div>
           </motion.div>

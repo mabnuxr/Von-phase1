@@ -36,6 +36,7 @@ import type {
 } from "../types/conversation";
 import useChatStore from "../store/chatStore";
 import { useToast } from "./useToast";
+import { report } from "../lib/analytics/tracker";
 
 /** Which awaited step in the send pipeline threw. Drives the error toast wording. */
 type SendStep = "create" | "upload" | "send";
@@ -191,6 +192,15 @@ export function useCreateAndSendMessage({
       // Clear any prior restored draft now that a fresh send is in flight —
       // if this one also fails, we'll repopulate with the new content.
       clearRestoredInput();
+
+      // #19 Message Submitted — fire immediately; chat_id is null (not created yet)
+      report.chatMessageSubmitted(
+        null,
+        "new",
+        content.length,
+        options?.inputMethod ?? "typed",
+        null,
+      );
 
       // Show user message + thinking indicator immediately, before any API call.
       // Build command early so it's visible in the pending message.

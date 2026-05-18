@@ -114,6 +114,19 @@ export interface ChatMessageProps {
     messageId: string | null;
   } | null;
   onSourcesClick?: () => void;
+  /** 1-based count of assistant messages at this position (for analytics) */
+  messageIndex?: number;
+  onCopyMessage?: (messageIndex: number) => void;
+  onDownloadMessage?: (messageIndex: number) => void;
+  onThumbsUp?: (messageIndex: number) => void;
+  onThumbsDown?: (messageIndex: number) => void;
+  onThinkingStepExpanded?: (
+    stepName: string,
+    toolName: string | null,
+    messageIndex: number
+  ) => void;
+  onResponseLinkClicked?: (linkType: string, linkText: string, messageIndex: number) => void;
+  onResponseSectionCopied?: (sectionType: string, messageIndex: number) => void;
 }
 
 /**
@@ -182,6 +195,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onDashboardPreview,
   onMentionClick,
   researchResults,
+  messageIndex = 0,
+  onCopyMessage,
+  onDownloadMessage,
+  onThumbsUp,
+  onThumbsDown,
+  onThinkingStepExpanded,
+  onResponseLinkClicked,
+  onResponseSectionCopied,
 }) => {
   const isUser = type === 'user';
 
@@ -304,6 +325,19 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onRejectPlan={onRejectPlan}
                         onDashboardPreview={onDashboardPreview}
                         researchResults={researchResults}
+                        messageIndex={messageIndex}
+                        onThinkingStepExpanded={onThinkingStepExpanded}
+                        onResponseLinkClicked={
+                          onResponseLinkClicked
+                            ? (linkType, linkText) =>
+                                onResponseLinkClicked(linkType, linkText, messageIndex)
+                            : undefined
+                        }
+                        onResponseSectionCopied={
+                          onResponseSectionCopied
+                            ? (sectionType) => onResponseSectionCopied(sectionType, messageIndex)
+                            : undefined
+                        }
                       />
                     ) : (
                       <AssistantMessageV1
@@ -384,6 +418,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           onConvertToDashboard={onConvertToDashboard}
                           onTransparencyClick={onTransparencyClick}
                           showTransparency={showTransparency}
+                          onCopyIcon={onCopyMessage ? () => onCopyMessage(messageIndex) : undefined}
+                          onDownload={
+                            onDownloadMessage ? () => onDownloadMessage(messageIndex) : undefined
+                          }
+                          onLike={onThumbsUp ? () => onThumbsUp(messageIndex) : undefined}
+                          onDislike={onThumbsDown ? () => onThumbsDown(messageIndex) : undefined}
                         />
                       )}
                   </div>

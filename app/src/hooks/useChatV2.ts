@@ -50,6 +50,7 @@ import {
   handleToolApproval,
   handleToolRejection,
 } from "../lib/dashboardUtils";
+import { report } from "../lib/analytics/tracker";
 
 export interface UseChatV2Props {
   conversationId: string;
@@ -393,6 +394,7 @@ export function useChatV2(props: UseChatV2Props) {
   const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
     null,
   );
+  const [transparencyMessageIndex, setTransparencyMessageIndex] = useState(0);
 
   const {
     artifactSummaries: transparencyArtifactSummaries,
@@ -405,6 +407,7 @@ export function useChatV2(props: UseChatV2Props) {
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
   const lastUserMessageRef = useRef("");
+  const streamingStartedAtRef = useRef<number | null>(null);
 
   // Transform messages to Chat component format (V2 path with live data overlay)
   const {
@@ -648,9 +651,16 @@ export function useChatV2(props: UseChatV2Props) {
     v2ProcessorRef.current?.expireApprovalStep(stepId);
   }, []);
 
-  // Transparency handler
+  // Transparency handler — #26 Response Sources Opened
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
+      const assistantMessages = finalTransformedMessages.filter(
+        (m) => m.type === "assistant",
+      );
+      const idx = assistantMessages.findIndex((m) => m.id === messageId);
+      const msgIndex = idx >= 0 ? idx + 1 : 1;
+      setTransparencyMessageIndex(msgIndex);
+      report.chatResponseSourcesOpened(msgIndex);
       const message = finalTransformedMessages.find((m) => m.id === messageId);
       if (message?.runId) {
         setTransparencyRunId(message.runId);
@@ -756,6 +766,16 @@ export function useChatV2(props: UseChatV2Props) {
     ) => {
       lastUserMessageRef.current = content;
 
+      // #19 Message Submitted — fire immediately on send
+      report.chatMessageSubmitted(
+        conversationId,
+        "existing",
+        content.length,
+        options?.inputMethod ?? "typed",
+        null,
+      );
+      streamingStartedAtRef.current = Date.now();
+
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
 
@@ -830,6 +850,11 @@ export function useChatV2(props: UseChatV2Props) {
   const { markStopped } = v2Processor;
   const handleStopStreaming = useCallback(
     (convId: string) => {
+      const elapsed = streamingStartedAtRef.current
+        ? (Date.now() - streamingStartedAtRef.current) / 1000
+        : 0;
+      streamingStartedAtRef.current = null;
+      report.chatStopGenerating(elapsed);
       markStopped();
       stopStreaming(convId);
     },
@@ -863,6 +888,7 @@ export function useChatV2(props: UseChatV2Props) {
     // Transparency
     isTransparencyOpen,
     transparencyRunId,
+    transparencyMessageIndex,
     transparencyArtifactSummaries,
     isTransparencyLoading,
     handleTransparencyClick,

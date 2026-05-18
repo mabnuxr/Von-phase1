@@ -19,6 +19,7 @@ import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
+import { report } from "../lib/analytics/tracker";
 
 /** Overlay animated titles onto sidebar items. */
 function applyAnimatedTitles(
@@ -82,6 +83,7 @@ interface ChatSidebarContainerProps {
   onToggleCollapse: () => void;
   onSettingsClick: () => void;
   onLogoutClick: () => void;
+  onHelpDocsClick?: () => void;
 }
 
 export function ChatSidebarContainer({
@@ -92,6 +94,7 @@ export function ChatSidebarContainer({
   onToggleCollapse,
   onSettingsClick,
   onLogoutClick,
+  onHelpDocsClick,
 }: ChatSidebarContainerProps) {
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
@@ -205,9 +208,32 @@ export function ChatSidebarContainer({
 
   const handleChatClick = useCallback(
     (conversationId: string) => {
+      const isInFolder = Object.values(folderItems).some((items) =>
+        items.some((item) => item.id === conversationId),
+      );
+      report.chatChatOpened(isInFolder ? "folder" : "root");
       navigate(`/chat/${conversationId}`);
     },
-    [navigate],
+    [navigate, folderItems],
+  );
+
+  const handleNewChatFolderClick = useCallback(
+    (folderName: string) => {
+      report.chatNewFolderClicked();
+      createFolder(folderName);
+    },
+    [createFolder],
+  );
+
+  const handleFolderToggle = useCallback(
+    (folderId: string) => {
+      const folder = folders.find((f) => f.id === folderId);
+      if (folder) {
+        report.chatFolderClicked(folder.label);
+      }
+      toggleFolderExpanded(folderId);
+    },
+    [folders, toggleFolderExpanded],
   );
 
   const handleDeleteItem = useCallback(
@@ -284,6 +310,14 @@ export function ChatSidebarContainer({
     [removeItemFromFolder, dashboardLabelById],
   );
 
+  const handleDashboardClick = useCallback(
+    (id: string) => {
+      report.dashboardOpened(dashboardLabelById.get(id) ?? "");
+      navigate(`/dashboard/${id}`);
+    },
+    [navigate, dashboardLabelById],
+  );
+
   // Avatar props
   const avatarLabel = user ? getUserInitials(user.name, user.email) : undefined;
   const avatarSrc =
@@ -322,7 +356,7 @@ export function ChatSidebarContainer({
         selectedItemId={currentConversationId || undefined}
         onItemClick={handleChatClick}
         onNewChatClick={onNewChatClick}
-        onNewChatFolderClick={createFolder}
+        onNewChatFolderClick={handleNewChatFolderClick}
         onRenameItem={renameConversation}
         onShareItem={isChatSharingEnabled ? openShareModal : undefined}
         onContextMenuOpen={
@@ -333,7 +367,7 @@ export function ChatSidebarContainer({
         onDeleteFolder={deleteFolder}
         onRenameFolder={renameFolder}
         onPinFolder={pinFolder}
-        onFolderToggle={toggleFolderExpanded}
+        onFolderToggle={handleFolderToggle}
         onRemoveItemFromFolder={handleRemoveItemFromFolder}
         onManageItemFolders={handleManageItemFolders}
         sectionShowMore={sectionShowMore}
@@ -351,6 +385,7 @@ export function ChatSidebarContainer({
         userEmail={user?.email}
         onSignOutClick={onLogoutClick}
         onSettingsClick={onSettingsClick}
+        onHelpDocsClick={onHelpDocsClick}
         isNewChatActive={isNewChatActive}
         isDashboardsEnabled={isDeepResearchEnabled}
         dashboards={dashboards}
@@ -360,7 +395,7 @@ export function ChatSidebarContainer({
         isLoadingMoreDashboards={isFetchingNextDashboardPage}
         onRenameDashboard={renameDashboard}
         onDeleteDashboard={deleteDashboard}
-        onDashboardClick={(id: string) => navigate(`/dashboard/${id}`)}
+        onDashboardClick={handleDashboardClick}
       />
       {manageFoldersState.open && (
         <ManageFoldersModal

@@ -5,6 +5,8 @@ export interface SalesforceLinkProps {
   href?: string;
   /** The link text/content */
   children?: React.ReactNode;
+  /** Called when the link is clicked */
+  onLinkClick?: (href: string | undefined, linkText: string) => void;
 }
 
 /**
@@ -15,8 +17,22 @@ export interface SalesforceLinkProps {
  *
  * All links open in a new tab with security attributes.
  */
-export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children }) => {
+export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children, onLinkClick }) => {
   const isSfLink = href ? isSalesforceUrl(href) : false;
+
+  const handleClick = onLinkClick
+    ? () => {
+        const text =
+          typeof children === 'string'
+            ? children
+            : React.isValidElement(children)
+              ? String(
+                  (children as React.ReactElement<{ children?: unknown }>).props?.children ?? ''
+                )
+              : '';
+        onLinkClick(href, text);
+      }
+    : undefined;
 
   return (
     <a
@@ -29,6 +45,7 @@ export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children }
           : 'text-indigo-600 hover:text-indigo-800 hover:underline'
       }
       title={isSfLink ? 'Open in Salesforce' : undefined}
+      onClick={handleClick}
     >
       {children}
     </a>

@@ -9,7 +9,7 @@
  * Deep Research tab: Shows artifacts where category IS "iq" (automatically shown when IQ artifacts exist)
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import {
   TransparencyDrawer,
   DataTabContent,
@@ -30,6 +30,13 @@ interface LazyTransparencyDrawerProps {
   runId: string | null;
   artifactSummaries: ArtifactSummary[];
   isListLoading: boolean;
+  messageIndex?: number;
+  onSourceTabClicked?: (
+    sourceName: string,
+    rowCount: number,
+    messageIndex: number,
+  ) => void;
+  onCSVDownloaded?: (stepName: string, rowCount: number) => void;
 }
 
 export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
@@ -40,6 +47,9 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
   runId,
   artifactSummaries,
   isListLoading,
+  messageIndex = 0,
+  onSourceTabClicked,
+  onCSVDownloaded,
 }) => {
   const {
     queries,
@@ -94,16 +104,47 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     [vonIqQueries.length],
   );
 
+  const tabCountByTabId = useMemo<Record<string, number>>(
+    () => ({
+      data: queries.length,
+      calls: calls.length,
+      emails: emails.length,
+      "deep-research": vonIqQueries.length,
+    }),
+    [queries.length, calls.length, emails.length, vonIqQueries.length],
+  );
+
+  const handleTabChange = useCallback(
+    (tabId: string) => {
+      if (!onSourceTabClicked) return;
+      const labelMap: Record<string, string> = {
+        data: "Data",
+        calls: "Calls",
+        emails: "Emails",
+        "deep-research": "Deep Research",
+      };
+      const sourceName = labelMap[tabId] ?? tabId;
+      const rowCount = tabCountByTabId[tabId] ?? 0;
+      onSourceTabClicked(sourceName, rowCount, messageIndex);
+    },
+    [onSourceTabClicked, tabCountByTabId, messageIndex],
+  );
+
   return (
     <TransparencyDrawer
       isOpen={isOpen}
       onClose={onClose}
       title={title}
       isLoading={isListLoading}
+      onTabChange={onSourceTabClicked ? handleTabChange : undefined}
     >
       {!isListLoading && queries.length > 0 && (
         <TransparencyDrawer.Tab config={dataTabConfig}>
-          <DataTabContent queries={queries} onQuerySelect={handleQuerySelect} />
+          <DataTabContent
+            queries={queries}
+            onQuerySelect={handleQuerySelect}
+            onCSVDownloaded={onCSVDownloaded}
+          />
         </TransparencyDrawer.Tab>
       )}
 

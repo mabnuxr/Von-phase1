@@ -1,12 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Banner } from "@vonlabs/design-components";
 import usePreferencesStore from "../../store/preferencesStore";
 import type { EmailCategorizationSettings } from "../../store/preferencesStore";
 import { useUpdatePreferences } from "../../hooks/usePreferences";
+import { report } from "../../lib/analytics/tracker";
 
 export function EmailCategorizationTab() {
   const { emailCategorization: storeConfig, updateEmailCategorization } =
     usePreferencesStore();
+
+  // Capture whether the config was empty on first mount (before any saves).
+  const isFirstSaveRef = useRef(
+    !storeConfig.emailObjectType &&
+      !storeConfig.opportunityField &&
+      !storeConfig.accountField &&
+      !storeConfig.emailBodyField,
+  );
 
   // Get tenant and user info for API call
   const tenantId = localStorage.getItem("tenant_id") || "";
@@ -31,6 +40,13 @@ export function EmailCategorizationTab() {
 
   // Success message
   const [showSuccess, setShowSuccess] = useState(false);
+
+  const pageViewCaptured = useRef(false);
+  useEffect(() => {
+    if (pageViewCaptured.current) return;
+    report.emailPageViewed();
+    pageViewCaptured.current = true;
+  }, []);
 
   // Initialize form data when store changes
   useEffect(() => {
@@ -89,9 +105,38 @@ export function EmailCategorizationTab() {
     setShowSuccess(false);
 
     // Validate form
-    if (!validateForm()) {
+    const isValid = validateForm();
+    if (!isValid) {
+      const errorMsg = [
+        !formData.emailObjectType ? "Email object type is required" : null,
+        !formData.opportunityField ? "Opportunity field is required" : null,
+        !formData.accountField ? "Account field is required" : null,
+        !formData.emailBodyField ? "Email body field is required" : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      report.emailSettingsSaved(
+        false,
+        errorMsg || "Validation failed",
+        formData.emailObjectType,
+        formData.opportunityField,
+        formData.accountField,
+        formData.emailBodyField,
+        isFirstSaveRef.current,
+      );
       return;
     }
+
+    report.emailSettingsSaved(
+      true,
+      null,
+      formData.emailObjectType,
+      formData.opportunityField,
+      formData.accountField,
+      formData.emailBodyField,
+      isFirstSaveRef.current,
+    );
+    isFirstSaveRef.current = false;
 
     // Update store first (optimistic update)
     updateEmailCategorization(formData);
