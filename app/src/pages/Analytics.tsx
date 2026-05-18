@@ -668,6 +668,7 @@ const Analytics = () => {
             onClose={handleCloseVersionHistory}
             selectedVersion={previewVersion}
             onSelectVersion={handleSelectVersion}
+            editLockUserId={data?.dashboard?.editLock?.userId ?? null}
           />
         </div>
       </div>

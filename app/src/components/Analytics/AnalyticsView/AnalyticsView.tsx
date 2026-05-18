@@ -901,6 +901,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                           currentUserId={user?.id}
                           teamMembers={teamMembers}
                           lastEditedBy={dashboard.lastEditedBy}
+                          lastEditedAt={dashboard.lastEditedAt}
                           // Chip is the version-history entry point per
                           // the "Edit · clean" design — click opens the
                           // panel (mutual-exclusion with chat is handled
