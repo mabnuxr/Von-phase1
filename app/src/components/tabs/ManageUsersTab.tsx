@@ -175,7 +175,6 @@ export function ManageUsersTab() {
 
   const handleToggleHubspotWrite = (member: (typeof filteredUsers)[number]) => {
     const currentValue = member.permissions?.hubspot_write ?? true;
-    report.manageTeamHubspotWriteToggled(!currentValue, member.email);
     updatePermissionsMutation.mutate({
       userId: member.id,
       permissions: { hubspot_write: !currentValue },

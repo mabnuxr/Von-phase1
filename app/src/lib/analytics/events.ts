@@ -78,10 +78,6 @@ export type EventMap = {
     target_user_email: string;
     target_user_role: string;
   };
-  "Manage Team - HubSpot Write Toggled": {
-    new_value: boolean;
-    target_user_email: string;
-  };
   "Manage Team - Delete User Clicked": {
     target_user_email: string;
     target_user_role: string;
@@ -101,8 +97,8 @@ export type EventMap = {
   };
   "Manage Team - Learn More Clicked": Record<never, never>;
 
-  // ── Dashboard ──────────────────────────────────────────────────────────────
-  "Dashboard - Opened": { dashboard_name: string };
+  // ── Dashboards ────────────────────────────────────────────────────────────
+  "Dashboards - Dashboard Clicked": { dashboard_name: string };
 
   // ── Chat (sidebar & input) ─────────────────────────────────────────────────
   "Chat - New Chat Clicked": Record<never, never>;
@@ -129,7 +125,7 @@ export type EventMap = {
     input_method: "typed" | "suggested_prompt" | "slash_command";
     query_category: string | null;
   };
-  "Chat - Stop Generating": { time_elapsed_seconds: number };
+  "Chat - Stop Generating Clicked": { time_elapsed_seconds: number };
   "Chat - Thinking Step Expanded": {
     step_name: string;
     tool_name: string | null;
@@ -137,8 +133,8 @@ export type EventMap = {
   };
   "Chat - Response Copied": { message_index: number };
   "Chat - Response Downloaded": { message_index: number };
-  "Chat - Thumbs Up": { message_index: number };
-  "Chat - Thumbs Down": { message_index: number };
+  "Chat - Response Thumbs Up": { message_index: number };
+  "Chat - Response Thumbs Down": { message_index: number };
   "Chat - Response Sources Opened": { message_index: number };
   "Chat - Query Result CSV Downloaded": {
     step_name: string;

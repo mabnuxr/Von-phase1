@@ -168,12 +168,6 @@ export const report = {
       target_user_role: targetUserRole,
     }),
 
-  manageTeamHubspotWriteToggled: (newValue: boolean, targetUserEmail: string) =>
-    track("Manage Team - HubSpot Write Toggled", {
-      new_value: newValue,
-      target_user_email: targetUserEmail,
-    }),
-
   manageTeamDeleteUserClicked: (
     targetUserEmail: string,
     targetUserRole: string,
@@ -219,7 +213,7 @@ export const report = {
 
   // ── Dashboard ──────────────────────────────────────────────────────────────
   dashboardOpened: (dashboardName: string) =>
-    track("Dashboard - Opened", { dashboard_name: dashboardName }),
+    track("Dashboards - Dashboard Clicked", { dashboard_name: dashboardName }),
 
   // ── Chat (sidebar & input) ─────────────────────────────────────────────────
   chatNewChatClicked: () => track("Chat - New Chat Clicked", {}),
@@ -277,7 +271,7 @@ export const report = {
     }),
 
   chatStopGenerating: (timeElapsedSeconds: number) =>
-    track("Chat - Stop Generating", {
+    track("Chat - Stop Generating Clicked", {
       time_elapsed_seconds: timeElapsedSeconds,
     }),
 
@@ -299,10 +293,10 @@ export const report = {
     track("Chat - Response Downloaded", { message_index: messageIndex }),
 
   chatThumbsUp: (messageIndex: number) =>
-    track("Chat - Thumbs Up", { message_index: messageIndex }),
+    track("Chat - Response Thumbs Up", { message_index: messageIndex }),
 
   chatThumbsDown: (messageIndex: number) =>
-    track("Chat - Thumbs Down", { message_index: messageIndex }),
+    track("Chat - Response Thumbs Down", { message_index: messageIndex }),
 
   chatResponseSourcesOpened: (messageIndex: number) =>
     track("Chat - Response Sources Opened", { message_index: messageIndex }),
