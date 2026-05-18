@@ -123,6 +123,9 @@ interface RawApiDashboardResponse {
   created_by_name?: string;
   /** BE PR #1109 — last meaningful editor of the dashboard's content. */
   last_edited_by?: string | null;
+  /** Timestamp paired with `last_edited_by`. Drives the EditLockBadge's
+   *  relative-time chip; falls back to `edit_lock.acquired_at` when null. */
+  last_edited_at?: string | null;
   refresh_info: {
     last_refreshed_at: string;
   };
@@ -329,6 +332,7 @@ function adaptApiResponse(
         createdBy: raw.created_by ?? "",
         createdByName: raw.created_by_name ?? undefined,
         lastEditedBy: raw.last_edited_by ?? null,
+        lastEditedAt: raw.last_edited_at ?? null,
         analysisId: "",
         isEditable: raw.is_editable ?? false,
         uiConfig: raw.ui_config

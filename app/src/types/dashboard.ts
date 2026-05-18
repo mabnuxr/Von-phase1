@@ -132,6 +132,13 @@ export interface Dashboard {
    * the lock but hasn't committed anything yet.
    */
   lastEditedBy?: string | null;
+  /**
+   * Timestamp of the last meaningful edit — pairs with `lastEditedBy`.
+   * Drives the EditLockBadge's relative-time chip ("Edited 5m ago").
+   * `null` on pre-deploy dashboards; the badge falls back to the
+   * lock's `acquiredAt` when this is missing.
+   */
+  lastEditedAt?: string | null;
   analysisId: string;
   isEditable: boolean;
   uiConfig?: {

@@ -494,6 +494,9 @@ export function useAnalyticsTools(dashboardId: string) {
             ...(response.last_edited_by !== undefined && {
               last_edited_by: response.last_edited_by,
             }),
+            ...(response.last_edited_at !== undefined && {
+              last_edited_at: response.last_edited_at,
+            }),
           },
         );
       } else {
@@ -520,6 +523,9 @@ export function useAnalyticsTools(dashboardId: string) {
               },
               ...(response.last_edited_by !== undefined && {
                 lastEditedBy: response.last_edited_by,
+              }),
+              ...(response.last_edited_at !== undefined && {
+                lastEditedAt: response.last_edited_at,
               }),
             },
           };
