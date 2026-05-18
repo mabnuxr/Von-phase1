@@ -21,27 +21,40 @@ function displayNameForUser(user: User): string {
   return full || user.name || user.email;
 }
 
-function resolveAuthorName(
+interface ResolvedAuthor {
+  /** Empty string when the row has no attributable author yet. Used as
+   *  the avatar-hashing seed and as the sentinel `VersionRow` checks
+   *  to suppress the initials chip. */
+  id: string;
+  name: string;
+}
+
+function resolveAuthor(
   entry: DashboardVersionEntry,
   teamMembers: TeamMember[] | undefined,
   context: VersionAuthorContext,
-): string {
+): ResolvedAuthor {
   const userId = entry.updated_by;
   // Active-draft fallback: BE leaves `updated_by` null on a freshly
   // cloned active draft until the lock holder commits. When that
-  // holder is the current viewer, swap in their name so the row
-  // doesn't read as "Unknown" mid-edit.
+  // holder is the current viewer, attribute the row to them so it
+  // doesn't read as "No edits yet" while they're mid-edit. Otherwise
+  // surface "No edits yet" — and signal to `VersionRow` to drop the
+  // initials chip — by returning an empty id.
   if (!userId && entry.status === "draft") {
     const { currentUser, editLockUserId } = context;
     if (currentUser && editLockUserId && editLockUserId === currentUser.id) {
-      return displayNameForUser(currentUser);
+      return { id: currentUser.id, name: displayNameForUser(currentUser) };
     }
-    return "";
+    return { id: "", name: "No edits yet" };
   }
-  if (!userId) return "";
+  if (!userId) return { id: "", name: "" };
   const member = teamMembers?.find((m) => m.id === userId);
-  if (!member) return "Unknown";
-  return `${member.firstName} ${member.lastName}`.trim() || member.email;
+  if (!member) return { id: userId, name: "Unknown" };
+  return {
+    id: userId,
+    name: `${member.firstName} ${member.lastName}`.trim() || member.email,
+  };
 }
 
 function statusToKind(
@@ -67,6 +80,7 @@ function toItem(
   teamMembers: TeamMember[] | undefined,
   context: VersionAuthorContext,
 ): VersionHistoryItem {
+  const author = resolveAuthor(entry, teamMembers, context);
   return {
     id: entry.id,
     dashboardVersion: entry.dashboard_version,
@@ -77,8 +91,8 @@ function toItem(
     // look like a UI bug.
     timestamp: entry.updated_at,
     kind: statusToKind(entry.status),
-    authorId: entry.updated_by ?? "",
-    authorName: resolveAuthorName(entry, teamMembers, context),
+    authorId: author.id,
+    authorName: author.name,
     changeNote: entry.change_summary,
   };
 }
