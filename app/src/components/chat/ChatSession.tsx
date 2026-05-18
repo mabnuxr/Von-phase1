@@ -1101,10 +1101,9 @@ function Overlays({
         title="Data Sources"
         messageIndex={chatV2.transparencyMessageIndex}
         onSourceTabClicked={report.chatSourceTabClicked}
-        onCSVDownloaded={(stepName, rowCount) =>
-          report.chatQueryResultCSVDownloaded(
-            stepName,
-            null,
+        onCSVDownloaded={(sourceName, rowCount) =>
+          report.chatSourceCSVDownloaded(
+            sourceName,
             rowCount,
             chatV2.transparencyMessageIndex,
           )

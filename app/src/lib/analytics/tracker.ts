@@ -301,15 +301,13 @@ export const report = {
   chatResponseSourcesOpened: (messageIndex: number) =>
     track("Chat - Response Sources Opened", { message_index: messageIndex }),
 
-  chatQueryResultCSVDownloaded: (
-    stepName: string,
-    toolName: string | null,
+  chatSourceCSVDownloaded: (
+    sourceName: string,
     rowCount: number,
     messageIndex: number,
   ) =>
-    track("Chat - Query Result CSV Downloaded", {
-      step_name: stepName,
-      tool_name: toolName,
+    track("Chat - Source CSV Downloaded", {
+      source_name: sourceName,
       row_count: rowCount,
       message_index: messageIndex,
     }),

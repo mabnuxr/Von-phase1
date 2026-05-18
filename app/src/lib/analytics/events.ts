@@ -136,9 +136,8 @@ export type EventMap = {
   "Chat - Response Thumbs Up": { message_index: number };
   "Chat - Response Thumbs Down": { message_index: number };
   "Chat - Response Sources Opened": { message_index: number };
-  "Chat - Query Result CSV Downloaded": {
-    step_name: string;
-    tool_name: string | null;
+  "Chat - Source CSV Downloaded": {
+    source_name: string;
     row_count: number;
     message_index: number;
   };
