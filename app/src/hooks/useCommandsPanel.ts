@@ -67,6 +67,7 @@ export function useCommandsPanel(userId?: string) {
         | "sharedUserIds"
         | "schedule"
         | "references"
+        | "autoApprove"
       >,
       editingId?: string,
       dataSources?: CommandAttachment[],
@@ -118,6 +119,7 @@ export function useCommandsPanel(userId?: string) {
               references: apiReferences,
               triggerConfig: scheduleConfigs?.triggerConfig ?? null,
               deliveryConfig: scheduleConfigs?.deliveryConfig ?? null,
+              autoApprove: data.autoApprove,
             },
           });
           showToast({ message: "Command updated", variant: "success" });
@@ -131,6 +133,7 @@ export function useCommandsPanel(userId?: string) {
             sharedUserIds: sharedUserIds.length > 0 ? sharedUserIds : undefined,
             dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
             references: apiReferences.length > 0 ? apiReferences : undefined,
+            autoApprove: data.autoApprove,
             ...(scheduleConfigs ?? {}),
           });
           showToast({ message: "Command created", variant: "success" });
@@ -232,7 +235,7 @@ export function useCommandsPanel(userId?: string) {
 
   const handleSendTest = useCallback(
     async (
-      data: Pick<Command, "name" | "prompt">,
+      data: Pick<Command, "name" | "prompt" | "autoApprove">,
       dataSources: CommandAttachment[],
       recipients: ScheduleRecipient[],
     ) => {
@@ -257,6 +260,7 @@ export function useCommandsPanel(userId?: string) {
         await quickCommandsService.trigger({
           name: data.name,
           prompt: data.prompt,
+          autoApprove: data.autoApprove,
           dataSources: apiDataSources.length > 0 ? apiDataSources : undefined,
           deliveryConfig: {
             type: "email",

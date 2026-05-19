@@ -132,6 +132,8 @@ export interface Command {
   creatorName?: string;
   actionType?: string;
   schedule?: CommandSchedule;
+  /** Auto-approve actions during headless runs (scheduled or "Run sample"). Defaults to false. */
+  autoApprove?: boolean;
 }
 
 export interface CommandsState {

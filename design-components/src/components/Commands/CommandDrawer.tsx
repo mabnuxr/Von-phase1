@@ -53,6 +53,7 @@ export interface CommandDrawerProps {
       | 'sharedUserIds'
       | 'schedule'
       | 'references'
+      | 'autoApprove'
     >,
     dataSources: CommandAttachment[],
     commandId: string
@@ -86,7 +87,7 @@ export interface CommandDrawerProps {
   currentUser?: ScheduleRecipient;
   /** Called when the user sends a test from the modal. Receives current form data. Should return a promise. */
   onSendTest?: (
-    data: Pick<Command, 'name' | 'prompt'>,
+    data: Pick<Command, 'name' | 'prompt' | 'autoApprove'>,
     dataSources: CommandAttachment[],
     recipients: import('./types').ScheduleRecipient[]
   ) => Promise<void>;
@@ -148,14 +149,18 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     (recipients: ScheduleRecipient[]) => {
       if (!onSendTest) return Promise.resolve();
       return onSendTest(
-        { name: form.name.trim(), prompt: form.prompt.trim() },
+        {
+          name: form.name.trim(),
+          prompt: form.prompt.trim(),
+          autoApprove: form.autoApprove,
+        },
         dataSources.filter(
           (ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)
         ),
         recipients
       );
     },
-    [onSendTest, form.name, form.prompt, dataSources]
+    [onSendTest, form.name, form.prompt, form.autoApprove, dataSources]
   );
 
   const handleSave = () => {
@@ -168,6 +173,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
         sharedUserIds: form.sharingScope === 'specific' ? form.sharedUsers.map((r) => r.id) : [],
         schedule: form.schedule.enabled ? form.schedule : undefined,
         references: form.references,
+        autoApprove: form.autoApprove,
       },
       dataSources.filter((ds) => ds.uploadStatus === 'uploaded' || (!ds.uploadStatus && ds.s3Key)),
       commandId
@@ -382,6 +388,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               teamMembers={teamMembers}
               readOnly={readOnly}
               onSendTest={handleSendTest}
+              autoApprove={form.autoApprove}
+              onAutoApproveChange={(next) => setForm((v) => ({ ...v, autoApprove: next }))}
             />
           )}
         </div>

@@ -61,6 +61,7 @@ export interface QuickCommand {
   updatedAt: string | null;
   triggerConfig?: TriggerConfig;
   deliveryConfig?: DeliveryConfig;
+  autoApprove?: boolean;
 }
 
 export interface QuickCommandListResponse {
@@ -101,6 +102,7 @@ export interface DeliveryConfig {
 export interface TriggerQuickCommandInput {
   name: string;
   prompt: string;
+  autoApprove?: boolean;
   dataSources?: CommandDataSource[];
   deliveryConfig: DeliveryConfig;
 }
@@ -116,6 +118,7 @@ export interface CreateQuickCommandInput {
   references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig;
   deliveryConfig?: DeliveryConfig;
+  autoApprove?: boolean;
 }
 
 export interface UpdateQuickCommandInput {
@@ -128,6 +131,7 @@ export interface UpdateQuickCommandInput {
   references?: QuickCommandReference[];
   triggerConfig?: TriggerConfig | null;
   deliveryConfig?: DeliveryConfig | null;
+  autoApprove?: boolean;
 }
 
 export interface PresignRequest {

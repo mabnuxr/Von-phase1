@@ -22,6 +22,8 @@ export interface FormValues {
   sharedUsers: Recipient[];
   schedule: CommandSchedule;
   references: CommandReference[];
+  /** Auto-approve actions during headless runs. */
+  autoApprove: boolean;
 }
 
 const emptyForm: FormValues = {
@@ -32,6 +34,7 @@ const emptyForm: FormValues = {
   sharedUsers: [],
   schedule: { ...DEFAULT_SCHEDULE },
   references: [],
+  autoApprove: false,
 };
 
 function commandToForm(cmd: Command, teamMembers?: Recipient[]): FormValues {
@@ -48,6 +51,7 @@ function commandToForm(cmd: Command, teamMembers?: Recipient[]): FormValues {
     sharedUsers,
     schedule: cmd.schedule ? { ...cmd.schedule } : { ...DEFAULT_SCHEDULE },
     references: cmd.references ? [...cmd.references] : [],
+    autoApprove: cmd.autoApprove ?? false,
   };
 }
 
