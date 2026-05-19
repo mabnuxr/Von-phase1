@@ -408,32 +408,36 @@ export function IntegrationsPanel() {
       deleteIntegration.mutate(id, {
         onSuccess: () => {
           setLoadingIntegrationId(null);
-          report.integrationsIntegrationDeleted(
-            integration?.name ?? id,
-            INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
-            connectionType === "both"
-              ? "Both"
-              : connectionType === "workspace"
-                ? "Workspace"
-                : "Personal",
-            true,
-            null,
-          );
+          report.integrationsIntegrationDeleted({
+            integrationName: integration?.name ?? id,
+            integrationCategory:
+              INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
+            connectionType:
+              connectionType === "both"
+                ? "Both"
+                : connectionType === "workspace"
+                  ? "Workspace"
+                  : "Personal",
+            success: true,
+            error: null,
+          });
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
           setOauthError(`Failed to delete integration: ${error.message}`);
-          report.integrationsIntegrationDeleted(
-            integration?.name ?? id,
-            INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
-            connectionType === "both"
-              ? "Both"
-              : connectionType === "workspace"
-                ? "Workspace"
-                : "Personal",
-            false,
-            error.message,
-          );
+          report.integrationsIntegrationDeleted({
+            integrationName: integration?.name ?? id,
+            integrationCategory:
+              INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
+            connectionType:
+              connectionType === "both"
+                ? "Both"
+                : connectionType === "workspace"
+                  ? "Workspace"
+                  : "Personal",
+            success: false,
+            error: error.message,
+          });
         },
       });
     }
@@ -441,12 +445,12 @@ export function IntegrationsPanel() {
 
   const handleConnect = (appId: string, accessLevel: "tenant" | "user") => {
     const meta = INTEGRATION_METADATA[appId];
-    report.integrationsConnectClicked(
-      meta?.name ?? appId,
-      meta?.category ?? "",
-      accessLevel === "tenant" ? "Workspace" : "Personal",
-      getAuthMethod(appId),
-    );
+    report.integrationsConnectClicked({
+      integrationName: meta?.name ?? appId,
+      integrationCategory: meta?.category ?? "",
+      connectionType: accessLevel === "tenant" ? "Workspace" : "Personal",
+      authMethod: getAuthMethod(appId),
+    });
     if (accessLevel === "tenant") {
       setConfiguringWorkspaceIntegration(appId);
     } else {

@@ -65,12 +65,12 @@ export function IndividualAddTab({
     if (!formData.role) errors.push("Role is required");
 
     if (errors.length > 0) {
-      report.manageTeamMemberAdded(
-        false,
-        errors.join(", "),
-        formData.email.trim(),
-        formData.role,
-      );
+      report.manageTeamMemberAdded({
+        success: false,
+        error: errors.join(", "),
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
       setValidationErrors(errors);
       return;
     }
@@ -85,12 +85,12 @@ export function IndividualAddTab({
         role: formData.role,
       });
 
-      report.manageTeamMemberAdded(
-        true,
-        null,
-        formData.email.trim(),
-        formData.role,
-      );
+      report.manageTeamMemberAdded({
+        success: true,
+        error: null,
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
       onMemberAdded?.();
 
       // Stay open, reset form so user can add another. Toast is fired by the
@@ -121,12 +121,12 @@ export function IndividualAddTab({
           const detail = response.data?.detail || response.data?.message;
           const msg =
             detail || "Failed to add team member. Please check your input.";
-          report.manageTeamMemberAdded(
-            false,
-            msg,
-            formData.email.trim(),
-            formData.role,
-          );
+          report.manageTeamMemberAdded({
+            success: false,
+            error: msg,
+            memberEmail: formData.email.trim(),
+            memberRole: formData.role,
+          });
           setValidationErrors([msg]);
           return;
         }
@@ -135,12 +135,12 @@ export function IndividualAddTab({
           const detail = response.data?.detail || response.data?.message;
           const msg =
             detail || "You don't have permission to assign this role.";
-          report.manageTeamMemberAdded(
-            false,
-            msg,
-            formData.email.trim(),
-            formData.role,
-          );
+          report.manageTeamMemberAdded({
+            success: false,
+            error: msg,
+            memberEmail: formData.email.trim(),
+            memberRole: formData.role,
+          });
           setValidationErrors([msg]);
           return;
         }
@@ -150,12 +150,12 @@ export function IndividualAddTab({
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
           : "Failed to add team member. Please try again.";
-      report.manageTeamMemberAdded(
-        false,
-        errorMessage,
-        formData.email.trim(),
-        formData.role,
-      );
+      report.manageTeamMemberAdded({
+        success: false,
+        error: errorMessage,
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
       setValidationErrors([errorMessage]);
     }
   };

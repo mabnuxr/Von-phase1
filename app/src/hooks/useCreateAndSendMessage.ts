@@ -194,13 +194,13 @@ export function useCreateAndSendMessage({
       clearRestoredInput();
 
       // #19 Message Submitted — fire immediately; chat_id is null (not created yet)
-      report.chatMessageSubmitted(
-        null,
-        "new",
-        content.length,
-        options?.inputMethod ?? "typed",
-        null,
-      );
+      report.chatMessageSubmitted({
+        chatId: null,
+        chatType: "new",
+        messageLength: content.length,
+        inputMethod: options?.inputMethod ?? "typed",
+        queryCategory: null,
+      });
 
       // Show user message + thinking indicator immediately, before any API call.
       // Build command early so it's visible in the pending message.

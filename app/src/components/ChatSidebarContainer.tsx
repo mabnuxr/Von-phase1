@@ -279,7 +279,12 @@ export function ChatSidebarContainer({
   const handleDeleteItem = useCallback(
     (id: string) => {
       const chatName = chatLabelById.get(id) ?? "";
-      report.chatListChatDeleted(id, chatName, true, null);
+      report.chatListChatDeleted({
+        chatId: id,
+        chatName,
+        success: true,
+        error: null,
+      });
       deleteConversation(id);
       if (id === currentConversationId) {
         navigate("/chat");
@@ -292,7 +297,13 @@ export function ChatSidebarContainer({
     (id: string, newName: string) => {
       const oldName = chatLabelById.get(id) ?? "";
       renameConversation(id, newName);
-      report.chatListChatRenamed(id, oldName, newName, true, null);
+      report.chatListChatRenamed({
+        chatId: id,
+        oldName,
+        newName,
+        success: true,
+        error: null,
+      });
     },
     [renameConversation, chatLabelById],
   );

@@ -137,13 +137,23 @@ export function ManageUsersTab() {
 
     try {
       await removeMutation.mutateAsync(userId);
-      report.manageTeamMemberRemoved(true, null, userEmail, userRole);
+      report.manageTeamMemberRemoved({
+        success: true,
+        error: null,
+        targetUserEmail: userEmail,
+        targetUserRole: userRole,
+      });
       setDeleteConfirmation(null);
       setShowSuccessBanner(true);
     } catch (error) {
       const errMsg =
         error instanceof Error ? error.message : "Failed to remove member";
-      report.manageTeamMemberRemoved(false, errMsg, userEmail, userRole);
+      report.manageTeamMemberRemoved({
+        success: false,
+        error: errMsg,
+        targetUserEmail: userEmail,
+        targetUserRole: userRole,
+      });
       console.error("Failed to remove team member:", error);
       setDeleteConfirmation(null);
       // Error is already handled by the mutation's onError callback
@@ -478,12 +488,12 @@ export function ManageUsersTab() {
                           <span
                             className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150"
                             onMouseEnter={() =>
-                              report.manageTeamQuestionsTooltipViewed(
-                                member.email,
-                                member.usage.last_week,
-                                member.usage.last_month,
-                                member.usage.total,
-                              )
+                              report.manageTeamQuestionsTooltipViewed({
+                                targetUserEmail: member.email,
+                                questionsLast7d: member.usage.last_week,
+                                questionsLast30d: member.usage.last_month,
+                                questionsAllTime: member.usage.total,
+                              })
                             }
                           >
                             {member.usage.total}

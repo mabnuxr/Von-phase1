@@ -796,13 +796,13 @@ export function useChatV2(props: UseChatV2Props) {
       lastUserMessageRef.current = content;
 
       // #19 Message Submitted — fire immediately on send
-      report.chatMessageSubmitted(
-        conversationId,
-        "existing",
-        content.length,
-        options?.inputMethod ?? "typed",
-        null,
-      );
+      report.chatMessageSubmitted({
+        chatId: conversationId,
+        chatType: "existing",
+        messageLength: content.length,
+        inputMethod: options?.inputMethod ?? "typed",
+        queryCategory: null,
+      });
       streamingStartedAtRef.current = Date.now();
 
       // Clear any stale pending-stop flag so the new run's events aren't swallowed

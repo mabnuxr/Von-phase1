@@ -224,31 +224,38 @@ export function ManageFoldersModal({
         (f) => finalIds.has(f.folderId) && !initialCheckedIds.has(f.folderId),
       );
       for (const folder of addedExisting) {
-        report.chatListChatAddedToFolder(
-          itemId,
-          itemName,
-          folder.name,
-          "existing",
-          true,
-          null,
-        );
+        report.chatListChatAddedToFolder({
+          chatId: itemId,
+          chatName: itemName,
+          folderName: folder.name,
+          folderType: "existing",
+          success: true,
+          error: null,
+        });
       }
       // Fire for the newly created folder (if any)
       if (createdFolderName) {
-        report.chatListChatAddedToFolder(
-          itemId,
-          itemName,
-          createdFolderName,
-          "new",
-          true,
-          null,
-        );
+        report.chatListChatAddedToFolder({
+          chatId: itemId,
+          chatName: itemName,
+          folderName: createdFolderName,
+          folderType: "new",
+          success: true,
+          error: null,
+        });
       }
 
       onClose();
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : "Unknown error";
-      report.chatListChatAddedToFolder(itemId, itemName, "", "", false, errMsg);
+      report.chatListChatAddedToFolder({
+        chatId: itemId,
+        chatName: itemName,
+        folderName: "",
+        folderType: "",
+        success: false,
+        error: errMsg,
+      });
       // Mutation already surfaced a toast; keep modal open.
     }
   };

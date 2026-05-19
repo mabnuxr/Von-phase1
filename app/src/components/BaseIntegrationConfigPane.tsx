@@ -157,12 +157,13 @@ export function BaseIntegrationConfigPane({
 
   const handleClose = () => {
     if (!isEditMode && !closingAfterSuccessRef.current) {
-      report.integrationsIntegrationCreateCancelled(
-        integration?.name ?? integrationId,
-        INTEGRATION_METADATA[integrationId]?.category ?? "",
+      report.integrationsIntegrationCreateCancelled({
+        integrationName: integration?.name ?? integrationId,
+        integrationCategory:
+          INTEGRATION_METADATA[integrationId]?.category ?? "",
         connectionType,
         authMethod,
-      );
+      });
     }
     closingAfterSuccessRef.current = false;
     setIsVisible(false); // Trigger slide-out animation
@@ -535,14 +536,15 @@ export function BaseIntegrationConfigPane({
           name: integrationId === "bigquery" ? "BigQuery" : undefined,
         });
 
-        report.integrationsIntegrationCreated(
-          integration?.name ?? integrationId,
-          INTEGRATION_METADATA[integrationId]?.category ?? "",
+        report.integrationsIntegrationCreated({
+          integrationName: integration?.name ?? integrationId,
+          integrationCategory:
+            INTEGRATION_METADATA[integrationId]?.category ?? "",
           connectionType,
           authMethod,
-          true,
-          null,
-        );
+          success: true,
+          error: null,
+        });
 
         // Clear sensitive credentials from state after creation
         if (integrationId === "gong") {
@@ -709,14 +711,15 @@ export function BaseIntegrationConfigPane({
           ? (error as { message: string }).message
           : "Failed to save integration. Please try again.";
       if (!isEditMode) {
-        report.integrationsIntegrationCreated(
-          integration?.name ?? integrationId,
-          INTEGRATION_METADATA[integrationId]?.category ?? "",
+        report.integrationsIntegrationCreated({
+          integrationName: integration?.name ?? integrationId,
+          integrationCategory:
+            INTEGRATION_METADATA[integrationId]?.category ?? "",
           connectionType,
           authMethod,
-          false,
-          errorMessage,
-        );
+          success: false,
+          error: errorMessage,
+        });
       }
       setValidationErrors([errorMessage]);
     }

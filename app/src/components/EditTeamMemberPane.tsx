@@ -94,13 +94,13 @@ export function EditTeamMemberPane() {
     }
 
     if (errors.length > 0) {
-      report.manageTeamEditDetailsSaved(
-        false,
-        errors.join(", "),
-        memberRoleName,
-        formData.role,
-        member.email,
-      );
+      report.manageTeamEditDetailsSaved({
+        success: false,
+        error: errors.join(", "),
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       setValidationErrors(errors);
       return;
     }
@@ -129,13 +129,13 @@ export function EditTeamMemberPane() {
         userId: member.id,
         data: updates,
       });
-      report.manageTeamEditDetailsSaved(
-        true,
-        null,
-        memberRoleName,
-        formData.role,
-        member.email,
-      );
+      report.manageTeamEditDetailsSaved({
+        success: true,
+        error: null,
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       handleClose();
     } catch (error: unknown) {
       console.error("[EditTeamMemberPane] Save error:", error);
@@ -157,26 +157,26 @@ export function EditTeamMemberPane() {
           const detail = response.data?.detail || response.data?.message;
           const msg =
             detail || "Failed to update team member. Please check your input.";
-          report.manageTeamEditDetailsSaved(
-            false,
-            msg,
-            memberRoleName,
-            formData.role,
-            member.email,
-          );
+          report.manageTeamEditDetailsSaved({
+            success: false,
+            error: msg,
+            oldRole: memberRoleName,
+            newRole: formData.role,
+            targetUserEmail: member.email,
+          });
           setValidationErrors([msg]);
           return;
         }
 
         if (response?.status === 403) {
           const msg = "You don't have permission to update this team member.";
-          report.manageTeamEditDetailsSaved(
-            false,
-            msg,
-            memberRoleName,
-            formData.role,
-            member.email,
-          );
+          report.manageTeamEditDetailsSaved({
+            success: false,
+            error: msg,
+            oldRole: memberRoleName,
+            newRole: formData.role,
+            targetUserEmail: member.email,
+          });
           setValidationErrors([msg]);
           return;
         }
@@ -186,13 +186,13 @@ export function EditTeamMemberPane() {
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
           : "Failed to update team member. Please try again.";
-      report.manageTeamEditDetailsSaved(
-        false,
-        errorMessage,
-        memberRoleName,
-        formData.role,
-        member.email,
-      );
+      report.manageTeamEditDetailsSaved({
+        success: false,
+        error: errorMessage,
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       setValidationErrors([errorMessage]);
     }
   };

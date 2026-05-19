@@ -895,14 +895,15 @@ function ExistingChatInner(
               onGoogleDriveClick={
                 wrappedDriveClick && chatV2.fileArtifactPanel.fileId
                   ? () => {
-                      report.artifactsOpenedInExternalTool(
-                        chatV2.fileArtifactPanel.fileName ?? "",
-                        (chatV2.fileArtifactPanel.fileName ?? "")
-                          .split(".")
-                          .pop() ?? "",
-                        conversationId,
-                        "Google Drive",
-                      );
+                      report.artifactsOpenedInExternalTool({
+                        fileName: chatV2.fileArtifactPanel.fileName ?? "",
+                        fileType:
+                          (chatV2.fileArtifactPanel.fileName ?? "")
+                            .split(".")
+                            .pop() ?? "",
+                        chatId: conversationId,
+                        toolName: "Google Drive",
+                      });
                       wrappedDriveClick(chatV2.fileArtifactPanel.fileId!);
                     }
                   : undefined
@@ -916,14 +917,15 @@ function ExistingChatInner(
               onBoxClick={
                 wrappedBoxClick && chatV2.fileArtifactPanel.fileId
                   ? () => {
-                      report.artifactsOpenedInExternalTool(
-                        chatV2.fileArtifactPanel.fileName ?? "",
-                        (chatV2.fileArtifactPanel.fileName ?? "")
-                          .split(".")
-                          .pop() ?? "",
-                        conversationId,
-                        "Box",
-                      );
+                      report.artifactsOpenedInExternalTool({
+                        fileName: chatV2.fileArtifactPanel.fileName ?? "",
+                        fileType:
+                          (chatV2.fileArtifactPanel.fileName ?? "")
+                            .split(".")
+                            .pop() ?? "",
+                        chatId: conversationId,
+                        toolName: "Box",
+                      });
                       wrappedBoxClick(chatV2.fileArtifactPanel.fileId!);
                     }
                   : undefined

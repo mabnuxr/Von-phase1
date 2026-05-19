@@ -63,23 +63,23 @@ export const report = {
   // ── Email ──────────────────────────────────────────────────────────────────
   emailPageViewed: () => track("Email - Page Viewed", {}),
 
-  emailSettingsSaved: (
-    success: boolean,
-    error: string | null,
-    emailObject: string,
-    opportunityField: string,
-    accountField: string,
-    emailBodyField: string,
-    isFirstSave: boolean,
-  ) =>
+  emailSettingsSaved: (params: {
+    success: boolean;
+    error: string | null;
+    emailObject: string;
+    opportunityField: string;
+    accountField: string;
+    emailBodyField: string;
+    isFirstSave: boolean;
+  }) =>
     track("Email - Settings Saved", {
-      success,
-      error,
-      email_object: emailObject,
-      opportunity_field: opportunityField,
-      account_field: accountField,
-      email_body_field: emailBodyField,
-      is_first_save: isFirstSave,
+      success: params.success,
+      error: params.error,
+      email_object: params.emailObject,
+      opportunity_field: params.opportunityField,
+      account_field: params.accountField,
+      email_body_field: params.emailBodyField,
+      is_first_save: params.isFirstSave,
     }),
 
   // ── Manage Team ──────────────────────────────────────────────────────────────
@@ -94,17 +94,17 @@ export const report = {
   manageTeamAddMemberClicked: () =>
     track("Manage Team - Add Member Clicked", {}),
 
-  manageTeamMemberAdded: (
-    success: boolean,
-    error: string | null,
-    memberEmail: string,
-    memberRole: string,
-  ) =>
+  manageTeamMemberAdded: (params: {
+    success: boolean;
+    error: string | null;
+    memberEmail: string;
+    memberRole: string;
+  }) =>
     track("Manage Team - Member Added", {
-      success,
-      error,
-      member_email: memberEmail,
-      member_role: memberRole,
+      success: params.success,
+      error: params.error,
+      member_email: params.memberEmail,
+      member_role: params.memberRole,
     }),
 
   manageTeamAddMemberCancelled: () =>
@@ -128,19 +128,19 @@ export const report = {
       target_user_role: targetUserRole,
     }),
 
-  manageTeamEditDetailsSaved: (
-    success: boolean,
-    error: string | null,
-    oldRole: string,
-    newRole: string,
-    targetUserEmail: string,
-  ) =>
+  manageTeamEditDetailsSaved: (params: {
+    success: boolean;
+    error: string | null;
+    oldRole: string;
+    newRole: string;
+    targetUserEmail: string;
+  }) =>
     track("Manage Team - Edit Details Saved", {
-      success,
-      error,
-      old_role: oldRole,
-      new_role: newRole,
-      target_user_email: targetUserEmail,
+      success: params.success,
+      error: params.error,
+      old_role: params.oldRole,
+      new_role: params.newRole,
+      target_user_email: params.targetUserEmail,
     }),
 
   manageTeamEditDetailsCancelled: (targetUserEmail: string) =>
@@ -177,17 +177,17 @@ export const report = {
       target_user_role: targetUserRole,
     }),
 
-  manageTeamMemberRemoved: (
-    success: boolean,
-    error: string | null,
-    targetUserEmail: string,
-    targetUserRole: string,
-  ) =>
+  manageTeamMemberRemoved: (params: {
+    success: boolean;
+    error: string | null;
+    targetUserEmail: string;
+    targetUserRole: string;
+  }) =>
     track("Manage Team - Member Removed", {
-      success,
-      error,
-      target_user_email: targetUserEmail,
-      target_user_role: targetUserRole,
+      success: params.success,
+      error: params.error,
+      target_user_email: params.targetUserEmail,
+      target_user_role: params.targetUserRole,
     }),
 
   manageTeamRemoveCancelled: (targetUserEmail: string) =>
@@ -195,17 +195,17 @@ export const report = {
       target_user_email: targetUserEmail,
     }),
 
-  manageTeamQuestionsTooltipViewed: (
-    targetUserEmail: string,
-    questionsLast7d: number,
-    questionsLast30d: number,
-    questionsAllTime: number,
-  ) =>
+  manageTeamQuestionsTooltipViewed: (params: {
+    targetUserEmail: string;
+    questionsLast7d: number;
+    questionsLast30d: number;
+    questionsAllTime: number;
+  }) =>
     track("Manage Team - Questions Tooltip Viewed", {
-      target_user_email: targetUserEmail,
-      questions_last_7d: questionsLast7d,
-      questions_last_30d: questionsLast30d,
-      questions_all_time: questionsAllTime,
+      target_user_email: params.targetUserEmail,
+      questions_last_7d: params.questionsLast7d,
+      questions_last_30d: params.questionsLast30d,
+      questions_all_time: params.questionsAllTime,
     }),
 
   manageTeamLearnMoreClicked: () =>
@@ -255,19 +255,19 @@ export const report = {
   chatSlashCommandCreateNewClicked: () =>
     track("Chat - Slash Command Create New Clicked", {}),
 
-  chatMessageSubmitted: (
-    chatId: string | null,
-    chatType: "new" | "existing",
-    messageLength: number,
-    inputMethod: "typed" | "suggested_prompt" | "slash_command",
-    queryCategory: string | null,
-  ) =>
+  chatMessageSubmitted: (params: {
+    chatId: string | null;
+    chatType: "new" | "existing";
+    messageLength: number;
+    inputMethod: "typed" | "suggested_prompt" | "slash_command";
+    queryCategory: string | null;
+  }) =>
     track("Chat - Message Submitted", {
-      chat_id: chatId,
-      chat_type: chatType,
-      message_length: messageLength,
-      input_method: inputMethod,
-      query_category: queryCategory,
+      chat_id: params.chatId,
+      chat_type: params.chatType,
+      message_length: params.messageLength,
+      input_method: params.inputMethod,
+      query_category: params.queryCategory,
     }),
 
   chatStopGenerating: (timeElapsedSeconds: number) =>
@@ -346,47 +346,47 @@ export const report = {
   // ── Integrations ──────────────────────────────────────────────────────────────
   integrationsPageViewed: () => track("Integrations - Page Viewed", {}),
 
-  integrationsConnectClicked: (
-    integrationName: string,
-    integrationCategory: string,
-    connectionType: string,
-    authMethod: string,
-  ) =>
+  integrationsConnectClicked: (params: {
+    integrationName: string;
+    integrationCategory: string;
+    connectionType: string;
+    authMethod: string;
+  }) =>
     track("Integrations - Connect Clicked", {
-      integration_name: integrationName,
-      integration_category: integrationCategory,
-      connection_type: connectionType,
-      auth_method: authMethod,
+      integration_name: params.integrationName,
+      integration_category: params.integrationCategory,
+      connection_type: params.connectionType,
+      auth_method: params.authMethod,
     }),
 
-  integrationsIntegrationCreated: (
-    integrationName: string,
-    integrationCategory: string,
-    connectionType: string,
-    authMethod: string,
-    success: boolean,
-    error: string | null,
-  ) =>
+  integrationsIntegrationCreated: (params: {
+    integrationName: string;
+    integrationCategory: string;
+    connectionType: string;
+    authMethod: string;
+    success: boolean;
+    error: string | null;
+  }) =>
     track("Integrations - Integration Created", {
-      integration_name: integrationName,
-      integration_category: integrationCategory,
-      connection_type: connectionType,
-      auth_method: authMethod,
-      success,
-      error,
+      integration_name: params.integrationName,
+      integration_category: params.integrationCategory,
+      connection_type: params.connectionType,
+      auth_method: params.authMethod,
+      success: params.success,
+      error: params.error,
     }),
 
-  integrationsIntegrationCreateCancelled: (
-    integrationName: string,
-    integrationCategory: string,
-    connectionType: string,
-    authMethod: string,
-  ) =>
+  integrationsIntegrationCreateCancelled: (params: {
+    integrationName: string;
+    integrationCategory: string;
+    connectionType: string;
+    authMethod: string;
+  }) =>
     track("Integrations - Integration Create Cancelled", {
-      integration_name: integrationName,
-      integration_category: integrationCategory,
-      connection_type: connectionType,
-      auth_method: authMethod,
+      integration_name: params.integrationName,
+      integration_category: params.integrationCategory,
+      connection_type: params.connectionType,
+      auth_method: params.authMethod,
     }),
 
   integrationsDisconnectClicked: (
@@ -400,19 +400,19 @@ export const report = {
       connection_type: connectionType,
     }),
 
-  integrationsIntegrationDeleted: (
-    integrationName: string,
-    integrationCategory: string,
-    connectionType: string,
-    success: boolean,
-    error: string | null,
-  ) =>
+  integrationsIntegrationDeleted: (params: {
+    integrationName: string;
+    integrationCategory: string;
+    connectionType: string;
+    success: boolean;
+    error: string | null;
+  }) =>
     track("Integrations - Integration Deleted", {
-      integration_name: integrationName,
-      integration_category: integrationCategory,
-      connection_type: connectionType,
-      success,
-      error,
+      integration_name: params.integrationName,
+      integration_category: params.integrationCategory,
+      connection_type: params.connectionType,
+      success: params.success,
+      error: params.error,
     }),
 
   integrationsDisconnectCancelled: (
@@ -444,49 +444,49 @@ export const report = {
       chat_name: chatName,
     }),
 
-  chatListChatRenamed: (
-    chatId: string,
-    oldName: string,
-    newName: string,
-    success: boolean,
-    error: string | null,
-  ) =>
+  chatListChatRenamed: (params: {
+    chatId: string;
+    oldName: string;
+    newName: string;
+    success: boolean;
+    error: string | null;
+  }) =>
     track("Chat List - Chat Renamed", {
-      chat_id: chatId,
-      old_name: oldName,
-      new_name: newName,
-      success,
-      error,
+      chat_id: params.chatId,
+      old_name: params.oldName,
+      new_name: params.newName,
+      success: params.success,
+      error: params.error,
     }),
 
-  chatListChatAddedToFolder: (
-    chatId: string,
-    chatName: string,
-    folderName: string,
-    folderType: string,
-    success: boolean,
-    error: string | null,
-  ) =>
+  chatListChatAddedToFolder: (params: {
+    chatId: string;
+    chatName: string;
+    folderName: string;
+    folderType: string;
+    success: boolean;
+    error: string | null;
+  }) =>
     track("Chat List - Chat Added to Folder", {
-      chat_id: chatId,
-      chat_name: chatName,
-      folder_name: folderName,
-      folder_type: folderType,
-      success,
-      error,
+      chat_id: params.chatId,
+      chat_name: params.chatName,
+      folder_name: params.folderName,
+      folder_type: params.folderType,
+      success: params.success,
+      error: params.error,
     }),
 
-  chatListChatDeleted: (
-    chatId: string,
-    chatName: string,
-    success: boolean,
-    error: string | null,
-  ) =>
+  chatListChatDeleted: (params: {
+    chatId: string;
+    chatName: string;
+    success: boolean;
+    error: string | null;
+  }) =>
     track("Chat List - Chat Deleted", {
-      chat_id: chatId,
-      chat_name: chatName,
-      success,
-      error,
+      chat_id: params.chatId,
+      chat_name: params.chatName,
+      success: params.success,
+      error: params.error,
     }),
 
   // ── Artifacts ─────────────────────────────────────────────────────────────────
@@ -512,17 +512,17 @@ export const report = {
       chat_id: chatId,
     }),
 
-  artifactsOpenedInExternalTool: (
-    fileName: string,
-    fileType: string,
-    chatId: string | null,
-    toolName: string,
-  ) =>
+  artifactsOpenedInExternalTool: (params: {
+    fileName: string;
+    fileType: string;
+    chatId: string | null;
+    toolName: string;
+  }) =>
     track("Artifacts - Opened in External Tool", {
-      file_name: fileName,
-      file_type: fileType,
-      chat_id: chatId,
-      tool_name: toolName,
+      file_name: params.fileName,
+      file_type: params.fileType,
+      chat_id: params.chatId,
+      tool_name: params.toolName,
     }),
 
   artifactsDownloaded: (
@@ -580,18 +580,18 @@ export const report = {
     }),
 
   // ── App Errors ────────────────────────────────────────────────────────────────
-  appErrorsClientError: (
-    errorType: string,
-    errorMessage: string,
-    page: string,
-    component: string | null,
-    chatId: string | null,
-  ) =>
+  appErrorsClientError: (params: {
+    errorType: string;
+    errorMessage: string;
+    page: string;
+    component: string | null;
+    chatId: string | null;
+  }) =>
     track("App Errors - Client Error", {
-      error_type: errorType,
-      error_message: errorMessage,
-      page,
-      component,
-      chat_id: chatId,
+      error_type: params.errorType,
+      error_message: params.errorMessage,
+      page: params.page,
+      component: params.component,
+      chat_id: params.chatId,
     }),
 };

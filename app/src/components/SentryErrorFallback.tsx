@@ -39,7 +39,13 @@ export function SentryErrorFallback({
         .split("\n")
         .find((line) => line.trim())
         ?.trim() ?? null;
-    report.appErrorsClientError(errorType, errorMessage, page, component, null);
+    report.appErrorsClientError({
+      errorType,
+      errorMessage,
+      page,
+      component,
+      chatId: null,
+    });
 
     if (import.meta.env.DEV) {
       console.error("Error caught by Sentry ErrorBoundary:", error);
