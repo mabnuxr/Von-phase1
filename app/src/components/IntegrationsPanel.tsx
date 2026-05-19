@@ -31,8 +31,10 @@ import {
   getIntegrationLogoPath,
   getIntegrationDisplayName,
   canBeOrgLevel,
+  INTEGRATION_METADATA,
 } from "../constants/integrationMetadata";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { report } from "../lib/analytics/tracker";
 
 export interface Integration {
   id: string;
@@ -129,6 +131,26 @@ export function IntegrationsPanel() {
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
+
+  // Derive auth_method from integration id — OAuth integrations use redirect flow
+  const OAUTH_INTEGRATION_IDS = new Set([
+    "salesforce",
+    "hubspot",
+    "googlecalendar",
+    "googledrive",
+    "box",
+    "gmail",
+    "granola",
+    "notion",
+    "outreachengage",
+  ]);
+  const getAuthMethod = (id: string) =>
+    OAUTH_INTEGRATION_IDS.has(id) ? "OAuth" : "API Key";
+
+  useEffect(() => {
+    report.integrationsPageViewed();
+  }, []);
+
   const { isMcpServersEnabled } = useFeatureFlag();
   const { data: tenantIntegrations } = useTenantIntegrations();
 
@@ -255,12 +277,14 @@ export function IntegrationsPanel() {
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     integrationName: string;
+    integrationCategory: string;
     action: "delete" | "disable";
     connectionType?: "workspace" | "personal" | "both";
     resolver?: (value: boolean) => void;
   }>({
     isOpen: false,
     integrationName: "",
+    integrationCategory: "",
     action: "delete",
   });
 
@@ -323,6 +347,17 @@ export function IntegrationsPanel() {
   };
 
   const handleModalCancel = () => {
+    if (modalState.action === "delete") {
+      report.integrationsDisconnectCancelled(
+        modalState.integrationName,
+        modalState.integrationCategory,
+        modalState.connectionType === "both"
+          ? "Both"
+          : modalState.connectionType === "workspace"
+            ? "Workspace"
+            : "Personal",
+      );
+    }
     modalState.resolver?.(false);
     pendingResolverRef.current = null;
     setModalState({ isOpen: false, integrationName: "", action: "delete" });
@@ -333,12 +368,23 @@ export function IntegrationsPanel() {
     connectionType: "workspace" | "personal" | "both" = "personal",
   ) => {
     const integration = integrations.find((i) => i.id === id);
+    const meta = INTEGRATION_METADATA[integration?.type ?? ""];
+    report.integrationsDisconnectClicked(
+      integration?.name ?? id,
+      meta?.category ?? "",
+      connectionType === "both"
+        ? "Both"
+        : connectionType === "workspace"
+          ? "Workspace"
+          : "Personal",
+    );
 
     const confirmed = await new Promise<boolean>((resolve) => {
       pendingResolverRef.current = resolve;
       setModalState({
         isOpen: true,
         integrationName: integration?.name || "this integration",
+        integrationCategory: meta?.category ?? "",
         action: "delete",
         connectionType,
         resolver: resolve,
@@ -352,16 +398,45 @@ export function IntegrationsPanel() {
       deleteIntegration.mutate(id, {
         onSuccess: () => {
           setLoadingIntegrationId(null);
+          report.integrationsIntegrationDeleted(
+            integration?.name ?? id,
+            INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
+            connectionType === "both"
+              ? "Both"
+              : connectionType === "workspace"
+                ? "Workspace"
+                : "Personal",
+            true,
+            null,
+          );
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
           setOauthError(`Failed to delete integration: ${error.message}`);
+          report.integrationsIntegrationDeleted(
+            integration?.name ?? id,
+            INTEGRATION_METADATA[integration?.type ?? ""]?.category ?? "",
+            connectionType === "both"
+              ? "Both"
+              : connectionType === "workspace"
+                ? "Workspace"
+                : "Personal",
+            false,
+            error.message,
+          );
         },
       });
     }
   };
 
   const handleConnect = (appId: string, accessLevel: "tenant" | "user") => {
+    const meta = INTEGRATION_METADATA[appId];
+    report.integrationsConnectClicked(
+      meta?.name ?? appId,
+      meta?.category ?? "",
+      accessLevel === "tenant" ? "Workspace" : "Personal",
+      getAuthMethod(appId),
+    );
     if (accessLevel === "tenant") {
       setConfiguringWorkspaceIntegration(appId);
     } else {

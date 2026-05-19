@@ -19,6 +19,7 @@ import { parseEmlContent } from "../lib/emailUtils";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router-dom";
+import { report } from "../lib/analytics/tracker";
 
 interface GmailDraftCardContainerProps {
   conversationId: string;
@@ -103,6 +104,7 @@ export const GmailDraftCardContainer: React.FC<
   });
 
   const handleOpenInGmail = useCallback(async () => {
+    report.emailDraftsOpenedInGmail(conversationId, 0);
     setIsCreatingDraft(true);
     try {
       const result = await createGmailDraft(conversationId, artifact.fileId);
@@ -195,6 +197,9 @@ export const GmailDraftCardContainer: React.FC<
               void handleOpenInGmail();
             }
           : undefined
+      }
+      onBodyCopied={(index) =>
+        report.emailDraftsBodyCopied(conversationId, index)
       }
       isCreatingDraft={isCreatingDraft}
     />
@@ -305,6 +310,7 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   }
 
   const handleOpenInGmail = async (index: number) => {
+    report.emailDraftsOpenedInGmail(conversationId, index);
     const artifactIdx = emailToArtifactIndex[index];
     const a = artifacts[artifactIdx];
     if (!a) return;
@@ -355,6 +361,12 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
         isGmailEnabled
           ? (index: number) => void handleOpenInGmail(index)
           : undefined
+      }
+      onTabChange={(index) =>
+        report.emailDraftsTabClicked(conversationId, index)
+      }
+      onBodyCopied={(index) =>
+        report.emailDraftsBodyCopied(conversationId, index)
       }
       isCreatingDraft={isCreatingDraft}
     />

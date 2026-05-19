@@ -342,4 +342,256 @@ export const report = {
 
   chatExistingChatLoaded: (chatId: string) =>
     track("Chat - Existing Chat Loaded", { chat_id: chatId }),
+
+  // ── Integrations ──────────────────────────────────────────────────────────────
+  integrationsPageViewed: () => track("Integrations - Page Viewed", {}),
+
+  integrationsConnectClicked: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+    authMethod: string,
+  ) =>
+    track("Integrations - Connect Clicked", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+      auth_method: authMethod,
+    }),
+
+  integrationsIntegrationCreated: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+    authMethod: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Integrations - Integration Created", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+      auth_method: authMethod,
+      success,
+      error,
+    }),
+
+  integrationsIntegrationCreateCancelled: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+    authMethod: string,
+  ) =>
+    track("Integrations - Integration Create Cancelled", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+      auth_method: authMethod,
+    }),
+
+  integrationsDisconnectClicked: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+  ) =>
+    track("Integrations - Disconnect Clicked", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+    }),
+
+  integrationsIntegrationDeleted: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Integrations - Integration Deleted", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+      success,
+      error,
+    }),
+
+  integrationsDisconnectCancelled: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+  ) =>
+    track("Integrations - Disconnect Cancelled", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+    }),
+
+  integrationsAPICredentialsLinkClicked: (
+    integrationName: string,
+    integrationCategory: string,
+    connectionType: string,
+  ) =>
+    track("Integrations - API Credentials Link Clicked", {
+      integration_name: integrationName,
+      integration_category: integrationCategory,
+      connection_type: connectionType,
+    }),
+
+  // ── Chat List ─────────────────────────────────────────────────────────────────
+  chatListChatActionsMenuOpened: (chatId: string, chatName: string) =>
+    track("Chat List - Chat Actions Menu Opened", {
+      chat_id: chatId,
+      chat_name: chatName,
+    }),
+
+  chatListChatRenamed: (
+    chatId: string,
+    oldName: string,
+    newName: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Chat List - Chat Renamed", {
+      chat_id: chatId,
+      old_name: oldName,
+      new_name: newName,
+      success,
+      error,
+    }),
+
+  chatListChatAddedToFolder: (
+    chatId: string,
+    chatName: string,
+    folderName: string,
+    folderType: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Chat List - Chat Added to Folder", {
+      chat_id: chatId,
+      chat_name: chatName,
+      folder_name: folderName,
+      folder_type: folderType,
+      success,
+      error,
+    }),
+
+  chatListChatDeleted: (
+    chatId: string,
+    chatName: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Chat List - Chat Deleted", {
+      chat_id: chatId,
+      chat_name: chatName,
+      success,
+      error,
+    }),
+
+  // ── Artifacts ─────────────────────────────────────────────────────────────────
+  artifactsPreviewOpened: (
+    fileName: string,
+    fileType: string,
+    chatId: string | null,
+  ) =>
+    track("Artifacts - Preview Opened", {
+      file_name: fileName,
+      file_type: fileType,
+      chat_id: chatId,
+    }),
+
+  artifactsPreviewClosed: (
+    fileName: string,
+    fileType: string,
+    chatId: string | null,
+  ) =>
+    track("Artifacts - Preview Closed", {
+      file_name: fileName,
+      file_type: fileType,
+      chat_id: chatId,
+    }),
+
+  artifactsOpenedInExternalTool: (
+    fileName: string,
+    fileType: string,
+    chatId: string | null,
+    toolName: string,
+  ) =>
+    track("Artifacts - Opened in External Tool", {
+      file_name: fileName,
+      file_type: fileType,
+      chat_id: chatId,
+      tool_name: toolName,
+    }),
+
+  artifactsDownloaded: (
+    fileName: string,
+    fileType: string,
+    chatId: string | null,
+  ) =>
+    track("Artifacts - Downloaded", {
+      file_name: fileName,
+      file_type: fileType,
+      chat_id: chatId,
+    }),
+
+  artifactsOpened: (
+    fileName: string,
+    fileType: string,
+    chatId: string | null,
+  ) =>
+    track("Artifacts - Opened", {
+      file_name: fileName,
+      file_type: fileType,
+      chat_id: chatId,
+    }),
+
+  // ── Email Drafts ───────────────────────────────────────────────────────────────
+  emailDraftsTabClicked: (chatId: string, emailIndex: number) =>
+    track("Email Drafts - Tab Clicked", {
+      chat_id: chatId,
+      email_index: emailIndex,
+    }),
+
+  emailDraftsBodyCopied: (chatId: string, emailIndex: number) =>
+    track("Email Drafts - Body Copied", {
+      chat_id: chatId,
+      email_index: emailIndex,
+    }),
+
+  emailDraftsOpenedInGmail: (chatId: string, emailIndex: number) =>
+    track("Email Drafts - Opened in Gmail", {
+      chat_id: chatId,
+      email_index: emailIndex,
+    }),
+
+  // ── Write Operations ──────────────────────────────────────────────────────────
+  writeOperationsApproved: (chatId: string, toolCallId: string) =>
+    track("Write Operations - Approved", {
+      chat_id: chatId,
+      tool_call_id: toolCallId,
+    }),
+
+  writeOperationsRejected: (chatId: string, toolCallId: string) =>
+    track("Write Operations - Rejected", {
+      chat_id: chatId,
+      tool_call_id: toolCallId,
+    }),
+
+  // ── App Errors ────────────────────────────────────────────────────────────────
+  appErrorsClientError: (
+    errorType: string,
+    errorMessage: string,
+    page: string,
+    component: string | null,
+    chatId: string | null,
+  ) =>
+    track("App Errors - Client Error", {
+      error_type: errorType,
+      error_message: errorMessage,
+      page,
+      component,
+      chat_id: chatId,
+    }),
 };

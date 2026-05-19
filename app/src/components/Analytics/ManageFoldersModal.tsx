@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { report } from "../../lib/analytics/tracker";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDownIcon,
@@ -202,19 +203,52 @@ export function ManageFoldersModal({
 
     try {
       const finalIds = new Set(checkedIds);
+      let createdFolderName = "";
+
       if (hasNewFolderPending) {
         const folder = await createFolderAsync({
           name: newFolderName.trim(),
         });
         finalIds.add(folder.folderId);
+        createdFolderName = newFolderName.trim();
       }
+
       await setItemFoldersAsync({
         itemType,
         itemId,
         folderIds: Array.from(finalIds),
       });
+
+      // Fire for each newly added existing folder
+      const addedExisting = sortedFolders.filter(
+        (f) => finalIds.has(f.folderId) && !initialCheckedIds.has(f.folderId),
+      );
+      for (const folder of addedExisting) {
+        report.chatListChatAddedToFolder(
+          itemId,
+          itemName,
+          folder.name,
+          "existing",
+          true,
+          null,
+        );
+      }
+      // Fire for the newly created folder (if any)
+      if (createdFolderName) {
+        report.chatListChatAddedToFolder(
+          itemId,
+          itemName,
+          createdFolderName,
+          "new",
+          true,
+          null,
+        );
+      }
+
       onClose();
-    } catch {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "Unknown error";
+      report.chatListChatAddedToFolder(itemId, itemName, "", "", false, errMsg);
       // Mutation already surfaced a toast; keep modal open.
     }
   };

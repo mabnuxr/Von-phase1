@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import { LOGO_URL } from "../config/constants";
+import { report } from "../lib/analytics/tracker";
 
 interface SentryErrorFallbackProps {
   error: unknown;
@@ -30,6 +31,16 @@ export function SentryErrorFallback({
           })();
 
   useEffect(() => {
+    const errorType = error instanceof Error ? error.name : "Unknown";
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const page = window.location.pathname;
+    const component =
+      componentStack
+        .split("\n")
+        .find((line) => line.trim())
+        ?.trim() ?? null;
+    report.appErrorsClientError(errorType, errorMessage, page, component, null);
+
     if (import.meta.env.DEV) {
       console.error("Error caught by Sentry ErrorBoundary:", error);
       console.error("Component Stack:", componentStack);

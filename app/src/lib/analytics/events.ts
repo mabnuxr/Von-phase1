@@ -156,6 +156,139 @@ export type EventMap = {
     message_index: number;
   };
   "Chat - Existing Chat Loaded": { chat_id: string };
+
+  // ── Integrations ──────────────────────────────────────────────────────────────
+  "Integrations - Page Viewed": Record<never, never>;
+  "Integrations - Connect Clicked": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+    auth_method: string;
+  };
+  "Integrations - Integration Created": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+    auth_method: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Integrations - Integration Create Cancelled": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+    auth_method: string;
+  };
+  "Integrations - Disconnect Clicked": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+  };
+  "Integrations - Integration Deleted": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Integrations - Disconnect Cancelled": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+  };
+  "Integrations - API Credentials Link Clicked": {
+    integration_name: string;
+    integration_category: string;
+    connection_type: string;
+  };
+
+  // ── Chat List ─────────────────────────────────────────────────────────────────
+  "Chat List - Chat Actions Menu Opened": {
+    chat_id: string;
+    chat_name: string;
+  };
+  "Chat List - Chat Renamed": {
+    chat_id: string;
+    old_name: string;
+    new_name: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Chat List - Chat Added to Folder": {
+    chat_id: string;
+    chat_name: string;
+    folder_name: string;
+    folder_type: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Chat List - Chat Deleted": {
+    chat_id: string;
+    chat_name: string;
+    success: boolean;
+    error: string | null;
+  };
+
+  // ── Artifacts ─────────────────────────────────────────────────────────────────
+  "Artifacts - Preview Opened": {
+    file_name: string;
+    file_type: string;
+    chat_id: string | null;
+  };
+  "Artifacts - Preview Closed": {
+    file_name: string;
+    file_type: string;
+    chat_id: string | null;
+  };
+  "Artifacts - Opened in External Tool": {
+    file_name: string;
+    file_type: string;
+    chat_id: string | null;
+    tool_name: string;
+  };
+  "Artifacts - Downloaded": {
+    file_name: string;
+    file_type: string;
+    chat_id: string | null;
+  };
+  "Artifacts - Opened": {
+    file_name: string;
+    file_type: string;
+    chat_id: string | null;
+  };
+
+  // ── Email Drafts ───────────────────────────────────────────────────────────────
+  "Email Drafts - Tab Clicked": {
+    chat_id: string;
+    email_index: number;
+  };
+  "Email Drafts - Body Copied": {
+    chat_id: string;
+    email_index: number;
+  };
+  "Email Drafts - Opened in Gmail": {
+    chat_id: string;
+    email_index: number;
+  };
+
+  // ── Write Operations ──────────────────────────────────────────────────────────
+  "Write Operations - Approved": {
+    chat_id: string;
+    tool_call_id: string;
+  };
+  "Write Operations - Rejected": {
+    chat_id: string;
+    tool_call_id: string;
+  };
+
+  // ── App Errors ────────────────────────────────────────────────────────────────
+  "App Errors - Client Error": {
+    error_type: string;
+    error_message: string;
+    page: string;
+    component: string | null;
+    chat_id: string | null;
+  };
 };
 
 export type EventName = keyof EventMap;

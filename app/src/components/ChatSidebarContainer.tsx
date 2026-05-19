@@ -105,9 +105,6 @@ export function ChatSidebarContainer({
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
     null,
   );
-  const handleContextMenuOpen = useCallback((itemId: string) => {
-    setContextMenuConvId(itemId);
-  }, []);
   const { data: contextMenuShareStatus } = useShareStatus(
     isChatSharingEnabled ? contextMenuConvId : null,
   );
@@ -236,16 +233,6 @@ export function ChatSidebarContainer({
     [folders, toggleFolderExpanded],
   );
 
-  const handleDeleteItem = useCallback(
-    (id: string) => {
-      deleteConversation(id);
-      if (id === currentConversationId) {
-        navigate("/chat");
-      }
-    },
-    [deleteConversation, currentConversationId, navigate],
-  );
-
   const [manageFoldersState, setManageFoldersState] = useState<
     | {
         open: true;
@@ -277,6 +264,38 @@ export function ChatSidebarContainer({
     }
     return map;
   }, [dashboards, folderDashboards]);
+
+  const handleContextMenuOpen = useCallback(
+    (itemId: string) => {
+      setContextMenuConvId(itemId);
+      report.chatListChatActionsMenuOpened(
+        itemId,
+        chatLabelById.get(itemId) ?? "",
+      );
+    },
+    [chatLabelById],
+  );
+
+  const handleDeleteItem = useCallback(
+    (id: string) => {
+      const chatName = chatLabelById.get(id) ?? "";
+      report.chatListChatDeleted(id, chatName, true, null);
+      deleteConversation(id);
+      if (id === currentConversationId) {
+        navigate("/chat");
+      }
+    },
+    [deleteConversation, currentConversationId, navigate, chatLabelById],
+  );
+
+  const handleRenameItem = useCallback(
+    (id: string, newName: string) => {
+      const oldName = chatLabelById.get(id) ?? "";
+      renameConversation(id, newName);
+      report.chatListChatRenamed(id, oldName, newName, true, null);
+    },
+    [renameConversation, chatLabelById],
+  );
 
   // Unified callback for both chats and dashboards. The design-component
   // forwards the row's `ItemType`; we translate to the API's vocabulary and
@@ -357,7 +376,7 @@ export function ChatSidebarContainer({
         onItemClick={handleChatClick}
         onNewChatClick={onNewChatClick}
         onNewChatFolderClick={handleNewChatFolderClick}
-        onRenameItem={renameConversation}
+        onRenameItem={handleRenameItem}
         onShareItem={isChatSharingEnabled ? openShareModal : undefined}
         onContextMenuOpen={
           isChatSharingEnabled ? handleContextMenuOpen : undefined

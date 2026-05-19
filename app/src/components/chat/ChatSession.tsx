@@ -894,7 +894,17 @@ function ExistingChatInner(
               }
               onGoogleDriveClick={
                 wrappedDriveClick && chatV2.fileArtifactPanel.fileId
-                  ? () => wrappedDriveClick(chatV2.fileArtifactPanel.fileId!)
+                  ? () => {
+                      report.artifactsOpenedInExternalTool(
+                        chatV2.fileArtifactPanel.fileName ?? "",
+                        (chatV2.fileArtifactPanel.fileName ?? "")
+                          .split(".")
+                          .pop() ?? "",
+                        conversationId,
+                        "Google Drive",
+                      );
+                      wrappedDriveClick(chatV2.fileArtifactPanel.fileId!);
+                    }
                   : undefined
               }
               isDriveEnabled={props.isDriveEnabled}
@@ -905,7 +915,17 @@ function ExistingChatInner(
               }
               onBoxClick={
                 wrappedBoxClick && chatV2.fileArtifactPanel.fileId
-                  ? () => wrappedBoxClick(chatV2.fileArtifactPanel.fileId!)
+                  ? () => {
+                      report.artifactsOpenedInExternalTool(
+                        chatV2.fileArtifactPanel.fileName ?? "",
+                        (chatV2.fileArtifactPanel.fileName ?? "")
+                          .split(".")
+                          .pop() ?? "",
+                        conversationId,
+                        "Box",
+                      );
+                      wrappedBoxClick(chatV2.fileArtifactPanel.fileId!);
+                    }
                   : undefined
               }
               isBoxEnabled={props.isBoxEnabled}
