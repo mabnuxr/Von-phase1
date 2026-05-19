@@ -343,7 +343,12 @@ export function IntegrationsPanel() {
   const handleModalConfirm = () => {
     modalState.resolver?.(true);
     pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "", action: "delete" });
+    setModalState({
+      isOpen: false,
+      integrationName: "",
+      integrationCategory: "",
+      action: "delete",
+    });
   };
 
   const handleModalCancel = () => {
@@ -360,7 +365,12 @@ export function IntegrationsPanel() {
     }
     modalState.resolver?.(false);
     pendingResolverRef.current = null;
-    setModalState({ isOpen: false, integrationName: "", action: "delete" });
+    setModalState({
+      isOpen: false,
+      integrationName: "",
+      integrationCategory: "",
+      action: "delete",
+    });
   };
 
   const handleDelete = async (
