@@ -6,8 +6,8 @@
  */
 export interface ChannelCondition {
   _key?: string;
-  field: "channel_name" | "channel_id" | "channel_topic";
-  operator: "starts_with" | "contains" | "ends_with" | "sfdc_field_link";
+  field: "channel_name";
+  operator: "is" | "starts_with" | "contains" | "ends_with";
   value: string;
 }
 

@@ -160,7 +160,7 @@ function SlackChannelConfigPaneInner({ integrationId, onClose }: InnerProps) {
                   <img
                     src={slackMeta.logoPath}
                     alt={slackMeta.name}
-                    className="w-6 h-6 object-contain shrink-0"
+                    className="w-9 h-9 object-contain shrink-0"
                   />
                 )}
                 <h2 className="text-base font-semibold text-gray-900 m-0 truncate">

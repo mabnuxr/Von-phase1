@@ -18,6 +18,7 @@ export const IntegrationType = {
   BIGQUERY: "BIGQUERY",
   NOTION: "NOTION",
   JIMINNY: "JIMINNY",
+  SLACK_WORKSPACE: "SLACK_WORKSPACE",
   MCP_SERVER: "MCP_SERVER",
 } as const;
 
