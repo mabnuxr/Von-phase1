@@ -66,7 +66,8 @@ export const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
                     Discard unsaved changes?
                   </div>
                   <div className="text-[13px] leading-relaxed text-gray-600">
-                    Your changes will be lost. This can&apos;t be undone.
+                    Your unsaved changes will be lost. This can&apos;t be
+                    undone.
                   </div>
                 </div>
               </div>
