@@ -115,27 +115,27 @@ export function EmailCategorizationTab() {
       ]
         .filter(Boolean)
         .join(", ");
-      report.emailSettingsSaved(
-        false,
-        errorMsg || "Validation failed",
-        formData.emailObjectType,
-        formData.opportunityField,
-        formData.accountField,
-        formData.emailBodyField,
-        isFirstSaveRef.current,
-      );
+      report.emailSettingsSaved({
+        success: false,
+        error: errorMsg || "Validation failed",
+        emailObject: formData.emailObjectType,
+        opportunityField: formData.opportunityField,
+        accountField: formData.accountField,
+        emailBodyField: formData.emailBodyField,
+        isFirstSave: isFirstSaveRef.current,
+      });
       return;
     }
 
-    report.emailSettingsSaved(
-      true,
-      null,
-      formData.emailObjectType,
-      formData.opportunityField,
-      formData.accountField,
-      formData.emailBodyField,
-      isFirstSaveRef.current,
-    );
+    report.emailSettingsSaved({
+      success: true,
+      error: null,
+      emailObject: formData.emailObjectType,
+      opportunityField: formData.opportunityField,
+      accountField: formData.accountField,
+      emailBodyField: formData.emailBodyField,
+      isFirstSave: isFirstSaveRef.current,
+    });
     isFirstSaveRef.current = false;
 
     // Update store first (optimistic update)
