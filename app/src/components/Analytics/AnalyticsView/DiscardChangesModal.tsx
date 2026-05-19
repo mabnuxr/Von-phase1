@@ -66,8 +66,7 @@ export const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
                     Discard unsaved changes?
                   </div>
                   <div className="text-[13px] leading-relaxed text-gray-600">
-                    Your draft will be replaced by the last published version.
-                    This can&apos;t be undone.
+                    Your changes will be lost. This can&apos;t be undone.
                   </div>
                 </div>
               </div>
