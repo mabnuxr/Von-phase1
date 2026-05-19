@@ -625,6 +625,10 @@ export function useAnalyticsTools(dashboardId: string) {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),
       });
+      showToast({
+        message: "Dashboard reverted to last saved version.",
+        variant: "success",
+      });
     },
   });
 

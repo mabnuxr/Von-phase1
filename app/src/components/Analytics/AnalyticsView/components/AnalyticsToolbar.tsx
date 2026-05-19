@@ -21,7 +21,10 @@ import type {
 } from "../../../../types/dashboard";
 import type { MutationPhase } from "../../../../hooks/useMutationPhase";
 import type { EditModeActions } from "../hooks/useEditModeActions";
-import type { DashboardShareV2 } from "../hooks/useDashboardShareV2";
+import type {
+  DashboardShareActions,
+  DashboardShareState,
+} from "../hooks/useDashboardShareV2";
 
 // ── Filters (left slot) ──────────────────────────────────────────────
 
@@ -124,8 +127,10 @@ interface AnalyticsToolbarActionsProps {
   shareV2Phase: MutationPhase;
   editActions: EditModeActions;
 
-  // Share (V2)
-  share: DashboardShareV2;
+  // Share (V2) — split into state + handlers so re-renders triggered by
+  // dialog refetches don't cascade through the rest of the toolbar.
+  shareState: DashboardShareState;
+  shareActions: DashboardShareActions;
   onCopyLink: () => Promise<void>;
 
   // More menu
@@ -162,7 +167,8 @@ export function AnalyticsToolbarActions({
   editModePhase,
   shareV2Phase,
   editActions,
-  share,
+  shareState,
+  shareActions,
   onCopyLink,
   onOpenVersionHistory,
 }: AnalyticsToolbarActionsProps) {
@@ -198,25 +204,26 @@ export function AnalyticsToolbarActions({
         <ShareDashboardDialogV2
           dashboardTitle={dashboard.title}
           currentUserId={currentUserId}
-          myAccessLevel={share.currentAccessLevel}
+          myAccessLevel={shareState.currentAccessLevel}
           canShare={isSaved}
-          scope={share.currentScope === "tenant" ? "org_wide" : "private"}
+          scope={shareState.currentScope === "tenant" ? "org_wide" : "private"}
           scopeDefaultRole="viewer"
-          grants={share.grants}
-          directory={share.directory}
-          dataScopingAvailable={share.dataScopingAvailable}
+          grants={shareState.grants}
+          directory={shareState.directory}
+          dataScopingAvailable={shareState.dataScopingAvailable}
           dataScopeOwnership={
-            (share.currentSharedDataScope as DataScopeOptionV2 | null) ?? null
+            (shareState.currentSharedDataScope as DataScopeOptionV2 | null) ??
+            null
           }
-          onScopeChange={share.handleScopeChange}
-          onGrantAdd={share.handleGrantAdd}
-          onGrantUpdate={share.handleGrantUpdate}
-          onGrantRemove={share.handleGrantRemove}
-          onDataScopeChange={share.handleDataScopeChange}
+          onScopeChange={shareActions.handleScopeChange}
+          onGrantAdd={shareActions.handleGrantAdd}
+          onGrantUpdate={shareActions.handleGrantUpdate}
+          onGrantRemove={shareActions.handleGrantRemove}
+          onDataScopeChange={shareActions.handleDataScopeChange}
           onCopyLink={onCopyLink}
           isAddingPeople={shareV2Phase === "pending"}
           isSavingShare={shareV2Phase === "pending"}
-          onOpenChange={share.setIsShareDialogOpen}
+          onOpenChange={shareActions.setIsShareDialogOpen}
         />
       )}
 
@@ -261,7 +268,7 @@ export function AnalyticsToolbarActions({
         <ShareDashboardDialog
           isSharedWithTenant={dashboard.isSharedWithTenant}
           sharedDataScope={dashboard.sharedDataScope}
-          dataScopingAvailable={share.dataScopingAvailable}
+          dataScopingAvailable={shareState.dataScopingAvailable}
           canShare={isSaved}
           sharePhase={sharePhase}
           onShare={onShare}

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import {
   DashboardLayout,
   DashboardGrid,
@@ -6,6 +7,7 @@ import {
   useCopyToClipboard,
 } from "@vonlabs/design-components";
 import { EditLockModal } from "./EditLockModal";
+import { DiscardChangesModal } from "./DiscardChangesModal";
 import { EditModeBanner } from "../EditModeBanner";
 import { DashboardStatus } from "../../../types/dashboard";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
@@ -380,9 +382,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     useDashboardRoles(dashboard);
 
   const { copy } = useCopyToClipboard();
-  const handleCopyLink = () => copy(window.location.href).then(() => undefined);
+  const handleCopyLink = useCallback(
+    () => copy(window.location.href).then(() => undefined),
+    [copy],
+  );
 
-  const share = useDashboardShareV2({
+  const { shareState, shareActions } = useDashboardShareV2({
     dashboard,
     onShareV2,
     teamMembers,
@@ -397,7 +402,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     teamMembers,
   });
 
-  const editActions = useEditModeActions({
+  const { editActions, discardModal } = useEditModeActions({
     isDashboardCollabEnabled,
     isDashboardOwner,
     dashboardVersion: dashboard.dashboardVersion,
@@ -409,6 +414,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onSave,
     onRevert,
     openLockModal: editLock.openModal,
+    discardDraftPhase,
+    revertPhase,
   });
 
   const isSaved = dashboard.status === DashboardStatus.Published;
@@ -419,6 +426,12 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         isOpen={editLock.isModalOpen}
         onClose={editLock.closeModal}
         holderName={editLock.lockHolderName}
+      />
+      <DiscardChangesModal
+        isOpen={discardModal.isOpen}
+        isPending={discardModal.isPending}
+        onCancel={discardModal.close}
+        onConfirm={discardModal.confirm}
       />
       <DashboardLayout
         embedded={embedded}
@@ -457,7 +470,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
               <AnalyticsHeaderActions
                 hideCreatorChip={hideCreatorChip}
                 isVersionPreview={isVersionPreview}
-                currentScope={share.currentScope}
+                currentScope={shareState.currentScope}
                 creatorName={creatorName}
                 isCreatorLoading={isCreatorLoading}
                 isEditMode={isEditMode}
@@ -521,7 +534,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 editModePhase={editModePhase}
                 shareV2Phase={shareV2Phase}
                 editActions={editActions}
-                share={share}
+                shareState={shareState}
+                shareActions={shareActions}
                 onCopyLink={handleCopyLink}
                 onOpenVersionHistory={onOpenVersionHistory}
               />

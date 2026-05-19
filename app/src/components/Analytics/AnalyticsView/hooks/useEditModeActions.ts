@@ -1,10 +1,14 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useVisibilityToggle } from "@vonlabs/design-components";
+import type { MutationPhase } from "../../../../hooks/useMutationPhase";
 
 interface AcquireLockCallbacks {
   onSuccess?: () => void;
   onHeldByOther?: () => void;
   onUnknownError?: (error: unknown) => void;
 }
+
+type DiscardModalMode = "discard" | "revert";
 
 interface UseEditModeActionsArgs {
   isDashboardCollabEnabled: boolean;
@@ -18,6 +22,12 @@ interface UseEditModeActionsArgs {
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   openLockModal: () => void;
+  // Mutation phases — used to derive `discardModal.isPending` and to auto-
+  // close the modal once the originating mutation finishes (success path).
+  // Error paths are handled by the parent mutations' toast wiring; we just
+  // close the modal so the user can recover.
+  discardDraftPhase: MutationPhase;
+  revertPhase: MutationPhase;
 }
 
 export function useEditModeActions({
@@ -32,6 +42,8 @@ export function useEditModeActions({
   onSave,
   onRevert,
   openLockModal,
+  discardDraftPhase,
+  revertPhase,
 }: UseEditModeActionsArgs) {
   const handleEnterEditMode = useCallback(() => {
     if (isDashboardCollabEnabled && onAcquireLock) {
@@ -61,15 +73,43 @@ export function useEditModeActions({
     openLockModal,
   ]);
 
+  // ── Shared discard/revert confirmation modal ────────────────────
+  //
+  // Discard (collab) and Revert (legacy) both pop the same modal. A ref
+  // tracks which path opened it so `confirm` knows which mutation to fire.
+  // The modal closes itself when the in-flight mutation transitions from
+  // `pending` back to `idle` (success or error) — error toasts are owned
+  // by the upstream mutations.
+  const {
+    isVisible: isDiscardModalOpen,
+    show: openDiscardModal,
+    hide: closeDiscardModal,
+  } = useVisibilityToggle();
+  const discardModeRef = useRef<DiscardModalMode>("discard");
+  const wasPendingRef = useRef(false);
+  const activePhase =
+    discardModeRef.current === "discard" ? discardDraftPhase : revertPhase;
+
+  useEffect(() => {
+    const isPending = activePhase === "pending";
+    if (wasPendingRef.current && !isPending && isDiscardModalOpen) {
+      closeDiscardModal();
+    }
+    wasPendingRef.current = isPending;
+  }, [activePhase, isDiscardModalOpen, closeDiscardModal]);
+
   // Discard / Save-as-draft fall back to a local exit-edit-mode no-op when
-  // the parent didn't pass a handler (legacy flag-off path).
+  // the parent didn't pass a handler (legacy flag-off path). The collab
+  // discard path goes through the confirmation modal; the legacy fallback
+  // doesn't, because there's no destructive server mutation to gate.
   const handleDiscardDraft = useCallback(() => {
     if (onDiscardDraft) {
-      void onDiscardDraft();
+      discardModeRef.current = "discard";
+      openDiscardModal();
       return;
     }
     onEditModeChange?.(false);
-  }, [onDiscardDraft, onEditModeChange]);
+  }, [onDiscardDraft, onEditModeChange, openDiscardModal]);
 
   const handleSaveDraft = useCallback(() => {
     if (onSaveDraft) {
@@ -84,16 +124,53 @@ export function useEditModeActions({
   }, [onSave, dashboardVersion]);
 
   const handleRevertFromEditMode = useCallback(() => {
-    onRevert();
-  }, [onRevert]);
+    discardModeRef.current = "revert";
+    openDiscardModal();
+  }, [openDiscardModal]);
 
-  return {
-    handleEnterEditMode,
-    handleDiscardDraft,
-    handleSaveDraft,
-    handleSaveFromEditMode,
-    handleRevertFromEditMode,
+  const confirmDiscardOrRevert = useCallback(() => {
+    if (discardModeRef.current === "discard") {
+      if (onDiscardDraft) void onDiscardDraft();
+      return;
+    }
+    onRevert();
+  }, [onDiscardDraft, onRevert]);
+
+  // Split return: handlers (stable references, drilled down to toolbar/cluster)
+  // are kept separate from `discardModal` (frequently-changing state — only the
+  // shell renders the modal). Bundling them would cause AnalyticsToolbarActions
+  // to re-render every time the modal opens/closes, even though it doesn't
+  // read any modal state.
+  const editActions = useMemo(
+    () => ({
+      handleEnterEditMode,
+      handleDiscardDraft,
+      handleSaveDraft,
+      handleSaveFromEditMode,
+      handleRevertFromEditMode,
+    }),
+    [
+      handleEnterEditMode,
+      handleDiscardDraft,
+      handleSaveDraft,
+      handleSaveFromEditMode,
+      handleRevertFromEditMode,
+    ],
+  );
+
+  const discardModal = {
+    isOpen: isDiscardModalOpen,
+    close: closeDiscardModal,
+    isPending: activePhase === "pending",
+    confirm: confirmDiscardOrRevert,
   };
+
+  return { editActions, discardModal };
 }
 
-export type EditModeActions = ReturnType<typeof useEditModeActions>;
+export type EditModeActions = ReturnType<
+  typeof useEditModeActions
+>["editActions"];
+export type DiscardModalState = ReturnType<
+  typeof useEditModeActions
+>["discardModal"];

@@ -17,7 +17,7 @@ import type {
   GrantableRoleV2,
   ShareDialogPersonV2,
 } from "../ShareDashboardDialogV2";
-import { buildSharePayload, grantsToRequest } from "../utils/sharePayload";
+import { buildSharePayload } from "../utils/sharePayload";
 
 interface UseDashboardShareV2Args {
   dashboard: Dashboard;
@@ -194,21 +194,56 @@ export function useDashboardShareV2({
     [onShareV2, payloadFrom, currentUserGrants],
   );
 
-  return {
-    dataScopingAvailable,
-    currentScope,
-    currentSharedDataScope,
-    currentAccessLevel,
-    directory,
-    grants,
-    setIsShareDialogOpen,
-    handleScopeChange,
-    handleDataScopeChange,
-    handleGrantAdd,
-    handleGrantUpdate,
-    handleGrantRemove,
-    grantsToRequest,
-  };
+  // Split return: derived `shareState` (changes when the dialog refetches —
+  // grants, scope, data-scope) is kept separate from `shareActions` (stable
+  // handler refs). Bundling them would make `AnalyticsToolbarActions`
+  // re-render whenever the dialog reopens and refetches metadata. The shell
+  // reads `currentScope` directly via destructuring so it doesn't carry the
+  // full state object either.
+  const shareState = useMemo(
+    () => ({
+      dataScopingAvailable,
+      currentScope,
+      currentSharedDataScope,
+      currentAccessLevel,
+      directory,
+      grants,
+    }),
+    [
+      dataScopingAvailable,
+      currentScope,
+      currentSharedDataScope,
+      currentAccessLevel,
+      directory,
+      grants,
+    ],
+  );
+
+  const shareActions = useMemo(
+    () => ({
+      setIsShareDialogOpen,
+      handleScopeChange,
+      handleDataScopeChange,
+      handleGrantAdd,
+      handleGrantUpdate,
+      handleGrantRemove,
+    }),
+    [
+      setIsShareDialogOpen,
+      handleScopeChange,
+      handleDataScopeChange,
+      handleGrantAdd,
+      handleGrantUpdate,
+      handleGrantRemove,
+    ],
+  );
+
+  return { shareState, shareActions };
 }
 
-export type DashboardShareV2 = ReturnType<typeof useDashboardShareV2>;
+export type DashboardShareState = ReturnType<
+  typeof useDashboardShareV2
+>["shareState"];
+export type DashboardShareActions = ReturnType<
+  typeof useDashboardShareV2
+>["shareActions"];

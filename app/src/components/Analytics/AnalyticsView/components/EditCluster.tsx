@@ -33,11 +33,14 @@ export function EditCluster({
   editActions,
 }: EditClusterProps) {
   if (isDashboardCollabEnabled && isEditMode) {
+    // The triad only mounts in edit mode, which means a draft is active —
+    // mark dirty unconditionally so the cluster's emphasis styling kicks in.
     return (
       <EditModeActionsV2
         isDiscarding={discardDraftPhase === "pending"}
         isSavingDraft={saveDraftPhase === "pending"}
         isPublishing={savePhase === "pending"}
+        isDirty
         onDiscard={editActions.handleDiscardDraft}
         onSaveDraft={editActions.handleSaveDraft}
         onPublish={editActions.handleSaveFromEditMode}
