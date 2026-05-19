@@ -5,6 +5,7 @@ import { getPlainText } from '../utils/text';
 export interface UseCommandInputStateOptions {
   enableCommands: boolean;
   onChange?: (value: string) => void;
+  onSlashCommandOpened?: () => void;
 }
 
 export interface UseCommandInputStateReturn {
@@ -26,6 +27,7 @@ export interface UseCommandInputStateReturn {
 export function useCommandInputState({
   enableCommands,
   onChange,
+  onSlashCommandOpened,
 }: UseCommandInputStateOptions): UseCommandInputStateReturn {
   const [showCommandsList, setShowCommandsList] = useState(false);
   const [commandSearch, setCommandSearch] = useState('');
@@ -44,12 +46,13 @@ export function useCommandInputState({
       if (plainText.startsWith('/') && !afterSlash.startsWith(' ')) {
         setShowCommandsList(true);
         setCommandSearch(afterSlash);
+        onSlashCommandOpened?.();
       } else {
         setShowCommandsList(false);
         setCommandSearch('');
       }
     },
-    [onChange, enableCommands]
+    [onChange, enableCommands, onSlashCommandOpened]
   );
 
   const handleSelectCommand = useCallback(

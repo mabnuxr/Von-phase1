@@ -104,30 +104,41 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     [vonIqQueries.length],
   );
 
-  const tabCountByTabId = useMemo<Record<string, number>>(
-    () => ({
-      data: queries.length,
-      calls: calls.length,
-      emails: emails.length,
-      "deep-research": vonIqQueries.length,
-    }),
-    [queries.length, calls.length, emails.length, vonIqQueries.length],
-  );
-
   const handleTabChange = useCallback(
     (tabId: string) => {
       if (!onSourceTabClicked) return;
-      const labelMap: Record<string, string> = {
-        data: "Data",
-        calls: "Calls",
-        emails: "Emails",
-        "deep-research": "Deep Research",
+      const configs = [
+        dataTabConfig,
+        callsTabConfig,
+        emailsTabConfig,
+        deepResearchTabConfig,
+      ];
+      const config = configs.find((c) => c.id === tabId);
+      // Use actual array lengths for analytics — tab config counts inflate for loading/error display states
+      const actualCounts: Record<string, number> = {
+        data: queries.length,
+        calls: calls.length,
+        emails: emails.length,
+        "deep-research": vonIqQueries.length,
       };
-      const sourceName = labelMap[tabId] ?? tabId;
-      const rowCount = tabCountByTabId[tabId] ?? 0;
-      onSourceTabClicked(sourceName, rowCount, messageIndex);
+      onSourceTabClicked(
+        config?.label ?? tabId,
+        actualCounts[tabId] ?? 0,
+        messageIndex,
+      );
     },
-    [onSourceTabClicked, tabCountByTabId, messageIndex],
+    [
+      onSourceTabClicked,
+      dataTabConfig,
+      callsTabConfig,
+      emailsTabConfig,
+      deepResearchTabConfig,
+      queries.length,
+      calls.length,
+      emails.length,
+      vonIqQueries.length,
+      messageIndex,
+    ],
   );
 
   return (

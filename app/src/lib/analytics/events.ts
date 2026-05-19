@@ -129,12 +129,12 @@ export type EventMap = {
   "Chat - Thinking Step Expanded": {
     step_name: string;
     tool_name: string | null;
-    message_index: number;
+    message_id: string;
   };
-  "Chat - Response Copied": { message_index: number };
-  "Chat - Response Downloaded": { message_index: number };
-  "Chat - Response Thumbs Up": { message_index: number };
-  "Chat - Response Thumbs Down": { message_index: number };
+  "Chat - Response Copied": { message_id: string };
+  "Chat - Response Downloaded": { message_id: string };
+  "Chat - Response Thumbs Up": { message_id: string };
+  "Chat - Response Thumbs Down": { message_id: string };
   "Chat - Response Sources Opened": { message_index: number };
   "Chat - Source CSV Downloaded": {
     source_name: string;
@@ -143,12 +143,12 @@ export type EventMap = {
   };
   "Chat - Response Section Copied": {
     section_type: string;
-    message_index: number;
+    message_id: string;
   };
   "Chat - Response Link Clicked": {
     link_type: string;
     link_text: string;
-    message_index: number;
+    message_id: string;
   };
   "Chat - Source Tab Clicked": {
     source_name: string;

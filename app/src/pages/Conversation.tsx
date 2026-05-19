@@ -199,11 +199,10 @@ const Conversation = () => {
   }, [urlConversationId, resetShowMessagesFromIndex]);
 
   // #33 Existing Chat Loaded — fire once per conversation, after loading resolves
-  const chatLoadedRef = useRef<string | null>(null);
+  const hasChatLoaded = useRef(false);
   useEffect(() => {
-    if (!currentConversationId || isLoading) return;
-    if (chatLoadedRef.current === currentConversationId) return;
-    chatLoadedRef.current = currentConversationId;
+    if (!currentConversationId || isLoading || hasChatLoaded.current) return;
+    hasChatLoaded.current = true;
     report.chatExistingChatLoaded(currentConversationId);
   }, [currentConversationId, isLoading]);
 

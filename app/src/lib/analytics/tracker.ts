@@ -278,25 +278,25 @@ export const report = {
   chatThinkingStepExpanded: (
     stepName: string,
     toolName: string | null,
-    messageIndex: number,
+    messageId: string,
   ) =>
     track("Chat - Thinking Step Expanded", {
       step_name: stepName,
       tool_name: toolName,
-      message_index: messageIndex,
+      message_id: messageId,
     }),
 
-  chatResponseCopied: (messageIndex: number) =>
-    track("Chat - Response Copied", { message_index: messageIndex }),
+  chatResponseCopied: (messageId: string) =>
+    track("Chat - Response Copied", { message_id: messageId }),
 
-  chatResponseDownloaded: (messageIndex: number) =>
-    track("Chat - Response Downloaded", { message_index: messageIndex }),
+  chatResponseDownloaded: (messageId: string) =>
+    track("Chat - Response Downloaded", { message_id: messageId }),
 
-  chatThumbsUp: (messageIndex: number) =>
-    track("Chat - Response Thumbs Up", { message_index: messageIndex }),
+  chatThumbsUp: (messageId: string) =>
+    track("Chat - Response Thumbs Up", { message_id: messageId }),
 
-  chatThumbsDown: (messageIndex: number) =>
-    track("Chat - Response Thumbs Down", { message_index: messageIndex }),
+  chatThumbsDown: (messageId: string) =>
+    track("Chat - Response Thumbs Down", { message_id: messageId }),
 
   chatResponseSourcesOpened: (messageIndex: number) =>
     track("Chat - Response Sources Opened", { message_index: messageIndex }),
@@ -312,21 +312,21 @@ export const report = {
       message_index: messageIndex,
     }),
 
-  chatResponseSectionCopied: (sectionType: string, messageIndex: number) =>
+  chatResponseSectionCopied: (sectionType: string, messageId: string) =>
     track("Chat - Response Section Copied", {
       section_type: sectionType,
-      message_index: messageIndex,
+      message_id: messageId,
     }),
 
   chatResponseLinkClicked: (
     linkType: string,
     linkText: string,
-    messageIndex: number,
+    messageId: string,
   ) =>
     track("Chat - Response Link Clicked", {
       link_type: linkType,
       link_text: linkText,
-      message_index: messageIndex,
+      message_id: messageId,
     }),
 
   chatSourceTabClicked: (

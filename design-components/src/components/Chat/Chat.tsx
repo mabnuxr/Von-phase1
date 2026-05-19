@@ -225,15 +225,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       [onSendMessage, prepareForNewMessage]
     );
 
-    // Precompute 1-based assistant message indices for action callbacks
-    const messageIndices = useMemo(() => {
-      let count = 0;
-      return visibleMessages.map((m) => {
-        if (m.type !== 'user') count++;
-        return count;
-      });
-    }, [visibleMessages]);
-
     // Generate container class names
     const containerClassName = [
       'relative',
@@ -348,7 +339,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
               {visibleMessages.map((message, idx) => (
                 <div key={message.id}>
                   <ChatMessage
-                    messageIndex={messageIndices[idx]}
                     type={message.type}
                     content={message.content}
                     command={message.command}
@@ -423,8 +413,22 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                     onDownloadMessage={onDownloadMessage}
                     onThumbsUp={onThumbsUp}
                     onThumbsDown={onThumbsDown}
-                    onResponseLinkClicked={onResponseLinkClicked}
-                    onResponseSectionCopied={onResponseSectionCopied}
+                    onResponseLinkClicked={
+                      onResponseLinkClicked
+                        ? (linkType, linkText) =>
+                            onResponseLinkClicked(
+                              linkType,
+                              linkText,
+                              message.messageId || message.id
+                            )
+                        : undefined
+                    }
+                    onResponseSectionCopied={
+                      onResponseSectionCopied
+                        ? (sectionType) =>
+                            onResponseSectionCopied(sectionType, message.messageId || message.id)
+                        : undefined
+                    }
                   />
                 </div>
               ))}

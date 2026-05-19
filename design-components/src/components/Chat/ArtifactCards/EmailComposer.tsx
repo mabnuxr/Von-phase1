@@ -133,7 +133,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
         // Clipboard unavailable (permissions denied / non-secure context)
       }
     }
-  }, [currentEmail]);
+  }, [currentEmail, activeTab, onBodyCopied]);
 
   const sanitizedHtml = useMemo(() => {
     if (!currentEmail?.isHtml) return '';

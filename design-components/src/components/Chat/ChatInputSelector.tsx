@@ -260,15 +260,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       handleCloseCommandsList,
       clearSelectedCommand,
       dismissCommandsList,
-    } = useCommandInputState({ enableCommands, onChange });
-
-    // Fire analytics when the slash command overlay opens
-    useEffect(() => {
-      if (showCommandsList) {
-        onSlashCommandOpened?.();
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showCommandsList]);
+    } = useCommandInputState({ enableCommands, onChange, onSlashCommandOpened });
 
     // Wrap handleSelectCommand to fire analytics before executing
     const handleSelectCommandWithAnalytics = useCallback(

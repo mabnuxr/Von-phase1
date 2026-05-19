@@ -1689,23 +1689,19 @@ export interface ChatProps {
   /** Called when the user opens the Create New Command drawer */
   onCreateNewCommandClicked?: () => void;
   /** Called when a thinking step is expanded in the timeline */
-  onThinkingStepExpanded?: (
-    stepName: string,
-    toolName: string | null,
-    messageIndex: number
-  ) => void;
+  onThinkingStepExpanded?: (stepName: string, toolName: string | null, messageId: string) => void;
   /** Called when a message copy action is triggered */
-  onCopyMessage?: (messageIndex: number) => void;
+  onCopyMessage?: (messageId: string) => void;
   /** Called when a message download action is triggered */
-  onDownloadMessage?: (messageIndex: number) => void;
+  onDownloadMessage?: (messageId: string) => void;
   /** Called when a thumbs up action is triggered */
-  onThumbsUp?: (messageIndex: number) => void;
+  onThumbsUp?: (messageId: string) => void;
   /** Called when a thumbs down action is triggered */
-  onThumbsDown?: (messageIndex: number) => void;
+  onThumbsDown?: (messageId: string) => void;
   /** Called when a link in a response is clicked */
-  onResponseLinkClicked?: (linkType: string, linkText: string, messageIndex: number) => void;
+  onResponseLinkClicked?: (linkType: string, linkText: string, messageId: string) => void;
   /** Called when content in a response is copied */
-  onResponseSectionCopied?: (sectionType: string, messageIndex: number) => void;
+  onResponseSectionCopied?: (sectionType: string, messageId: string) => void;
 
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state
