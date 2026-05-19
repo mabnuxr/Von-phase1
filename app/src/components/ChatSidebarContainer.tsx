@@ -135,13 +135,14 @@ export function ChatSidebarContainer({
     revealMoreInSection,
     collapseSection,
     createFolder,
-    deleteFolder,
-    renameFolder,
+    deleteFolderAsync,
+    renameFolderAsync,
     pinFolder,
     toggleFolderExpanded,
-    deleteConversation,
-    renameConversation,
+    deleteConversationAsync,
+    renameConversationAsync,
     removeItemFromFolder,
+    removeItemFromFolderAsync,
     unfiledConversations,
   } = useChatSidebar();
 
@@ -218,6 +219,7 @@ export function ChatSidebarContainer({
     (folderName: string) => {
       report.chatNewFolderClicked();
       createFolder(folderName);
+      report.foldersNewFolderCreated(folderName, true, null);
     },
     [createFolder],
   );
@@ -227,10 +229,16 @@ export function ChatSidebarContainer({
       const folder = folders.find((f) => f.id === folderId);
       if (folder) {
         report.chatFolderClicked(folder.label);
+        if (!folder.isExpanded) {
+          report.foldersFolderExpanded(
+            folder.label,
+            folderSectionTotals[folderId]?.conversation ?? 0,
+          );
+        }
       }
       toggleFolderExpanded(folderId);
     },
-    [folders, toggleFolderExpanded],
+    [folders, toggleFolderExpanded, folderSectionTotals],
   );
 
   const [manageFoldersState, setManageFoldersState] = useState<
@@ -239,6 +247,7 @@ export function ChatSidebarContainer({
         itemType: FolderItemType;
         itemId: string;
         itemName: string;
+        fromLocation: string;
       }
     | { open: false }
   >({ open: false });
@@ -265,47 +274,125 @@ export function ChatSidebarContainer({
     return map;
   }, [dashboards, folderDashboards]);
 
+  const folderLabelById = useMemo<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const f of folders) map.set(f.id, f.label);
+    return map;
+  }, [folders]);
+
+  // Returns the folder label if the chat lives in an expanded folder, or
+  // "outside" if it is unfiled. Collapsed-folder chats are not in the
+  // `folderItems` cache and will resolve to "outside" (acceptable edge case).
+  const getChatLocation = useCallback(
+    (chatId: string): string => {
+      for (const [folderId, folderChatItems] of Object.entries(folderItems)) {
+        if (folderChatItems.some((item) => item.id === chatId)) {
+          return folderLabelById.get(folderId) ?? "unknown folder";
+        }
+      }
+      return "outside";
+    },
+    [folderItems, folderLabelById],
+  );
+
   const handleContextMenuOpen = useCallback(
     (itemId: string) => {
       setContextMenuConvId(itemId);
-      report.chatListChatActionsMenuOpened(
-        itemId,
-        chatLabelById.get(itemId) ?? "",
-      );
+      const chatName = chatLabelById.get(itemId) ?? "";
+      const location = getChatLocation(itemId);
+      report.chatListChatActionsMenuOpened(itemId, chatName);
+      report.foldersChatActionsMenuOpened(itemId, chatName, location);
     },
-    [chatLabelById],
+    [chatLabelById, getChatLocation],
   );
 
   const handleDeleteItem = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const chatName = chatLabelById.get(id) ?? "";
-      report.chatListChatDeleted({
-        chatId: id,
-        chatName,
-        success: true,
-        error: null,
-      });
-      deleteConversation(id);
-      if (id === currentConversationId) {
-        navigate("/chat");
+      const location = getChatLocation(id);
+      try {
+        await deleteConversationAsync(id);
+        report.chatListChatDeleted({
+          chatId: id,
+          chatName,
+          success: true,
+          error: null,
+        });
+        report.foldersChatDeleted({
+          chatId: id,
+          chatName,
+          location,
+          success: true,
+          error: null,
+        });
+        if (id === currentConversationId) navigate("/chat");
+      } catch (e) {
+        const error = e instanceof Error ? e.message : "Unknown error";
+        report.chatListChatDeleted({
+          chatId: id,
+          chatName,
+          success: false,
+          error,
+        });
+        report.foldersChatDeleted({
+          chatId: id,
+          chatName,
+          location,
+          success: false,
+          error,
+        });
       }
     },
-    [deleteConversation, currentConversationId, navigate, chatLabelById],
+    [
+      deleteConversationAsync,
+      currentConversationId,
+      navigate,
+      chatLabelById,
+      getChatLocation,
+    ],
   );
 
   const handleRenameItem = useCallback(
-    (id: string, newName: string) => {
+    async (id: string, newName: string) => {
       const oldName = chatLabelById.get(id) ?? "";
-      renameConversation(id, newName);
-      report.chatListChatRenamed({
-        chatId: id,
-        oldName,
-        newName,
-        success: true,
-        error: null,
-      });
+      const location = getChatLocation(id);
+      try {
+        await renameConversationAsync(id, newName);
+        report.chatListChatRenamed({
+          chatId: id,
+          oldName,
+          newName,
+          success: true,
+          error: null,
+        });
+        report.foldersChatRenamed({
+          chatId: id,
+          oldName,
+          newName,
+          location,
+          success: true,
+          error: null,
+        });
+      } catch (e) {
+        const error = e instanceof Error ? e.message : "Unknown error";
+        report.chatListChatRenamed({
+          chatId: id,
+          oldName,
+          newName,
+          success: false,
+          error,
+        });
+        report.foldersChatRenamed({
+          chatId: id,
+          oldName,
+          newName,
+          location,
+          success: false,
+          error,
+        });
+      }
     },
-    [renameConversation, chatLabelById],
+    [renameConversationAsync, chatLabelById, getChatLocation],
   );
 
   // Unified callback for both chats and dashboards. The design-component
@@ -318,26 +405,143 @@ export function ChatSidebarContainer({
         folderItemType === FolderItemType.Dashboard
           ? (dashboardLabelById.get(itemId) ?? "this dashboard")
           : (chatLabelById.get(itemId) ?? "this chat");
+      const fromLocation =
+        folderItemType === FolderItemType.Conversation
+          ? getChatLocation(itemId)
+          : "outside";
       setManageFoldersState({
         open: true,
         itemType: folderItemType,
         itemId,
         itemName,
+        fromLocation,
       });
     },
-    [chatLabelById, dashboardLabelById],
+    [chatLabelById, dashboardLabelById, getChatLocation],
   );
 
   // Single unfile callback; infer FolderItemType from the dashboard map since
   // the design-component no longer forwards itemType in this callback.
   const handleRemoveItemFromFolder = useCallback(
-    (itemId: string) => {
+    async (itemId: string) => {
       const folderItemType = dashboardLabelById.has(itemId)
         ? FolderItemType.Dashboard
         : FolderItemType.Conversation;
-      removeItemFromFolder(itemId, folderItemType);
+      if (folderItemType === FolderItemType.Conversation) {
+        const chatName = chatLabelById.get(itemId) ?? "";
+        let folderName = "";
+        for (const [folderId, folderChatItems] of Object.entries(folderItems)) {
+          if (folderChatItems.some((item) => item.id === itemId)) {
+            folderName = folderLabelById.get(folderId) ?? "";
+            break;
+          }
+        }
+        try {
+          await removeItemFromFolderAsync(itemId, folderItemType);
+          report.foldersChatRemovedFromFolder({
+            chatId: itemId,
+            chatName,
+            folderName,
+            success: true,
+            error: null,
+          });
+        } catch (e) {
+          const error = e instanceof Error ? e.message : "Unknown error";
+          report.foldersChatRemovedFromFolder({
+            chatId: itemId,
+            chatName,
+            folderName,
+            success: false,
+            error,
+          });
+        }
+      } else {
+        removeItemFromFolder(itemId, folderItemType);
+      }
     },
-    [removeItemFromFolder, dashboardLabelById],
+    [
+      removeItemFromFolder,
+      removeItemFromFolderAsync,
+      dashboardLabelById,
+      chatLabelById,
+      folderItems,
+      folderLabelById,
+    ],
+  );
+
+  const handleRenameFolder = useCallback(
+    async (folderId: string, newName: string) => {
+      const oldName = folderLabelById.get(folderId) ?? "";
+      try {
+        await renameFolderAsync(folderId, newName);
+        report.foldersFolderRenamed({
+          oldFolderName: oldName,
+          newFolderName: newName,
+          success: true,
+          error: null,
+        });
+      } catch (e) {
+        const error = e instanceof Error ? e.message : "Unknown error";
+        report.foldersFolderRenamed({
+          oldFolderName: oldName,
+          newFolderName: newName,
+          success: false,
+          error,
+        });
+      }
+    },
+    [renameFolderAsync, folderLabelById],
+  );
+
+  const handlePinFolder = useCallback(
+    (folderId: string, isPinned: boolean) => {
+      pinFolder(folderId, isPinned);
+      if (isPinned) {
+        report.foldersFolderPinned(folderLabelById.get(folderId) ?? "");
+      }
+    },
+    [pinFolder, folderLabelById],
+  );
+
+  const handleDeleteFolder = useCallback(
+    async (folderId: string) => {
+      const folderName = folderLabelById.get(folderId) ?? "";
+      const chatCount = folderSectionTotals[folderId]?.conversation ?? 0;
+      try {
+        await deleteFolderAsync(folderId);
+        report.foldersFolderDeleted({
+          folderName,
+          chatCount,
+          success: true,
+          error: null,
+        });
+      } catch (e) {
+        const error = e instanceof Error ? e.message : "Unknown error";
+        report.foldersFolderDeleted({
+          folderName,
+          chatCount,
+          success: false,
+          error,
+        });
+      }
+    },
+    [deleteFolderAsync, folderLabelById, folderSectionTotals],
+  );
+
+  const handleDeleteFolderClick = useCallback(
+    (folderId: string) => {
+      const folderName = folderLabelById.get(folderId) ?? "";
+      const chatCount = folderSectionTotals[folderId]?.conversation ?? 0;
+      report.foldersFolderDeleteClicked(folderName, chatCount);
+    },
+    [folderLabelById, folderSectionTotals],
+  );
+
+  const handleDeleteFolderCancelled = useCallback(
+    (folderId: string) => {
+      report.foldersFolderDeleteCancelled(folderLabelById.get(folderId) ?? "");
+    },
+    [folderLabelById],
   );
 
   const handleDashboardClick = useCallback(
@@ -394,9 +598,11 @@ export function ChatSidebarContainer({
         }
         contextMenuShareInfo={contextMenuShareInfo}
         onDeleteItem={handleDeleteItem}
-        onDeleteFolder={deleteFolder}
-        onRenameFolder={renameFolder}
-        onPinFolder={pinFolder}
+        onDeleteFolder={handleDeleteFolder}
+        onDeleteFolderClick={handleDeleteFolderClick}
+        onDeleteFolderCancelled={handleDeleteFolderCancelled}
+        onRenameFolder={handleRenameFolder}
+        onPinFolder={handlePinFolder}
         onFolderToggle={handleFolderToggle}
         onRemoveItemFromFolder={handleRemoveItemFromFolder}
         onManageItemFolders={handleManageItemFolders}
@@ -433,6 +639,7 @@ export function ChatSidebarContainer({
           itemName={manageFoldersState.itemName}
           itemType={manageFoldersState.itemType}
           itemId={manageFoldersState.itemId}
+          fromLocation={manageFoldersState.fromLocation}
           onClose={() => setManageFoldersState({ open: false })}
         />
       )}

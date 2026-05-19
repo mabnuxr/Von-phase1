@@ -537,13 +537,13 @@ export const report = {
     }),
 
   artifactsOpened: (
-    fileName: string,
-    fileType: string,
+    toolName: string,
+    artifactType: string,
     chatId: string | null,
   ) =>
     track("Artifacts - Opened", {
-      file_name: fileName,
-      file_type: fileType,
+      tool_name: toolName,
+      artifact_type: artifactType,
       chat_id: chatId,
     }),
 
@@ -593,5 +593,138 @@ export const report = {
       page: params.page,
       component: params.component,
       chat_id: params.chatId,
+    }),
+
+  // ── Folders ───────────────────────────────────────────────────────────────
+  foldersNewFolderCreated: (
+    folderName: string,
+    success: boolean,
+    error: string | null,
+  ) =>
+    track("Folders - New Folder Created", {
+      folder_name: folderName,
+      success,
+      error,
+    }),
+
+  foldersFolderRenamed: (params: {
+    oldFolderName: string;
+    newFolderName: string;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Folder Renamed", {
+      old_folder_name: params.oldFolderName,
+      new_folder_name: params.newFolderName,
+      success: params.success,
+      error: params.error,
+    }),
+
+  foldersFolderPinned: (folderName: string) =>
+    track("Folders - Folder Pinned", { folder_name: folderName }),
+
+  foldersFolderDeleteClicked: (folderName: string, chatCount: number) =>
+    track("Folders - Folder Delete Clicked", {
+      folder_name: folderName,
+      chat_count: chatCount,
+    }),
+
+  foldersFolderDeleted: (params: {
+    folderName: string;
+    chatCount: number;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Folder Deleted", {
+      folder_name: params.folderName,
+      chat_count: params.chatCount,
+      success: params.success,
+      error: params.error,
+    }),
+
+  foldersFolderDeleteCancelled: (folderName: string) =>
+    track("Folders - Folder Delete Cancelled", { folder_name: folderName }),
+
+  foldersFolderExpanded: (folderName: string, chatCount: number) =>
+    track("Folders - Folder Expanded", {
+      folder_name: folderName,
+      chat_count: chatCount,
+    }),
+
+  foldersChatActionsMenuOpened: (
+    chatId: string,
+    chatName: string,
+    location: string,
+  ) =>
+    track("Folders - Chat Actions Menu Opened", {
+      chat_id: chatId,
+      chat_name: chatName,
+      location,
+    }),
+
+  foldersChatRenamed: (params: {
+    chatId: string;
+    oldName: string;
+    newName: string;
+    location: string;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Chat Renamed", {
+      chat_id: params.chatId,
+      old_name: params.oldName,
+      new_name: params.newName,
+      location: params.location,
+      success: params.success,
+      error: params.error,
+    }),
+
+  foldersChatAddedToFolder: (params: {
+    chatId: string;
+    chatName: string;
+    folderName: string;
+    folderType: string;
+    fromLocation: string;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Chat Added to Folder", {
+      chat_id: params.chatId,
+      chat_name: params.chatName,
+      folder_name: params.folderName,
+      folder_type: params.folderType,
+      from_location: params.fromLocation,
+      success: params.success,
+      error: params.error,
+    }),
+
+  foldersChatRemovedFromFolder: (params: {
+    chatId: string;
+    chatName: string;
+    folderName: string;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Chat Removed from Folder", {
+      chat_id: params.chatId,
+      chat_name: params.chatName,
+      folder_name: params.folderName,
+      success: params.success,
+      error: params.error,
+    }),
+
+  foldersChatDeleted: (params: {
+    chatId: string;
+    chatName: string;
+    location: string;
+    success: boolean;
+    error: string | null;
+  }) =>
+    track("Folders - Chat Deleted", {
+      chat_id: params.chatId,
+      chat_name: params.chatName,
+      location: params.location,
+      success: params.success,
+      error: params.error,
     }),
 };

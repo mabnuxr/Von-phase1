@@ -164,6 +164,8 @@ export interface ChatSidebarProps {
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onDeleteFolderClick?: (folderId: string) => void;
+  onDeleteFolderCancelled?: (folderId: string) => void;
   onPinFolder?: (folderId: string, isPinned: boolean) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -541,6 +543,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onFolderToggle,
   onRenameFolder,
   onDeleteFolder,
+  onDeleteFolderClick,
+  onDeleteFolderCancelled,
   onPinFolder,
   isCollapsed = false,
   onToggleCollapse,
@@ -654,6 +658,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onDeleteItem,
     onRenameFolder,
     onDeleteFolder,
+    onDeleteFolderClick,
+    onDeleteFolderCancelled,
     onPinFolder,
     onFolderToggle,
     onNewChatFolderClick,

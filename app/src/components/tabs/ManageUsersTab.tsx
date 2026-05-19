@@ -59,6 +59,7 @@ export function ManageUsersTab() {
   const { setAddingTeamMember, setEditingTeamMemberId } = usePreferencesStore();
 
   const pageViewCaptured = useRef(false);
+  const tooltipViewedMembers = useRef<Set<string>>(new Set());
   const trackPageView = useCallback(() => {
     if (!user || pageViewCaptured.current) return;
     report.manageTeamPageViewed();
@@ -170,17 +171,23 @@ export function ManageUsersTab() {
     setShowPermissionsSubmenu(false);
   };
 
-  const handleToggleSfdcWrite = (member: (typeof filteredUsers)[number]) => {
+  const handleToggleSfdcWrite = async (
+    member: (typeof filteredUsers)[number],
+  ) => {
     const currentValue = member.permissions?.sfdc_write ?? true;
-    report.manageTeamSalesforceUpdatesToggled(
-      !currentValue,
-      member.email,
-      member.role,
-    );
-    updatePermissionsMutation.mutate({
-      userId: member.id,
-      permissions: { sfdc_write: !currentValue },
-    });
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        userId: member.id,
+        permissions: { sfdc_write: !currentValue },
+      });
+      report.manageTeamSalesforceUpdatesToggled(
+        !currentValue,
+        member.email,
+        member.role,
+      );
+    } catch {
+      // mutation already surfaces a toast on error
+    }
   };
 
   const handleToggleHubspotWrite = (member: (typeof filteredUsers)[number]) => {
@@ -487,14 +494,19 @@ export function ManageUsersTab() {
                         >
                           <span
                             className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150"
-                            onMouseEnter={() =>
+                            onMouseEnter={() => {
+                              if (
+                                tooltipViewedMembers.current.has(member.email)
+                              )
+                                return;
+                              tooltipViewedMembers.current.add(member.email);
                               report.manageTeamQuestionsTooltipViewed({
                                 targetUserEmail: member.email,
                                 questionsLast7d: member.usage.last_week,
                                 questionsLast30d: member.usage.last_month,
                                 questionsAllTime: member.usage.total,
-                              })
-                            }
+                              });
+                            }}
                           >
                             {member.usage.total}
                           </span>

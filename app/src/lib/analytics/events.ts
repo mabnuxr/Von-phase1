@@ -252,8 +252,8 @@ export type EventMap = {
     chat_id: string | null;
   };
   "Artifacts - Opened": {
-    file_name: string;
-    file_type: string;
+    tool_name: string;
+    artifact_type: string;
     chat_id: string | null;
   };
 
@@ -288,6 +288,68 @@ export type EventMap = {
     page: string;
     component: string | null;
     chat_id: string | null;
+  };
+
+  // ── Folders ───────────────────────────────────────────────────────────────
+  "Folders - New Folder Created": {
+    folder_name: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Folder Renamed": {
+    old_folder_name: string;
+    new_folder_name: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Folder Pinned": { folder_name: string };
+  "Folders - Folder Delete Clicked": {
+    folder_name: string;
+    chat_count: number;
+  };
+  "Folders - Folder Deleted": {
+    folder_name: string;
+    chat_count: number;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Folder Delete Cancelled": { folder_name: string };
+  "Folders - Folder Expanded": { folder_name: string; chat_count: number };
+  "Folders - Chat Actions Menu Opened": {
+    chat_id: string;
+    chat_name: string;
+    location: string;
+  };
+  "Folders - Chat Renamed": {
+    chat_id: string;
+    old_name: string;
+    new_name: string;
+    location: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Chat Added to Folder": {
+    chat_id: string;
+    chat_name: string;
+    folder_name: string;
+    folder_type: string;
+    from_location: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Chat Removed from Folder": {
+    chat_id: string;
+    chat_name: string;
+    folder_name: string;
+    success: boolean;
+    error: string | null;
+  };
+  "Folders - Chat Deleted": {
+    chat_id: string;
+    chat_name: string;
+    location: string;
+    success: boolean;
+    error: string | null;
   };
 };
 

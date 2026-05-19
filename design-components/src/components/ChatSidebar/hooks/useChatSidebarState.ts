@@ -48,6 +48,8 @@ export interface UseChatSidebarStateOptions {
   onDeleteItem?: (id: string) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onDeleteFolderClick?: (folderId: string) => void;
+  onDeleteFolderCancelled?: (folderId: string) => void;
   onPinFolder?: (folderId: string, isPinned: boolean) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
   onNewChatFolderClick?: (folderName: string) => void;
@@ -77,6 +79,8 @@ export function useChatSidebarState({
   onDeleteItem,
   onRenameFolder,
   onDeleteFolder,
+  onDeleteFolderClick,
+  onDeleteFolderCancelled,
   onPinFolder,
   onNewChatFolderClick,
   onMoveItemToFolder,
@@ -323,9 +327,13 @@ export function useChatSidebarState({
     setEditingFolderId(null);
   }, []);
 
-  const handleShowFolderDeleteConfirmation = useCallback((folder: Folder) => {
-    setFolderDeleteConfirmation({ isOpen: true, folder });
-  }, []);
+  const handleShowFolderDeleteConfirmation = useCallback(
+    (folder: Folder) => {
+      setFolderDeleteConfirmation({ isOpen: true, folder });
+      onDeleteFolderClick?.(folder.id);
+    },
+    [onDeleteFolderClick]
+  );
 
   const handleConfirmFolderDelete = useCallback(() => {
     if (folderDeleteConfirmation.folder) {
@@ -335,8 +343,11 @@ export function useChatSidebarState({
   }, [folderDeleteConfirmation.folder, onDeleteFolder]);
 
   const handleCancelFolderDelete = useCallback(() => {
+    if (folderDeleteConfirmation.folder) {
+      onDeleteFolderCancelled?.(folderDeleteConfirmation.folder.id);
+    }
     setFolderDeleteConfirmation({ isOpen: false, folder: null });
-  }, []);
+  }, [folderDeleteConfirmation.folder, onDeleteFolderCancelled]);
 
   const handlePinFolder = useCallback(
     (folder: Folder) => {

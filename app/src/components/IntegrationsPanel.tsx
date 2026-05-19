@@ -147,9 +147,12 @@ export function IntegrationsPanel() {
   const getAuthMethod = (id: string) =>
     OAUTH_INTEGRATION_IDS.has(id) ? "OAuth" : "API Key";
 
+  const pageViewCaptured = useRef(false);
   useEffect(() => {
+    if (!user || pageViewCaptured.current) return;
     report.integrationsPageViewed();
-  }, []);
+    pageViewCaptured.current = true;
+  }, [user]);
 
   const { isMcpServersEnabled } = useFeatureFlag();
   const { data: tenantIntegrations } = useTenantIntegrations();
