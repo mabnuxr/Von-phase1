@@ -186,6 +186,12 @@ export interface DashboardMetadataApiResponse {
   /** BE PR #1109 — last meaningful editor (commit / publish / discard).
    *  `null` on pre-deploy dashboards until their next lifecycle event. */
   last_edited_by?: string | null;
+  /** Timestamp of the last meaningful edit — pairs with `last_edited_by`.
+   *  Drives the EditLockBadge's relative-time chip ("Edited 5m ago").
+   *  `null` on pre-deploy dashboards; the badge falls back to the lock's
+   *  `acquired_at` when this is missing so something coherent still
+   *  renders. */
+  last_edited_at?: string | null;
 }
 
 /**
@@ -302,6 +308,9 @@ class DashboardService {
      * attribution without a follow-up /metadata round-trip.
      */
     last_edited_by?: string | null;
+    /** Timestamp of the last meaningful edit — pairs with
+     *  `last_edited_by` and drives the chip's relative-time copy. */
+    last_edited_at?: string | null;
   }> {
     return apiClient.post<{
       dashboard_id: string;
@@ -311,6 +320,7 @@ class DashboardService {
       latest_published_version: number | null;
       edit_lock?: { user_id: string; acquired_at: string } | null;
       last_edited_by?: string | null;
+      last_edited_at?: string | null;
     }>(`/api/v1/dashboards/${dashboardId}/lock`);
   }
 

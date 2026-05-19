@@ -48,15 +48,6 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/hubspot.svg",
     category: "CRM",
   },
-  slack_workspace: {
-    id: "slack_workspace",
-    name: "Slack Workspace",
-    description:
-      "Sync workspace Slack data (channels, messages, users) into Von via a workspace bot token.",
-    logoPath:
-      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg",
-    category: "Communication",
-  },
   gong: {
     id: "gong",
     name: "Gong",
@@ -175,6 +166,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     description: "Draft and send emails directly from your Gmail account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/Gmail.svg",
+    category: "Communication",
+  },
+  slack_workspace: {
+    id: "slack_workspace",
+    name: "Slack Data Sync",
+    description:
+      "Sync workspace Slack data (channels, messages, users) into Von via a workspace bot token.",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack-+sync.png",
     category: "Communication",
   },
 

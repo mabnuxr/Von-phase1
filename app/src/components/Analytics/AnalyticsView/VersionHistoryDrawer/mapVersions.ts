@@ -2,17 +2,59 @@ import type {
   DashboardVersionEntry,
   DashboardVersionsResponse,
 } from "../../../../services/dashboardService";
+import type { User } from "../../../../services";
 import type { TeamMember } from "../../../../services/teamService";
 import type { VersionEntryKind, VersionHistoryItem } from "./types";
 
-function resolveAuthorName(
-  userId: string | null,
+/** Context the row-mapper needs to attribute the freshly-cloned
+ *  active draft to the user who's currently holding the lock. The BE
+ *  leaves `updated_by` null until that user actually commits, so
+ *  without this hint the row reads as "Unknown" while they're still
+ *  editing. */
+export interface VersionAuthorContext {
+  currentUser: User | null;
+  editLockUserId: string | null;
+}
+
+function displayNameForUser(user: User): string {
+  const full = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+  return full || user.name || user.email;
+}
+
+interface ResolvedAuthor {
+  /** Empty string when the row has no attributable author yet. Used as
+   *  the avatar-hashing seed and as the sentinel `VersionRow` checks
+   *  to suppress the initials chip. */
+  id: string;
+  name: string;
+}
+
+function resolveAuthor(
+  entry: DashboardVersionEntry,
   teamMembers: TeamMember[] | undefined,
-): string {
-  if (!userId) return "Unknown";
+  context: VersionAuthorContext,
+): ResolvedAuthor {
+  const userId = entry.updated_by;
+  // Active-draft fallback: BE leaves `updated_by` null on a freshly
+  // cloned active draft until the lock holder commits. When that
+  // holder is the current viewer, attribute the row to them so it
+  // doesn't read as "No edits yet" while they're mid-edit. Otherwise
+  // surface "No edits yet" — and signal to `VersionRow` to drop the
+  // initials chip — by returning an empty id.
+  if (!userId && entry.status === "draft") {
+    const { currentUser, editLockUserId } = context;
+    if (currentUser && editLockUserId && editLockUserId === currentUser.id) {
+      return { id: currentUser.id, name: displayNameForUser(currentUser) };
+    }
+    return { id: "", name: "No edits yet" };
+  }
+  if (!userId) return { id: "", name: "" };
   const member = teamMembers?.find((m) => m.id === userId);
-  if (!member) return userId;
-  return `${member.firstName} ${member.lastName}`.trim() || member.email;
+  if (!member) return { id: userId, name: "Unknown" };
+  return {
+    id: userId,
+    name: `${member.firstName} ${member.lastName}`.trim() || member.email,
+  };
 }
 
 function statusToKind(
@@ -36,7 +78,9 @@ function versionLabel(entry: DashboardVersionEntry): string {
 function toItem(
   entry: DashboardVersionEntry,
   teamMembers: TeamMember[] | undefined,
+  context: VersionAuthorContext,
 ): VersionHistoryItem {
+  const author = resolveAuthor(entry, teamMembers, context);
   return {
     id: entry.id,
     dashboardVersion: entry.dashboard_version,
@@ -47,8 +91,8 @@ function toItem(
     // look like a UI bug.
     timestamp: entry.updated_at,
     kind: statusToKind(entry.status),
-    authorId: entry.updated_by ?? "",
-    authorName: resolveAuthorName(entry.updated_by, teamMembers),
+    authorId: author.id,
+    authorName: author.name,
     changeNote: entry.change_summary,
   };
 }
@@ -61,12 +105,15 @@ function toItem(
 export function mapVersionsResponse(
   response: DashboardVersionsResponse | undefined,
   teamMembers: TeamMember[] | undefined,
+  context: VersionAuthorContext,
 ): { drafts: VersionHistoryItem[]; publishedVersions: VersionHistoryItem[] } {
   if (!response) {
     return { drafts: [], publishedVersions: [] };
   }
   return {
-    drafts: response.drafts.map((e) => toItem(e, teamMembers)),
-    publishedVersions: response.published.map((e) => toItem(e, teamMembers)),
+    drafts: response.drafts.map((e) => toItem(e, teamMembers, context)),
+    publishedVersions: response.published.map((e) =>
+      toItem(e, teamMembers, context),
+    ),
   };
 }

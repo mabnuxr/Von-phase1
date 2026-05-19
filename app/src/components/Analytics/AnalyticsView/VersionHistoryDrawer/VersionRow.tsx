@@ -130,13 +130,19 @@ export const VersionRow: React.FC<VersionRowProps> = ({
         </div>
 
         <div className="mt-1 flex items-center gap-1.5">
-          <span
-            aria-hidden
-            className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-white"
-            style={{ background: avatarColor }}
-          >
-            {initials(item.authorName)}
-          </span>
+          {/* No attributable author yet (active draft pre-commit). The
+              mapper sets `authorId` to "" as the sentinel — drop the
+              initials chip entirely so the row doesn't render a
+              meaningless "?" avatar next to "No edits yet". */}
+          {item.authorId && (
+            <span
+              aria-hidden
+              className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-semibold text-white"
+              style={{ background: avatarColor }}
+            >
+              {initials(item.authorName)}
+            </span>
+          )}
           <span className="truncate text-[11px] text-gray-500">
             {item.authorName}
             {isYou && <span className="text-gray-400"> (you)</span>} ·{" "}

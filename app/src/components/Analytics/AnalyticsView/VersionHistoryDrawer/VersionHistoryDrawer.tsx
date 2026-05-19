@@ -31,6 +31,14 @@ interface VersionHistoryDrawerProps {
    * preview is the parent's job.
    */
   onSelectVersion?: (dashboardVersion: number) => void;
+  /**
+   * User ID currently holding the dashboard's edit lock. When the
+   * active draft row has no `updated_by` (BE leaves it null until the
+   * holder commits) and this matches the current viewer, the row's
+   * author column attributes the row to them instead of falling back
+   * to "Unknown".
+   */
+  editLockUserId?: string | null;
 }
 
 // ─── Empty states (per tab) ──────────────────────────────────────
@@ -81,13 +89,18 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   onClose,
   selectedVersion = null,
   onSelectVersion,
+  editLockUserId = null,
 }) => {
   const { user } = useUser();
   const { data: teamMembers } = useTeamMembers(user?.tenantId);
   const versionsQuery = useDashboardVersions(dashboardId, { enabled: isOpen });
   const { drafts, publishedVersions } = useMemo(
-    () => mapVersionsResponse(versionsQuery.data, teamMembers),
-    [versionsQuery.data, teamMembers],
+    () =>
+      mapVersionsResponse(versionsQuery.data, teamMembers, {
+        currentUser: user ?? null,
+        editLockUserId,
+      }),
+    [versionsQuery.data, teamMembers, user, editLockUserId],
   );
 
   const [tab, setTab] = useState<VersionHistoryTab>("current");

@@ -58,6 +58,13 @@ interface EditLockBadgeProps {
    */
   lastEditedBy?: string | null;
   /**
+   * Timestamp paired with `lastEditedBy`. Drives the chip's
+   * relative-time label ("· 5m ago"). When null — typically on
+   * dashboards that pre-date BE PR #1109 — the chip falls back to
+   * the lock's `acquiredAt`.
+   */
+  lastEditedAt?: string | null;
+  /**
    * Optional click handler. The design treats the chip as an entry
    * point into the version-history panel, so the caller wires this
    * to the panel's open action. When omitted, the chip still renders
@@ -84,6 +91,7 @@ export const EditLockBadge: React.FC<EditLockBadgeProps> = ({
   currentUserId,
   teamMembers,
   lastEditedBy = null,
+  lastEditedAt = null,
   onClick,
 }) => {
   // Tick once a minute so the "1m ago" timestamp stays fresh without
@@ -112,7 +120,12 @@ export const EditLockBadge: React.FC<EditLockBadgeProps> = ({
     : (resolvedName ?? attributedUserId);
   const avatarColor = hashColor(attributedUserId);
 
-  const relativeTime = formatRelativeTime(editLock.acquiredAt);
+  // Prefer the explicit `last_edited_at` from the BE — pairs with
+  // `last_edited_by` and reflects the actual edit event. Fall back to
+  // `editLock.acquiredAt` only when the BE hasn't supplied the field
+  // yet (pre-PR-#1109 dashboards) so the chip still renders something
+  // coherent.
+  const relativeTime = formatRelativeTime(lastEditedAt ?? editLock.acquiredAt);
   const label = `Edited by ${displayName}`;
   const tooltip = isSelf
     ? "You made the last edit. Click to open version history."

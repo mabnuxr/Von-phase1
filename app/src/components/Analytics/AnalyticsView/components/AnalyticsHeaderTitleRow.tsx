@@ -112,6 +112,7 @@ export function AnalyticsHeaderTitleRow({
                   currentUserId={currentUserId}
                   teamMembers={teamMembers}
                   lastEditedBy={dashboard.lastEditedBy}
+                  lastEditedAt={dashboard.lastEditedAt}
                   onClick={onOpenVersionHistory}
                 />
               )}

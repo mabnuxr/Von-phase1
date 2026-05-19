@@ -62,6 +62,7 @@ export function IntegrationsPanel() {
   const {
     setConfiguringWorkspaceIntegration,
     setConfiguringPersonalIntegration,
+    setConfiguringSlackChannels,
     loadingIntegrationId,
     setLoadingIntegrationId,
   } = usePreferencesStore();
@@ -404,6 +405,42 @@ export function IntegrationsPanel() {
       }
     }
   }, [integrationsData, loadingIntegrationId, setLoadingIntegrationId]);
+
+  // Auto-open the Slack channel-config pane on first-time Slack workspace
+  // authentication. Why: users complete OAuth and the card flips to
+  // "Connected" but the channel-pattern step is invisible until they spot
+  // the cog icon. Chaining the pane onto the connect flow makes the
+  // configure-channels step part of the same gesture.
+  //
+  // Detection: compare the set of authenticated SLACK_WORKSPACE integration
+  // IDs across renders. Anything newly present is a fresh connection.
+  // First render seeds the ref so pre-existing connections don't pop the
+  // pane on page load.
+  const seenAuthedSlackRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const all = integrationsData?.integrations;
+    if (!all) return;
+    const authedIds = new Set(
+      all
+        .filter(
+          (i: { type: string; authenticationStatus: string }) =>
+            i.type === IntegrationType.SLACK_WORKSPACE &&
+            i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+        )
+        .map((i: { id: string }) => i.id),
+    );
+    if (seenAuthedSlackRef.current === null) {
+      seenAuthedSlackRef.current = authedIds;
+      return;
+    }
+    for (const id of authedIds) {
+      if (!seenAuthedSlackRef.current.has(id)) {
+        setConfiguringSlackChannels(id);
+        break;
+      }
+    }
+    seenAuthedSlackRef.current = authedIds;
+  }, [integrationsData, setConfiguringSlackChannels]);
 
   // Loading state
   if (isLoading) {
