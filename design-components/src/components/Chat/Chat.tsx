@@ -336,7 +336,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
           ) : (
             /* Standard message rendering */
             <div className="flex flex-col">
-              {visibleMessages.map((message, idx) => (
+              {visibleMessages.map((message) => (
                 <div key={message.id}>
                   <ChatMessage
                     type={message.type}
