@@ -93,11 +93,10 @@ export const CommandSchedulePicker: React.FC<CommandSchedulePickerProps> = ({
                   />
                   <span className="flex flex-col">
                     <span className="text-xs font-medium text-gray-800/80">
-                      Auto-approve actions for schedule commands
+                      Auto-approve actions
                     </span>
                     <span className="mt-0.5 text-xs text-gray-500">
-                      Actions that normally need approval run automatically when this command fires
-                      on a schedule.
+                      Scheduled runs execute automatically, without approval prompts.
                     </span>
                   </span>
                 </label>
