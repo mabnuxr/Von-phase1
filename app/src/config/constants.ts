@@ -92,7 +92,7 @@ export const SIDEBAR_DASHBOARD_PAGE_SIZE = 5 as const;
  * OAuth polling timeout duration in milliseconds
  * After this time, polling will stop if authentication hasn't completed
  */
-export const OAUTH_POLLING_TIMEOUT_MS = 60000 as const; // 60 seconds
+export const OAUTH_POLLING_TIMEOUT_MS = 180000 as const; // 60 seconds
 
 /**
  * Interval in milliseconds for polling OAuth authentication status
