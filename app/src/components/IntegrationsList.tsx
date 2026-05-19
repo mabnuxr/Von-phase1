@@ -58,13 +58,13 @@ const CATEGORY_ORDER: Array<
   | "Communication"
 > = [
   "CRM",
+  "Communication",
   "Calendar",
   "Calls & Engagement",
   "Note Takers",
   "Knowledge base",
   "Data Warehouse",
   "Customer Support",
-  "Communication",
 ];
 
 interface IntegrationsListProps {
@@ -1107,26 +1107,42 @@ export function IntegrationsList({
               </h3>
             </div>
 
-            {/* Items */}
+            {/* Items — slack_workspace pinned to the bottom of Communication. */}
             <div className="divide-y divide-gray-200">
-              {items?.map((item) => (
-                <IntegrationItem
-                  key={item.id}
-                  item={item}
-                  allIntegrations={integrations}
-                  integrationsData={integrationsData}
-                  loadingIntegrationId={loadingIntegrationId}
-                  timedOutIntegrations={timedOutIntegrations}
-                  onConnect={onConnect}
-                  onDelete={onDelete}
-                />
-              ))}
+              {items
+                ?.filter((i) => i.id !== "slack_workspace")
+                .map((item) => (
+                  <IntegrationItem
+                    key={item.id}
+                    item={item}
+                    allIntegrations={integrations}
+                    integrationsData={integrationsData}
+                    loadingIntegrationId={loadingIntegrationId}
+                    timedOutIntegrations={timedOutIntegrations}
+                    onConnect={onConnect}
+                    onDelete={onDelete}
+                  />
+                ))}
               {isMcpServersEnabled &&
                 mcpItems.map((entry) => (
                   <MCPCatalogItem
                     key={entry.catalog_id}
                     entry={entry}
                     onConnect={onMCPConnect ?? (() => {})}
+                  />
+                ))}
+              {items
+                ?.filter((i) => i.id === "slack_workspace")
+                .map((item) => (
+                  <IntegrationItem
+                    key={item.id}
+                    item={item}
+                    allIntegrations={integrations}
+                    integrationsData={integrationsData}
+                    loadingIntegrationId={loadingIntegrationId}
+                    timedOutIntegrations={timedOutIntegrations}
+                    onConnect={onConnect}
+                    onDelete={onDelete}
                   />
                 ))}
             </div>

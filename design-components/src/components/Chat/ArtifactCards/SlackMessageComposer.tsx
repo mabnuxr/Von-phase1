@@ -477,9 +477,9 @@ export const SlackMessageComposer: React.FC<SlackMessageComposerProps> = ({
         </div>
       )}
 
-      {/* Body — scrollable, rendered from Slack mrkdwn AST */}
+      {/* Body — rendered preview inside the soft gray card (read-only for now) */}
       <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3">
-        <div className="text-sm text-gray-900 leading-relaxed markdown-content whitespace-pre-wrap">
+        <div className="h-56 max-h-200 overflow-y-auto bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-2.5 text-sm text-gray-900 leading-relaxed markdown-content whitespace-pre-wrap settings-scrollbar">
           {renderSlackMrkdwn(current.displayText ?? current.text)}
         </div>
       </div>

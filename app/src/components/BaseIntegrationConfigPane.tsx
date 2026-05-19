@@ -358,8 +358,12 @@ export function BaseIntegrationConfigPane({
             updateData.accessKey = attentionApiKey;
           }
         } else if (integrationId === "slack_workspace") {
+          // BE config (slack_workspace.py) maps `api_key` → Scalekit static_auth.
+          // Sending `accessKey` was silently dropped, so the token never reached
+          // Scalekit and get_bot_token failed with an empty access_token.
           if (slackWorkspaceBotToken) {
-            updateData.accessKey = slackWorkspaceBotToken;
+            (updateData as Record<string, unknown>).apiKey =
+              slackWorkspaceBotToken;
           }
         } else if (integrationId === "salesloft_engagement") {
           if (salesloftApiKey) {
