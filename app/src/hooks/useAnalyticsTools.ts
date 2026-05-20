@@ -318,7 +318,7 @@ export function useAnalyticsTools(dashboardId: string) {
         );
       }
     },
-    onSuccess: (response, variables, context) => {
+    onSuccess: (response) => {
       // The share endpoint returns the same flat metadata payload as
       // GET /metadata. Drop it straight into the metadata cache so the
       // open dialog picks up authoritative `granted_by` / `granted_at`
@@ -333,25 +333,17 @@ export function useAnalyticsTools(dashboardId: string) {
         );
       }
 
-      // Surface a success toast on every successful share mutation —
-      // scope toggles, data-scope toggles, grant add/update/remove.
-      // Scope flips get a tailored message so the user sees explicitly
-      // what changed; everything else falls back to generic copy.
-      const prevTenant = context?.previousMetadata?.is_shared_with_tenant;
-      const nextTenant = variables.is_shared_with_tenant;
-      const scopeFlipped =
-        prevTenant !== undefined && prevTenant !== nextTenant;
-      const message = scopeFlipped
-        ? nextTenant
-          ? "Dashboard is now shared with everyone at your org"
-          : "Dashboard is now restricted to specific people"
-        : "Sharing updated";
-      showToast({ message, variant: "success" });
+      // Success feedback now lives inside the share modal itself — the
+      // dialog reads `shareV2Phase === "success"` to flash an "Access
+      // updated" pill at its bottom (matches the Google Sheets pattern
+      // and keeps the success cue scoped to the surface where the user
+      // just performed the action). The global top-right toast stays
+      // wired for errors only.
     },
   });
 
   const handleShareV2 = useCallback(
-    (payload: ShareDashboardV2Request) => {
+    async (payload: ShareDashboardV2Request) => {
       // Serialize: drop new calls while a prior share is in flight.
       // Concurrent mutations would corrupt the rollback context —
       // mutation B's onMutate would snapshot the cache *after* A's
@@ -362,54 +354,62 @@ export function useAnalyticsTools(dashboardId: string) {
       // see no response for the dropped click and can retry once the
       // spinner clears.
       if (shareV2Mutation.isPending) return;
-      shareV2Mutation.mutate(payload, {
-        onError: (error) => {
-          console.error("[useAnalyticsTools] Share V2 failed:", error);
-          let message = "Failed to update sharing settings. Please try again.";
-          if (error instanceof ApiError) {
-            const response = error.response as {
-              error?: { code?: string; message?: string };
-            };
-            const code = response?.error?.code;
-            const detail = response?.error?.message ?? "";
-            if (code === "APP_DASHBOARD_ACCESS_DENIED") {
-              message = "You don't have access to share this dashboard.";
-            } else if (code === "APP_DASHBOARD_FORBIDDEN") {
-              // BE M2 §3.3 — the message carries a tag like
-              // `forbidden_data_scope_change` or
-              // `forbidden_editor_operation:<uid>`. Surface the tag-specific
-              // message so the user knows exactly why the action was rejected.
-              if (detail.includes("forbidden_data_scope_change")) {
-                message =
-                  "Only editors and the owner can change the data scope.";
-              } else if (detail.includes("forbidden_editor_operation")) {
-                message =
-                  "Only editors and the owner can add or remove editor access.";
-              } else {
-                message =
-                  detail ||
-                  "You don't have permission for that change. Refresh to see the latest sharing state.";
-              }
-            } else if (code === "APP_DASHBOARD_INVALID_GRANTS") {
+      try {
+        await shareV2Mutation.mutateAsync(payload);
+      } catch (error) {
+        console.error("[useAnalyticsTools] Share V2 failed:", error);
+        let message = "Failed to update sharing settings. Please try again.";
+        if (error instanceof ApiError) {
+          const response = error.response as {
+            error?: { code?: string; message?: string };
+          };
+          const code = response?.error?.code;
+          const detail = response?.error?.message ?? "";
+          if (code === "APP_DASHBOARD_ACCESS_DENIED") {
+            message = "You don't have access to share this dashboard.";
+          } else if (code === "APP_DASHBOARD_FORBIDDEN") {
+            // BE M2 §3.3 — the message carries a tag like
+            // `forbidden_data_scope_change` or
+            // `forbidden_editor_operation:<uid>`. Surface the tag-specific
+            // message so the user knows exactly why the action was rejected.
+            if (detail.includes("forbidden_data_scope_change")) {
+              message = "Only editors and the owner can change the data scope.";
+            } else if (detail.includes("forbidden_editor_operation")) {
+              message =
+                "Only editors and the owner can add or remove editor access.";
+            } else {
               message =
                 detail ||
-                "That grant isn't allowed — check for duplicate users or the owner being in the list.";
-            } else if (code === "APP_DASHBOARD_INVALID_SHARE_USER") {
-              message = "One of the selected users isn't in your workspace.";
-            } else if (code === "APP_DASHBOARD_NOT_FOUND") {
-              message = "This dashboard no longer exists.";
+                "You don't have permission for that change. Refresh to see the latest sharing state.";
             }
+          } else if (code === "APP_DASHBOARD_INVALID_GRANTS") {
+            message =
+              detail ||
+              "That grant isn't allowed — check for duplicate users or the owner being in the list.";
+          } else if (code === "APP_DASHBOARD_INVALID_SHARE_USER") {
+            message = "One of the selected users isn't in your workspace.";
+          } else if (code === "APP_DASHBOARD_NOT_FOUND") {
+            message = "This dashboard no longer exists.";
           }
-          showToast({ message, variant: "error" });
-        },
-      });
+        }
+        showToast({ message, variant: "error" });
+        // Re-throw so callers (e.g. the share dialog's Add-People
+        // submit) can distinguish success from failure and act on it
+        // — close on success, stay open on error.
+        throw error;
+      }
     },
     [shareV2Mutation, showToast],
   );
 
+  // 2500ms — long enough for the in-modal "Access updated" pill to
+  // read as a deliberate confirmation rather than a flash. The legacy
+  // 1500ms default felt rushed once the cue moved off the global
+  // top-right toast and into the dialog itself.
   const shareV2Phase = useMutationPhase(
     shareV2Mutation.isPending,
     shareV2Mutation.isSuccess,
+    2500,
   );
 
   // ─── Edit Mode ─────────────────────────────────────────────────

@@ -1363,12 +1363,21 @@ export interface ChatProps {
 
   /**
    * Fully disable the input — blocks typing AND submission. Pair with
-   * a custom `placeholder` to explain why the input is unavailable
+   * `disabledTooltip` to explain why the input is unavailable
    * (e.g. while a sibling panel has the user's attention). Stronger
    * than `disableSubmit`, which still lets the user type.
    * @default false
    */
   disableInput?: boolean;
+
+  /**
+   * Tooltip surfaced on hover when the input is disabled. Preferred
+   * over leaking the reason into the placeholder text — the
+   * placeholder remains the regular prompt copy and the explanation
+   * shows up only when the user actually points at the disabled
+   * surface.
+   */
+  disabledTooltip?: string;
 
   /**
    * Whether the example prompts in empty state are disabled

@@ -174,14 +174,19 @@ export function AnalyticsToolbarActions({
 }: AnalyticsToolbarActionsProps) {
   return (
     <>
-      {/* Refresh trigger + schedule menu — both bind to the live dashboard,
-          so they're hidden in version-history preview to match the rest of
-          the read-only chrome. */}
-      {!isVersionPreview && (
+      {/* Refresh trigger + schedule menu — bound to the live dashboard,
+          so it's hidden in version-history preview to match the rest of
+          the read-only chrome. Also hidden in edit mode: editing
+          focuses the toolbar on the draft lifecycle (Discard / Save as
+          draft / Publish), and refresh acts on the published view so
+          it would read as out of context here. Editors share the
+          scheduling popover with owners now — viewers fall back to
+          the bare refresh icon. */}
+      {!isVersionPreview && !isEditMode && (
         <RefreshButton
           onRefresh={onRefresh}
           canRefresh={isSaved}
-          isOwner={isDashboardOwner}
+          canSchedule={canEditDashboard}
           isRefreshing={isRefreshing}
           schedule={schedule}
           isScheduled={isScheduled}
@@ -199,33 +204,42 @@ export function AnalyticsToolbarActions({
           practical way (BE permits viewer scope flips but the UI doesn't
           expose them as a v1), so the trigger button is hidden from them
           entirely. Also suppressed in version-history preview mode —
-          sharing acts on the live dashboard, not the previewed snapshot. */}
-      {isDashboardCollabEnabled && canEditDashboard && !isVersionPreview && (
-        <ShareDashboardDialogV2
-          dashboardTitle={dashboard.title}
-          currentUserId={currentUserId}
-          myAccessLevel={shareState.currentAccessLevel}
-          canShare={isSaved}
-          scope={shareState.currentScope === "tenant" ? "org_wide" : "private"}
-          scopeDefaultRole="viewer"
-          grants={shareState.grants}
-          directory={shareState.directory}
-          dataScopingAvailable={shareState.dataScopingAvailable}
-          dataScopeOwnership={
-            (shareState.currentSharedDataScope as DataScopeOptionV2 | null) ??
-            null
-          }
-          onScopeChange={shareActions.handleScopeChange}
-          onGrantAdd={shareActions.handleGrantAdd}
-          onGrantUpdate={shareActions.handleGrantUpdate}
-          onGrantRemove={shareActions.handleGrantRemove}
-          onDataScopeChange={shareActions.handleDataScopeChange}
-          onCopyLink={onCopyLink}
-          isAddingPeople={shareV2Phase === "pending"}
-          isSavingShare={shareV2Phase === "pending"}
-          onOpenChange={shareActions.setIsShareDialogOpen}
-        />
-      )}
+          sharing acts on the live dashboard, not the previewed snapshot.
+          Hidden in edit mode for the same reason as refresh: the
+          toolbar collapses to the draft lifecycle cluster. */}
+      {isDashboardCollabEnabled &&
+        canEditDashboard &&
+        !isVersionPreview &&
+        !isEditMode && (
+          <ShareDashboardDialogV2
+            dashboardTitle={dashboard.title}
+            currentUserId={currentUserId}
+            myAccessLevel={shareState.currentAccessLevel}
+            canShare={isSaved}
+            scope={
+              shareState.currentScope === "tenant" ? "org_wide" : "private"
+            }
+            scopeDefaultRole="viewer"
+            grants={shareState.grants}
+            directory={shareState.directory}
+            dataScopingAvailable={shareState.dataScopingAvailable}
+            dataScopeOwnership={
+              (shareState.currentSharedDataScope as DataScopeOptionV2 | null) ??
+              null
+            }
+            onScopeChange={shareActions.handleScopeChange}
+            onGrantAdd={shareActions.handleGrantAdd}
+            onGrantUpdate={shareActions.handleGrantUpdate}
+            onGrantRemove={shareActions.handleGrantRemove}
+            onDataScopeChange={shareActions.handleDataScopeChange}
+            onCopyLink={onCopyLink}
+            isAddingPeople={shareV2Phase === "pending"}
+            isSavingShare={shareV2Phase === "pending"}
+            savePhase={shareV2Phase}
+            saveSuccessLabel={shareState.lastSaveLabel}
+            onOpenChange={shareActions.setIsShareDialogOpen}
+          />
+        )}
 
       {/* Legacy owner-only actions — only relevant when the dashboardCollab
           flag is off. The triad cluster supersedes Revert, and the legacy

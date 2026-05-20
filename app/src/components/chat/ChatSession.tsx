@@ -209,11 +209,19 @@ export interface ChatSessionProps {
   disableFileAttachments?: boolean;
 
   /**
-   * Fully disable the input — blocks typing AND submission. Pair with
-   * a tailored `placeholder` explaining why (e.g. while a sibling
+   * Fully disable the input — blocks typing AND submission. Pair
+   * with `disabledTooltip` to explain why (e.g. while a sibling
    * panel is open). Forwarded to `Chat`'s `disableInput`.
    */
   disableInput?: boolean;
+
+  /**
+   * Tooltip surfaced on hover when the input is disabled. Preferred
+   * over repurposing `placeholder` — the placeholder stays the
+   * regular prompt copy and the explanation shows up only when the
+   * user actually points at the disabled surface.
+   */
+  disabledTooltip?: string;
 
   /** Action element rendered in the chat pane header area (e.g. Share button) — scoped to chat only, won't cover artifact/dashboard panels. Receives `compact` when a side panel is open. */
   headerAction?: ReactNode | ((compact: boolean) => ReactNode);
@@ -712,6 +720,7 @@ function ExistingChatInner(
       placeholder={props.placeholder ?? "Reply.."}
       disableSubmit={!chatV2.canSubmitFinal}
       disableInput={props.disableInput}
+      disabledTooltip={props.disabledTooltip}
       // Banner
       banner={fullBanner}
       examplePromptsDisabled={!chatV2.canSubmitFinal}
@@ -1021,6 +1030,7 @@ function NewChatInner(
       placeholder={props.placeholder ?? "Ask questions or make changes..."}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       disableInput={props.disableInput}
+      disabledTooltip={props.disabledTooltip}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}
       controlledAttachments={createFlow.fileAttachments}

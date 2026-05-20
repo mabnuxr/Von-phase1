@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useVisibilityToggle } from "@vonlabs/design-components";
 import { useDashboardMetadata } from "../../../../hooks/useDashboardMetadata";
 import type {
@@ -10,6 +10,7 @@ import type {
   DashboardUserGrant,
 } from "../../../../types/dashboard";
 import type { TeamMember } from "../../../../services/teamService";
+import type { User } from "../../../../services";
 import type {
   DashboardScopeV2,
   DataScopeOptionV2,
@@ -21,9 +22,24 @@ import { buildSharePayload } from "../utils/sharePayload";
 
 interface UseDashboardShareV2Args {
   dashboard: Dashboard;
-  onShareV2?: (payload: ShareDashboardV2Request) => void;
+  /**
+   * Dispatch the unified share mutation. Returns a promise that
+   * resolves on a successful response and rejects on any error. The
+   * dialog awaits this on the Add-People submit so it can close on
+   * success and stay open on error — relying on the derived
+   * "success" phase alone has a one-render lag that misses the
+   * transition cleanly.
+   */
+  onShareV2?: (payload: ShareDashboardV2Request) => Promise<void>;
   teamMembers: TeamMember[] | undefined;
   currentUserId: string | undefined;
+  /**
+   * Full current-user record from `useUser`. Used to resolve the
+   * caller's own row immediately without waiting for the team-members
+   * query — that query can lag the dialog open by a few hundred ms,
+   * which otherwise flashes the raw user id in place of the name.
+   */
+  currentUser?: User | null;
   isDashboardCollabEnabled: boolean;
 }
 
@@ -32,6 +48,7 @@ export function useDashboardShareV2({
   onShareV2,
   teamMembers,
   currentUserId,
+  currentUser,
   isDashboardCollabEnabled,
 }: UseDashboardShareV2Args) {
   // Sharing state is sourced from the on-demand `GET /metadata` query
@@ -50,6 +67,14 @@ export function useDashboardShareV2({
     },
     [openShareDialog, closeShareDialog],
   );
+
+  // Drives the in-modal success pill's copy. Each handler stamps a
+  // label before dispatching the share mutation; the dialog reads it
+  // when `shareV2Phase` transitions to "success". Remove gets its own
+  // line so the cue matches the action ("Removed access" vs the
+  // generic "Access updated" used for scope toggles, grant adds, and
+  // grant updates).
+  const [lastSaveLabel, setLastSaveLabel] = useState<string>("Access updated");
 
   const { data: shareMetadata } = useDashboardMetadata(dashboard.id, {
     enabled: isShareDialogOpen && isDashboardCollabEnabled,
@@ -95,23 +120,61 @@ export function useDashboardShareV2({
     [teamMembers, ownerUserId],
   );
 
-  // People list shown in the dialog body — explicit grants only. Owner is
-  // implicit (covered by ownership) and intentionally hidden here.
+  // People list shown in the dialog body — synthesises an owner row
+  // from `created_by` so attribution is always visible at the top of
+  // the list (the dialog's `sortedGrants` pins `role === "owner"` to
+  // the first slot). Any stray explicit grant for the owner is
+  // filtered out: BE rejects new grants on the creator
+  // (`cannot_grant_to_owner`), but legacy data can still carry one
+  // and would otherwise render the owner twice.
   const grants = useMemo<ShareDialogPersonV2[]>(() => {
-    return currentUserGrants.map((grant) => {
-      const member = teamMembers?.find((m) => m.id === grant.user_id);
-      const displayName = member
-        ? `${member.firstName} ${member.lastName}`.trim() || member.email
-        : grant.user_id;
+    // Two paths to a display name for a given userId, in order:
+    //   1. If it's the current viewer — read straight from the user
+    //      record we already hold. No teamMembers query needed, so
+    //      the caller's own row never flashes the raw id.
+    //   2. Otherwise — look up in teamMembers. If teamMembers is
+    //      still loading we return empty strings instead of the raw
+    //      user id, so the row reads as "avatar + empty name" rather
+    //      than "avatar + raw uuid" until the query resolves.
+    const resolveDisplay = (
+      userId: string,
+    ): { name: string; email: string } => {
+      if (currentUser && currentUser.id === userId) {
+        const full =
+          `${currentUser.firstName ?? ""} ${currentUser.lastName ?? ""}`.trim();
+        return {
+          name: full || currentUser.name || currentUser.email,
+          email: currentUser.email,
+        };
+      }
+      const member = teamMembers?.find((m) => m.id === userId);
+      if (!member) return { name: "", email: "" };
       return {
+        name: `${member.firstName} ${member.lastName}`.trim() || member.email,
+        email: member.email,
+      };
+    };
+
+    const ownerRow: ShareDialogPersonV2 | null = ownerUserId
+      ? {
+          userId: ownerUserId,
+          ...resolveDisplay(ownerUserId),
+          role: "owner",
+          isYou: ownerUserId === currentUserId,
+        }
+      : null;
+
+    const explicitRows: ShareDialogPersonV2[] = currentUserGrants
+      .filter((grant) => grant.user_id !== ownerUserId)
+      .map((grant) => ({
         userId: grant.user_id,
-        name: displayName,
-        email: member?.email ?? "",
+        ...resolveDisplay(grant.user_id),
         role: grant.role,
         isYou: grant.user_id === currentUserId,
-      };
-    });
-  }, [currentUserGrants, teamMembers, currentUserId]);
+      }));
+
+    return ownerRow ? [ownerRow, ...explicitRows] : explicitRows;
+  }, [currentUserGrants, teamMembers, currentUserId, currentUser, ownerUserId]);
 
   const payloadFrom = useCallback(
     (overrides: Partial<ShareDashboardV2Request>): ShareDashboardV2Request =>
@@ -125,8 +188,9 @@ export function useDashboardShareV2({
   );
 
   const handleScopeChange = useCallback(
-    (nextScope: DashboardScopeV2) => {
-      onShareV2?.(
+    async (nextScope: DashboardScopeV2): Promise<void> => {
+      setLastSaveLabel("Access updated");
+      await onShareV2?.(
         payloadFrom({ is_shared_with_tenant: nextScope === "org_wide" }),
       );
     },
@@ -134,18 +198,20 @@ export function useDashboardShareV2({
   );
 
   const handleDataScopeChange = useCallback(
-    (next: DataScopeOptionV2 | null) => {
-      onShareV2?.(payloadFrom({ shared_data_scope: next }));
+    async (next: DataScopeOptionV2 | null): Promise<void> => {
+      setLastSaveLabel("Access updated");
+      await onShareV2?.(payloadFrom({ shared_data_scope: next }));
     },
     [onShareV2, payloadFrom],
   );
 
   const handleGrantAdd = useCallback(
-    (
+    async (
       userIds: string[],
       role: GrantableRoleV2,
       dataScope: DataScopeOptionV2 | null,
-    ) => {
+    ): Promise<void> => {
+      setLastSaveLabel("Access updated");
       // Merge new grants; if a user already has one, the new role wins.
       const merged = new Map<string, DashboardUserGrantRequest>();
       for (const g of currentUserGrants) {
@@ -154,7 +220,7 @@ export function useDashboardShareV2({
       for (const id of userIds) {
         merged.set(id, { user_id: id, role });
       }
-      onShareV2?.(
+      await onShareV2?.(
         payloadFrom({
           user_grants: Array.from(merged.values()),
           // Add-people view's data-scope toggle is meaningful only when the
@@ -167,8 +233,9 @@ export function useDashboardShareV2({
   );
 
   const handleGrantUpdate = useCallback(
-    (userId: string, role: GrantableRoleV2) => {
-      onShareV2?.(
+    async (userId: string, role: GrantableRoleV2): Promise<void> => {
+      setLastSaveLabel("Access updated");
+      await onShareV2?.(
         payloadFrom({
           user_grants: currentUserGrants.map((g) =>
             g.user_id === userId
@@ -182,8 +249,9 @@ export function useDashboardShareV2({
   );
 
   const handleGrantRemove = useCallback(
-    (userId: string) => {
-      onShareV2?.(
+    async (userId: string): Promise<void> => {
+      setLastSaveLabel("Removed access");
+      await onShareV2?.(
         payloadFrom({
           user_grants: currentUserGrants
             .filter((g) => g.user_id !== userId)
@@ -208,6 +276,7 @@ export function useDashboardShareV2({
       currentAccessLevel,
       directory,
       grants,
+      lastSaveLabel,
     }),
     [
       dataScopingAvailable,
@@ -216,6 +285,7 @@ export function useDashboardShareV2({
       currentAccessLevel,
       directory,
       grants,
+      lastSaveLabel,
     ],
   );
 

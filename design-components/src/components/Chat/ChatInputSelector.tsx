@@ -52,6 +52,9 @@ export interface ChatInputSelectorProps {
   onStop?: () => void;
   /** Whether the input is disabled */
   disabled?: boolean;
+  /** Tooltip surfaced on hover when the input is disabled. Lets the
+   *  caller explain *why* without repurposing the placeholder copy. */
+  disabledTooltip?: string;
   /** Whether a message is actively streaming */
   isStreaming?: boolean;
   /** Whether to disable message submission */
@@ -172,6 +175,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSend,
       onStop,
       disabled,
+      disabledTooltip,
       isStreaming,
       disableSubmit,
       value,
@@ -351,6 +355,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       placeholder,
       onStop,
       disabled,
+      disabledTooltip,
       isStreaming,
       disableSubmit,
       value,

@@ -1,9 +1,7 @@
 import { InfoIcon } from "@phosphor-icons/react";
 import { Tooltip } from "@vonlabs/design-components";
 import { StatusLine } from "../StatusLine";
-import { EditLockBadge } from "../EditLockBadge";
 import { VersionPreviewChip } from "./VersionPreviewChip";
-import type { TeamMember } from "../../../../services/teamService";
 import type { Dashboard, RefreshInfo } from "../../../../types/dashboard";
 import type { InlineRename } from "../hooks/useInlineRename";
 
@@ -15,12 +13,7 @@ interface AnalyticsHeaderTitleRowProps {
   isRefetchingData: boolean | undefined;
   isRefreshing: boolean | undefined;
   isDashboardOwner: boolean;
-  canEditDashboard: boolean;
-  isDashboardCollabEnabled: boolean;
   onRename?: (newName: string) => void;
-  onOpenVersionHistory?: () => void;
-  currentUserId: string | undefined;
-  teamMembers: TeamMember[] | undefined;
   latestPublishedVersion: number | null;
   rename: InlineRename;
 }
@@ -33,12 +26,7 @@ export function AnalyticsHeaderTitleRow({
   isRefetchingData,
   isRefreshing,
   isDashboardOwner,
-  canEditDashboard,
-  isDashboardCollabEnabled,
   onRename,
-  onOpenVersionHistory,
-  currentUserId,
-  teamMembers,
   latestPublishedVersion,
   rename,
 }: AnalyticsHeaderTitleRowProps) {
@@ -96,26 +84,6 @@ export function AnalyticsHeaderTitleRow({
                 </button>
               </Tooltip>
             )}
-            {/* Edit-lock badge — editor+ only, and hidden in version-history
-                preview mode. The "who's editing" hint refers to the live
-                dashboard, not the historical snapshot the user is currently
-                viewing — surfacing it during preview would misleadingly imply
-                the displayed version is being edited. Viewers also don't see
-                it (no Edit affordance → no useful signal). */}
-            {isDashboardCollabEnabled &&
-              canEditDashboard &&
-              isEditMode &&
-              !isVersionPreview &&
-              dashboard.editLock && (
-                <EditLockBadge
-                  editLock={dashboard.editLock}
-                  currentUserId={currentUserId}
-                  teamMembers={teamMembers}
-                  lastEditedBy={dashboard.lastEditedBy}
-                  lastEditedAt={dashboard.lastEditedAt}
-                  onClick={onOpenVersionHistory}
-                />
-              )}
           </div>
         )}
       </div>

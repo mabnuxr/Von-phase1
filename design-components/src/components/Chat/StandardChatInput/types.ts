@@ -96,6 +96,15 @@ export interface StandardChatInputProps {
   disabled?: boolean;
 
   /**
+   * Tooltip surfaced on hover when the input is disabled. Lets the
+   * caller explain *why* the input is unavailable (e.g. "Close the
+   * dashboard version history to chat") instead of repurposing the
+   * placeholder copy. Rendered as a native `title` on the disabled
+   * wrapper so it appears wherever the cursor stops.
+   */
+  disabledTooltip?: string;
+
+  /**
    * Whether a message is actively streaming
    * @default false
    */

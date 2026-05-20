@@ -4,7 +4,9 @@ import { Tooltip } from "@vonlabs/design-components";
 import vonFilledLogo from "../../../../assets/von-filled-logo.svg";
 import { DataSourcesSlot } from "../DataSourcesSlot";
 import { CreatorChip } from "./CreatorChip";
-import type { DataSourceGroup } from "../../../../types/dashboard";
+import { EditLockBadge } from "../EditLockBadge";
+import type { Dashboard, DataSourceGroup } from "../../../../types/dashboard";
+import type { TeamMember } from "../../../../services/teamService";
 
 interface AnalyticsHeaderActionsProps {
   hideCreatorChip: boolean | undefined;
@@ -19,6 +21,19 @@ interface AnalyticsHeaderActionsProps {
   onChatClick: (() => void) | undefined;
   isChatOpen: boolean | undefined;
   onClose: (() => void) | undefined;
+  // ── Edit-lock badge context — swaps in for the "Created by" chip
+  //    while editing. The badge surfaces the live edit holder + last
+  //    edit time and doubles as a version-history entry point. Hidden
+  //    in version-history preview because the chip would misleadingly
+  //    attribute the historical snapshot to the current editor.
+  canEditDashboard: boolean;
+  isDashboardCollabEnabled: boolean;
+  editLock: Dashboard["editLock"];
+  lastEditedBy: Dashboard["lastEditedBy"];
+  lastEditedAt: Dashboard["lastEditedAt"];
+  currentUserId: string | undefined;
+  teamMembers: TeamMember[] | undefined;
+  onOpenVersionHistory?: () => void;
 }
 
 export function AnalyticsHeaderActions({
@@ -34,18 +49,51 @@ export function AnalyticsHeaderActions({
   onChatClick,
   isChatOpen,
   onClose,
+  canEditDashboard,
+  isDashboardCollabEnabled,
+  editLock,
+  lastEditedBy,
+  lastEditedAt,
+  currentUserId,
+  teamMembers,
+  onOpenVersionHistory,
 }: AnalyticsHeaderActionsProps) {
+  // While in edit mode, the EditLockBadge replaces the "Created by"
+  // chip — the lock holder + last-edit time is more informative than
+  // creator attribution at that point. Falls back to the chip outside
+  // of edit mode (or when the badge isn't applicable: collab off,
+  // viewer-only access, missing lock data, or version-history
+  // preview).
+  const showEditLockBadge =
+    isDashboardCollabEnabled &&
+    canEditDashboard &&
+    isEditMode &&
+    !isVersionPreview &&
+    !!editLock;
+
   return (
     <>
-      {/* Created-by chip — hidden in version-history preview because the chip
-          references the live dashboard's owner; while previewing, sharing /
-          ownership context isn't actionable. */}
-      {!hideCreatorChip && !isVersionPreview && (
-        <CreatorChip
-          currentScope={currentScope}
-          creatorName={creatorName}
-          isCreatorLoading={isCreatorLoading}
+      {showEditLockBadge && editLock ? (
+        <EditLockBadge
+          editLock={editLock}
+          currentUserId={currentUserId}
+          teamMembers={teamMembers}
+          lastEditedBy={lastEditedBy}
+          lastEditedAt={lastEditedAt}
+          onClick={onOpenVersionHistory}
         />
+      ) : (
+        /* Created-by chip — hidden in version-history preview because the
+           chip references the live dashboard's owner; while previewing,
+           sharing / ownership context isn't actionable. */
+        !hideCreatorChip &&
+        !isVersionPreview && (
+          <CreatorChip
+            currentScope={currentScope}
+            creatorName={creatorName}
+            isCreatorLoading={isCreatorLoading}
+          />
+        )
       )}
 
       {onExpand && !isEditMode && (

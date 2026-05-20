@@ -54,6 +54,13 @@ export interface ChatInputProps {
   disabled?: boolean;
 
   /**
+   * Tooltip surfaced on hover when the input is disabled. Mirrored
+   * across the legacy + StandardChatInput surfaces so the wrapping
+   * `ChatInputSelector` can pass it through without branching.
+   */
+  disabledTooltip?: string;
+
+  /**
    * FIX: Whether a message is actively streaming
    * @default false
    */

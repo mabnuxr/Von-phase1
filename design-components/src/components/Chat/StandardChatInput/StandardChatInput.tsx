@@ -15,6 +15,7 @@ import {
   LineVerticalIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
+import { Tooltip } from '../../Tooltip';
 import { FilePreview } from '../FileAttachment/FilePreview';
 import { MentionPreview } from '../FileAttachment/MentionPreview';
 import { DragDropOverlay } from '../FileAttachment/DragDropOverlay';
@@ -142,6 +143,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onSend,
       onStop,
       disabled = false,
+      disabledTooltip,
       isStreaming = false,
       disableSubmit = false,
       onDisabledInput,
@@ -480,254 +482,268 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
               </div>
             )}
 
-            {/* Main input container */}
-            <div
-              className={inputShellClassName}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={wrappedHandleDrop}
+            {/* Main input container. When disabled, the caller can
+                pass `disabledTooltip` to explain *why* via a custom
+                portal-based tooltip (instant on hover; the browser's
+                native `title` attribute has a 1-2s delay on first
+                show and clutters the cursor area). The Tooltip
+                wrapper is `block` so the input shell's layout width
+                doesn't shrink to inline-flex behaviour. `enabled`
+                gates the visibility so we don't pop a tooltip on the
+                live input. */}
+            <Tooltip
+              content={disabledTooltip}
+              enabled={isInputDisabled && !!disabledTooltip}
+              wrapperClassName="block"
             >
               <div
-                className="rounded-2xl p-px transition-all duration-200"
-                style={gradientBorderStyle}
+                className={inputShellClassName}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={wrappedHandleDrop}
               >
-                <div className="flex flex-col bg-white rounded-[15px] gap-2">
-                  {/* Drag-and-drop overlay */}
-                  <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
-                  {/* File & mention previews - shown above the input */}
-                  {(hasAttachments || (selectedMentions && selectedMentions.length > 0)) && (
-                    <div className="px-2 pt-2 pb-1">
-                      <div className="flex flex-wrap gap-1.5">
-                        {attachments.map((attachment) => (
-                          <FilePreview
-                            key={attachment.id}
-                            attachment={attachment}
-                            onRemove={handleRemoveAttachment}
-                            removable={!disabled}
-                          />
-                        ))}
-                        {selectedMentions?.map((mention) => (
-                          <MentionPreview
-                            key={mention.id}
-                            mention={mention}
-                            onRemove={onRemoveMention}
-                            removable={!disabled}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Hidden file input - always render for ref access */}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept={getAcceptString()}
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                    aria-hidden="true"
-                  />
-
-                  {showPlusMenu ? (
-                    <>
-                      {/* Text input area - Tiptap Editor */}
-                      <div className="px-3 py-2">
-                        <div className="flex items-start gap-2">
-                          <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
-                            <TiptapEditor
-                              content={message}
-                              onChange={handleChange}
-                              onSubmit={handleSend}
-                              placeholder={placeholder}
-                              disabled={disabled && !isStreaming}
-                              editorRef={editorRef}
-                              onEscape={handleEscape}
-                              onPasteFiles={(files) => {
-                                if (isAttachmentsControlled) {
-                                  onFilesSelected?.(files);
-                                } else {
-                                  addFiles(files);
-                                }
-                              }}
-                              additionalExtensions={additionalExtensions}
+                <div
+                  className="rounded-2xl p-px transition-all duration-200"
+                  style={gradientBorderStyle}
+                >
+                  <div className="flex flex-col bg-white rounded-[15px] gap-2">
+                    {/* Drag-and-drop overlay */}
+                    <DragDropOverlay isVisible={isDragActive} isDragActive={isDragActive} />
+                    {/* File & mention previews - shown above the input */}
+                    {(hasAttachments || (selectedMentions && selectedMentions.length > 0)) && (
+                      <div className="px-2 pt-2 pb-1">
+                        <div className="flex flex-wrap gap-1.5">
+                          {attachments.map((attachment) => (
+                            <FilePreview
+                              key={attachment.id}
+                              attachment={attachment}
+                              onRemove={handleRemoveAttachment}
+                              removable={!disabled}
                             />
-                            {caretOffset && ghostCommandName && (
-                              <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                          ))}
+                          {selectedMentions?.map((mention) => (
+                            <MentionPreview
+                              key={mention.id}
+                              mention={mention}
+                              onRemove={onRemoveMention}
+                              removable={!disabled}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hidden file input - always render for ref access */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept={getAcceptString()}
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                      aria-hidden="true"
+                    />
+
+                    {showPlusMenu ? (
+                      <>
+                        {/* Text input area - Tiptap Editor */}
+                        <div className="px-3 py-2">
+                          <div className="flex items-start gap-2">
+                            <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
+                              <TiptapEditor
+                                content={message}
+                                onChange={handleChange}
+                                onSubmit={handleSend}
+                                placeholder={placeholder}
+                                disabled={disabled && !isStreaming}
+                                editorRef={editorRef}
+                                onEscape={handleEscape}
+                                onPasteFiles={(files) => {
+                                  if (isAttachmentsControlled) {
+                                    onFilesSelected?.(files);
+                                  } else {
+                                    addFiles(files);
+                                  }
+                                }}
+                                additionalExtensions={additionalExtensions}
+                              />
+                              {caretOffset && ghostCommandName && (
+                                <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Formatting toolbar - Slack-style */}
+                        {showFormattingToolbar && editorRef.current && (
+                          <EditorToolbar editor={editorRef.current} />
+                        )}
+
+                        {/* Bottom toolbar with plus menu */}
+                        <div className="flex items-center justify-between px-3 pb-3">
+                          {/* Left side - Plus button, slash, and mode pill */}
+                          <div className="flex items-center gap-1.5">
+                            {/* Plus button - upload only */}
+                            {showPlusButton && (
+                              <PlusButtonMenu
+                                isOpen={isPlusMenuOpen}
+                                onClose={() => setIsPlusMenuOpen(false)}
+                                onOpen={handlePlusButtonClick}
+                                onUploadClick={() => fileInputRef.current?.click()}
+                                disabled={disabled && !isStreaming}
+                                enableFileUpload={enableFileUpload}
+                              />
+                            )}
+
+                            {/* Slash commands button */}
+                            {enableCommands && (
+                              <SecondaryIconButton
+                                icon={
+                                  <span
+                                    className="inline-flex"
+                                    style={{ transform: 'rotate(30deg)' }}
+                                  >
+                                    <LineVerticalIcon
+                                      size={16}
+                                      weight="bold"
+                                      className="text-gray-800"
+                                    />
+                                  </span>
+                                }
+                                onClick={() => {
+                                  editorRef.current?.commands.insertContent('/');
+                                  editorRef.current?.commands.focus('end');
+                                }}
+                                disabled={(disabled && !isStreaming) || message.trim().length > 0}
+                                title="Commands"
+                                className="!w-7.5 !h-7.5 !rounded-full !p-0 border border-gray-200/80"
+                              />
+                            )}
+
+                            {/* Mode selector pill - always visible when multiple modes available */}
+                            {hasAgentModes && (
+                              <ModeSelectorPill
+                                selectedMode={selectedConversationMode}
+                                onModeChange={handleConversationModeChange}
+                                availableModes={availableAgentModes}
+                                disabled={disabled && !isStreaming}
+                                isAgentLocked={isAgentLocked}
+                                onBuildDashboard={onBuildDashboard}
+                              />
+                            )}
+
+                            {/* Mode selector - Auto edits: off/on/Plan Mode */}
+                            {showModeSelector && onAutoEditModeChange && (
+                              <ModeSelector
+                                mode={autoEditMode}
+                                onModeChange={onAutoEditModeChange}
+                                disabled={disabled && !isStreaming}
+                              />
+                            )}
+                          </div>
+
+                          {/* Right side - Voice and Send buttons */}
+                          <div className="flex items-center gap-1.5">
+                            {/* Voice input button */}
+                            {onVoiceInput && (
+                              <SecondaryIconButton
+                                icon={
+                                  <MicrophoneIcon
+                                    size={16}
+                                    weight={isRecording ? 'fill' : 'bold'}
+                                    className={isRecording ? 'text-red-500' : 'text-gray-800'}
+                                  />
+                                }
+                                onClick={onVoiceInput}
+                                disabled={disabled && !isStreaming}
+                                title={isRecording ? 'Stop recording' : 'Start voice input'}
+                                className={
+                                  isRecording
+                                    ? 'bg-red-50 border-red-200 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                    : '!w-7.5 !h-7.5 !rounded-full !p-0'
+                                }
+                              />
+                            )}
+
+                            {/* Send/Stop button */}
+                            {isStreaming ? (
+                              <SecondaryIconButton
+                                icon={<StopIcon />}
+                                onClick={onStop}
+                                title="Stop generating"
+                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0"
+                              />
+                            ) : (
+                              <SecondaryIconButton
+                                icon={<SendIcon size={16} />}
+                                onClick={handleSend}
+                                disabled={!canSend}
+                                title="Send message"
+                                className={
+                                  canSend
+                                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                    : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                }
+                              />
                             )}
                           </div>
                         </div>
-                      </div>
-
-                      {/* Formatting toolbar - Slack-style */}
-                      {showFormattingToolbar && editorRef.current && (
-                        <EditorToolbar editor={editorRef.current} />
-                      )}
-
-                      {/* Bottom toolbar with plus menu */}
-                      <div className="flex items-center justify-between px-3 pb-3">
-                        {/* Left side - Plus button, slash, and mode pill */}
-                        <div className="flex items-center gap-1.5">
-                          {/* Plus button - upload only */}
-                          {showPlusButton && (
-                            <PlusButtonMenu
-                              isOpen={isPlusMenuOpen}
-                              onClose={() => setIsPlusMenuOpen(false)}
-                              onOpen={handlePlusButtonClick}
-                              onUploadClick={() => fileInputRef.current?.click()}
-                              disabled={disabled && !isStreaming}
-                              enableFileUpload={enableFileUpload}
-                            />
-                          )}
-
-                          {/* Slash commands button */}
-                          {enableCommands && (
-                            <SecondaryIconButton
-                              icon={
-                                <span
-                                  className="inline-flex"
-                                  style={{ transform: 'rotate(30deg)' }}
-                                >
-                                  <LineVerticalIcon
-                                    size={16}
-                                    weight="bold"
-                                    className="text-gray-800"
-                                  />
-                                </span>
+                      </>
+                    ) : (
+                      /* Inline layout - text input with send button on same row */
+                      <div className="flex items-center gap-2 px-4 py-3">
+                        {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
+                        <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
+                          <TiptapEditor
+                            content={message}
+                            onChange={handleChange}
+                            onSubmit={handleSend}
+                            placeholder={placeholder}
+                            disabled={disabled && !isStreaming}
+                            editorRef={editorRef}
+                            onEscape={handleEscape}
+                            onPasteFiles={(files) => {
+                              if (isAttachmentsControlled) {
+                                onFilesSelected?.(files);
+                              } else {
+                                addFiles(files);
                               }
-                              onClick={() => {
-                                editorRef.current?.commands.insertContent('/');
-                                editorRef.current?.commands.focus('end');
-                              }}
-                              disabled={(disabled && !isStreaming) || message.trim().length > 0}
-                              title="Commands"
-                              className="!w-7.5 !h-7.5 !rounded-full !p-0 border border-gray-200/80"
-                            />
-                          )}
-
-                          {/* Mode selector pill - always visible when multiple modes available */}
-                          {hasAgentModes && (
-                            <ModeSelectorPill
-                              selectedMode={selectedConversationMode}
-                              onModeChange={handleConversationModeChange}
-                              availableModes={availableAgentModes}
-                              disabled={disabled && !isStreaming}
-                              isAgentLocked={isAgentLocked}
-                              onBuildDashboard={onBuildDashboard}
-                            />
-                          )}
-
-                          {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                          {showModeSelector && onAutoEditModeChange && (
-                            <ModeSelector
-                              mode={autoEditMode}
-                              onModeChange={onAutoEditModeChange}
-                              disabled={disabled && !isStreaming}
-                            />
+                            }}
+                            additionalExtensions={additionalExtensions}
+                          />
+                          {caretOffset && ghostCommandName && (
+                            <GhostCommandText text={ghostCommandName} offset={caretOffset} />
                           )}
                         </div>
 
-                        {/* Right side - Voice and Send buttons */}
-                        <div className="flex items-center gap-1.5">
-                          {/* Voice input button */}
-                          {onVoiceInput && (
-                            <SecondaryIconButton
-                              icon={
-                                <MicrophoneIcon
-                                  size={16}
-                                  weight={isRecording ? 'fill' : 'bold'}
-                                  className={isRecording ? 'text-red-500' : 'text-gray-800'}
-                                />
-                              }
-                              onClick={onVoiceInput}
-                              disabled={disabled && !isStreaming}
-                              title={isRecording ? 'Stop recording' : 'Start voice input'}
-                              className={
-                                isRecording
-                                  ? 'bg-red-50 border-red-200 !w-7.5 !h-7.5 !rounded-full !p-0'
-                                  : '!w-7.5 !h-7.5 !rounded-full !p-0'
-                              }
-                            />
-                          )}
-
-                          {/* Send/Stop button */}
-                          {isStreaming ? (
-                            <SecondaryIconButton
-                              icon={<StopIcon />}
-                              onClick={onStop}
-                              title="Stop generating"
-                              className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0"
-                            />
-                          ) : (
-                            <SecondaryIconButton
-                              icon={<SendIcon size={16} />}
-                              onClick={handleSend}
-                              disabled={!canSend}
-                              title="Send message"
-                              className={
-                                canSend
-                                  ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
-                                  : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
-                              }
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* Inline layout - text input with send button on same row */
-                    <div className="flex items-center gap-2 px-4 py-3">
-                      {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                      <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
-                        <TiptapEditor
-                          content={message}
-                          onChange={handleChange}
-                          onSubmit={handleSend}
-                          placeholder={placeholder}
-                          disabled={disabled && !isStreaming}
-                          editorRef={editorRef}
-                          onEscape={handleEscape}
-                          onPasteFiles={(files) => {
-                            if (isAttachmentsControlled) {
-                              onFilesSelected?.(files);
-                            } else {
-                              addFiles(files);
-                            }
-                          }}
-                          additionalExtensions={additionalExtensions}
-                        />
-                        {caretOffset && ghostCommandName && (
-                          <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                        {/* Send/Stop button inline */}
+                        {isStreaming ? (
+                          <SecondaryIconButton
+                            icon={<StopIcon />}
+                            onClick={onStop}
+                            title="Stop generating"
+                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0 flex-shrink-0"
+                          />
+                        ) : (
+                          <SecondaryIconButton
+                            icon={<SendIcon size={16} />}
+                            onClick={handleSend}
+                            disabled={!canSend}
+                            title="Send message"
+                            className={`flex-shrink-0 ${
+                              canSend
+                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
+                            }`}
+                          />
                         )}
                       </div>
-
-                      {/* Send/Stop button inline */}
-                      {isStreaming ? (
-                        <SecondaryIconButton
-                          icon={<StopIcon />}
-                          onClick={onStop}
-                          title="Stop generating"
-                          className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0 flex-shrink-0"
-                        />
-                      ) : (
-                        <SecondaryIconButton
-                          icon={<SendIcon size={16} />}
-                          onClick={handleSend}
-                          disabled={!canSend}
-                          title="Send message"
-                          className={`flex-shrink-0 ${
-                            canSend
-                              ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
-                              : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
-                          }`}
-                        />
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            </Tooltip>
           </div>
 
           {!hideDisclaimer && (

@@ -13,6 +13,7 @@ import { DashboardStatus } from "../../../types/dashboard";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { useUser } from "../../../hooks/useUser";
 import { useTeamMembers } from "../../../hooks/useTeam";
+import { getUserContext } from "../../../lib/auth";
 import { useDashboardLayoutData } from "./hooks/useDashboardLayoutData";
 import { useDashboardRoles } from "./hooks/useDashboardRoles";
 import { useDashboardShareV2 } from "./hooks/useDashboardShareV2";
@@ -94,7 +95,7 @@ interface AnalyticsViewProps {
    * Unified share mutation (M2) — accepts the full desired sharing state
    * in a single round-trip. Used by the dashboardCollab share dialog.
    */
-  onShareV2?: (payload: ShareDashboardV2Request) => void;
+  onShareV2?: (payload: ShareDashboardV2Request) => Promise<void>;
   shareV2Phase?: MutationPhase;
   /**
    * Acquire the dashboard's edit lock (M1). When the dashboardCollab
@@ -351,7 +352,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { isDashboardDragDropEnabled, isDashboardCollabEnabled } =
     useFeatureFlag();
   const { user } = useUser();
-  const { data: teamMembers } = useTeamMembers(user?.tenantId);
+  // Bootstrap the team-members fetch from the synchronously-available
+  // stored auth context so it doesn't wait on this component's own
+  // `useUser` /me round-trip. AppShell does the same — both paths now
+  // converge on the same React Query key as soon as the page renders,
+  // which makes name resolution in the share dialog instant rather
+  // than gated on /me + /team/members in series.
+  const teamMembersTenantId =
+    getUserContext()?.tenant_id ?? user?.tenantId ?? undefined;
+  const { data: teamMembers } = useTeamMembers(teamMembersTenantId);
 
   // While version-history is driving the canvas, force edit mode off even if
   // the rendered dashboard's `is_editable` is true (happens when the user is
@@ -392,6 +401,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onShareV2,
     teamMembers,
     currentUserId: user?.id,
+    currentUser: user,
     isDashboardCollabEnabled,
   });
 
@@ -455,12 +465,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 isRefetchingData={isRefetchingData}
                 isRefreshing={isRefreshing}
                 isDashboardOwner={isDashboardOwner}
-                canEditDashboard={canEditDashboard}
-                isDashboardCollabEnabled={isDashboardCollabEnabled}
                 onRename={onRename}
-                onOpenVersionHistory={onOpenVersionHistory}
-                currentUserId={user?.id}
-                teamMembers={teamMembers}
                 latestPublishedVersion={latestPublishedVersion}
                 rename={rename}
               />
@@ -480,6 +485,14 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onChatClick={onChatClick}
                 isChatOpen={isChatOpen}
                 onClose={onClose}
+                canEditDashboard={canEditDashboard}
+                isDashboardCollabEnabled={isDashboardCollabEnabled}
+                editLock={dashboard.editLock}
+                lastEditedBy={dashboard.lastEditedBy}
+                lastEditedAt={dashboard.lastEditedAt}
+                currentUserId={user?.id}
+                teamMembers={teamMembers}
+                onOpenVersionHistory={onOpenVersionHistory}
               />
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>

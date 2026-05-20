@@ -166,7 +166,13 @@ function pickerScheduleToApi(s: Schedule): ScheduleConfigRequest {
 interface RefreshButtonProps {
   onRefresh: () => Promise<void>;
   canRefresh?: boolean;
-  isOwner?: boolean;
+  /**
+   * Reveals the schedule popover next to the refresh-now action.
+   * Owner + editor see this; viewers fall back to the bare refresh
+   * icon. The button name still surfaces the on-demand refresh to
+   * everyone — only the dropdown half is gated.
+   */
+  canSchedule?: boolean;
   isRefreshing?: boolean;
   schedule: DashboardScheduleResponse | null;
   isScheduled: boolean;
@@ -184,7 +190,7 @@ interface RefreshButtonProps {
 export const RefreshButton: React.FC<RefreshButtonProps> = ({
   onRefresh,
   canRefresh = true,
-  isOwner = true,
+  canSchedule = true,
   isRefreshing,
   schedule,
   isScheduled,
@@ -257,8 +263,10 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({
   const activeStyles =
     "text-gray-800 bg-gray-50 border-gray-300 cursor-pointer";
 
-  // Non-owner or no schedule permission: simple icon button
-  if (!isOwner) {
+  // Viewer (or anyone without scheduling permission): simple icon
+  // button — keeps the on-demand refresh affordance but drops the
+  // schedule dropdown.
+  if (!canSchedule) {
     return (
       <Tooltip
         content={
