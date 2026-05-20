@@ -16,6 +16,7 @@ import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { conversationsService } from "../services";
 import { useToast } from "../hooks/useToast";
+import { report } from "../lib/analytics/tracker";
 
 /**
  * AppShell — shared layout for pages that need the sidebar shell.
@@ -44,13 +45,24 @@ export function AppShell() {
   } = useSidebarState();
 
   // --- New Chat ---
-  const { handleNewChatClick } = useNewChat();
+  const { handleNewChatClick: handleNewChatClickBase } = useNewChat();
+
+  const handleNewChatClick = useCallback(() => {
+    report.chatNewChatClicked();
+    handleNewChatClickBase();
+  }, [handleNewChatClickBase]);
 
   // --- Logout ---
-  const { handleLogout } = useLogout();
+  const { handleLogout: handleLogoutBase } = useLogout();
+
+  const handleLogout = useCallback(async () => {
+    report.chatLogoutClicked();
+    await handleLogoutBase();
+  }, [handleLogoutBase]);
 
   // --- Navigation Handlers ---
   const handleSettingsClick = useCallback(() => {
+    report.chatSettingsClicked();
     navigate("/settings");
   }, [navigate]);
 
@@ -141,6 +153,7 @@ export function AppShell() {
                 onToggleCollapse={toggleSidebar}
                 onSettingsClick={handleSettingsClick}
                 onLogoutClick={handleLogout}
+                onHelpDocsClick={report.chatHelpDocsClicked}
               />
             </div>
 

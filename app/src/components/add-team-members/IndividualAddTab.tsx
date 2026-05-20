@@ -3,10 +3,12 @@ import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
 import { useAddTeamMember, useRoles } from "../../hooks/useTeam";
 import { useUser } from "../../hooks/useUser";
 import type { TabContentProps } from "./types";
+import { report } from "../../lib/analytics/tracker";
 
 export function IndividualAddTab({
   onClose,
   onRegisterFooter,
+  onMemberAdded,
 }: TabContentProps) {
   const { user } = useUser();
 
@@ -63,6 +65,12 @@ export function IndividualAddTab({
     if (!formData.role) errors.push("Role is required");
 
     if (errors.length > 0) {
+      report.manageTeamMemberAdded({
+        success: false,
+        error: errors.join(", "),
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
       setValidationErrors(errors);
       return;
     }
@@ -76,6 +84,14 @@ export function IndividualAddTab({
         email: formData.email.trim(),
         role: formData.role,
       });
+
+      report.manageTeamMemberAdded({
+        success: true,
+        error: null,
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
+      onMemberAdded?.();
 
       // Stay open, reset form so user can add another. Toast is fired by the
       // mutation hook.
@@ -103,17 +119,29 @@ export function IndividualAddTab({
 
         if (response?.status === 400) {
           const detail = response.data?.detail || response.data?.message;
-          setValidationErrors([
-            detail || "Failed to add team member. Please check your input.",
-          ]);
+          const msg =
+            detail || "Failed to add team member. Please check your input.";
+          report.manageTeamMemberAdded({
+            success: false,
+            error: msg,
+            memberEmail: formData.email.trim(),
+            memberRole: formData.role,
+          });
+          setValidationErrors([msg]);
           return;
         }
 
         if (response?.status === 403) {
           const detail = response.data?.detail || response.data?.message;
-          setValidationErrors([
-            detail || "You don't have permission to assign this role.",
-          ]);
+          const msg =
+            detail || "You don't have permission to assign this role.";
+          report.manageTeamMemberAdded({
+            success: false,
+            error: msg,
+            memberEmail: formData.email.trim(),
+            memberRole: formData.role,
+          });
+          setValidationErrors([msg]);
           return;
         }
       }
@@ -122,6 +150,12 @@ export function IndividualAddTab({
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
           : "Failed to add team member. Please try again.";
+      report.manageTeamMemberAdded({
+        success: false,
+        error: errorMessage,
+        memberEmail: formData.email.trim(),
+        memberRole: formData.role,
+      });
       setValidationErrors([errorMessage]);
     }
   };

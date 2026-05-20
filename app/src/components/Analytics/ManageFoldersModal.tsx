@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { report } from "../../lib/analytics/tracker";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CaretDownIcon,
@@ -17,6 +18,7 @@ interface ManageFoldersModalProps {
   itemName: string;
   itemType: FolderItemType;
   itemId: string;
+  fromLocation?: string;
   onClose: () => void;
 }
 
@@ -41,6 +43,7 @@ export function ManageFoldersModal({
   itemName,
   itemType,
   itemId,
+  fromLocation = "outside",
   onClose,
 }: ManageFoldersModalProps) {
   const { data: folders = [], isLoading: isFoldersLoading } = useFoldersList();
@@ -200,21 +203,96 @@ export function ManageFoldersModal({
       return;
     }
 
+    let createdFolderName = "";
+
     try {
       const finalIds = new Set(checkedIds);
+
       if (hasNewFolderPending) {
         const folder = await createFolderAsync({
           name: newFolderName.trim(),
         });
         finalIds.add(folder.folderId);
+        createdFolderName = newFolderName.trim();
+        report.foldersNewFolderCreated(createdFolderName, true, null);
       }
+
       await setItemFoldersAsync({
         itemType,
         itemId,
         folderIds: Array.from(finalIds),
       });
+
+      // Fire for each newly added existing folder
+      const addedExisting = sortedFolders.filter(
+        (f) => finalIds.has(f.folderId) && !initialCheckedIds.has(f.folderId),
+      );
+      if (itemType === "conversation") {
+        for (const folder of addedExisting) {
+          report.chatListChatAddedToFolder({
+            chatId: itemId,
+            chatName: itemName,
+            folderName: folder.name,
+            folderType: "existing",
+            success: true,
+            error: null,
+          });
+          report.foldersChatAddedToFolder({
+            chatId: itemId,
+            chatName: itemName,
+            folderName: folder.name,
+            folderType: "existing",
+            fromLocation,
+            success: true,
+            error: null,
+          });
+        }
+        // Fire for the newly created folder (if any)
+        if (createdFolderName) {
+          report.chatListChatAddedToFolder({
+            chatId: itemId,
+            chatName: itemName,
+            folderName: createdFolderName,
+            folderType: "new",
+            success: true,
+            error: null,
+          });
+          report.foldersChatAddedToFolder({
+            chatId: itemId,
+            chatName: itemName,
+            folderName: createdFolderName,
+            folderType: "new",
+            fromLocation,
+            success: true,
+            error: null,
+          });
+        }
+      }
+
       onClose();
-    } catch {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "Unknown error";
+      const failedFolderName = createdFolderName || newFolderName.trim();
+      const failedFolderType = hasNewFolderPending ? "new" : "existing";
+      if (itemType === "conversation") {
+        report.chatListChatAddedToFolder({
+          chatId: itemId,
+          chatName: itemName,
+          folderName: failedFolderName,
+          folderType: failedFolderType,
+          success: false,
+          error: errMsg,
+        });
+        report.foldersChatAddedToFolder({
+          chatId: itemId,
+          chatName: itemName,
+          folderName: failedFolderName,
+          folderType: failedFolderType,
+          fromLocation,
+          success: false,
+          error: errMsg,
+        });
+      }
       // Mutation already surfaced a toast; keep modal open.
     }
   };

@@ -95,6 +95,10 @@ export interface CommandsOverlayProps {
   ) => Promise<void>;
   /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
   availableDashboards?: DashboardOption[];
+  /** Called when the user opens the Manage Commands drawer */
+  onManageCommandsClicked?: () => void;
+  /** Called when the user opens the Create New Command drawer */
+  onCreateNewCommandClicked?: () => void;
 
   // ---------------------------------------------------------------------------
   // Legacy props — accepted for backwards compatibility with older consumers
@@ -153,6 +157,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   currentUser,
   onSendTest,
   availableDashboards,
+  onManageCommandsClicked,
+  onCreateNewCommandClicked,
   highlightedIndex = -1,
   onHoverIndex,
   slashRect,
@@ -182,7 +188,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
     manageDrawer.hide();
     formDrawer.show();
     onCloseCommandsList();
-  }, [formDrawer, manageDrawer, onCloseCommandsList]);
+    onCreateNewCommandClicked?.();
+  }, [formDrawer, manageDrawer, onCloseCommandsList, onCreateNewCommandClicked]);
 
   const openEditDrawer = useCallback(
     (command: Command, fromManage = false) => {
@@ -206,7 +213,8 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   const openManageDrawer = useCallback(() => {
     manageDrawer.show();
     onCloseCommandsList();
-  }, [manageDrawer, onCloseCommandsList]);
+    onManageCommandsClicked?.();
+  }, [manageDrawer, onCloseCommandsList, onManageCommandsClicked]);
 
   const handleSave = useCallback(
     async (

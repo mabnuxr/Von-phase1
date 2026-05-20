@@ -14,7 +14,7 @@ import { QueryContent } from './QueryContent';
  * - Data table with pagination
  */
 export const DataTabContent = React.memo<DataTabContentProps>(
-  ({ queries, activeQueryId: controlledActiveQueryId, onQuerySelect }) => {
+  ({ queries, activeQueryId: controlledActiveQueryId, onQuerySelect, onCSVDownloaded }) => {
     // Support both controlled and uncontrolled modes
     const [internalActiveQueryId, setInternalActiveQueryId] = useState<string>(
       queries[0]?.id || ''
@@ -87,7 +87,7 @@ export const DataTabContent = React.memo<DataTabContentProps>(
               transition={{ duration: 0.15 }}
               className="h-full"
             >
-              <QueryContent query={activeQuery} />
+              <QueryContent query={activeQuery} onCSVDownloaded={onCSVDownloaded} />
             </motion.div>
           )}
         </div>

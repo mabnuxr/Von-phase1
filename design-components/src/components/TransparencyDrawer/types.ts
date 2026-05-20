@@ -105,6 +105,7 @@ export interface QueryTabProps {
 
 export interface QueryContentProps {
   query: QueryResult;
+  onCSVDownloaded?: (stepName: string, rowCount: number) => void;
 }
 
 export interface CallsTabContentProps {
@@ -116,6 +117,7 @@ export interface DataTabContentProps {
   queries: QueryResult[];
   activeQueryId?: string;
   onQuerySelect?: (queryId: string) => void;
+  onCSVDownloaded?: (stepName: string, rowCount: number) => void;
 }
 
 export interface TabNavigationProps {

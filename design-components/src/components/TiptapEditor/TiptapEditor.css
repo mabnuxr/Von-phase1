@@ -353,14 +353,21 @@
 }
 
 /* Links */
-.tiptap-viewer a {
+/* Specificity bump (a:link / a:visited → 0,2,1) so these win against
+   third-party grid styles like Highcharts Grid Lite's `.hcg-container a`,
+   which loads after our stylesheet and at equal (0,1,1) specificity would
+   otherwise re-underline link text. */
+.tiptap-viewer a:link,
+.tiptap-viewer a:visited {
   color: #2563eb;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
 }
 
-.tiptap-viewer a:hover {
+.tiptap-viewer a:link:hover,
+.tiptap-viewer a:visited:hover {
   color: #1d4ed8;
+  text-decoration: underline;
 }
 
 /* Lists - standard HTML ul/ol from markdown.

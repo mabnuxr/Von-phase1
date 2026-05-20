@@ -326,10 +326,6 @@ const NewConversation = () => {
     }
   }, [isTenantDisabled]);
 
-  const handleTemplateCategoryClick = useCallback((category: string) => {
-    report.chatTemplateCategoryClicked(category);
-  }, []);
-
   const handleTemplateClick = useCallback(
     (template: { prompt: string; category: string }, position: number) => {
       report.chatSuggestedPromptClicked(
@@ -409,7 +405,7 @@ const NewConversation = () => {
         onMentionsActivated={handleMentionsActivated}
         widgetMentions={preloadedWidgetMentions}
         onWidgetMentionRemoved={handleWidgetMentionRemoved}
-        onTemplateCategoryClick={handleTemplateCategoryClick}
+        onTemplateCategoryClick={report.chatTemplateCategoryClicked}
         onTemplateClick={handleTemplateClick}
         onTemplateArrowClick={handleTemplateArrowClick}
       />

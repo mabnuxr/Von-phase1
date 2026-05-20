@@ -3,6 +3,7 @@ import usePreferencesStore from "../store/preferencesStore";
 import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
 import { useTeamMembers, useRoles, useUpdateMember } from "../hooks/useTeam";
 import { useUser } from "../hooks/useUser";
+import { report } from "../lib/analytics/tracker";
 
 export function EditTeamMemberPane() {
   const { editingTeamMemberId, setEditingTeamMemberId } = usePreferencesStore();
@@ -73,6 +74,11 @@ export function EditTeamMemberPane() {
     setValidationErrors([]);
   };
 
+  const handleCancelClose = () => {
+    report.manageTeamEditDetailsCancelled(member?.email ?? "");
+    handleClose();
+  };
+
   const handleSave = async () => {
     if (!member) return;
 
@@ -88,6 +94,13 @@ export function EditTeamMemberPane() {
     }
 
     if (errors.length > 0) {
+      report.manageTeamEditDetailsSaved({
+        success: false,
+        error: errors.join(", "),
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       setValidationErrors(errors);
       return;
     }
@@ -116,6 +129,13 @@ export function EditTeamMemberPane() {
         userId: member.id,
         data: updates,
       });
+      report.manageTeamEditDetailsSaved({
+        success: true,
+        error: null,
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       handleClose();
     } catch (error: unknown) {
       console.error("[EditTeamMemberPane] Save error:", error);
@@ -135,16 +155,29 @@ export function EditTeamMemberPane() {
 
         if (response?.status === 400) {
           const detail = response.data?.detail || response.data?.message;
-          setValidationErrors([
-            detail || "Failed to update team member. Please check your input.",
-          ]);
+          const msg =
+            detail || "Failed to update team member. Please check your input.";
+          report.manageTeamEditDetailsSaved({
+            success: false,
+            error: msg,
+            oldRole: memberRoleName,
+            newRole: formData.role,
+            targetUserEmail: member.email,
+          });
+          setValidationErrors([msg]);
           return;
         }
 
         if (response?.status === 403) {
-          setValidationErrors([
-            "You don't have permission to update this team member.",
-          ]);
+          const msg = "You don't have permission to update this team member.";
+          report.manageTeamEditDetailsSaved({
+            success: false,
+            error: msg,
+            oldRole: memberRoleName,
+            newRole: formData.role,
+            targetUserEmail: member.email,
+          });
+          setValidationErrors([msg]);
           return;
         }
       }
@@ -153,6 +186,13 @@ export function EditTeamMemberPane() {
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
           : "Failed to update team member. Please try again.";
+      report.manageTeamEditDetailsSaved({
+        success: false,
+        error: errorMessage,
+        oldRole: memberRoleName,
+        newRole: formData.role,
+        targetUserEmail: member.email,
+      });
       setValidationErrors([errorMessage]);
     }
   };
@@ -171,7 +211,7 @@ export function EditTeamMemberPane() {
         className={`fixed inset-0 bg-black/20 transition-opacity duration-300 z-40 ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
-        onClick={handleClose}
+        onClick={handleCancelClose}
       />
 
       {/* Side Panel */}
@@ -188,7 +228,7 @@ export function EditTeamMemberPane() {
                 Edit Details
               </h2>
               <button
-                onClick={handleClose}
+                onClick={handleCancelClose}
                 className="text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                 aria-label="Close panel"
               >
@@ -319,7 +359,7 @@ export function EditTeamMemberPane() {
           <div className="px-6 py-4 border-t border-gray-200 shrink-0">
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={handleClose}
+                onClick={handleCancelClose}
                 className="px-3 py-2 text-sm font-medium text-gray-800 bg-gray-50 border border-gray-100 rounded-xl hover:bg-gray-100 hover:border-gray-200 transition-colors cursor-pointer"
               >
                 Cancel

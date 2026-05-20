@@ -324,9 +324,12 @@ export function useFolderMutations() {
 
     renameFolder: (folderId: string, name: string) =>
       renameFolderMutation.mutate({ folderId, name }),
+    renameFolderAsync: (folderId: string, name: string) =>
+      renameFolderMutation.mutateAsync({ folderId, name }),
     isRenamingFolder: renameFolderMutation.isPending,
 
     deleteFolder: deleteFolderMutation.mutate,
+    deleteFolderAsync: deleteFolderMutation.mutateAsync,
     isDeletingFolder: deleteFolderMutation.isPending,
 
     pinFolder: (folderId: string, isPinned: boolean) =>
@@ -340,6 +343,7 @@ export function useFolderMutations() {
     isSettingFolders: setItemFoldersMutation.isPending,
 
     removeItemFromFolder: removeItemMutation.mutate,
+    removeItemFromFolderAsync: removeItemMutation.mutateAsync,
     isRemovingItem: removeItemMutation.isPending,
 
     createFolderForItem,

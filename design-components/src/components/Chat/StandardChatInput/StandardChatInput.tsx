@@ -191,6 +191,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       availableAgentModes = [ConversationMode.Auto],
       // File upload
       enableFileUpload = false,
+      onFileUploadClick,
       // Additional Tiptap extensions
       additionalExtensions,
       // Mention previews
@@ -590,7 +591,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 isOpen={isPlusMenuOpen}
                                 onClose={() => setIsPlusMenuOpen(false)}
                                 onOpen={handlePlusButtonClick}
-                                onUploadClick={() => fileInputRef.current?.click()}
+                                onUploadClick={() => {
+                                  onFileUploadClick?.();
+                                  fileInputRef.current?.click();
+                                }}
                                 disabled={disabled && !isStreaming}
                                 enableFileUpload={enableFileUpload}
                               />

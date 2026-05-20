@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import usePreferencesStore from "../store/preferencesStore";
+import { report } from "../lib/analytics/tracker";
 import { IndividualAddTab } from "./add-team-members/IndividualAddTab";
 import { BulkImportTab } from "./add-team-members/BulkImportTab";
 import type { AddTeamMembersTab } from "./add-team-members/types";
@@ -16,6 +17,7 @@ export function AddTeamMembersPane() {
   const [activeTab, setActiveTab] = useState<AddTeamMembersTab>("individual");
   const [footer, setFooter] = useState<ReactNode>(null);
   const closeGuardRef = useRef<(() => boolean) | null>(null);
+  const memberAddedRef = useRef(false);
 
   // Reset to default tab whenever the pane closes.
   useEffect(() => {
@@ -23,6 +25,7 @@ export function AddTeamMembersPane() {
       setActiveTab("individual");
       setFooter(null);
       closeGuardRef.current = null;
+      memberAddedRef.current = false;
     }
   }, [addingTeamMember]);
 
@@ -30,10 +33,17 @@ export function AddTeamMembersPane() {
     return closeGuardRef.current ? closeGuardRef.current() : true;
   }, []);
 
+  const handleMemberAdded = useCallback(() => {
+    memberAddedRef.current = true;
+  }, []);
+
   const handleClose = useCallback(() => {
     if (!canClose()) return;
+    if (activeTab === "individual" && !memberAddedRef.current) {
+      report.manageTeamAddMemberCancelled();
+    }
     setAddingTeamMember(false);
-  }, [canClose, setAddingTeamMember]);
+  }, [canClose, setAddingTeamMember, activeTab]);
 
   const handleTabSwitch = (tab: AddTeamMembersTab) => {
     if (tab === activeTab) return;
@@ -144,6 +154,7 @@ export function AddTeamMembersPane() {
               <IndividualAddTab
                 onClose={handleClose}
                 onRegisterFooter={setFooter}
+                onMemberAdded={handleMemberAdded}
               />
             )}
             {addingTeamMember && activeTab === "bulk" && (

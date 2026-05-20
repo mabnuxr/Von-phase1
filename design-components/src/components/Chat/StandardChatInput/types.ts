@@ -316,6 +316,11 @@ export interface StandardChatInputProps {
   enableFileUpload?: boolean;
 
   /**
+   * Called when the user clicks the Upload option in the plus menu.
+   */
+  onFileUploadClick?: () => void;
+
+  /**
    * Extra Tiptap extensions to inject into the editor (e.g. mention chip).
    */
   additionalExtensions?: Extension[];

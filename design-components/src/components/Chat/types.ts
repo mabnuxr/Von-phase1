@@ -31,6 +31,8 @@ export interface SendMessageOptions {
   command?: Command;
   /** Selected @ mentions (when mentions are enabled) */
   mentions?: MentionItem[];
+  /** How the message was submitted */
+  inputMethod?: 'typed' | 'suggested_prompt' | 'slash_command';
 }
 
 /**
@@ -1680,6 +1682,35 @@ export interface ChatProps {
    * to drop the widget from its source state so the sync effect doesn't keep it.
    */
   onWidgetMentionRemoved?: (args: { id: string }) => void;
+
+  // ============================================================================
+  // Analytics callbacks (forwarded to input/message sub-components)
+  // ============================================================================
+
+  /** Called when the user clicks the file upload option in the plus menu */
+  onFileUploadClick?: () => void;
+  /** Called when the slash command overlay opens (user types "/") */
+  onSlashCommandOpened?: () => void;
+  /** Called when the user selects a command from the slash command overlay */
+  onSlashCommandSelected?: (commandName: string, commandType: string, sharingMode: string) => void;
+  /** Called when the user opens the Manage Commands drawer */
+  onManageCommandsClicked?: () => void;
+  /** Called when the user opens the Create New Command drawer */
+  onCreateNewCommandClicked?: () => void;
+  /** Called when a thinking step is expanded in the timeline */
+  onThinkingStepExpanded?: (stepName: string, toolName: string | null, messageId: string) => void;
+  /** Called when a message copy action is triggered */
+  onCopyMessage?: (messageId: string) => void;
+  /** Called when a message download action is triggered */
+  onDownloadMessage?: (messageId: string) => void;
+  /** Called when a thumbs up action is triggered */
+  onThumbsUp?: (messageId: string) => void;
+  /** Called when a thumbs down action is triggered */
+  onThumbsDown?: (messageId: string) => void;
+  /** Called when a link in a response is clicked */
+  onResponseLinkClicked?: (linkType: string, linkText: string, messageId: string) => void;
+  /** Called when content in a response is copied */
+  onResponseSectionCopied?: (sectionType: string, messageId: string) => void;
 
   /**
    * Optional children — use <Chat.EmptyState> to provide a custom empty state

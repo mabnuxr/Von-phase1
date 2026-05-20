@@ -14,7 +14,14 @@
  * all timers clear. No stale state, no race conditions.
  */
 
-import { useEffect, useState, useMemo, useCallback, Profiler } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+  Profiler,
+} from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatSkeleton, Banner } from "@vonlabs/design-components";
 import { ExportIcon, GlobeSimpleIcon, UsersIcon } from "@phosphor-icons/react";
@@ -36,6 +43,7 @@ import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBa
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
 import { reportRenderTiming } from "../lib/datadog";
+import { report } from "../lib/analytics/tracker";
 
 const Conversation = () => {
   const navigate = useNavigate();
@@ -189,6 +197,14 @@ const Conversation = () => {
       resetShowMessagesFromIndex(urlConversationId);
     }
   }, [urlConversationId, resetShowMessagesFromIndex]);
+
+  // #33 Existing Chat Loaded — fire once per conversation, after loading resolves
+  const hasChatLoaded = useRef(false);
+  useEffect(() => {
+    if (!currentConversationId || isLoading || hasChatLoaded.current) return;
+    hasChatLoaded.current = true;
+    report.chatExistingChatLoaded(currentConversationId);
+  }, [currentConversationId, isLoading]);
 
   const handleDisabledInteraction = useCallback(() => {
     if (isTenantDisabled) {

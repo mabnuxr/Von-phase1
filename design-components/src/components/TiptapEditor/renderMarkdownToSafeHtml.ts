@@ -55,6 +55,39 @@ function unescapeJsonStringLiterals(s: string): string {
 // values, not list intent. Marked + GFM would otherwise emit `<ul><li></li></ul>`.
 const BARE_LIST_MARKER = /^[\s]*[-*+](\s*$)|^[\s]*\d+\.\s*$/;
 
+// Characters allowed in a URL per RFC 3986 (unreserved + reserved + `%`).
+// Anything outside this set must be percent-encoded for `marked` to recognize
+// the link target. Existing `%xx` escapes pass through unchanged because `%`
+// itself is in the allowed set.
+const URL_ALLOWED_CHAR = /[A-Za-z0-9\-._~:/?#[\]@!$&'()*+,;=%]/;
+
+function encodeUrlUnsafeChars(url: string): string {
+  let out = '';
+  for (const ch of url) {
+    out += URL_ALLOWED_CHAR.test(ch) ? ch : encodeURIComponent(ch);
+  }
+  return out;
+}
+
+// Match inline markdown link / image destinations: `[text](url)` or
+// `![alt](url)`. Skip URLs already wrapped in angle brackets — CommonMark
+// permits spaces there and `marked` parses them correctly.
+const INLINE_LINK_DEST = /(!?\[[^\]]*\]\()(?!<)([^)\s][^)]*)(\))/g;
+
+// Trailing `"..."` or `'...'` title segment within a link destination.
+const LINK_TITLE_SUFFIX = /(\s+)(("[^"]*")|('[^']*'))$/;
+
+function encodeMarkdownLinkUrls(markdown: string): string {
+  return markdown.replace(INLINE_LINK_DEST, (_match, open, inner, close) => {
+    const titleMatch = inner.match(LINK_TITLE_SUFFIX);
+    if (titleMatch) {
+      const url = inner.slice(0, inner.length - titleMatch[0].length);
+      return `${open}${encodeUrlUnsafeChars(url)}${titleMatch[0]}${close}`;
+    }
+    return `${open}${encodeUrlUnsafeChars(inner)}${close}`;
+  });
+}
+
 /** Sanitize an HTML string with the same DOMPurify config used for markdown
  *  output (forbid tags, force `target="_blank" rel="noopener"` on links).
  *  Use this when the input is already HTML and shouldn't be parsed as
@@ -67,10 +100,11 @@ export function sanitizeHtml(content: string): string {
 export function renderMarkdownToSafeHtml(content: string): string {
   if (!content) return '';
 
-  const normalizedContent =
+  const normalizedContent = encodeMarkdownLinkUrls(
     content.includes('\\n') || content.includes('\\t') || content.includes('\\"')
       ? unescapeJsonStringLiterals(content)
-      : content;
+      : content
+  );
 
   // Short-circuit values that consist of only a list marker — render as
   // escaped plain text so a single "-" stays a literal dash, not a bullet.

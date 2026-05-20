@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Streamdown } from 'streamdown';
 import { chatRemarkPlugins } from './chatRemarkPlugins';
 import { TimelineThinkingProcess } from '../TimelineThinkingProcess';
 import type { TimelineStep } from '../TimelineThinkingProcess';
 import { MessageAreaError } from './MessageAreaError';
 import { SalesforceLink } from './SalesforceLink';
+import { isSalesforceUrl } from './utils/salesforceDeepLink';
 import { MarkdownActionCard } from './DeepResearch/MarkdownActionCard';
 import { DeepResearchResults } from './DeepResearch/DeepResearchResults';
 import { DashboardArtifactCard } from './ArtifactCards';
@@ -40,6 +41,14 @@ export interface AssistantMessageV2Props {
   onApprovePlan?: (runId: string, executionId: string) => Promise<void> | void;
   onRejectPlan?: (runId: string, executionId: string) => void;
   onDashboardPreview?: (dashboardId: string, dashboardVersion: number) => void;
+  /** Analytics: unique ID of this message (for analytics callbacks) */
+  messageId?: string;
+  /** Analytics: called when a thinking step is expanded */
+  onThinkingStepExpanded?: (stepName: string, toolName: string | null, messageId: string) => void;
+  /** Analytics: called when a link in the final response is clicked */
+  onResponseLinkClicked?: (linkType: string, linkText: string) => void;
+  /** Analytics: called when content in the final response is copied */
+  onResponseSectionCopied?: (sectionType: string) => void;
   // Research results
   researchResults?: {
     isStreaming: boolean;
@@ -72,9 +81,54 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
   onRejectPlan,
   onDashboardPreview,
   researchResults,
+  messageId = '',
+  onThinkingStepExpanded,
+  onResponseLinkClicked,
+  onResponseSectionCopied,
 }) => {
   const [showSkipConfirmModal, setShowSkipConfirmModal] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+
+  const handleLinkClick = useCallback(
+    (href: string | undefined, linkText: string) => {
+      if (!onResponseLinkClicked) return;
+      const linkType = href && isSalesforceUrl(href) ? 'salesforce' : 'external';
+      onResponseLinkClicked(linkType, linkText);
+    },
+    [onResponseLinkClicked]
+  );
+
+  // Detects clicks on Streamdown's code block copy button via event delegation.
+  // `data-code-block-container` is a stable attribute set by Streamdown on every code block.
+  // Copy buttons have no title; the download button has title="Download file" — so !button.title
+  // identifies the copy button without hardcoding the download button's title string.
+  const handleCodeCopyClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!onResponseSectionCopied) return;
+      const button = (e.target as HTMLElement).closest('button');
+      if (button && !button.title && button.closest('[data-code-block-container]')) {
+        onResponseSectionCopied('code');
+      }
+    },
+    [onResponseSectionCopied]
+  );
+
+  const streamdownComponents = useMemo(
+    () => ({
+      a: ({
+        href,
+        children,
+      }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children?: React.ReactNode }) => (
+        <SalesforceLink
+          href={href}
+          onLinkClick={onResponseLinkClicked ? handleLinkClick : undefined}
+        >
+          {children}
+        </SalesforceLink>
+      ),
+    }),
+    [handleLinkClick, onResponseLinkClicked]
+  );
 
   const isStoppedImmediately = stoppedByUser && (!timelineSteps || timelineSteps.length === 0);
 
@@ -127,6 +181,12 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
             onExpire={onExpire}
             onArtifactClick={handleArtifactClick}
             salesforceInstanceUrl={salesforceInstanceUrl}
+            onExpandStep={
+              onThinkingStepExpanded
+                ? (step) =>
+                    onThinkingStepExpanded(step.text, step.artifact?.tool_name ?? null, messageId)
+                : undefined
+            }
           />
         </div>
       )}
@@ -142,12 +202,19 @@ export const AssistantMessageV2: React.FC<AssistantMessageV2Props> = ({
         !(status === 'failed' && errorMessage) &&
         // When dashboard builder approval pending, render inside MarkdownActionCard instead
         !(showDashboardBuilderApproval && !isStreaming) && (
-          <div className="markdown-content max-w-none">
+          <div
+            className="markdown-content max-w-none"
+            // onCopy fires when the user selects text and copies it (Cmd+C / right-click copy).
+            // onClick via handleCodeCopyClick catches code block copy button clicks, which call
+            // navigator.clipboard.writeText() directly and do NOT trigger the native onCopy event.
+            onClick={onResponseSectionCopied ? handleCodeCopyClick : undefined}
+            onCopy={onResponseSectionCopied ? () => onResponseSectionCopied('text') : undefined}
+          >
             <Streamdown
               parseIncompleteMarkdown={isStreaming}
               isAnimating={isStreaming}
               controls={{ table: true }}
-              components={{ a: SalesforceLink }}
+              components={streamdownComponents}
               remarkPlugins={chatRemarkPlugins}
             >
               {v2FinalResponse}
