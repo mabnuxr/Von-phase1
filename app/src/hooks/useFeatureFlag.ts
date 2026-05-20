@@ -110,7 +110,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether Slash Commands feature is enabled in chat
      */
-    isSlashCommandsEnabled: flags[FEATURE_FLAGS.SLASH_COMMANDS] === true,
+    isSlashCommandsEnabled: true,
 
     /**
      * Controls whether additional actions menu is enabled (convert to dashboard, etc.)
@@ -126,7 +126,7 @@ export function useFeatureFlag() {
      * Controls whether the new TimelineThinkingProcess v2 component is used
      * instead of the legacy ThinkingBlock component. Permanently enabled.
      */
-    isAgentV2: flags[FEATURE_FLAGS.AGENT_V2] === true,
+    isAgentV2: true,
 
     /**
      * User memory — permanently enabled, no longer behind a feature flag
@@ -138,17 +138,17 @@ export function useFeatureFlag() {
      * inline editor, pick-time S3 uploads, bulk-import side pane). Off
      * shows the legacy single-pane memory tab.
      */
-    isMemoryV2Enabled: flags[FEATURE_FLAGS.MEMORY_V2] === true,
+    isMemoryV2Enabled: true,
 
     /**
      * Controls whether deep research feature (plus menu with agents) is enabled
      */
-    isDeepResearchEnabled: flags[FEATURE_FLAGS.DEEP_RESEARCH] === true,
+    isDeepResearchEnabled: true,
 
     /**
      * Controls whether the Sources button is shown on assistant messages
      */
-    isSourcesEnabled: flags[FEATURE_FLAGS.AGENT_V2_SOURCES] === true,
+    isSourcesEnabled: true,
 
     /**
      * Controls whether the current tenant's subscription is inactive
@@ -178,7 +178,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether Snowflake integration is visible
      */
-    isSnowflakeEnabled: flags[FEATURE_FLAGS.SNOWFLAKE] === true,
+    isSnowflakeEnabled: true,
 
     /**
      * Gmail integration — permanently enabled, no longer behind a feature flag
@@ -188,68 +188,65 @@ export function useFeatureFlag() {
     /**
      * Controls whether Gong Engage integration is visible
      */
-    isGongEngageEnabled: flags[FEATURE_FLAGS.GONG_ENGAGE] === true,
+    isGongEngageEnabled: true,
 
     /**
      * Controls whether Granola integration is visible
      */
-    isGranolaEnabled: flags[FEATURE_FLAGS.GRANOLA] === true,
+    isGranolaEnabled: true,
 
     /**
      * Controls whether Notion integration is visible
      */
-    isNotionEnabled: flags[FEATURE_FLAGS.NOTION] === true,
+    isNotionEnabled: true,
 
     /**
      * Controls whether Box integration is visible
      */
-    isBoxEnabled: flags[FEATURE_FLAGS.BOX] === true,
+    isBoxEnabled: true,
 
     /**
      * Controls whether Outreach engagement integration is visible
      */
-    isOutreachEngageEnabled: flags[FEATURE_FLAGS.OUTREACH_ENGAGE] === true,
+    isOutreachEngageEnabled: true,
 
     /**
      * Controls whether Salesloft engagement integration is visible
      */
-    isSalesloftEngagementEnabled:
-      flags[FEATURE_FLAGS.SALESLOFT_ENGAGEMENT] === true,
+    isSalesloftEngagementEnabled: true,
 
     /**
      * Controls whether Jiminny integration is visible
      */
-    isJiminnyEnabled: flags[FEATURE_FLAGS.JIMINNY] === true,
+    isJiminnyEnabled: true,
 
     /**
 
      * Controls whether Databricks integration is visible
      */
-    isDatabricksEnabled: flags[FEATURE_FLAGS.DATABRICKS] === true,
+    isDatabricksEnabled: true,
 
     /**
      * Controls whether BigQuery integration is visible
      */
-    isBigQueryEnabled: flags[FEATURE_FLAGS.BIGQUERY] === true,
+    isBigQueryEnabled: true,
     /**
      * Controls whether the v2 dashboard filter bar UI is enabled
      * (ScrollableFilterBar, SplitFilterDropdown, DataSourcesDrawer, panel overrides).
      */
-    isDashboardFiltersV2Enabled:
-      flags[FEATURE_FLAGS.DASHBOARD_FILTERS_V2] === true,
+    isDashboardFiltersV2Enabled: true,
 
     /**
      * Controls whether dashboard widgets can be rearranged via drag-and-drop
      * and resized in edit mode. When false, widgets stay pinned to their
      * configured layout — edit mode still works for filters / rename / save.
      */
-    isDashboardDragDropEnabled:
-      flags[FEATURE_FLAGS.DASHBOARD_DRAG_DROP] === true,
+    isDashboardDragDropEnabled: true,
 
     /**
      * Controls whether the chat sharing feature is enabled
      */
-    isChatSharingEnabled: flags[FEATURE_FLAGS.CHAT_SHARING] === true,
+    isChatSharingEnabled: true,
 
     /**
      * Controls whether Usage tab is visible in Settings
@@ -259,7 +256,7 @@ export function useFeatureFlag() {
     /**
      * Controls whether Von AI Fields tab is visible in Settings
      */
-    isVonAiFieldsEnabled: flags[FEATURE_FLAGS.VON_AI_FIELDS] === true,
+    isVonAiFieldsEnabled: true,
 
     /**
      * Controls whether custom MCP server connections are available
@@ -269,19 +266,19 @@ export function useFeatureFlag() {
     /**
      * Controls whether catalog MCP servers are shown on the integrations page
      */
-    isMcpServersEnabled: flags[FEATURE_FLAGS.MCP_SERVERS] === true,
+    isMcpServersEnabled: true,
 
     /**
      * Gates the Slack personal MCP integration. When off, Slack is filtered
      * from the App Library so it cannot be published; the message-draft
      * artifact card and send endpoint stay dormant.
      */
-    isSlackPersonalEnabled: flags[FEATURE_FLAGS.SLACK_PERSONAL] === true,
+    isSlackPersonalEnabled: true,
 
     /**
      * Controls whether Hubspot integration is visible
      */
-    isHubspotEnabled: flags[FEATURE_FLAGS.HUBSPOT] === true,
+    isHubspotEnabled: true,
 
     /**
      * Controls whether the dashboard collaboration v2 surface is enabled —
@@ -289,7 +286,7 @@ export function useFeatureFlag() {
      * Discard / Restore lifecycle, and version-history panel. Off keeps
      * the legacy share dialog and owner-only edit toggle.
      */
-    isDashboardCollabEnabled: flags[FEATURE_FLAGS.DASHBOARD_COLLAB] === true,
+    isDashboardCollabEnabled: true,
 
     /**
      * Raw flags object for advanced usage
