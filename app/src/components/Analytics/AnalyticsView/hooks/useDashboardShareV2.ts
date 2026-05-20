@@ -128,14 +128,19 @@ export function useDashboardShareV2({
   // (`cannot_grant_to_owner`), but legacy data can still carry one
   // and would otherwise render the owner twice.
   const grants = useMemo<ShareDialogPersonV2[]>(() => {
-    // Two paths to a display name for a given userId, in order:
+    // Three paths to a display name for a given userId, in order:
     //   1. If it's the current viewer — read straight from the user
     //      record we already hold. No teamMembers query needed, so
     //      the caller's own row never flashes the raw id.
-    //   2. Otherwise — look up in teamMembers. If teamMembers is
-    //      still loading we return empty strings instead of the raw
-    //      user id, so the row reads as "avatar + empty name" rather
-    //      than "avatar + raw uuid" until the query resolves.
+    //   2. If teamMembers is still loading (`undefined`) — return
+    //      empty strings so the row renders as "avatar skeleton +
+    //      empty name" until the query resolves. The Avatar pulses
+    //      to signal the loading state.
+    //   3. Otherwise teamMembers has resolved. Look up the grant's
+    //      user — if it's missing (deleted teammate, cross-tenant
+    //      external user, stale grant), surface "Unknown user" so
+    //      the row reads as a stable resolved state rather than a
+    //      forever-pulsing skeleton.
     const resolveDisplay = (
       userId: string,
     ): { name: string; email: string } => {
@@ -147,8 +152,9 @@ export function useDashboardShareV2({
           email: currentUser.email,
         };
       }
-      const member = teamMembers?.find((m) => m.id === userId);
-      if (!member) return { name: "", email: "" };
+      if (!teamMembers) return { name: "", email: "" };
+      const member = teamMembers.find((m) => m.id === userId);
+      if (!member) return { name: "Unknown user", email: "" };
       return {
         name: `${member.firstName} ${member.lastName}`.trim() || member.email,
         email: member.email,

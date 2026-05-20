@@ -222,18 +222,26 @@ export interface ShareDashboardDialogV2Props {
   dataScopingAvailable: boolean;
   /** Current data-scope option (only applied when scope = org_wide and viewers exist). */
   dataScopeOwnership: DataScopeOptionV2 | null;
-  /** Actions — caller wires to mutations / mock handlers during the rollout. */
+  /** Actions — caller wires to mutations / mock handlers during the rollout.
+   *  All return `Promise<void>` so the dialog's fire-and-forget
+   *  wrappers can chain `.catch()` to silence the serialization-drop
+   *  rejection (`handleShareV2` throws "share_v2_in_flight" while a
+   *  prior share is in flight). Real errors are still surfaced
+   *  upstream via the global error toast. */
   onScopeChange: (
     scope: DashboardScopeV2,
     scopeDefaultRole: GrantableRoleV2,
-  ) => void;
+  ) => Promise<void> | void;
   onGrantAdd: (
     userIds: string[],
     role: GrantableRoleV2,
     dataScope: DataScopeOptionV2 | null,
   ) => Promise<void> | void;
-  onGrantUpdate: (userId: string, role: GrantableRoleV2) => void;
-  onGrantRemove: (userId: string) => void;
+  onGrantUpdate: (
+    userId: string,
+    role: GrantableRoleV2,
+  ) => Promise<void> | void;
+  onGrantRemove: (userId: string) => Promise<void> | void;
   /**
    * Apply a data-scope change. Returns a promise so the dialog can
    * await the Save round-trip before closing — the dialog batches
@@ -514,17 +522,29 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     onScopeClose={() => setScopeMenuOpen(false)}
                     onScopeSelect={(next) => {
                       setScopeMenuOpen(false);
-                      onScopeChange(next, scopeDefaultRole);
+                      // Fire-and-forget; serialization drops surface
+                      // as a `"share_v2_in_flight"` rejection that
+                      // these per-row paths intentionally swallow
+                      // (the awaiting Add-People / Save paths still
+                      // see it and stay open). Real errors land in
+                      // the global toast via `handleShareV2`.
+                      void Promise.resolve(
+                        onScopeChange(next, scopeDefaultRole),
+                      ).catch(() => {});
                     }}
                     onRowMenuOpen={(userId) => setRowMenuFor(userId)}
                     onRowMenuClose={() => setRowMenuFor(null)}
                     onGrantUpdate={(userId, role) => {
                       setRowMenuFor(null);
-                      onGrantUpdate(userId, role);
+                      void Promise.resolve(onGrantUpdate(userId, role)).catch(
+                        () => {},
+                      );
                     }}
                     onGrantRemove={(userId) => {
                       setRowMenuFor(null);
-                      onGrantRemove(userId);
+                      void Promise.resolve(onGrantRemove(userId)).catch(
+                        () => {},
+                      );
                     }}
                     // Data-scope edits batch into the local
                     // `pendingDataScope` draft instead of firing the

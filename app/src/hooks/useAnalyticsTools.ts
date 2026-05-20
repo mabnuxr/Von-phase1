@@ -353,7 +353,18 @@ export function useAnalyticsTools(dashboardId: string) {
       // (`isSavingShare`); this guards the per-row paths too. Users
       // see no response for the dropped click and can retry once the
       // spinner clears.
-      if (shareV2Mutation.isPending) return;
+      //
+      // Throw (rather than silently resolve) so awaiting callers can
+      // distinguish "dropped" from "succeeded". Resolving here was
+      // making `handleAddPeopleSubmit` / `handleSavePendingChanges`
+      // flash the "Access updated" pill and close the modal even
+      // though no mutation actually fired. The dialog's `catch { }`
+      // arms already swallow this for the awaiting paths; the
+      // non-awaiting per-row handlers in `useDashboardShareV2`
+      // explicitly attach `.catch(() => {})` to silence the rejection.
+      if (shareV2Mutation.isPending) {
+        throw new Error("share_v2_in_flight");
+      }
       try {
         await shareV2Mutation.mutateAsync(payload);
       } catch (error) {
