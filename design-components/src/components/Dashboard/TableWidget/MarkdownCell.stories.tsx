@@ -98,6 +98,84 @@ export const ClickableLink: Story = {
   },
 };
 
+// Backend-generated CRM links arrive with literal spaces in the path segment
+// (e.g. Salesforce record names embedded as URL components). CommonMark
+// rejects unencoded spaces in link destinations, so without pre-encoding the
+// markdown falls through as text. The pre-processor percent-encodes unsafe
+// characters before marked sees the input.
+export const LinkWithSpaceInUrl: Story = {
+  args: {
+    value:
+      '[Personify Health](https://acme.lightning.force.com/lightning/r/Account/Personify Health/view)',
+  },
+  play: async ({ canvasElement }) => {
+    const link = canvasElement.querySelector('a');
+    expect(link).toBeTruthy();
+    expect(link?.getAttribute('href')).toBe(
+      'https://acme.lightning.force.com/lightning/r/Account/Personify%20Health/view'
+    );
+    expect(link?.textContent).toBe('Personify Health');
+    expect(link?.getAttribute('target')).toBe('_blank');
+  },
+};
+
+export const LinkWithMultipleSpacesInUrl: Story = {
+  args: {
+    value:
+      '[GridGain Systems](https://acme.lightning.force.com/lightning/r/Account/GridGain Systems/view)',
+  },
+  play: async ({ canvasElement }) => {
+    const link = canvasElement.querySelector('a');
+    expect(link).toBeTruthy();
+    expect(link?.getAttribute('href')).toBe(
+      'https://acme.lightning.force.com/lightning/r/Account/GridGain%20Systems/view'
+    );
+    expect(link?.textContent).toBe('GridGain Systems');
+  },
+};
+
+export const LinkWithAlreadyEncodedUrl: Story = {
+  // Already-encoded URLs must round-trip unchanged — re-encoding would turn
+  // `%20` into `%2520` and break the link.
+  args: { value: '[ok](https://example.com/foo%20bar)' },
+  play: async ({ canvasElement }) => {
+    const link = canvasElement.querySelector('a');
+    expect(link?.getAttribute('href')).toBe('https://example.com/foo%20bar');
+  },
+};
+
+export const LinkWithTitle: Story = {
+  // CommonMark link titles (`(url "title")`) must survive the encoder — the
+  // space between URL and quoted title is part of the syntax, not the URL.
+  args: { value: '[ok](https://example.com "the title")' },
+  play: async ({ canvasElement }) => {
+    const link = canvasElement.querySelector('a');
+    expect(link?.getAttribute('href')).toBe('https://example.com');
+    expect(link?.getAttribute('title')).toBe('the title');
+  },
+};
+
+export const ParensInPlainText: Story = {
+  // Parenthesized prose without a preceding `](` shouldn't be coerced into a
+  // link by the encoder.
+  args: { value: 'revenue rose (year over year) materially' },
+  play: async ({ canvasElement }) => {
+    expect(canvasElement.querySelector('a')).toBeNull();
+    expect(canvasElement.textContent).toContain('(year over year)');
+  },
+};
+
+export const ImageWithSpaceInUrl: Story = {
+  // The same encoder also applies to image syntax `![alt](url)` — same
+  // CommonMark rules, same failure mode, same fix.
+  args: { value: '![logo](https://cdn.example.com/path with space.png)' },
+  play: async ({ canvasElement }) => {
+    const img = canvasElement.querySelector('img');
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toBe('https://cdn.example.com/path%20with%20space.png');
+  },
+};
+
 export const HeadingDemoted: Story = {
   args: { value: '# Top Customer' },
   play: async ({ canvasElement }) => {
