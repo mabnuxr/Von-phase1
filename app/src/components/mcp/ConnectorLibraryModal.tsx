@@ -81,7 +81,7 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
 
-    const { isSlackPersonalEnabled } = useFeatureFlag();
+  const { isSlackPersonalEnabled } = useFeatureFlag();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

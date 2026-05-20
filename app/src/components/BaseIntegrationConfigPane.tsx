@@ -699,7 +699,7 @@ export function BaseIntegrationConfigPane({
                 )}
                 <h2 className="text-lg font-semibold text-gray-900 m-0">
                   {integration?.name}
-                  {integrationId !== "slack_personal" && " Configuration"}
+                  {integration?.configTitleSuffix ?? " Configuration"}
                 </h2>
               </div>
               <button

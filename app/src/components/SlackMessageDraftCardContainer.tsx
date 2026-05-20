@@ -108,9 +108,6 @@ async function sendSlackArtifact(
   return response.result;
 }
 
-// Back-compat alias for the message-composer call sites in this file.
-const sendSlackMessage = sendSlackArtifact;
-
 /** Extract `detail.code` from an ApiError response body, if present. */
 function getSlackErrorCode(e: unknown): string | null {
   if (!(e instanceof ApiError) || !e.response) return null;
@@ -140,6 +137,69 @@ function payloadToMessage(p: SlackDraftPayload): SlackMessageData {
 const SLACK_ICON_URL =
   "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg";
 
+interface DraftCopy {
+  heading: string;
+  subheading: string;
+  ctaLabel: string; // button label while idle
+  sendingLabel: string; // button label while in-flight
+  sentLabel: string; // button label after success
+  successToast: string; // toast message on successful send
+}
+
+/** Single source of truth for kind-specific copy on the canvas/channel card.
+ *  Adding a new kind means filling out one branch here instead of touching
+ *  four places in the JSX. */
+function getDraftCopy(payload: SlackDraftPayload): DraftCopy {
+  const kind = payload.kind ?? "message";
+
+  if (kind === "channel") {
+    return {
+      heading: `#${payload.name ?? "untitled"}`,
+      subheading: payload.is_private ? "Private channel" : "Public channel",
+      ctaLabel: "Create",
+      sendingLabel: "Create…",
+      sentLabel: "Created",
+      successToast: "Channel created in Slack",
+    };
+  }
+
+  // kind === "canvas"
+  const isUpdate = !!payload.canvas_id;
+  const cta = isUpdate ? "Update" : "Create";
+  const target = canvasTargetLabel(payload);
+  const subheading = isUpdate
+    ? "Replace canvas content"
+    : target
+      ? `New canvas, ${target}`
+      : "New standalone canvas (lives in your Canvases sidebar)";
+
+  return {
+    heading: extractH1(payload.markdown) ?? "Untitled canvas",
+    subheading,
+    ctaLabel: cta,
+    sendingLabel: `${cta}…`,
+    sentLabel: isUpdate ? "Updated" : "Created",
+    successToast: isUpdate
+      ? "Canvas updated in Slack"
+      : "Canvas created in Slack",
+  };
+}
+
+function canvasTargetLabel(payload: SlackDraftPayload): string | null {
+  if (!payload.channel_id) return null;
+  const display = payload.conversation_display;
+  if (!display) return "attached to selected conversation";
+  switch (payload.conversation_type) {
+    case "dm":
+      return `attached to DM with ${display}`;
+    case "group_dm":
+      return `attached to group DM (${display})`;
+    case "channel":
+    default:
+      return `attached to #${display.replace(/^#/, "")}`;
+  }
+}
+
 /**
  * Card for kind=channel / kind=canvas drafts. The backend's `/send` endpoint
  * dispatches on the artifact's `kind` field, so wiring the button is the same
@@ -161,39 +221,7 @@ function SlackNonMessageDraftCard({
   const [permalink, setPermalink] = useState<string | null>(null);
 
   const kind = payload.kind ?? "message";
-  const isCanvasUpdate = kind === "canvas" && !!payload.canvas_id;
-  const ctaLabel = isCanvasUpdate ? "Update" : "Create";
-
-  const heading =
-    kind === "channel"
-      ? `#${payload.name ?? "untitled"}`
-      : (extractH1(payload.markdown) ?? "Untitled canvas");
-
-  const canvasTargetLabel = (() => {
-    if (!payload.channel_id) return null;
-    const display = payload.conversation_display;
-    if (!display) return "attached to selected conversation";
-    switch (payload.conversation_type) {
-      case "dm":
-        return `attached to DM with ${display}`;
-      case "group_dm":
-        return `attached to group DM (${display})`;
-      case "channel":
-      default:
-        return `attached to #${display.replace(/^#/, "")}`;
-    }
-  })();
-
-  const subheading =
-    kind === "channel"
-      ? payload.is_private
-        ? "Private channel"
-        : "Public channel"
-      : isCanvasUpdate
-        ? "Replace canvas content"
-        : canvasTargetLabel
-          ? `New canvas, ${canvasTargetLabel}`
-          : "New standalone canvas (lives in your Canvases sidebar)";
+  const copy = getDraftCopy(payload);
 
   const handleSend = useCallback(async () => {
     setIsSending(true);
@@ -201,21 +229,13 @@ function SlackNonMessageDraftCard({
       const result = await sendSlackArtifact(conversationId, fileId);
       setIsSent(true);
       if (result.permalink) setPermalink(result.permalink);
-      showToast({
-        message:
-          kind === "channel"
-            ? "Channel created in Slack"
-            : isCanvasUpdate
-              ? "Canvas updated in Slack"
-              : "Canvas created in Slack",
-        variant: "success",
-      });
+      showToast({ message: copy.successToast, variant: "success" });
     } catch (e) {
       handleSendError(e, showToast, navigate);
     } finally {
       setIsSending(false);
     }
-  }, [conversationId, fileId, kind, isCanvasUpdate, showToast, navigate]);
+  }, [conversationId, fileId, copy.successToast, showToast, navigate]);
 
   return (
     <div className="border border-gray-100 rounded-xl bg-white overflow-hidden flex flex-col shadow-xs">
@@ -230,8 +250,10 @@ function SlackNonMessageDraftCard({
 
       {/* Heading row */}
       <div className="px-3 py-2 border-b border-gray-100 shrink-0">
-        <div className="text-sm font-semibold text-gray-900 truncate">{heading}</div>
-        <div className="text-xs text-gray-500 mt-0.5">{subheading}</div>
+        <div className="text-sm font-semibold text-gray-900 truncate">
+          {copy.heading}
+        </div>
+        <div className="text-xs text-gray-500 mt-0.5">{copy.subheading}</div>
       </div>
 
       {/* Body — markdown preview (canvas only) */}
@@ -269,12 +291,10 @@ function SlackNonMessageDraftCard({
           }`}
         >
           {isSent
-            ? isCanvasUpdate
-              ? "Updated"
-              : "Created"
+            ? copy.sentLabel
             : isSending
-              ? `${ctaLabel}…`
-              : ctaLabel}
+              ? copy.sendingLabel
+              : copy.ctaLabel}
         </button>
       </div>
     </div>
@@ -317,7 +337,7 @@ export const SlackMessageDraftCardContainer: React.FC<
   const handleSend = useCallback(async () => {
     setIsSending(true);
     try {
-      const result = await sendSlackMessage(conversationId, artifact.fileId);
+      const result = await sendSlackArtifact(conversationId, artifact.fileId);
       setSentIndices([0]);
       if (result.permalink) setPermalinks({ 0: result.permalink });
       showToast({ message: "Message sent to Slack", variant: "success" });
@@ -448,7 +468,8 @@ export const SlackMessageComposerContainer: React.FC<
 
   const messages: SlackMessageData[] = [];
   const messageToArtifactIndex: number[] = [];
-  const nonMessagePayloads: { payload: SlackDraftPayload; fileId: string }[] = [];
+  const nonMessagePayloads: { payload: SlackDraftPayload; fileId: string }[] =
+    [];
 
   parsedQueries.forEach((pq, i) => {
     const payload = pq.data;
@@ -476,7 +497,7 @@ export const SlackMessageComposerContainer: React.FC<
 
     setIsSending(true);
     try {
-      const result = await sendSlackMessage(conversationId, a.fileId);
+      const result = await sendSlackArtifact(conversationId, a.fileId);
       setSentIndices((prev) =>
         prev.includes(index) ? prev : [...prev, index],
       );

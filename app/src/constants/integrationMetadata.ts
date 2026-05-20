@@ -13,6 +13,13 @@ export interface IntegrationMetadata {
   disabled?: boolean;
   /** Optional note shown below the description */
   note?: string;
+  /**
+   * Suffix appended after the integration name in the config-pane heading.
+   * Defaults to " Configuration" when omitted. Set to "" to render just the
+   * integration name (e.g. "Slack Personal" stands on its own without the
+   * "Configuration" suffix).
+   */
+  configTitleSuffix?: string;
   category:
     | "CRM"
     | "Calls & Engagement"
@@ -185,6 +192,9 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
     personalDescription: "Connect your Slack account",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg",
+    // "Slack Personal" already reads as a complete title on the config pane
+    // — appending " Configuration" would be redundant.
+    configTitleSuffix: "",
     category: "Communication",
   },
 
