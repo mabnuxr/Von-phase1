@@ -8,8 +8,6 @@ interface AcquireLockCallbacks {
   onUnknownError?: (error: unknown) => void;
 }
 
-type DiscardModalMode = "discard" | "revert";
-
 interface UseEditModeActionsArgs {
   dashboardVersion: number;
   onAcquireLock?: (callbacks?: AcquireLockCallbacks) => Promise<void> | void;
@@ -17,14 +15,12 @@ interface UseEditModeActionsArgs {
   onDiscardDraft?: () => Promise<void> | void;
   onSaveDraft?: () => Promise<void> | void;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
-  onRevert: (options?: { onSuccess?: () => void }) => void;
   openLockModal: () => void;
-  // Mutation phases — used to derive `discardModal.isPending` and to auto-
-  // close the modal once the originating mutation finishes (success path).
-  // Error paths are handled by the parent mutations' toast wiring; we just
-  // close the modal so the user can recover.
+  /** Drives `discardModal.isPending` and the auto-close once the
+   *  discard mutation transitions back to `idle`. Error paths are
+   *  handled by the parent mutation's toast wiring; we just close the
+   *  modal so the user can recover. */
   discardDraftPhase: MutationPhase;
-  revertPhase: MutationPhase;
 }
 
 export function useEditModeActions({
@@ -34,10 +30,8 @@ export function useEditModeActions({
   onDiscardDraft,
   onSaveDraft,
   onSave,
-  onRevert,
   openLockModal,
   discardDraftPhase,
-  revertPhase,
 }: UseEditModeActionsArgs) {
   // Edit always calls POST /lock (M1). Server response decides:
   //   - 2xx              → we hold the lock, open chat
@@ -53,36 +47,30 @@ export function useEditModeActions({
     });
   }, [onAcquireLock, onChatClick, openLockModal]);
 
-  // ── Shared discard/revert confirmation modal ────────────────────
+  // ── Discard confirmation modal ──────────────────────────────────
   //
-  // Discard (collab) and Revert (legacy) both pop the same modal. A ref
-  // tracks which path opened it so `confirm` knows which mutation to fire.
-  // The modal closes itself when the in-flight mutation transitions from
-  // `pending` back to `idle` (success or error) — error toasts are owned
-  // by the upstream mutations.
+  // Discard pops a confirmation modal that auto-closes once the
+  // discard mutation transitions from `pending` back to `idle`
+  // (success or error — error toasts are owned upstream).
   const {
     isVisible: isDiscardModalOpen,
     show: openDiscardModal,
     hide: closeDiscardModal,
   } = useVisibilityToggle();
-  const discardModeRef = useRef<DiscardModalMode>("discard");
   const wasPendingRef = useRef(false);
-  const activePhase =
-    discardModeRef.current === "discard" ? discardDraftPhase : revertPhase;
 
   useEffect(() => {
-    const isPending = activePhase === "pending";
+    const isPending = discardDraftPhase === "pending";
     if (wasPendingRef.current && !isPending && isDiscardModalOpen) {
       closeDiscardModal();
     }
     wasPendingRef.current = isPending;
-  }, [activePhase, isDiscardModalOpen, closeDiscardModal]);
+  }, [discardDraftPhase, isDiscardModalOpen, closeDiscardModal]);
 
   // Discard pops the confirmation modal; save-as-draft fires
-  // immediately. Callers always wire both handlers under collab.
+  // immediately.
   const handleDiscardDraft = useCallback(() => {
     if (!onDiscardDraft) return;
-    discardModeRef.current = "discard";
     openDiscardModal();
   }, [onDiscardDraft, openDiscardModal]);
 
@@ -95,18 +83,10 @@ export function useEditModeActions({
     onSave({ isFirstSave: dashboardVersion < 1 });
   }, [onSave, dashboardVersion]);
 
-  const handleRevertFromEditMode = useCallback(() => {
-    discardModeRef.current = "revert";
-    openDiscardModal();
-  }, [openDiscardModal]);
-
-  const confirmDiscardOrRevert = useCallback(() => {
-    if (discardModeRef.current === "discard") {
-      if (onDiscardDraft) void onDiscardDraft();
-      return;
-    }
-    onRevert();
-  }, [onDiscardDraft, onRevert]);
+  const confirmDiscard = useCallback(() => {
+    if (!onDiscardDraft) return;
+    void onDiscardDraft();
+  }, [onDiscardDraft]);
 
   // Split return: handlers (stable references, drilled down to toolbar/cluster)
   // are kept separate from `discardModal` (frequently-changing state — only the
@@ -119,22 +99,20 @@ export function useEditModeActions({
       handleDiscardDraft,
       handleSaveDraft,
       handleSaveFromEditMode,
-      handleRevertFromEditMode,
     }),
     [
       handleEnterEditMode,
       handleDiscardDraft,
       handleSaveDraft,
       handleSaveFromEditMode,
-      handleRevertFromEditMode,
     ],
   );
 
   const discardModal = {
     isOpen: isDiscardModalOpen,
     close: closeDiscardModal,
-    isPending: activePhase === "pending",
-    confirm: confirmDiscardOrRevert,
+    isPending: discardDraftPhase === "pending",
+    confirm: confirmDiscard,
   };
 
   return { editActions, discardModal };

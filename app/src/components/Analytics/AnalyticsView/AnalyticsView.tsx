@@ -84,8 +84,6 @@ interface AnalyticsViewProps {
   saveToastKind: "publish" | "draft";
   /** True when the most recent publish was the dashboard's first save. */
   isFirstSave: boolean;
-  onRevert: (options?: { onSuccess?: () => void }) => void;
-  revertPhase: MutationPhase;
   /**
    * Unified share mutation (M2) — accepts the full desired sharing state
    * in a single round-trip. Used by the share dialog.
@@ -288,8 +286,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   showSaveToast,
   saveToastKind,
   isFirstSave,
-  onRevert,
-  revertPhase,
   onShareV2,
   shareV2Phase = "idle",
   onAcquireLock,
@@ -402,10 +398,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     onDiscardDraft,
     onSaveDraft,
     onSave,
-    onRevert,
     openLockModal: editLock.openModal,
     discardDraftPhase,
-    revertPhase,
   });
 
   const isSaved = dashboard.status === DashboardStatus.Published;

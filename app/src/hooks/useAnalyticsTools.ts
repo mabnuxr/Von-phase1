@@ -117,48 +117,6 @@ export function useAnalyticsTools(dashboardId: string) {
     saveMutation.isSuccess,
   );
 
-  // ─── Revert to Saved ───────────────────────────────────────────
-  const revertMutation = useMutation({
-    mutationFn: async () => {
-      await dashboardService.revertToPublished(dashboardId);
-      await queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-    onSuccess: () => {
-      showToast({
-        message: "Dashboard reverted to last saved version.",
-        variant: "success",
-      });
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-  });
-
-  const handleRevert = useCallback(
-    ({ onSuccess }: { onSuccess?: () => void } = {}) => {
-      revertMutation.mutate(undefined, {
-        onSuccess,
-        onError: (error) => {
-          console.error("[useAnalyticsTools] Revert failed:", error);
-          showToast({
-            message: "Failed to revert dashboard. Please try again.",
-            variant: "error",
-          });
-        },
-      });
-    },
-    [revertMutation, showToast],
-  );
-
-  const revertPhase = useMutationPhase(
-    revertMutation.isPending,
-    revertMutation.isSuccess,
-  );
-
   // ─── Share — unified scope + user_grants + data-scope ─────────
   //
   // Backend M2 (VON-1283) collapses scope changes, per-user grant edits, and
@@ -796,9 +754,6 @@ export function useAnalyticsTools(dashboardId: string) {
     showSaveToast,
     saveToastKind: saveToastKindRef.current,
     isFirstSave: isFirstSaveRef.current,
-    handleRevert,
-    revertPhase,
-    revertMutation,
     handleShareV2,
     shareV2Mutation,
     shareV2Phase,

@@ -89,8 +89,6 @@ function DashboardCanvas({
     showSaveToast,
     saveToastKind,
     isFirstSave,
-    handleRevert,
-    revertPhase,
     handleShareV2,
     shareV2Phase,
     handleAcquireLock,
@@ -297,8 +295,6 @@ function DashboardCanvas({
         showSaveToast={showSaveToast}
         saveToastKind={saveToastKind}
         isFirstSave={isFirstSave}
-        onRevert={handleRevert}
-        revertPhase={revertPhase}
         onShareV2={handleShareV2}
         shareV2Phase={shareV2Phase}
         onAcquireLock={handleAcquireLock}
