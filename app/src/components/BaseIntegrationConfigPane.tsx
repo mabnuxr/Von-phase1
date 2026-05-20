@@ -698,7 +698,8 @@ export function BaseIntegrationConfigPane({
                   />
                 )}
                 <h2 className="text-lg font-semibold text-gray-900 m-0">
-                  {integration?.name} Configuration
+                  {integration?.name}
+                  {integrationId !== "slack_personal" && " Configuration"}
                 </h2>
               </div>
               <button
@@ -734,7 +735,8 @@ export function BaseIntegrationConfigPane({
                 integrationId === "gmail" ||
                 integrationId === "granola" ||
                 integrationId === "notion" ||
-                integrationId === "outreachengage") && (
+                integrationId === "outreachengage" ||
+                integrationId === "slack_personal") && (
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">
                     Authentication type

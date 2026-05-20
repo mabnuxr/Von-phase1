@@ -58,7 +58,7 @@ export const FEATURE_FLAGS = {
   VON_AI_FIELDS: "enableVonAiFields",
   CUSTOM_MCP: "enableCustomMcp",
   MCP_SERVERS: "enableMcpServers",
-  SLACK_MCP: "enableSlackMcp",
+  SLACK_PERSONAL: "enableSlackPersonal",
   // Gates the redesigned memory pages (org/user split tabs, inline editor,
   // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
   // returns the legacy single-pane memory tab.
@@ -276,7 +276,7 @@ export function useFeatureFlag() {
      * from the App Library so it cannot be published; the message-draft
      * artifact card and send endpoint stay dormant.
      */
-    isSlackMcpEnabled: flags[FEATURE_FLAGS.SLACK_MCP] === true,
+    isSlackPersonalEnabled: flags[FEATURE_FLAGS.SLACK_PERSONAL] === true,
 
     /**
      * Controls whether Hubspot integration is visible

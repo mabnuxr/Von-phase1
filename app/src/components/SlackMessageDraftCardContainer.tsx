@@ -13,6 +13,7 @@ import {
   SlackMessageComposer,
   ArtifactCardSkeleton,
 } from "@vonlabs/design-components";
+import { Streamdown } from "streamdown";
 import type {
   FileArtifact,
   SlackMessageData,
@@ -24,26 +25,63 @@ import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router-dom";
 
 /**
- * Wire-format of a slack_message_draft artifact (JSON file on S3).
- * Mirrors the structure emitted by the backend SlackComposeDraftTool.
+ * Wire-format of a .slack_draft artifact (JSON file on S3).
+ *
+ * The backend SlackDraftTool emits a single shape discriminated by `kind`:
+ *   - "message" (default) / "scheduled" → message-composer fields populated
+ *   - "channel"                          → channel-creation fields populated
+ *   - "canvas"                           → canvas create/update fields populated
+ * Only message/scheduled flow into <SlackMessageComposer> today; channel/canvas
+ * render a lightweight placeholder card until their composer UIs land.
  */
+type SlackDraftKind = "message" | "scheduled" | "channel" | "canvas";
+
 interface SlackDraftPayload {
-  conversation_id: string;
-  conversation_display: string;
-  conversation_type: SlackConversationType;
+  kind?: SlackDraftKind;
+  // message / scheduled fields
+  conversation_id?: string;
+  conversation_display?: string;
+  conversation_type?: SlackConversationType;
   thread_ts?: string | null;
   thread_context?: string | null;
   reply_broadcast?: boolean;
-  text: string;
+  text?: string;
   display_text?: string;
   text_plain?: string;
   tab_label?: string;
+  post_at?: number;
+  // channel fields
+  name?: string;
+  is_private?: boolean;
+  // canvas fields
+  markdown?: string;
+  channel_id?: string | null;
+  canvas_id?: string | null;
+}
+
+/** Pull the first `# H1` out of a canvas markdown body for use as the card
+ *  heading. Mirrors what Slack itself renders. Returns null when no H1. */
+function extractH1(markdown: string | undefined): string | null {
+  if (!markdown) return null;
+  const match = markdown.match(/^\s*#\s+(.+?)\s*$/m);
+  return match ? match[1].trim() : null;
+}
+
+function isMessageKind(p: SlackDraftPayload): boolean {
+  const kind = p.kind ?? "message";
+  return kind === "message" || kind === "scheduled";
 }
 
 interface SendSlackMessageResult {
-  ts: string;
-  channel: string;
+  ts?: string;
+  channel?: string;
   permalink?: string;
+  // canvas / channel kinds
+  canvas_id?: string;
+  channel_id?: string;
+  updated?: boolean;
+  is_channel_canvas?: boolean;
+  name?: string;
 }
 
 interface SendArtifactResponse {
@@ -59,7 +97,7 @@ async function fetchSlackDraft(
   return (await res.json()) as SlackDraftPayload;
 }
 
-async function sendSlackMessage(
+async function sendSlackArtifact(
   conversationId: string,
   fileId: string,
 ): Promise<SendSlackMessageResult> {
@@ -69,6 +107,9 @@ async function sendSlackMessage(
   );
   return response.result;
 }
+
+// Back-compat alias for the message-composer call sites in this file.
+const sendSlackMessage = sendSlackArtifact;
 
 /** Extract `detail.code` from an ApiError response body, if present. */
 function getSlackErrorCode(e: unknown): string | null {
@@ -83,17 +124,161 @@ function getSlackErrorCode(e: unknown): string | null {
 
 function payloadToMessage(p: SlackDraftPayload): SlackMessageData {
   return {
-    conversationId: p.conversation_id,
-    conversationDisplay: p.conversation_display,
-    conversationType: p.conversation_type,
+    conversationId: p.conversation_id ?? "",
+    conversationDisplay: p.conversation_display ?? "",
+    conversationType: p.conversation_type ?? "channel",
     threadTs: p.thread_ts ?? undefined,
     threadContext: p.thread_context ?? undefined,
     replyBroadcast: p.reply_broadcast ?? false,
-    text: p.text,
+    text: p.text ?? "",
     displayText: p.display_text,
     textPlain: p.text_plain,
     tabLabel: p.tab_label,
   };
+}
+
+const SLACK_ICON_URL =
+  "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg";
+
+/**
+ * Card for kind=channel / kind=canvas drafts. The backend's `/send` endpoint
+ * dispatches on the artifact's `kind` field, so wiring the button is the same
+ * as for message drafts — just with a contextual label (Create / Update).
+ */
+function SlackNonMessageDraftCard({
+  conversationId,
+  fileId,
+  payload,
+}: {
+  conversationId: string;
+  fileId: string;
+  payload: SlackDraftPayload;
+}) {
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+  const [isSending, setIsSending] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+  const [permalink, setPermalink] = useState<string | null>(null);
+
+  const kind = payload.kind ?? "message";
+  const isCanvasUpdate = kind === "canvas" && !!payload.canvas_id;
+  const ctaLabel = isCanvasUpdate ? "Update" : "Create";
+
+  const heading =
+    kind === "channel"
+      ? `#${payload.name ?? "untitled"}`
+      : (extractH1(payload.markdown) ?? "Untitled canvas");
+
+  const canvasTargetLabel = (() => {
+    if (!payload.channel_id) return null;
+    const display = payload.conversation_display;
+    if (!display) return "attached to selected conversation";
+    switch (payload.conversation_type) {
+      case "dm":
+        return `attached to DM with ${display}`;
+      case "group_dm":
+        return `attached to group DM (${display})`;
+      case "channel":
+      default:
+        return `attached to #${display.replace(/^#/, "")}`;
+    }
+  })();
+
+  const subheading =
+    kind === "channel"
+      ? payload.is_private
+        ? "Private channel"
+        : "Public channel"
+      : isCanvasUpdate
+        ? "Replace canvas content"
+        : canvasTargetLabel
+          ? `New canvas, ${canvasTargetLabel}`
+          : "New standalone canvas (lives in your Canvases sidebar)";
+
+  const handleSend = useCallback(async () => {
+    setIsSending(true);
+    try {
+      const result = await sendSlackArtifact(conversationId, fileId);
+      setIsSent(true);
+      if (result.permalink) setPermalink(result.permalink);
+      showToast({
+        message:
+          kind === "channel"
+            ? "Channel created in Slack"
+            : isCanvasUpdate
+              ? "Canvas updated in Slack"
+              : "Canvas created in Slack",
+        variant: "success",
+      });
+    } catch (e) {
+      handleSendError(e, showToast, navigate);
+    } finally {
+      setIsSending(false);
+    }
+  }, [conversationId, fileId, kind, isCanvasUpdate, showToast, navigate]);
+
+  return (
+    <div className="border border-gray-100 rounded-xl bg-white overflow-hidden flex flex-col shadow-xs">
+      {/* Provider strip */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-100 shrink-0">
+        <img src={SLACK_ICON_URL} alt="Slack" width={16} height={16} />
+        <span className="text-sm font-medium text-gray-900">Slack</span>
+        <span className="ml-auto text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+          {kind} draft
+        </span>
+      </div>
+
+      {/* Heading row */}
+      <div className="px-3 py-2 border-b border-gray-100 shrink-0">
+        <div className="text-sm font-semibold text-gray-900 truncate">{heading}</div>
+        <div className="text-xs text-gray-500 mt-0.5">{subheading}</div>
+      </div>
+
+      {/* Body — markdown preview (canvas only) */}
+      {kind === "canvas" && payload.markdown && (
+        <div className="px-3 py-3">
+          <div className="max-h-80 overflow-y-auto bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-2.5 text-sm text-gray-900 leading-relaxed markdown-content settings-scrollbar">
+            <Streamdown parseIncompleteMarkdown={false}>
+              {payload.markdown}
+            </Streamdown>
+          </div>
+        </div>
+      )}
+
+      {/* Footer CTA */}
+      <div className="flex items-center justify-end gap-1.5 px-3 py-2.5 border-t border-gray-100 shrink-0">
+        {isSent && permalink && (
+          <a
+            href={permalink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-blue-600 hover:underline mr-auto"
+          >
+            View in Slack
+          </a>
+        )}
+        <button
+          onClick={() => void handleSend()}
+          disabled={isSending || isSent}
+          className={`h-8.5 px-4 text-sm font-medium rounded-xl transition-colors ${
+            isSent
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
+              : isSending
+                ? "bg-gray-900 text-white opacity-70 cursor-wait"
+                : "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+          }`}
+        >
+          {isSent
+            ? isCanvasUpdate
+              ? "Updated"
+              : "Created"
+            : isSending
+              ? `${ctaLabel}…`
+              : ctaLabel}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // ── Single-message container ─────────────────────────────────────────────────
@@ -170,6 +355,16 @@ export const SlackMessageDraftCardContainer: React.FC<
       <div className="border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-500">
         Unable to parse Slack message draft.
       </div>
+    );
+  }
+
+  if (!isMessageKind(parsedQuery.data)) {
+    return (
+      <SlackNonMessageDraftCard
+        conversationId={conversationId}
+        fileId={artifact.fileId}
+        payload={parsedQuery.data}
+      />
     );
   }
 
@@ -253,15 +448,20 @@ export const SlackMessageComposerContainer: React.FC<
 
   const messages: SlackMessageData[] = [];
   const messageToArtifactIndex: number[] = [];
+  const nonMessagePayloads: { payload: SlackDraftPayload; fileId: string }[] = [];
 
   parsedQueries.forEach((pq, i) => {
     const payload = pq.data;
     if (!payload) return;
+    if (!isMessageKind(payload)) {
+      nonMessagePayloads.push({ payload, fileId: artifacts[i].fileId });
+      return;
+    }
     messageToArtifactIndex.push(i);
     messages.push({ ...payloadToMessage(payload), id: artifacts[i].fileId });
   });
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && nonMessagePayloads.length === 0) {
     return (
       <div className="border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-500">
         Unable to parse Slack message drafts.
@@ -292,13 +492,25 @@ export const SlackMessageComposerContainer: React.FC<
   };
 
   return (
-    <SlackMessageComposer
-      messages={messages}
-      onSend={(index) => void handleSend(index)}
-      isSending={isSending}
-      sentIndices={sentIndices}
-      permalinks={permalinks}
-    />
+    <>
+      {messages.length > 0 && (
+        <SlackMessageComposer
+          messages={messages}
+          onSend={(index) => void handleSend(index)}
+          isSending={isSending}
+          sentIndices={sentIndices}
+          permalinks={permalinks}
+        />
+      )}
+      {nonMessagePayloads.map(({ payload, fileId }) => (
+        <SlackNonMessageDraftCard
+          key={fileId}
+          conversationId={conversationId}
+          fileId={fileId}
+          payload={payload}
+        />
+      ))}
+    </>
   );
 };
 

@@ -890,7 +890,7 @@ export function IntegrationsList({
     isBoxEnabled,
     isBigQueryEnabled,
     isMcpServersEnabled,
-    isSlackMcpEnabled,
+    isSlackPersonalEnabled,
   } = useFeatureFlag();
 
   // Build a fast lookup: BACKEND_TYPE → { tenant_integrations: { workspace, personal } }
@@ -959,7 +959,7 @@ export function IntegrationsList({
       if (app.id === "databricks" && !isDatabricksEnabled) return false;
       if (app.id === "box" && !isBoxEnabled) return false;
       if (app.id === "bigquery" && !isBigQueryEnabled) return false;
-      if (app.id === "slack_workspace" && !isSlackMcpEnabled) return false;
+      if (app.id === "slack_personal" && !isSlackPersonalEnabled) return false;
 
       // Catalog-gating only applies when MCP feature is enabled
       if (isMcpServersEnabled && tenantIntegrations !== undefined) {
@@ -1018,7 +1018,7 @@ export function IntegrationsList({
     isBoxEnabled,
     isBigQueryEnabled,
     isMcpServersEnabled,
-    isSlackMcpEnabled,
+    isSlackPersonalEnabled,
     isAdmin,
   ]);
 
