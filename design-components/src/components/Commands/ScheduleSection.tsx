@@ -1,7 +1,7 @@
 /**
  * ScheduleSection — schedule + recipients configuration for CommandDrawer.
  *
- * Composes the Commands-specific CommandSchedulePicker with RecipientPicker.
+ * Composes the generic SchedulePicker with RecipientPicker.
  */
 
 import React, { useState } from 'react';
@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { PaperPlaneTilt } from '@phosphor-icons/react';
 import type { CommandSchedule, ScheduleRecipient } from './types';
 import { formatScheduleBadge } from './types';
-import { CommandSchedulePicker } from './CommandSchedulePicker';
+import { SchedulePicker } from '../SchedulePicker';
 import { RecipientPicker } from '../RecipientPicker';
 import { SendTestModal } from './SendTestModal';
 
@@ -24,9 +24,6 @@ export interface ScheduleSectionProps {
   readOnly?: boolean;
   /** Called when the user sends a test from the modal. Should return a promise. */
   onSendTest?: (recipients: ScheduleRecipient[]) => Promise<void>;
-  /** Auto-approve toggle — headless runs skip the approval card when true. */
-  autoApprove?: boolean;
-  onAutoApproveChange?: (next: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,20 +36,16 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   teamMembers = [],
   readOnly = false,
   onSendTest,
-  autoApprove = false,
-  onAutoApproveChange,
 }) => {
   const [showTestModal, setShowTestModal] = useState(false);
 
   return (
     <div className="space-y-3">
-      <CommandSchedulePicker
+      <SchedulePicker
         schedule={schedule}
         onScheduleChange={(s) => onScheduleChange({ ...schedule, ...s })}
         readOnly={readOnly}
         summary={schedule.enabled ? formatScheduleBadge(schedule) : undefined}
-        autoApprove={autoApprove}
-        onAutoApproveChange={onAutoApproveChange}
       />
 
       <AnimatePresence>
