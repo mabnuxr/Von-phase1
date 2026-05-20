@@ -11,12 +11,9 @@ interface AcquireLockCallbacks {
 type DiscardModalMode = "discard" | "revert";
 
 interface UseEditModeActionsArgs {
-  isDashboardCollabEnabled: boolean;
-  isDashboardOwner: boolean;
   dashboardVersion: number;
   onAcquireLock?: (callbacks?: AcquireLockCallbacks) => Promise<void> | void;
   onChatClick?: () => void;
-  onEditModeChange?: (isEditable: boolean) => void;
   onDiscardDraft?: () => Promise<void> | void;
   onSaveDraft?: () => Promise<void> | void;
   onSave: (options?: { isFirstSave?: boolean; onSuccess?: () => void }) => void;
@@ -31,12 +28,9 @@ interface UseEditModeActionsArgs {
 }
 
 export function useEditModeActions({
-  isDashboardCollabEnabled,
-  isDashboardOwner,
   dashboardVersion,
   onAcquireLock,
   onChatClick,
-  onEditModeChange,
   onDiscardDraft,
   onSaveDraft,
   onSave,
@@ -45,33 +39,19 @@ export function useEditModeActions({
   discardDraftPhase,
   revertPhase,
 }: UseEditModeActionsArgs) {
+  // Edit always calls POST /lock (M1). Server response decides:
+  //   - 2xx              → we hold the lock, open chat
+  //   - 409 HELD_BY_OTHER → show EditLockModal
+  //   - other 4xx        → handled inside the parent's acquireLock
+  // Chat-open is deferred into onSuccess so a HELD_BY_OTHER doesn't
+  // also pop the chat panel underneath the modal.
   const handleEnterEditMode = useCallback(() => {
-    if (isDashboardCollabEnabled && onAcquireLock) {
-      // M1 path — Edit always calls POST /lock. Server response decides:
-      //   - 2xx              → we hold the lock, open chat
-      //   - 409 HELD_BY_OTHER → show EditLockModal
-      //   - other 4xx        → handled inside the parent's acquireLock
-      // Chat-open is deferred into onSuccess so a HELD_BY_OTHER doesn't
-      // also pop the chat panel underneath the modal.
-      void onAcquireLock({
-        onSuccess: () => onChatClick?.(),
-        onHeldByOther: openLockModal,
-      });
-      return;
-    }
-    // Legacy path — toggle `is_editable` directly.
-    if (isDashboardOwner) {
-      onEditModeChange?.(true);
-    }
-    onChatClick?.();
-  }, [
-    isDashboardCollabEnabled,
-    onAcquireLock,
-    isDashboardOwner,
-    onEditModeChange,
-    onChatClick,
-    openLockModal,
-  ]);
+    if (!onAcquireLock) return;
+    void onAcquireLock({
+      onSuccess: () => onChatClick?.(),
+      onHeldByOther: openLockModal,
+    });
+  }, [onAcquireLock, onChatClick, openLockModal]);
 
   // ── Shared discard/revert confirmation modal ────────────────────
   //
@@ -98,26 +78,18 @@ export function useEditModeActions({
     wasPendingRef.current = isPending;
   }, [activePhase, isDiscardModalOpen, closeDiscardModal]);
 
-  // Discard / Save-as-draft fall back to a local exit-edit-mode no-op when
-  // the parent didn't pass a handler (legacy flag-off path). The collab
-  // discard path goes through the confirmation modal; the legacy fallback
-  // doesn't, because there's no destructive server mutation to gate.
+  // Discard pops the confirmation modal; save-as-draft fires
+  // immediately. Callers always wire both handlers under collab.
   const handleDiscardDraft = useCallback(() => {
-    if (onDiscardDraft) {
-      discardModeRef.current = "discard";
-      openDiscardModal();
-      return;
-    }
-    onEditModeChange?.(false);
-  }, [onDiscardDraft, onEditModeChange, openDiscardModal]);
+    if (!onDiscardDraft) return;
+    discardModeRef.current = "discard";
+    openDiscardModal();
+  }, [onDiscardDraft, openDiscardModal]);
 
   const handleSaveDraft = useCallback(() => {
-    if (onSaveDraft) {
-      void onSaveDraft();
-      return;
-    }
-    onEditModeChange?.(false);
-  }, [onSaveDraft, onEditModeChange]);
+    if (!onSaveDraft) return;
+    void onSaveDraft();
+  }, [onSaveDraft]);
 
   const handleSaveFromEditMode = useCallback(() => {
     onSave({ isFirstSave: dashboardVersion < 1 });

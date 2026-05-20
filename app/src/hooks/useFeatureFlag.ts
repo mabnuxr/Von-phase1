@@ -63,11 +63,6 @@ export const FEATURE_FLAGS = {
   // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
   // returns the legacy single-pane memory tab.
   MEMORY_V2: "enableMemoryV2",
-  // Gates the dashboard collaboration v2 surface (VON-1147): new share
-  // modal with scope + per-user grants, edit-lock + Save Draft / Discard
-  // / Restore lifecycle, and version-history panel. Off keeps the legacy
-  // Private / Org-wide share dialog and the owner-only edit toggle.
-  DASHBOARD_COLLAB: "dashboardCollab",
 } as const;
 
 /**
@@ -282,14 +277,6 @@ export function useFeatureFlag() {
      * Controls whether Hubspot integration is visible
      */
     isHubspotEnabled: flags[FEATURE_FLAGS.HUBSPOT] === true,
-
-    /**
-     * Controls whether the dashboard collaboration v2 surface is enabled —
-     * new share modal (scope + per-user grants), edit-lock + Save Draft /
-     * Discard / Restore lifecycle, and version-history panel. Off keeps
-     * the legacy share dialog and owner-only edit toggle.
-     */
-    isDashboardCollabEnabled: flags[FEATURE_FLAGS.DASHBOARD_COLLAB] === true,
 
     /**
      * Raw flags object for advanced usage

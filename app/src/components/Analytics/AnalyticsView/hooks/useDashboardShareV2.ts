@@ -40,7 +40,6 @@ interface UseDashboardShareV2Args {
    * which otherwise flashes the raw user id in place of the name.
    */
   currentUser?: User | null;
-  isDashboardCollabEnabled: boolean;
 }
 
 export function useDashboardShareV2({
@@ -49,7 +48,6 @@ export function useDashboardShareV2({
   teamMembers,
   currentUserId,
   currentUser,
-  isDashboardCollabEnabled,
 }: UseDashboardShareV2Args) {
   // Sharing state is sourced from the on-demand `GET /metadata` query
   // when the dialog is open — every open re-reads authoritative scope/grants
@@ -77,7 +75,7 @@ export function useDashboardShareV2({
   const [lastSaveLabel, setLastSaveLabel] = useState<string>("Access updated");
 
   const { data: shareMetadata } = useDashboardMetadata(dashboard.id, {
-    enabled: isShareDialogOpen && isDashboardCollabEnabled,
+    enabled: isShareDialogOpen,
     forceFresh: true,
   });
 

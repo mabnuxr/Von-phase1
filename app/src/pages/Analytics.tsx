@@ -91,8 +91,6 @@ function DashboardCanvas({
     isFirstSave,
     handleRevert,
     revertPhase,
-    handleShare,
-    sharePhase,
     handleShareV2,
     shareV2Phase,
     handleAcquireLock,
@@ -102,8 +100,6 @@ function DashboardCanvas({
     handleSaveDraft,
     saveDraftPhase,
     handleRefresh,
-    editModeMutation,
-    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
@@ -303,8 +299,6 @@ function DashboardCanvas({
         isFirstSave={isFirstSave}
         onRevert={handleRevert}
         revertPhase={revertPhase}
-        onShare={handleShare}
-        sharePhase={sharePhase}
         onShareV2={handleShareV2}
         shareV2Phase={shareV2Phase}
         onAcquireLock={handleAcquireLock}
@@ -318,8 +312,6 @@ function DashboardCanvas({
         isChatOpen={isChatOpen}
         isVersionPreview={isVersionPreview}
         latestPublishedVersion={latestPublishedVersion}
-        onEditModeChange={editModeMutation.mutate}
-        editModePhase={editModePhase}
         onTablePageChange={handlePageChange}
         loadingTablePanels={loadingPanels}
         paginatedWidgets={mergedWidgets}

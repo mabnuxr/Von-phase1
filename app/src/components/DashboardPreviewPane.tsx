@@ -51,8 +51,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     isFirstSave,
     handleRevert,
     revertPhase,
-    handleShare,
-    sharePhase,
     handleShareV2,
     shareV2Phase,
     handleAcquireLock,
@@ -62,8 +60,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleSaveDraft,
     saveDraftPhase,
     handleRefresh,
-    editModeMutation,
-    editModePhase,
   } = useAnalyticsTools(dashboardId);
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
@@ -242,8 +238,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             isFirstSave={isFirstSave}
             onRevert={handleRevert}
             revertPhase={revertPhase}
-            onShare={handleShare}
-            sharePhase={sharePhase}
             onShareV2={handleShareV2}
             shareV2Phase={shareV2Phase}
             onAcquireLock={handleAcquireLock}
@@ -273,8 +267,6 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
             onPauseSchedule={handlePauseSchedule}
             onResumeSchedule={handleResumeSchedule}
             onDeleteSchedule={handleDeleteSchedule}
-            onEditModeChange={editModeMutation.mutate}
-            editModePhase={editModePhase}
             isRefetchingData={isFetching && !isLoading}
             isRefreshing={isRefreshing}
             isDrilldownOpen={drillV2.isOpen}

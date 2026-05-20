@@ -86,22 +86,16 @@ interface AnalyticsViewProps {
   isFirstSave: boolean;
   onRevert: (options?: { onSuccess?: () => void }) => void;
   revertPhase: MutationPhase;
-  onShare: (
-    isSharedWithTenant: boolean,
-    sharedDataScope?: string | null,
-  ) => void;
-  sharePhase: MutationPhase;
   /**
    * Unified share mutation (M2) — accepts the full desired sharing state
-   * in a single round-trip. Used by the dashboardCollab share dialog.
+   * in a single round-trip. Used by the share dialog.
    */
   onShareV2?: (payload: ShareDashboardV2Request) => Promise<void>;
   shareV2Phase?: MutationPhase;
   /**
-   * Acquire the dashboard's edit lock (M1). When the dashboardCollab
-   * flag is on, the Edit button routes through this instead of the
-   * legacy `is_editable` PATCH. Callbacks let us surface the
-   * EditLockModal when another user holds the lock.
+   * Acquire the dashboard's edit lock (M1). The Edit button routes
+   * through this. Callbacks let us surface the EditLockModal when
+   * another user holds the lock.
    */
   onAcquireLock?: (callbacks?: {
     onSuccess?: () => void;
@@ -112,8 +106,7 @@ interface AnalyticsViewProps {
   /**
    * Discard the active draft (M1 — VON-1282). Fires `POST /draft/discard`
    * which soft-deletes the draft (or just releases the lock for an
-   * unedited clone) and returns 204. Wires the dashboardCollab triad's
-   * Discard button.
+   * unedited clone) and returns 204. Wires the triad's Discard button.
    */
   onDiscardDraft?: () => Promise<void> | void;
   discardDraftPhase?: MutationPhase;
@@ -122,8 +115,8 @@ interface AnalyticsViewProps {
    * which freezes the current draft as a `draft_saved` snapshot,
    * inserts a fresh unedited clone, and releases the lock. The
    * response carries new version pair + `is_editable=false`, used to
-   * re-render with `latest_published_version`. Wires the
-   * dashboardCollab triad's Save-as-draft button.
+   * re-render with `latest_published_version`. Wires the triad's
+   * Save-as-draft button.
    */
   onSaveDraft?: () => Promise<void> | void;
   saveDraftPhase?: MutationPhase;
@@ -166,10 +159,6 @@ interface AnalyticsViewProps {
    * that has never been published.
    */
   latestPublishedVersion?: number | null;
-  /** Toggle edit mode via PATCH API (is_editable) */
-  onEditModeChange?: (isEditable: boolean) => void;
-  /** Edit mode mutation phase (pending while API + refetch in flight) */
-  editModePhase?: MutationPhase;
   /** Server-side table pagination handler */
   onTablePageChange?: (panelId: string, page: number) => void;
   /** Set of panel IDs currently loading a new page */
@@ -301,8 +290,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isFirstSave,
   onRevert,
   revertPhase,
-  onShare,
-  sharePhase,
   onShareV2,
   shareV2Phase = "idle",
   onAcquireLock,
@@ -319,8 +306,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isVersionPreview = false,
   embedded = false,
   latestPublishedVersion = null,
-  onEditModeChange,
-  editModePhase = "idle",
   onTablePageChange,
   loadingTablePanels,
   paginatedWidgets,
@@ -349,8 +334,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
   // can roll the manual-layout feature out per tenant. Edit mode itself
   // (filters, rename, save) stays available regardless.
-  const { isDashboardDragDropEnabled, isDashboardCollabEnabled } =
-    useFeatureFlag();
+  const { isDashboardDragDropEnabled } = useFeatureFlag();
   const { user } = useUser();
   // Bootstrap the team-members fetch from the synchronously-available
   // stored auth context so it doesn't wait on this component's own
@@ -402,7 +386,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     teamMembers,
     currentUserId: user?.id,
     currentUser: user,
-    isDashboardCollabEnabled,
   });
 
   const rename = useInlineRename({ title: dashboard.title, onRename });
@@ -413,12 +396,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   });
 
   const { editActions, discardModal } = useEditModeActions({
-    isDashboardCollabEnabled,
-    isDashboardOwner,
     dashboardVersion: dashboard.dashboardVersion,
     onAcquireLock,
     onChatClick,
-    onEditModeChange,
     onDiscardDraft,
     onSaveDraft,
     onSave,
@@ -486,7 +466,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 isChatOpen={isChatOpen}
                 onClose={onClose}
                 canEditDashboard={canEditDashboard}
-                isDashboardCollabEnabled={isDashboardCollabEnabled}
                 editLock={dashboard.editLock}
                 lastEditedBy={dashboard.lastEditedBy}
                 lastEditedAt={dashboard.lastEditedAt}
@@ -522,9 +501,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 isVersionPreview={isVersionPreview}
                 isEditMode={isEditMode}
                 isSaved={isSaved}
-                isDashboardOwner={isDashboardOwner}
                 canEditDashboard={canEditDashboard}
-                isDashboardCollabEnabled={isDashboardCollabEnabled}
                 currentUserId={user?.id ?? ""}
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}
@@ -537,14 +514,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onPauseSchedule={onPauseSchedule}
                 onResumeSchedule={onResumeSchedule}
                 onDeleteSchedule={onDeleteSchedule}
-                revertPhase={revertPhase}
-                onShare={onShare}
-                sharePhase={sharePhase}
                 savePhase={savePhase}
                 discardDraftPhase={discardDraftPhase}
                 saveDraftPhase={saveDraftPhase}
                 acquireLockPhase={acquireLockPhase}
-                editModePhase={editModePhase}
                 shareV2Phase={shareV2Phase}
                 editActions={editActions}
                 shareState={shareState}
