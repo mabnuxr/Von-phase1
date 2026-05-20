@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { authService, ApiError, type User } from "../services";
 
 interface UseUserResult {
@@ -10,10 +11,33 @@ interface UseUserResult {
   refetch: () => Promise<void>;
 }
 
+const USER_QUERY_KEY = ["auth", "me"] as const;
+
+function isNetworkError(err: unknown): boolean {
+  if (!err) return false;
+  if (err instanceof ApiError && err.statusCode === 0) return true;
+  if (err instanceof Error) {
+    const m = err.message.toLowerCase();
+    return (
+      m.includes("failed to fetch") ||
+      m.includes("network") ||
+      m.includes("timeout") ||
+      err.name === "TypeError"
+    );
+  }
+  return false;
+}
+
 /**
- * Custom hook to fetch and manage current user state
+ * Hook to read the current authenticated user.
  *
- * @returns Object containing user data, loading state, error, and refetch function
+ * Backed by React Query so every call site in a render tree shares
+ * the same in-flight request and result — the previous useState
+ * implementation fired one `/api/v1/auth/me` per mounted consumer,
+ * which on the dashboard route piled up 10–15 duplicate requests and
+ * blocked downstream tenant-scoped queries (team-members, etc.) from
+ * starting until they all settled. The query key is fixed and the
+ * data is cached for 5 minutes; one fetch covers the whole tree.
  *
  * @example
  * ```tsx
@@ -29,67 +53,43 @@ interface UseUserResult {
  * ```
  */
 export function useUser(): UseUserResult {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [isConnectionError, setIsConnectionError] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const fetchUser = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setIsConnectionError(false);
+  const query = useQuery<User, Error>({
+    queryKey: USER_QUERY_KEY,
+    queryFn: () => authService.getMe(),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: (failureCount, err) => {
+      // Don't retry 401 — caller will be redirected to login.
+      if (err instanceof ApiError && err.statusCode === 401) return false;
+      return failureCount < 1;
+    },
+  });
 
-      const userData = await authService.getMe();
-      setUser(userData);
-
-      if (import.meta.env.DEV) {
-        console.log("[useUser] User data fetched successfully:", userData);
-      }
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-
-      // Detect connection errors (network failures, timeouts, etc.)
-      const isNetworkError =
-        (err instanceof ApiError && err.statusCode === 0) ||
-        error.message.toLowerCase().includes("failed to fetch") ||
-        error.message.toLowerCase().includes("network") ||
-        error.message.toLowerCase().includes("timeout") ||
-        error.name === "TypeError";
-
-      setIsConnectionError(isNetworkError);
-
-      // Handle 401 Unauthorized - redirect to login
-      if (err instanceof ApiError && err.statusCode === 401) {
-        if (import.meta.env.DEV) {
-          console.error("[useUser] Unauthorized, redirecting to login");
-        }
-        navigate("/", { replace: true });
-      } else if (isNetworkError) {
-        if (import.meta.env.DEV) {
-          console.error("[useUser] Connection error:", error);
-        }
-      } else {
-        if (import.meta.env.DEV) {
-          console.error("[useUser] Failed to fetch user:", error);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
+  // Redirect on 401. Kept here (not in queryFn) so the navigation is
+  // tied to React's lifecycle and only fires once the route is mounted.
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    if (query.error instanceof ApiError && query.error.statusCode === 401) {
+      if (import.meta.env.DEV) {
+        console.error("[useUser] Unauthorized, redirecting to login");
+      }
+      navigate("/", { replace: true });
+    }
+  }, [query.error, navigate]);
 
-  return {
-    user,
-    loading,
-    error,
-    isConnectionError,
-    refetch: fetchUser,
-  };
+  return useMemo<UseUserResult>(
+    () => ({
+      user: query.data ?? null,
+      loading: query.isPending,
+      error: query.error ?? null,
+      isConnectionError: isNetworkError(query.error),
+      refetch: async () => {
+        await queryClient.invalidateQueries({ queryKey: USER_QUERY_KEY });
+      },
+    }),
+    [query.data, query.isPending, query.error, queryClient],
+  );
 }

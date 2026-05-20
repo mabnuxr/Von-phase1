@@ -25,6 +25,7 @@ import type {
   GrantableRoleV2,
   ShareDialogPersonV2,
 } from "./types";
+import type { MutationPhase } from "../../../../hooks/useMutationPhase";
 
 // ─── Trigger button (matches existing share-button styling) ──────
 
@@ -68,14 +69,35 @@ const TriggerButton: React.FC<TriggerButtonProps> = ({
 const SHARING_DOCS_URL =
   "https://docs.vonlabs.ai/features/von-dashboards/sharing-dashboards";
 
+/** Time the "Access updated" pill is held before the modal closes.
+ *  Mirrors the Add-People submit flow so the success cue reads as a
+ *  deliberate confirmation regardless of which path triggered it. */
+const SHARE_SUCCESS_TOAST_HOLD_MS = 2000;
+
 interface FooterProps {
-  helpHref?: string;
   onCopyLink?: () => Promise<void>;
+  /** True when there are unsaved data-scope changes — flips the
+   *  right-side button from "Done" to "Save" and reveals the
+   *  "Pending changes" indicator. */
+  hasPendingChanges: boolean;
+  /** Pending state for the Save click — surfaces a "Saving…" label
+   *  while the mutation is in flight. Ignored when there are no
+   *  pending changes (button is "Done" then). */
+  isSaving: boolean;
+  /** Commit the pending data-scope change. Called only when
+   *  `hasPendingChanges` is true. */
+  onSave: () => void;
+  /** Close the modal without further action. Called when the button
+   *  reads "Done" (i.e. no pending changes). */
+  onDone: () => void;
 }
 
 const StandardFooter: React.FC<FooterProps> = ({
-  helpHref = SHARING_DOCS_URL,
   onCopyLink,
+  hasPendingChanges,
+  isSaving,
+  onSave,
+  onDone,
 }) => {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -95,16 +117,6 @@ const StandardFooter: React.FC<FooterProps> = ({
 
   return (
     <>
-      <a
-        href={helpHref}
-        target={helpHref ? "_blank" : undefined}
-        rel="noreferrer"
-        className="inline-flex items-center gap-1 px-1 py-1.5 text-[12px] text-gray-400 hover:text-gray-600"
-      >
-        <QuestionIcon size={13} />
-        <span>Learn about sharing</span>
-      </a>
-      <div className="flex-1" />
       {onCopyLink && (
         <button
           type="button"
@@ -132,6 +144,28 @@ const StandardFooter: React.FC<FooterProps> = ({
           )}
         </button>
       )}
+      <div className="flex-1" />
+      {hasPendingChanges && (
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-gray-500">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-gray-500" />
+          Pending changes
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={hasPendingChanges && !isSaving ? onSave : onDone}
+        disabled={hasPendingChanges && isSaving}
+        // `min-w-[88px]` + `justify-center` pins the button to the
+        // widest label ("Saving…") so toggling Done ↔ Save ↔ Saving…
+        // doesn't reflow the footer width.
+        className={`inline-flex min-w-[88px] items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-[12.5px] font-medium transition-colors ${
+          hasPendingChanges && isSaving
+            ? "bg-gray-700 text-white cursor-not-allowed"
+            : "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+        }`}
+      >
+        {hasPendingChanges ? (isSaving ? "Saving…" : "Save") : "Done"}
+      </button>
     </>
   );
 };
@@ -159,9 +193,7 @@ const AddPeopleTrigger: React.FC<{ onClick: () => void }> = ({ onClick }) => (
         <path d="m20 20-3.5-3.5" />
       </svg>
     </span>
-    <span className="flex-1 text-[13px] text-gray-500">
-      Add people, groups, or email
-    </span>
+    <span className="flex-1 text-[13px] text-gray-500">Add people</span>
   </button>
 );
 
@@ -190,27 +222,49 @@ export interface ShareDashboardDialogV2Props {
   dataScopingAvailable: boolean;
   /** Current data-scope option (only applied when scope = org_wide and viewers exist). */
   dataScopeOwnership: DataScopeOptionV2 | null;
-  /** Actions — caller wires to mutations / mock handlers during the rollout. */
+  /** Actions — caller wires to mutations / mock handlers during the rollout.
+   *  All return `Promise<void>` so the dialog's fire-and-forget
+   *  wrappers can chain `.catch()` to silence the serialization-drop
+   *  rejection (`handleShareV2` throws "share_v2_in_flight" while a
+   *  prior share is in flight). Real errors are still surfaced
+   *  upstream via the global error toast. */
   onScopeChange: (
     scope: DashboardScopeV2,
     scopeDefaultRole: GrantableRoleV2,
-  ) => void;
+  ) => Promise<void> | void;
   onGrantAdd: (
     userIds: string[],
     role: GrantableRoleV2,
     dataScope: DataScopeOptionV2 | null,
   ) => Promise<void> | void;
-  onGrantUpdate: (userId: string, role: GrantableRoleV2) => void;
-  onGrantRemove: (userId: string) => void;
-  onDataScopeChange: (next: DataScopeOptionV2 | null) => void;
+  onGrantUpdate: (
+    userId: string,
+    role: GrantableRoleV2,
+  ) => Promise<void> | void;
+  onGrantRemove: (userId: string) => Promise<void> | void;
+  /**
+   * Apply a data-scope change. Returns a promise so the dialog can
+   * await the Save round-trip before closing — the dialog batches
+   * data-scope edits locally and dispatches once on Save.
+   */
+  onDataScopeChange: (next: DataScopeOptionV2 | null) => Promise<void> | void;
   onCopyLink?: () => Promise<void>;
-  /** Optional ref to a footer "Learn about sharing" link. */
-  helpHref?: string;
   /** Pending state surfaced to the Add-people submit button. */
   isAddingPeople?: boolean;
   /** While the unified share mutation is in flight, lock the scope row
    *  (and the org-wide data-scope toggle) and surface a spinner. */
   isSavingShare?: boolean;
+  /** Full phase signal for the share mutation. The dialog watches the
+   *  `"success"` transition to flash the in-modal pill at its own
+   *  bottom edge — keeps the success cue scoped to the surface where
+   *  the action originated instead of the global top-right toast
+   *  stack. */
+  savePhase?: MutationPhase;
+  /** Copy rendered inside the success pill. The caller stamps this
+   *  per-action so the cue matches what just happened — e.g.
+   *  "Removed access" for a grant removal, "Access updated" for
+   *  scope / grant edits. */
+  saveSuccessLabel?: string;
   /** Notified every time the modal opens or closes. The parent uses this
    *  to gate the on-demand metadata fetch — the share dialog re-reads
    *  authoritative sharing state via `GET /metadata` on every open so a
@@ -236,9 +290,10 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
   onGrantRemove,
   onDataScopeChange,
   onCopyLink,
-  helpHref,
   isAddingPeople,
   isSavingShare,
+  savePhase = "idle",
+  saveSuccessLabel = "Access updated",
   onOpenChange,
 }) => {
   const [open, setOpen] = useState(false);
@@ -253,18 +308,50 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
     onOpenChange?.(open);
   }, [open, onOpenChange]);
 
+  // Local draft of the data-scope row. Data-scope edits are batched
+  // here — the user can toggle / pick rows freely, and the share
+  // mutation only fires on Save. `pendingDataScope` is seeded from
+  // `dataScopeOwnership` (server-authoritative) on every modal open
+  // and compared back against it to derive the "Pending changes"
+  // flag. Other share actions (scope flip, grant add / update /
+  // remove) still fire immediately — only the data-scope row uses
+  // the batched-save pattern.
+  const [pendingDataScope, setPendingDataScope] =
+    useState<DataScopeOptionV2 | null>(dataScopeOwnership);
+  const hasPendingDataScopeChange = pendingDataScope !== dataScopeOwnership;
+
   // Reset transient state every time the modal opens — matches existing dialog.
   const handleOpen = useCallback(() => {
     if (!canShare) return;
     setView("default");
     setScopeMenuOpen(false);
     setRowMenuFor(null);
+    setAddPeopleSucceeded(false);
+    // Seed the local draft from the latest server-authoritative
+    // value so a re-open after a successful save starts clean.
+    setPendingDataScope(dataScopeOwnership);
     setOpen(true);
-  }, [canShare]);
+  }, [canShare, dataScopeOwnership]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
   }, []);
+
+  // Save the pending data-scope change. Mirrors the Add-People flow:
+  // dispatch → hold the "Access updated" pill for the toast window →
+  // close. On error the mutation hook surfaces the global toast and
+  // we keep the modal open so the user can retry.
+  const handleSavePendingChanges = useCallback(async () => {
+    try {
+      await onDataScopeChange(pendingDataScope);
+      await new Promise((resolve) =>
+        setTimeout(resolve, SHARE_SUCCESS_TOAST_HOLD_MS),
+      );
+      setOpen(false);
+    } catch {
+      // Stay open. Caller surfaced the toast.
+    }
+  }, [onDataScopeChange, pendingDataScope]);
 
   // People list ordering: owner first, then the current user (if
   // they have a grant), then everyone else in the caller's original
@@ -301,14 +388,40 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
   const canManageEditorGrants =
     myAccessLevel === "editor" || myAccessLevel === "owner";
 
+  // Add-people submit is now promise-based: the parent's
+  // `handleShareV2` re-throws on error, so the dialog awaits the
+  // dispatch directly. The AddPeopleView's pending-state cue is
+  // driven by `isAddingPeople` (`shareV2Phase === "pending"`), so
+  // the Share button stays in its loading state for the full
+  // round-trip. On success we:
+  //   1. Flip `addPeopleSucceeded` — AddPeopleView swaps its
+  //      Cancel/Share footer for an "Access updated" pill in the
+  //      same slot, so the cue stays anchored on the surface the
+  //      user just acted on rather than flashing the default view.
+  //   2. Hold the modal open for ~2s so the pill reads as a
+  //      deliberate confirmation before the modal animates out.
+  //   3. Close the modal (and reset the flag for next open).
+  // Rejects → swallow (global error toast already fired upstream)
+  // and keep the user on AddPeopleView so they can retry.
+  const [addPeopleSucceeded, setAddPeopleSucceeded] = useState(false);
   const handleAddPeopleSubmit = useCallback(
     async (
       userIds: string[],
       role: GrantableRoleV2,
       dataScope: DataScopeOptionV2 | null,
     ) => {
-      await onGrantAdd(userIds, role, dataScope);
-      setView("default");
+      try {
+        await onGrantAdd(userIds, role, dataScope);
+        setAddPeopleSucceeded(true);
+        await new Promise((resolve) =>
+          setTimeout(resolve, SHARE_SUCCESS_TOAST_HOLD_MS),
+        );
+        setAddPeopleSucceeded(false);
+        setView("default");
+        setOpen(false);
+      } catch {
+        // Stay open. Caller surfaced the toast.
+      }
     },
     [onGrantAdd],
   );
@@ -334,7 +447,7 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="fixed left-1/2 top-1/2 z-[9999] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl bg-white shadow-[0_12px_40px_rgba(0,0,0,0.16),0_2px_8px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)]"
+              className="fixed left-1/2 top-1/2 z-[9999] w-[460px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white shadow-[0_12px_40px_rgba(0,0,0,0.16),0_2px_8px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)]"
               role="dialog"
               aria-modal="true"
               aria-label={
@@ -365,6 +478,19 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     <>Share “{dashboardTitle}”</>
                   )}
                 </div>
+                {/* Help icon — replaces the old footer "Learn about
+                    sharing" link. Sits left of the close button so the
+                    footer can be reclaimed for Copy link + Save/Done. */}
+                <a
+                  href={SHARING_DOCS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Learn about sharing"
+                  title="Learn about sharing"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer"
+                >
+                  <QuestionIcon size={14} />
+                </a>
                 <button
                   type="button"
                   onClick={handleClose}
@@ -387,7 +513,7 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     rowMenuFor={rowMenuFor}
                     workspaceLabel={workspaceLabel}
                     dataScopingAvailable={dataScopingAvailable}
-                    dataScopeOwnership={dataScopeOwnership}
+                    dataScopeOwnership={pendingDataScope}
                     canChangeDataScope={canChangeDataScope}
                     canManageEditorGrants={canManageEditorGrants}
                     isSavingShare={isSavingShare}
@@ -396,19 +522,35 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     onScopeClose={() => setScopeMenuOpen(false)}
                     onScopeSelect={(next) => {
                       setScopeMenuOpen(false);
-                      onScopeChange(next, scopeDefaultRole);
+                      // Fire-and-forget; serialization drops surface
+                      // as a `"share_v2_in_flight"` rejection that
+                      // these per-row paths intentionally swallow
+                      // (the awaiting Add-People / Save paths still
+                      // see it and stay open). Real errors land in
+                      // the global toast via `handleShareV2`.
+                      void Promise.resolve(
+                        onScopeChange(next, scopeDefaultRole),
+                      ).catch(() => {});
                     }}
                     onRowMenuOpen={(userId) => setRowMenuFor(userId)}
                     onRowMenuClose={() => setRowMenuFor(null)}
                     onGrantUpdate={(userId, role) => {
                       setRowMenuFor(null);
-                      onGrantUpdate(userId, role);
+                      void Promise.resolve(onGrantUpdate(userId, role)).catch(
+                        () => {},
+                      );
                     }}
                     onGrantRemove={(userId) => {
                       setRowMenuFor(null);
-                      onGrantRemove(userId);
+                      void Promise.resolve(onGrantRemove(userId)).catch(
+                        () => {},
+                      );
                     }}
-                    onDataScopeChange={onDataScopeChange}
+                    // Data-scope edits batch into the local
+                    // `pendingDataScope` draft instead of firing the
+                    // share mutation per-change. The Save button in
+                    // the footer commits them in one round-trip.
+                    onDataScopeChange={setPendingDataScope}
                   />
                 ) : (
                   <AddPeopleView
@@ -420,6 +562,8 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     onSubmit={handleAddPeopleSubmit}
                     onCancel={() => setView("default")}
                     isSubmitting={isAddingPeople}
+                    saveSucceeded={addPeopleSucceeded}
+                    saveSuccessLabel={saveSuccessLabel}
                   />
                 )}
               </div>
@@ -428,9 +572,44 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                   own Send/Cancel pair scoped to the batch submit. */}
               {view === "default" && (
                 <div className="flex items-center gap-2 px-[18px] pb-3 pt-2.5">
-                  <StandardFooter helpHref={helpHref} onCopyLink={onCopyLink} />
+                  <StandardFooter
+                    onCopyLink={onCopyLink}
+                    hasPendingChanges={hasPendingDataScopeChange}
+                    isSaving={isSavingShare ?? false}
+                    onSave={handleSavePendingChanges}
+                    onDone={handleClose}
+                  />
                 </div>
               )}
+
+              {/* In-modal success pill (mirrors Google Sheets' "Access
+                  updated" cue). The pulse is driven by `savePhase` —
+                  `useMutationPhase` holds `"success"` for 2.5s, then
+                  resets — so the pill auto-dismisses without local
+                  timers. Positioned absolute over the footer so it
+                  reads as a transient confirmation rather than a layout
+                  shift. */}
+              {/* Modal-level pill only renders on the default view —
+                  AddPeopleView hosts its own pill in its footer (in
+                  place of the Cancel/Share buttons) so the
+                  confirmation stays anchored to the surface the user
+                  just acted on. */}
+              <AnimatePresence>
+                {view === "default" && savePhase === "success" && (
+                  <motion.div
+                    key="share-saved-pill"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.18, ease: "easeOut" }}
+                    className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-gray-900 px-3 py-1.5 text-[12.5px] font-medium text-white shadow-[0_6px_16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.12)]"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {saveSuccessLabel}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </>
         )}

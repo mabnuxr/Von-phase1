@@ -97,6 +97,23 @@ function toItem(
   };
 }
 
+/** Hide the active-draft row when nobody has actually edited it yet
+ *  (`updated_by` null) AND the viewer isn't the one in edit mode. The
+ *  row would otherwise render "No edits yet" to passive viewers, who
+ *  can't act on it — surfacing it adds clutter and reads like a stub.
+ *  When the viewer IS the lock holder, the resolver attributes the
+ *  row to them, so this filter lets it through. */
+function isOrphanActiveDraft(
+  entry: DashboardVersionEntry,
+  context: VersionAuthorContext,
+): boolean {
+  if (entry.status !== "draft" || entry.updated_by) return false;
+  const { currentUser, editLockUserId } = context;
+  const viewerHoldsLock =
+    !!currentUser && !!editLockUserId && editLockUserId === currentUser.id;
+  return !viewerHoldsLock;
+}
+
 /**
  * Map the `GET /versions` response into the drawer's renderable shape.
  * The BE controls the ordering (descending by `dashboard_version`) — we
@@ -111,7 +128,9 @@ export function mapVersionsResponse(
     return { drafts: [], publishedVersions: [] };
   }
   return {
-    drafts: response.drafts.map((e) => toItem(e, teamMembers, context)),
+    drafts: response.drafts
+      .filter((e) => !isOrphanActiveDraft(e, context))
+      .map((e) => toItem(e, teamMembers, context)),
     publishedVersions: response.published.map((e) =>
       toItem(e, teamMembers, context),
     ),

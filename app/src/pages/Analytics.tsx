@@ -734,12 +734,13 @@ const Analytics = () => {
             key={conversationId ?? `new-${dashboardId}`}
             conversationId={conversationId}
             compact
-            placeholder={
-              isVersionHistoryOpen
-                ? "Close dashboard history preview to chat..."
-                : "Ask questions or make changes..."
-            }
+            placeholder="Ask questions or make changes..."
             disableInput={isVersionHistoryOpen}
+            disabledTooltip={
+              isVersionHistoryOpen
+                ? "Close the dashboard version history to chat"
+                : undefined
+            }
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}

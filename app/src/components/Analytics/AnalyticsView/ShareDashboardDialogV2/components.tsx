@@ -38,8 +38,12 @@ function hashColor(seed: string): string {
 }
 
 function initials(name: string): string {
+  // When the name hasn't resolved yet (team-members query still in
+  // flight, or a grant references a user the cache doesn't have),
+  // return empty rather than "?". A colored circle with no glyph
+  // reads as a skeleton; a "?" reads as a broken state.
   const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
+  if (parts.length === 0) return "";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
@@ -60,10 +64,16 @@ export const Avatar: React.FC<AvatarProps> = ({
   className = "",
 }) => {
   const bg = color ?? hashColor(seed ?? name);
+  // Subtle pulse on the placeholder so the loading state reads
+  // explicitly rather than as a permanent empty circle. Dropped once
+  // the name resolves.
+  const isLoading = !name.trim();
   return (
     <span
       aria-hidden
-      className={`inline-flex shrink-0 items-center justify-center rounded-full text-white font-semibold ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full text-white font-semibold ${
+        isLoading ? "animate-pulse" : ""
+      } ${className}`}
       style={{
         width: size,
         height: size,

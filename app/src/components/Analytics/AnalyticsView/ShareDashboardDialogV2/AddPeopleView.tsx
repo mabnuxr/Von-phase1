@@ -33,6 +33,17 @@ interface AddPeopleViewProps {
   onCancel: () => void;
   /** Disable inputs while a submit is in flight. */
   isSubmitting?: boolean;
+  /**
+   * True once the share mutation succeeded — drives the in-footer
+   * "Access updated" pill that replaces the Cancel / Share buttons
+   * for the brief hold-open window before the modal dismisses.
+   * Surfacing the toast inline (rather than rolling back to the
+   * default view first) keeps the success cue anchored to the
+   * surface the user just acted on.
+   */
+  saveSucceeded?: boolean;
+  /** Copy rendered inside the success pill — see `saveSucceeded`. */
+  saveSuccessLabel?: string;
 }
 
 const DEFAULT_SCOPE: DataScopeOptionV2 = "MY_TEAMS_RECORDS";
@@ -46,6 +57,8 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
   onSubmit,
   onCancel,
   isSubmitting,
+  saveSucceeded = false,
+  saveSuccessLabel = "Access updated",
 }) => {
   const [query, setQuery] = useState("");
   const [chips, setChips] = useState<DirectoryPersonV2[]>([]);
@@ -159,6 +172,11 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
       {/* Chip input + batch role pill */}
       <div className="relative" ref={inputContainerRef}>
         <div className="flex items-start gap-2">
+          {/* Chip + input field column. The role pill used to live
+              inside this wrapper, but the wrap-after-N-chips behaviour
+              shoved it down to a new row as more invitees were added.
+              Lifting it to a sibling pins it to the top-right edge
+              regardless of chip count. */}
           <div
             className="flex min-h-[38px] flex-1 flex-wrap items-center gap-1 rounded-lg border-2 border-blue-500 bg-white px-2 py-1 shadow-[0_0_0_3px_rgba(42,91,255,0.12)]"
             onClick={() => inputRef.current?.focus()}
@@ -191,49 +209,55 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
               className="flex-1 min-w-[80px] border-0 bg-transparent py-1 text-[13px] text-gray-900 outline-none placeholder:text-gray-400"
               disabled={isSubmitting}
             />
-            <div
-              className="relative z-20 shrink-0"
-              // Clicks on the role pill (or the menu it spawns) must not
-              // bubble to the chip-input wrapper's focus-the-input
-              // handler — that focus would re-engage the suggestions
-              // dropdown the user just dismissed.
-              onClick={(e) => e.stopPropagation()}
+          </div>
+          {/* Batch role pill — pinned to the top-right of the input
+              row. `self-start` keeps it aligned with the first line
+              of chips even as the chip column grows to multiple rows;
+              `mt-[5px]` matches the input field's vertical padding so
+              the label visually sits on the same baseline as the
+              first row of chips. */}
+          <div
+            className="relative z-20 mt-[5px] shrink-0 self-start"
+            // Clicks on the role pill (or the menu it spawns) must not
+            // bubble to the chip-input wrapper's focus-the-input
+            // handler — that focus would re-engage the suggestions
+            // dropdown the user just dismissed.
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setRoleMenuOpen((v) => !v)}
+              className={`inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-[12.5px] text-gray-600 ${
+                roleMenuOpen ? "bg-gray-100" : "hover:bg-gray-50"
+              } cursor-pointer`}
             >
-              <button
-                type="button"
-                onClick={() => setRoleMenuOpen((v) => !v)}
-                className={`inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-[12.5px] text-gray-600 ${
-                  roleMenuOpen ? "bg-gray-100" : "hover:bg-gray-50"
-                } cursor-pointer`}
+              <span>{ROLE_LABEL[batchRole]}</span>
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-gray-400"
               >
-                <span>{ROLE_LABEL[batchRole]}</span>
-                <svg
-                  width="11"
-                  height="11"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="text-gray-400"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
-              {roleMenuOpen && (
-                <PerRowRoleMenu
-                  current={batchRole}
-                  options={["editor", "viewer"]}
-                  allowEditor={allowEditor}
-                  onSelect={(next) => {
-                    setBatchRole(next);
-                    setRoleMenuOpen(false);
-                  }}
-                  onClose={() => setRoleMenuOpen(false)}
-                />
-              )}
-            </div>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            {roleMenuOpen && (
+              <PerRowRoleMenu
+                current={batchRole}
+                options={["editor", "viewer"]}
+                allowEditor={allowEditor}
+                onSelect={(next) => {
+                  setBatchRole(next);
+                  setRoleMenuOpen(false);
+                }}
+                onClose={() => setRoleMenuOpen(false)}
+              />
+            )}
           </div>
         </div>
 
@@ -277,8 +301,12 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
         )}
       </div>
 
-      {/* Spacer pushes content below the open suggestions dropdown */}
-      <div className={showSuggestions ? "h-[220px]" : "h-3"} aria-hidden />
+      {/* Fixed gap between the chip input and the scope toggle. The
+          suggestions dropdown floats `absolute` above this region
+          (with `z-10`) and overlays whatever sits below — keeping
+          the modal at a stable height instead of reflowing 220px
+          taller every time the user focuses the input. */}
+      <div className="h-3" aria-hidden />
 
       {/* Scope toggle (or editor notice) */}
       {batchRole === "viewer" ? (
@@ -298,31 +326,47 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
         </div>
       )}
 
-      {/* Footer slot is rendered by the parent Modal, but we emit a sentinel
-          the parent reads via cloneElement-free indirection. Keeping the
-          submit handler local here lets us inline the validation state. */}
+      {/* Footer: Cancel / Share by default. Once the share succeeds,
+          swap in an "Access updated" pill in the same slot so the cue
+          is anchored to the surface the user just acted on. Stays
+          mounted (rather than rolling back to the default view) for
+          the ~2s hold-open window before the modal dismisses. */}
       <div className="mt-5 flex items-center gap-2 border-t border-gray-100 pt-4">
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-50 cursor-pointer disabled:opacity-60"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={!canSubmit}
-          className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
-            canSubmit
-              ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          }`}
-        >
-          {isSubmitting ? "Sharing…" : "Share"}
-        </button>
+        {saveSucceeded ? (
+          <div className="flex w-full justify-end">
+            <div
+              className="rounded-md bg-gray-900 px-3 py-1.5 text-[12.5px] font-medium text-white shadow-[0_6px_16px_rgba(0,0,0,0.18),0_1px_3px_rgba(0,0,0,0.12)]"
+              role="status"
+              aria-live="polite"
+            >
+              {saveSuccessLabel}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-[12.5px] font-medium text-gray-900 hover:bg-gray-50 cursor-pointer disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSubmit}
+              className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
+                canSubmit
+                  ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              {isSubmitting ? "Sharing…" : "Share"}
+            </button>
+          </>
+        )}
       </div>
     </>
   );

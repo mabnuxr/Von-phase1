@@ -9,6 +9,7 @@ import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
 import { useLogout } from "../hooks/useLogout";
 import { useTeamMembers } from "../hooks/useTeam";
+import { getUserContext } from "../lib/auth";
 import { ChatSidebarContainer } from "./ChatSidebarContainer";
 import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
@@ -81,10 +82,17 @@ export function AppShell() {
     }
   }, [shareConversationId, queryClient]);
 
-  // Fetch team members for the user picker (only when modal opens)
-  const { data: teamMembersData } = useTeamMembers(
-    shareConversationId ? user?.tenantId : undefined,
-  );
+  // Prefetch team members as soon as we can — preferring the
+  // synchronously-available tenant id from the stored auth context
+  // (localStorage, set at token exchange) over the async `useUser`
+  // result. The /me call can take 1-2s; without this shortcut the
+  // team-members fetch only starts once that completes, which lags
+  // every downstream surface (share dialog, version history) by the
+  // same amount. Falls back to `user?.tenantId` if local storage was
+  // cleared so behaviour stays correct in degraded conditions.
+  const bootstrappedTenantId =
+    getUserContext()?.tenant_id ?? user?.tenantId ?? undefined;
+  const { data: teamMembersData } = useTeamMembers(bootstrappedTenantId);
 
   // --- Connection Error Banner ---
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
