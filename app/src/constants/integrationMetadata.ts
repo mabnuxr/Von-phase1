@@ -13,6 +13,13 @@ export interface IntegrationMetadata {
   disabled?: boolean;
   /** Optional note shown below the description */
   note?: string;
+  /**
+   * Suffix appended after the integration name in the config-pane heading.
+   * Defaults to " Configuration" when omitted. Set to "" to render just the
+   * integration name (e.g. "Slack Personal" stands on its own without the
+   * "Configuration" suffix).
+   */
+  configTitleSuffix?: string;
   category:
     | "CRM"
     | "Calls & Engagement"
@@ -175,6 +182,19 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "Sync workspace Slack data (channels, messages, users) into Von via a workspace bot token.",
     logoPath:
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack-+sync.png",
+    category: "Communication",
+  },
+  slack_personal: {
+    id: "slack_personal",
+    name: "Slack Personal",
+    description:
+      "Search Slack, draft and schedule messages as yourself, and look up channels and people. Connect your personal Slack account.",
+    personalDescription: "Connect your Slack account",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/slack.svg",
+    // "Slack Personal" already reads as a complete title on the config pane
+    // — appending " Configuration" would be redundant.
+    configTitleSuffix: "",
     category: "Communication",
   },
 
@@ -360,6 +380,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     granola: "GRANOLA",
     notion: "NOTION",
     slack_workspace: "SLACK_WORKSPACE",
+    slack_personal: "SLACK_PERSONAL",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -403,6 +424,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     GRANOLA: "granola",
     NOTION: "notion",
     SLACK_WORKSPACE: "slack_workspace",
+    SLACK_PERSONAL: "slack_personal",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -471,6 +493,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   // Slack Workspace — workspace-only bot token; Slack Personal is a separate
   // OAuth integration managed via the AppCatalogEntry / connector library flow.
   slack_workspace: ["tenant"],
+  slack_personal: ["user"],
 
   // Call recorders - workspace only (shared recordings)
   gong: ["tenant"],

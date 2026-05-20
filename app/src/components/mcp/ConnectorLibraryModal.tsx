@@ -80,7 +80,8 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
-  const { isSlackMcpEnabled } = useFeatureFlag();
+
+  const { isSlackPersonalEnabled } = useFeatureFlag();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -107,9 +108,9 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const catalog = useMemo(() => {
     const items = catalogData?.items;
     const safe = Array.isArray(items) ? items : [];
-    if (isSlackMcpEnabled) return safe;
+    if (isSlackPersonalEnabled) return safe;
     return safe.filter((e) => e.catalog_id !== "slack");
-  }, [catalogData, isSlackMcpEnabled]);
+  }, [catalogData, isSlackPersonalEnabled]);
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextPage,
