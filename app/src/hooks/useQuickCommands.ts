@@ -85,6 +85,7 @@ export function apiCommandToUICommand(
       cmd.triggerConfig?.scheduleConfig && cmd.deliveryConfig
         ? apiConfigsToSchedule(cmd.triggerConfig, cmd.deliveryConfig)
         : undefined,
+    autoApprove: cmd.autoApprove ?? false,
   };
 }
 
@@ -105,6 +106,7 @@ export function uiCommandToApiInput(
       accessLevel === "user" && data.sharingScope === "specific"
         ? (data.sharedUserIds ?? [])
         : undefined,
+    autoApprove: data.autoApprove,
   };
 }
 
