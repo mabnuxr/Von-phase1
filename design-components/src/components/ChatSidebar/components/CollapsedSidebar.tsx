@@ -68,6 +68,8 @@ export interface CollapsedSidebarProps {
   onSettingsClick?: () => void;
 
   onSignOutClick?: () => void;
+
+  onHelpDocsClick?: () => void;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -127,6 +129,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onCloseProfile,
   onSettingsClick,
   onSignOutClick,
+  onHelpDocsClick,
   isNewChatActive = false,
   sortedFolders,
   itemsByFolder,
@@ -405,6 +408,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
           position={popoverPosition}
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
+          onHelpDocsClick={onHelpDocsClick}
         />
       )}
     </div>

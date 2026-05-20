@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { RadioButton, Banner, Input } from "@vonlabs/design-components";
 import {
   useCreateIntegration,
@@ -12,6 +12,7 @@ import {
   getBackendIntegrationType,
 } from "../constants/integrationMetadata";
 import usePreferencesStore from "../store/preferencesStore";
+import { report } from "../lib/analytics/tracker";
 
 // Use centralized integration metadata
 const integrationDetails = INTEGRATION_METADATA;
@@ -49,6 +50,27 @@ export function BaseIntegrationConfigPane({
 
   // Detect edit mode
   const isEditMode = Boolean(editData?.id);
+
+  // Tracks whether close is coming from a successful save so handleClose
+  // doesn't misfire integrationsIntegrationCreateCancelled.
+  const closingAfterSuccessRef = useRef(false);
+
+  // Derive auth_method and connection_type for analytics
+  const OAUTH_INTEGRATION_IDS = new Set([
+    "salesforce",
+    "hubspot",
+    "googlecalendar",
+    "googledrive",
+    "box",
+    "gmail",
+    "granola",
+    "notion",
+    "outreachengage",
+  ]);
+  const authMethod = OAUTH_INTEGRATION_IDS.has(integrationId)
+    ? "OAuth"
+    : "API Key";
+  const connectionType = accessLevel === "tenant" ? "Workspace" : "Personal";
 
   // Get backend integration data to check for existing credentials
   const backendIntegration = editData?.id
@@ -134,6 +156,16 @@ export function BaseIntegrationConfigPane({
   }, []);
 
   const handleClose = () => {
+    if (!isEditMode && !closingAfterSuccessRef.current) {
+      report.integrationsIntegrationCreateCancelled({
+        integrationName: integration?.name ?? integrationId,
+        integrationCategory:
+          INTEGRATION_METADATA[integrationId]?.category ?? "",
+        connectionType,
+        authMethod,
+      });
+    }
+    closingAfterSuccessRef.current = false;
     setIsVisible(false); // Trigger slide-out animation
     setTimeout(() => {
       onClose(); // Unmount after animation completes
@@ -504,6 +536,16 @@ export function BaseIntegrationConfigPane({
           name: integrationId === "bigquery" ? "BigQuery" : undefined,
         });
 
+        report.integrationsIntegrationCreated({
+          integrationName: integration?.name ?? integrationId,
+          integrationCategory:
+            INTEGRATION_METADATA[integrationId]?.category ?? "",
+          connectionType,
+          authMethod,
+          success: true,
+          error: null,
+        });
+
         // Clear sensitive credentials from state after creation
         if (integrationId === "gong") {
           setGongAccessKey("");
@@ -559,6 +601,7 @@ export function BaseIntegrationConfigPane({
             // Set loading state AFTER authorize completes to start polling with correct status
             setLoadingIntegrationId(savedIntegration.id);
             // OAuth initiated successfully - close pane
+            closingAfterSuccessRef.current = true;
             handleClose();
           } catch (oauthError: unknown) {
             // Clear loading state on error
@@ -580,11 +623,13 @@ export function BaseIntegrationConfigPane({
 
             // Close after showing error for 2 seconds
             setTimeout(() => {
+              closingAfterSuccessRef.current = true;
               handleClose();
             }, 2000);
           }
         } else {
           // API key integration - no OAuth needed, just close
+          closingAfterSuccessRef.current = true;
           handleClose();
         }
       }
@@ -665,6 +710,17 @@ export function BaseIntegrationConfigPane({
         error && typeof error === "object" && "message" in error
           ? (error as { message: string }).message
           : "Failed to save integration. Please try again.";
+      if (!isEditMode) {
+        report.integrationsIntegrationCreated({
+          integrationName: integration?.name ?? integrationId,
+          integrationCategory:
+            INTEGRATION_METADATA[integrationId]?.category ?? "",
+          connectionType,
+          authMethod,
+          success: false,
+          error: errorMessage,
+        });
+      }
       setValidationErrors([errorMessage]);
     }
   };
@@ -1568,6 +1624,13 @@ export function BaseIntegrationConfigPane({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-500 hover:text-gray-700 underline"
+                  onClick={() =>
+                    report.integrationsAPICredentialsLinkClicked(
+                      integration?.name ?? integrationId,
+                      INTEGRATION_METADATA[integrationId]?.category ?? "",
+                      connectionType,
+                    )
+                  }
                 >
                   {integrationId === "gong"
                     ? "How to generate API credentials"

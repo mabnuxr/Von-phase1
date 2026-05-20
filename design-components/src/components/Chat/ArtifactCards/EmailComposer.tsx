@@ -39,6 +39,10 @@ export interface EmailComposerProps {
   onOpenInGmail?: (index: number) => void;
   /** Show loading state on the "Open in Gmail" button */
   isCreatingDraft?: boolean;
+  /** Called when the user switches to a different email tab */
+  onTabChange?: (index: number) => void;
+  /** Called when the user copies the email body */
+  onBodyCopied?: (index: number) => void;
 }
 
 // ============================================================================
@@ -73,6 +77,8 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
   maxHeight = 480,
   onOpenInGmail,
   isCreatingDraft = false,
+  onTabChange,
+  onBodyCopied,
 }) => {
   const totalCount = emails.length;
   const labelsKey = useMemo(() => emails.map((e) => e.tabLabel ?? '').join('\0'), [emails]);
@@ -114,18 +120,20 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
         await navigator.clipboard.writeText(plainText);
       }
       setBodyCopied(true);
+      onBodyCopied?.(activeTab);
       setTimeout(() => setBodyCopied(false), 2000);
     } catch {
       // Fallback for browsers that don't support ClipboardItem
       try {
         await navigator.clipboard.writeText(plainText);
         setBodyCopied(true);
+        onBodyCopied?.(activeTab);
         setTimeout(() => setBodyCopied(false), 2000);
       } catch {
         // Clipboard unavailable (permissions denied / non-secure context)
       }
     }
-  }, [currentEmail]);
+  }, [currentEmail, activeTab, onBodyCopied]);
 
   const sanitizedHtml = useMemo(() => {
     if (!currentEmail?.isHtml) return '';
@@ -143,6 +151,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({
     setShowCc(false);
     setShowBcc(false);
     setBodyCopied(false);
+    onTabChange?.(index);
   };
 
   if (!currentEmail) return null;

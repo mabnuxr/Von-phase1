@@ -29,6 +29,11 @@ export interface ProfilePopoverProps {
   onSignOutClick?: () => void;
 
   /**
+   * Callback when help docs is clicked
+   */
+  onHelpDocsClick?: () => void;
+
+  /**
    * Position of the popover
    * @default { top: 0, right: 0 }
    */
@@ -98,6 +103,7 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   userEmail,
   onSettingsClick,
   onSignOutClick,
+  onHelpDocsClick,
   position = { top: 0, right: 0 },
   className = '',
 }) => {
@@ -178,6 +184,7 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
               icon={<ArrowUpRight size={16} weight="regular" />}
               label="Help docs"
               href="https://docs.vonlabs.ai"
+              onClick={onHelpDocsClick}
             />
           </div>
 

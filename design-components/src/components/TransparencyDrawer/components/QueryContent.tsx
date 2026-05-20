@@ -26,7 +26,7 @@ import { TruncatedTextCell } from '../../ReportTable/CellRenderers';
  * - Type-specific column formatting (currency, percentage, date, number)
  * - Sticky table headers
  */
-export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
+export const QueryContent = React.memo<QueryContentProps>(({ query, onCSVDownloaded }) => {
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);
 
   // Calculate dynamic rows per page based on container height
@@ -61,7 +61,8 @@ export const QueryContent = React.memo<QueryContentProps>(({ query }) => {
     const filename = `${query.name || 'query_export'}.csv`;
 
     downloadCSV(csvContent, filename);
-  }, [query.columns, query.rows, query.name]);
+    onCSVDownloaded?.(query.name || 'query_export', query.rows.length);
+  }, [query.columns, query.rows, query.name, onCSVDownloaded]);
 
   const totalRows = query.rows.length;
 

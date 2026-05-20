@@ -50,6 +50,7 @@ import {
   handleToolApproval,
   handleToolRejection,
 } from "../lib/dashboardUtils";
+import { report } from "../lib/analytics/tracker";
 
 export interface UseChatV2Props {
   conversationId: string;
@@ -303,8 +304,24 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   // Artifacts (transparency)
-  const { artifactState, handleArtifactClick, closeArtifact } =
-    useArtifactState();
+  const {
+    artifactState,
+    handleArtifactClick: openArtifact,
+    closeArtifact,
+  } = useArtifactState();
+
+  const handleArtifactClick = useCallback(
+    (
+      artifactId: string,
+      toolName: string,
+      artifactType: string,
+      runId: string,
+    ) => {
+      report.artifactsOpened(toolName, artifactType, conversationId);
+      openArtifact(artifactId, toolName, artifactType, runId);
+    },
+    [openArtifact, conversationId],
+  );
 
   // File artifact viewer panel state
   const [fileArtifactPanel, setFileArtifactPanel] = useState<{
@@ -333,6 +350,8 @@ export function useChatV2(props: UseChatV2Props) {
         artifactType,
         mimeType,
       });
+      const fileExt = fileName.split(".").pop() ?? artifactType;
+      report.artifactsPreviewOpened(fileName, fileExt, conversationId);
       // Fetch PPTX download URL and PDF preview URL in parallel
       const [pptxResult, pdfResult] = await Promise.allSettled([
         fileUploadService.getDownloadUrl(conversationId, fileId),
@@ -370,8 +389,15 @@ export function useChatV2(props: UseChatV2Props) {
   );
 
   const closeFileArtifactPanel = useCallback(() => {
-    setFileArtifactPanel({ isOpen: false });
-  }, []);
+    setFileArtifactPanel((prev) => {
+      if (prev.isOpen && prev.fileName) {
+        const fileExt =
+          prev.fileName.split(".").pop() ?? prev.artifactType ?? "";
+        report.artifactsPreviewClosed(prev.fileName, fileExt, conversationId);
+      }
+      return { isOpen: false };
+    });
+  }, [conversationId]);
 
   const handleArtifactDownload = useCallback(
     async (fileId: string) => {
@@ -379,6 +405,8 @@ export function useChatV2(props: UseChatV2Props) {
         const { downloadUrl, fileName } =
           await fileUploadService.getDownloadUrl(conversationId, fileId);
         await downloadBlob(downloadUrl, fileName);
+        const fileExt = fileName.split(".").pop() ?? "";
+        report.artifactsDownloaded(fileName, fileExt, conversationId);
         showToast({ message: "Download started", variant: "success" });
       } catch (err) {
         console.error("[useChatV2] Failed to download artifact:", err);
@@ -393,6 +421,7 @@ export function useChatV2(props: UseChatV2Props) {
   const [transparencyRunId, setTransparencyRunId] = useState<string | null>(
     null,
   );
+  const [transparencyMessageIndex, setTransparencyMessageIndex] = useState(0);
 
   const {
     artifactSummaries: transparencyArtifactSummaries,
@@ -405,6 +434,7 @@ export function useChatV2(props: UseChatV2Props) {
   // Auto-populate input on error
   const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
   const lastUserMessageRef = useRef("");
+  const streamingStartedAtRef = useRef<number | null>(null);
 
   // Transform messages to Chat component format (V2 path with live data overlay)
   const {
@@ -629,6 +659,7 @@ export function useChatV2(props: UseChatV2Props) {
       resumeTimer();
       try {
         await handleToolApproval(toolCallId, effectiveRunId, conversationId);
+        report.writeOperationsApproved(conversationId, toolCallId);
       } catch {
         pauseTimerOnApprovalFailure();
       }
@@ -640,6 +671,7 @@ export function useChatV2(props: UseChatV2Props) {
     async (toolCallId: string, runId: string) => {
       const effectiveRunId = v2ProcessorRef.current?.currentRunId ?? runId;
       await handleToolRejection(toolCallId, effectiveRunId, conversationId);
+      report.writeOperationsRejected(conversationId, toolCallId);
     },
     [conversationId],
   );
@@ -648,9 +680,16 @@ export function useChatV2(props: UseChatV2Props) {
     v2ProcessorRef.current?.expireApprovalStep(stepId);
   }, []);
 
-  // Transparency handler
+  // Transparency handler — #26 Response Sources Opened
   const handleTransparencyClick = useCallback(
     (messageId: string) => {
+      const assistantMessages = finalTransformedMessages.filter(
+        (m) => m.type === "assistant",
+      );
+      const idx = assistantMessages.findIndex((m) => m.id === messageId);
+      const msgIndex = idx >= 0 ? idx + 1 : 1;
+      setTransparencyMessageIndex(msgIndex);
+      report.chatResponseSourcesOpened(msgIndex);
       const message = finalTransformedMessages.find((m) => m.id === messageId);
       if (message?.runId) {
         setTransparencyRunId(message.runId);
@@ -756,6 +795,16 @@ export function useChatV2(props: UseChatV2Props) {
     ) => {
       lastUserMessageRef.current = content;
 
+      // #19 Message Submitted — fire immediately on send
+      report.chatMessageSubmitted({
+        chatId: conversationId,
+        chatType: "existing",
+        messageLength: content.length,
+        inputMethod: options?.inputMethod ?? "typed",
+        queryCategory: null,
+      });
+      streamingStartedAtRef.current = Date.now();
+
       // Clear any stale pending-stop flag so the new run's events aren't swallowed
       v2Processor.clearPendingStop();
 
@@ -830,6 +879,11 @@ export function useChatV2(props: UseChatV2Props) {
   const { markStopped } = v2Processor;
   const handleStopStreaming = useCallback(
     (convId: string) => {
+      const elapsed = streamingStartedAtRef.current
+        ? (Date.now() - streamingStartedAtRef.current) / 1000
+        : 0;
+      streamingStartedAtRef.current = null;
+      report.chatStopGenerating(elapsed);
       markStopped();
       stopStreaming(convId);
     },
@@ -863,6 +917,7 @@ export function useChatV2(props: UseChatV2Props) {
     // Transparency
     isTransparencyOpen,
     transparencyRunId,
+    transparencyMessageIndex,
     transparencyArtifactSummaries,
     isTransparencyLoading,
     handleTransparencyClick,

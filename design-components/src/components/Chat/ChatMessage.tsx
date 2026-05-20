@@ -114,6 +114,13 @@ export interface ChatMessageProps {
     messageId: string | null;
   } | null;
   onSourcesClick?: () => void;
+  onCopyMessage?: (messageId: string) => void;
+  onDownloadMessage?: (messageId: string) => void;
+  onThumbsUp?: (messageId: string) => void;
+  onThumbsDown?: (messageId: string) => void;
+  onThinkingStepExpanded?: (stepName: string, toolName: string | null, messageId: string) => void;
+  onResponseLinkClicked?: (linkType: string, linkText: string) => void;
+  onResponseSectionCopied?: (sectionType: string) => void;
 }
 
 /**
@@ -182,6 +189,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onDashboardPreview,
   onMentionClick,
   researchResults,
+  onCopyMessage,
+  onDownloadMessage,
+  onThumbsUp,
+  onThumbsDown,
+  onThinkingStepExpanded,
+  onResponseLinkClicked,
+  onResponseSectionCopied,
 }) => {
   const isUser = type === 'user';
 
@@ -304,6 +318,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onRejectPlan={onRejectPlan}
                         onDashboardPreview={onDashboardPreview}
                         researchResults={researchResults}
+                        messageId={messageId ?? ''}
+                        onThinkingStepExpanded={onThinkingStepExpanded}
+                        onResponseLinkClicked={onResponseLinkClicked}
+                        onResponseSectionCopied={onResponseSectionCopied}
                       />
                     ) : (
                       <AssistantMessageV1
@@ -384,6 +402,14 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                           onConvertToDashboard={onConvertToDashboard}
                           onTransparencyClick={onTransparencyClick}
                           showTransparency={showTransparency}
+                          onCopyIcon={
+                            onCopyMessage ? () => onCopyMessage(messageId || '') : undefined
+                          }
+                          onDownload={
+                            onDownloadMessage ? () => onDownloadMessage(messageId || '') : undefined
+                          }
+                          onLike={onThumbsUp ? () => onThumbsUp(messageId || '') : undefined}
+                          onDislike={onThumbsDown ? () => onThumbsDown(messageId || '') : undefined}
                         />
                       )}
                   </div>

@@ -164,6 +164,8 @@ export interface ChatSidebarProps {
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
   onRenameFolder?: (folderId: string, newName: string) => void;
   onDeleteFolder?: (folderId: string) => void;
+  onDeleteFolderClick?: (folderId: string) => void;
+  onDeleteFolderCancelled?: (folderId: string) => void;
   onPinFolder?: (folderId: string, isPinned: boolean) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -182,6 +184,8 @@ export interface ChatSidebarProps {
   onSettingsClick?: () => void;
 
   onSignOutClick?: () => void;
+
+  onHelpDocsClick?: () => void;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -539,6 +543,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onFolderToggle,
   onRenameFolder,
   onDeleteFolder,
+  onDeleteFolderClick,
+  onDeleteFolderCancelled,
   onPinFolder,
   isCollapsed = false,
   onToggleCollapse,
@@ -553,6 +559,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   avatarLabel,
   onSettingsClick,
   onSignOutClick,
+  onHelpDocsClick,
   isNewChatActive = false,
   isDashboardsEnabled = true,
   dashboards,
@@ -651,6 +658,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     onDeleteItem,
     onRenameFolder,
     onDeleteFolder,
+    onDeleteFolderClick,
+    onDeleteFolderCancelled,
     onPinFolder,
     onFolderToggle,
     onNewChatFolderClick,
@@ -737,6 +746,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onCloseProfile={handleCloseProfile}
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
+          onHelpDocsClick={onHelpDocsClick}
           isNewChatActive={isNewChatActive}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
@@ -941,6 +951,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onCloseProfile={handleCloseProfile}
                 onSettingsClick={onSettingsClick}
                 onSignOutClick={onSignOutClick}
+                onHelpDocsClick={onHelpDocsClick}
               />
             </div>
           </motion.div>

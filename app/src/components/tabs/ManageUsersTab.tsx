@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { report } from "../../lib/analytics/tracker";
 import { SearchIcon } from "../icons";
 import {
   DotsThreeVertical,
@@ -26,6 +27,8 @@ export function ManageUsersTab() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     userId: string;
     userName: string;
+    userEmail: string;
+    userRole: string;
   } | null>(null);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -54,6 +57,17 @@ export function ManageUsersTab() {
 
   // Access store to open add team member panels
   const { setAddingTeamMember, setEditingTeamMemberId } = usePreferencesStore();
+
+  const pageViewCaptured = useRef(false);
+  const tooltipViewedMembers = useRef<Set<string>>(new Set());
+  const trackPageView = useCallback(() => {
+    if (!user || pageViewCaptured.current) return;
+    report.manageTeamPageViewed();
+    pageViewCaptured.current = true;
+  }, [user]);
+  useEffect(() => {
+    trackPageView();
+  }, [trackPageView]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -90,24 +104,57 @@ export function ManageUsersTab() {
     );
   }, [searchQuery, teamMembers]);
 
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!searchQuery.trim()) return;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      report.manageTeamMemberSearched(searchQuery, filteredUsers.length);
+    }, 500);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchQuery, filteredUsers.length]);
+
   const handleAddTeamMemberClick = () => {
+    report.manageTeamAddMemberClicked();
     setAddingTeamMember(true);
   };
 
-  const handleDeleteUser = (userId: string, userName: string) => {
-    // Show confirmation modal instead of browser alert
-    setDeleteConfirmation({ userId, userName });
+  const handleDeleteUser = (
+    userId: string,
+    userName: string,
+    userEmail: string,
+    userRole: string,
+  ) => {
+    report.manageTeamDeleteUserClicked(userEmail, userRole);
+    setDeleteConfirmation({ userId, userName, userEmail, userRole });
     setOpenMenuUserId(null);
   };
 
   const confirmDelete = async () => {
     if (!deleteConfirmation) return;
+    const { userId, userEmail, userRole } = deleteConfirmation;
 
     try {
-      await removeMutation.mutateAsync(deleteConfirmation.userId);
+      await removeMutation.mutateAsync(userId);
+      report.manageTeamMemberRemoved({
+        success: true,
+        error: null,
+        targetUserEmail: userEmail,
+        targetUserRole: userRole,
+      });
       setDeleteConfirmation(null);
       setShowSuccessBanner(true);
     } catch (error) {
+      const errMsg =
+        error instanceof Error ? error.message : "Failed to remove member";
+      report.manageTeamMemberRemoved({
+        success: false,
+        error: errMsg,
+        targetUserEmail: userEmail,
+        targetUserRole: userRole,
+      });
       console.error("Failed to remove team member:", error);
       setDeleteConfirmation(null);
       // Error is already handled by the mutation's onError callback
@@ -115,6 +162,7 @@ export function ManageUsersTab() {
   };
 
   const cancelDelete = () => {
+    report.manageTeamRemoveCancelled(deleteConfirmation?.userEmail ?? "");
     setDeleteConfirmation(null);
   };
 
@@ -123,12 +171,23 @@ export function ManageUsersTab() {
     setShowPermissionsSubmenu(false);
   };
 
-  const handleToggleSfdcWrite = (member: (typeof filteredUsers)[number]) => {
+  const handleToggleSfdcWrite = async (
+    member: (typeof filteredUsers)[number],
+  ) => {
     const currentValue = member.permissions?.sfdc_write ?? true;
-    updatePermissionsMutation.mutate({
-      userId: member.id,
-      permissions: { sfdc_write: !currentValue },
-    });
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        userId: member.id,
+        permissions: { sfdc_write: !currentValue },
+      });
+      report.manageTeamSalesforceUpdatesToggled(
+        !currentValue,
+        member.email,
+        member.role,
+      );
+    } catch {
+      // mutation already surfaces a toast on error
+    }
   };
 
   const handleToggleHubspotWrite = (member: (typeof filteredUsers)[number]) => {
@@ -199,6 +258,7 @@ export function ManageUsersTab() {
               href="https://docs.vonlabs.ai/workspace-setup/manage-and-invite-your-team"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={report.manageTeamLearnMoreClicked}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
             >
               <BookOpen size={14} />
@@ -432,7 +492,22 @@ export function ManageUsersTab() {
                             </div>
                           }
                         >
-                          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150">
+                          <span
+                            className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150"
+                            onMouseEnter={() => {
+                              if (
+                                tooltipViewedMembers.current.has(member.email)
+                              )
+                                return;
+                              tooltipViewedMembers.current.add(member.email);
+                              report.manageTeamQuestionsTooltipViewed({
+                                targetUserEmail: member.email,
+                                questionsLast7d: member.usage.last_week,
+                                questionsLast30d: member.usage.last_month,
+                                questionsAllTime: member.usage.total,
+                              });
+                            }}
+                          >
                             {member.usage.total}
                           </span>
                         </Tooltip>
@@ -446,7 +521,15 @@ export function ManageUsersTab() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="relative">
                             <button
-                              onClick={() => toggleMenu(member.id)}
+                              onClick={() => {
+                                if (openMenuUserId !== member.id) {
+                                  report.manageTeamActionsMenuOpened(
+                                    member.email,
+                                    member.role,
+                                  );
+                                }
+                                toggleMenu(member.id);
+                              }}
                               className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
                                 openMenuUserId === member.id
                                   ? "bg-gray-200 text-gray-900"
@@ -466,6 +549,10 @@ export function ManageUsersTab() {
                                 {/* Edit Details */}
                                 <button
                                   onClick={() => {
+                                    report.manageTeamEditDetailsClicked(
+                                      member.email,
+                                      member.role,
+                                    );
                                     setEditingTeamMemberId(member.id);
                                     setOpenMenuUserId(null);
                                   }}
@@ -481,11 +568,15 @@ export function ManageUsersTab() {
                                 {/* Customize Permissions */}
                                 <div className="relative">
                                   <button
-                                    onClick={() =>
-                                      setShowPermissionsSubmenu(
-                                        !showPermissionsSubmenu,
-                                      )
-                                    }
+                                    onClick={() => {
+                                      const willOpen = !showPermissionsSubmenu;
+                                      if (willOpen)
+                                        report.manageTeamAccessPermissionsClicked(
+                                          member.email,
+                                          member.role,
+                                        );
+                                      setShowPermissionsSubmenu(willOpen);
+                                    }}
                                     className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
                                       showPermissionsSubmenu
                                         ? "bg-gray-100/80"
@@ -560,6 +651,8 @@ export function ManageUsersTab() {
                                       handleDeleteUser(
                                         member.id,
                                         `${member.firstName} ${member.lastName}`,
+                                        member.email,
+                                        member.role,
                                       )
                                     }
                                     disabled={removeMutation.isPending}

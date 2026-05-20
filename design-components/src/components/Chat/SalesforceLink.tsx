@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { isSalesforceUrl } from './utils/salesforceDeepLink';
 export interface SalesforceLinkProps {
   /** The URL to link to */
   href?: string;
   /** The link text/content */
   children?: React.ReactNode;
+  /** Called when the link is clicked */
+  onLinkClick?: (href: string | undefined, linkText: string) => void;
 }
 
 /**
@@ -15,8 +17,16 @@ export interface SalesforceLinkProps {
  *
  * All links open in a new tab with security attributes.
  */
-export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children }) => {
+export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children, onLinkClick }) => {
   const isSfLink = href ? isSalesforceUrl(href) : false;
+
+  const handleClick = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      const text = event.currentTarget.innerText;
+      onLinkClick?.(href, text);
+    },
+    [href, onLinkClick]
+  );
 
   return (
     <a
@@ -29,6 +39,7 @@ export const SalesforceLink: React.FC<SalesforceLinkProps> = ({ href, children }
           : 'text-indigo-600 hover:text-indigo-800 hover:underline'
       }
       title={isSfLink ? 'Open in Salesforce' : undefined}
+      onClick={onLinkClick ? handleClick : undefined}
     >
       {children}
     </a>

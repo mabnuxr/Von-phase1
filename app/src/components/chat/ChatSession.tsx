@@ -66,6 +66,7 @@ import {
   getFrontendIntegrationId,
   INTEGRATION_METADATA,
 } from "../../constants/integrationMetadata";
+import { report } from "../../lib/analytics/tracker";
 import { MESSAGES_PAGE_LIMIT } from "../../config/constants";
 import { config as appConfig } from "../../config";
 import { DashboardPreviewPane } from "../DashboardPreviewPane";
@@ -719,6 +720,7 @@ function ExistingChatInner(
       onInputWhileDisabled={props.onDisabledInteraction}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}
+      onFileUploadClick={report.chatFileUploadClicked}
       controlledAttachments={chatV2.fileAttachmentState}
       onFilesSelected={chatV2.handleFilesSelected}
       onRemoveAttachment={chatV2.handleRemoveAttachment}
@@ -730,6 +732,10 @@ function ExistingChatInner(
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       // Commands
       enableCommands={base.features.isSlashCommandsEnabled}
+      onSlashCommandOpened={report.chatSlashCommandOpened}
+      onSlashCommandSelected={report.chatSlashCommandSelected}
+      onManageCommandsClicked={report.chatSlashCommandManageClicked}
+      onCreateNewCommandClicked={report.chatSlashCommandCreateNewClicked}
       commands={base.commands.commands}
       isLoadingCommands={base.commands.isLoadingCommands}
       onSaveCommand={base.commands.handleSaveCommand}
@@ -749,6 +755,16 @@ function ExistingChatInner(
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
       onTransparencyClick={chatV2.handleTransparencyClick}
+      // Plus button
+      onAddClick={report.chatPlusButtonClicked}
+      // Message actions analytics
+      onThinkingStepExpanded={report.chatThinkingStepExpanded}
+      onCopyMessage={report.chatResponseCopied}
+      onDownloadMessage={report.chatResponseDownloaded}
+      onThumbsUp={report.chatThumbsUp}
+      onThumbsDown={report.chatThumbsDown}
+      onResponseLinkClicked={report.chatResponseLinkClicked}
+      onResponseSectionCopied={report.chatResponseSectionCopied}
       // Actions
       enableActions={base.features.isActionsEnabled}
       onApprove={chatV2.handleApproval}
@@ -878,7 +894,18 @@ function ExistingChatInner(
               }
               onGoogleDriveClick={
                 wrappedDriveClick && chatV2.fileArtifactPanel.fileId
-                  ? () => wrappedDriveClick(chatV2.fileArtifactPanel.fileId!)
+                  ? () => {
+                      report.artifactsOpenedInExternalTool({
+                        fileName: chatV2.fileArtifactPanel.fileName ?? "",
+                        fileType:
+                          (chatV2.fileArtifactPanel.fileName ?? "")
+                            .split(".")
+                            .pop() ?? "",
+                        chatId: conversationId,
+                        toolName: "Google Drive",
+                      });
+                      wrappedDriveClick(chatV2.fileArtifactPanel.fileId!);
+                    }
                   : undefined
               }
               isDriveEnabled={props.isDriveEnabled}
@@ -889,7 +916,18 @@ function ExistingChatInner(
               }
               onBoxClick={
                 wrappedBoxClick && chatV2.fileArtifactPanel.fileId
-                  ? () => wrappedBoxClick(chatV2.fileArtifactPanel.fileId!)
+                  ? () => {
+                      report.artifactsOpenedInExternalTool({
+                        fileName: chatV2.fileArtifactPanel.fileName ?? "",
+                        fileType:
+                          (chatV2.fileArtifactPanel.fileName ?? "")
+                            .split(".")
+                            .pop() ?? "",
+                        chatId: conversationId,
+                        toolName: "Box",
+                      });
+                      wrappedBoxClick(chatV2.fileArtifactPanel.fileId!);
+                    }
                   : undefined
               }
               isBoxEnabled={props.isBoxEnabled}
@@ -1021,8 +1059,11 @@ function NewChatInner(
       placeholder={props.placeholder ?? "Ask questions or make changes..."}
       disableSubmit={!base.canSubmit || createFlow.isCreating}
       disableInput={props.disableInput}
+      // Plus button
+      onAddClick={report.chatPlusButtonClicked}
       // File upload
       enableFileUpload={base.features.isFileUploadEnabled}
+      onFileUploadClick={report.chatFileUploadClicked}
       controlledAttachments={createFlow.fileAttachments}
       onFilesSelected={createFlow.addFiles}
       onRemoveAttachment={createFlow.removeFile}
@@ -1030,6 +1071,10 @@ function NewChatInner(
       onDismissFileError={createFlow.dismissFileError}
       // Commands
       enableCommands={base.features.isSlashCommandsEnabled}
+      onSlashCommandOpened={report.chatSlashCommandOpened}
+      onSlashCommandSelected={report.chatSlashCommandSelected}
+      onManageCommandsClicked={report.chatSlashCommandManageClicked}
+      onCreateNewCommandClicked={report.chatSlashCommandCreateNewClicked}
       commands={base.commands.commands}
       isLoadingCommands={base.commands.isLoadingCommands}
       onSaveCommand={base.commands.handleSaveCommand}
@@ -1076,6 +1121,15 @@ function Overlays({
         artifactSummaries={chatV2.transparencyArtifactSummaries}
         isListLoading={chatV2.isTransparencyLoading}
         title="Data Sources"
+        messageIndex={chatV2.transparencyMessageIndex}
+        onSourceTabClicked={report.chatSourceTabClicked}
+        onCSVDownloaded={(sourceName, rowCount) =>
+          report.chatSourceCSVDownloaded(
+            sourceName,
+            rowCount,
+            chatV2.transparencyMessageIndex,
+          )
+        }
       />
       <SingleArtifactDrawerContainer
         conversationId={conversationId}

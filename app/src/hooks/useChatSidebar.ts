@@ -173,15 +173,22 @@ export interface UseChatSidebarReturn {
   createFolder: (name: string) => void;
   isCreatingFolder: boolean;
   renameFolder: (folderId: string, newName: string) => void;
+  renameFolderAsync: (folderId: string, newName: string) => Promise<unknown>;
   isRenamingFolder: boolean;
   deleteFolder: (folderId: string) => void;
+  deleteFolderAsync: (folderId: string) => Promise<void>;
   isDeletingFolder: boolean;
   pinFolder: (folderId: string, isPinned: boolean) => void;
 
   // Conversation mutations
   renameConversation: (conversationId: string, newName: string) => void;
+  renameConversationAsync: (
+    conversationId: string,
+    newName: string,
+  ) => Promise<unknown>;
   isRenamingConversation: boolean;
   deleteConversation: (conversationId: string) => void;
+  deleteConversationAsync: (conversationId: string) => Promise<unknown>;
   isDeletingConversation: boolean;
 
   // Item membership mutations (generic over chat + dashboard).
@@ -202,6 +209,10 @@ export interface UseChatSidebarReturn {
     itemType?: FolderItemType,
   ) => void;
   removeItemFromFolder: (itemId: string, itemType?: FolderItemType) => void;
+  removeItemFromFolderAsync: (
+    itemId: string,
+    itemType?: FolderItemType,
+  ) => Promise<void>;
   isMovingItem: boolean;
 }
 
@@ -469,12 +480,15 @@ export function useChatSidebar(): UseChatSidebarReturn {
     createFolder: createFolderRaw,
     isCreatingFolder,
     renameFolder,
+    renameFolderAsync,
     isRenamingFolder,
     deleteFolder,
+    deleteFolderAsync,
     isDeletingFolder,
     pinFolder,
     setItemFoldersAsync,
     removeItemFromFolder: removeItemFromFolderRaw,
+    removeItemFromFolderAsync: removeItemFromFolderAsyncRaw,
     createFolderForItem: createFolderForItemRaw,
     isSettingFolders,
     isRemovingItem,
@@ -482,11 +496,13 @@ export function useChatSidebar(): UseChatSidebarReturn {
 
   const {
     mutate: renameConversationMutation,
+    mutateAsync: renameConversationMutationAsync,
     isPending: isRenamingConversation,
   } = useRenameConversation();
 
   const {
     mutate: deleteConversationMutation,
+    mutateAsync: deleteConversationMutationAsync,
     isPending: isDeletingConversation,
   } = useDeleteConversation();
 
@@ -496,9 +512,20 @@ export function useChatSidebar(): UseChatSidebarReturn {
     [renameConversationMutation],
   );
 
+  const renameConversationAsync = useCallback(
+    (conversationId: string, newName: string) =>
+      renameConversationMutationAsync({ conversationId, title: newName }),
+    [renameConversationMutationAsync],
+  );
+
   const deleteConversation = useCallback(
     (conversationId: string) => deleteConversationMutation(conversationId),
     [deleteConversationMutation],
+  );
+
+  const deleteConversationAsync = useCallback(
+    (conversationId: string) => deleteConversationMutationAsync(conversationId),
+    [deleteConversationMutationAsync],
   );
 
   // Source-folder lookup — only needed by removeItemFromFolder, which still
@@ -532,6 +559,19 @@ export function useChatSidebar(): UseChatSidebarReturn {
       removeItemFromFolderRaw({ folderId: sourceFolderId, itemType, itemId });
     },
     [findSourceFolderId, removeItemFromFolderRaw],
+  );
+
+  const removeItemFromFolderAsync = useCallback(
+    async (itemId: string, itemType: FolderItemType = "conversation") => {
+      const sourceFolderId = findSourceFolderId(itemId, itemType);
+      if (!sourceFolderId) return;
+      await removeItemFromFolderAsyncRaw({
+        folderId: sourceFolderId,
+        itemType,
+        itemId,
+      });
+    },
+    [findSourceFolderId, removeItemFromFolderAsyncRaw],
   );
 
   const createFolderForItem = useCallback(
@@ -597,19 +637,24 @@ export function useChatSidebar(): UseChatSidebarReturn {
     createFolder: (name: string) => createFolderRaw({ name }),
     isCreatingFolder,
     renameFolder,
+    renameFolderAsync,
     isRenamingFolder,
     deleteFolder,
+    deleteFolderAsync,
     isDeletingFolder,
     pinFolder,
 
     renameConversation,
+    renameConversationAsync,
     isRenamingConversation,
     deleteConversation,
+    deleteConversationAsync,
     isDeletingConversation,
 
     setItemFolders,
     createFolderForItem,
     removeItemFromFolder,
+    removeItemFromFolderAsync,
     isMovingItem: isSettingFolders || isRemovingItem,
   };
 }
