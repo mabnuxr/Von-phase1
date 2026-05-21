@@ -284,7 +284,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-300 disabled:cursor-default"
               />
               <span className="flex flex-col">
-                <span className="text-xs font-medium text-gray-800/80">Auto-approve commands</span>
+                <span className="text-xs font-medium text-gray-800/80">Auto-approve</span>
                 <span className="mt-0.5 text-xs text-gray-500">
                   Write commands will execute automatically without approval prompts.
                 </span>
