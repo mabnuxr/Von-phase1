@@ -34,6 +34,7 @@ export function SentryErrorFallback({
     const errorType = error instanceof Error ? error.name : "Unknown";
     const errorMessage = error instanceof Error ? error.message : String(error);
     const page = window.location.pathname;
+    const chatIdMatch = page.match(/\/chat\/([0-9a-f-]{36})/);
     const component =
       componentStack
         .split("\n")
@@ -44,7 +45,7 @@ export function SentryErrorFallback({
       errorMessage,
       page,
       component,
-      chatId: null,
+      chatId: chatIdMatch ? chatIdMatch[1] : null,
     });
 
     if (import.meta.env.DEV) {
