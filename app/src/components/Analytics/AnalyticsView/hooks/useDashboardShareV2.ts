@@ -274,6 +274,8 @@ export function useDashboardShareV2({
   // re-render whenever the dialog reopens and refetches metadata. The shell
   // reads `currentScope` directly via destructuring so it doesn't carry the
   // full state object either.
+  const hasPersonalIntegration = dashboard.hasPersonalIntegration ?? false;
+
   const shareState = useMemo(
     () => ({
       dataScopingAvailable,
@@ -283,6 +285,7 @@ export function useDashboardShareV2({
       directory,
       grants,
       lastSaveLabel,
+      hasPersonalIntegration,
     }),
     [
       dataScopingAvailable,
@@ -292,6 +295,7 @@ export function useDashboardShareV2({
       directory,
       grants,
       lastSaveLabel,
+      hasPersonalIntegration,
     ],
   );
 

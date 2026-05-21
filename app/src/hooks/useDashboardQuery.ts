@@ -103,6 +103,7 @@ interface RawApiDashboardResponse {
   /** M1: embedded edit-lock — drives the "currently edited" badge. */
   edit_lock?: { user_id: string; acquired_at: string } | null;
   shared_data_scope?: string | null;
+  has_personal_integration?: boolean;
   gridConfig: Dashboard["gridConfig"];
   widgets: Record<string, RawApiWidget>;
   queries?: Record<string, RawApiQuery>;
@@ -285,6 +286,7 @@ function adaptApiResponse(
         isSharedWithTenant: raw.is_shared_with_tenant ?? false,
         sharedDataScope: (raw.shared_data_scope ??
           null) as Dashboard["sharedDataScope"],
+        hasPersonalIntegration: raw.has_personal_integration ?? false,
         gridConfig: raw.gridConfig,
         // Prefer panel_layouts when it has entries; fall back to each widget's
         // own layout field when panel_layouts is absent or an empty object (the

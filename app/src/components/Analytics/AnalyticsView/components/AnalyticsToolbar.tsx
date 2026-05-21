@@ -227,6 +227,7 @@ export function AnalyticsToolbarActions({
               (shareState.currentSharedDataScope as DataScopeOptionV2 | null) ??
               null
             }
+            hasPersonalIntegration={shareState.hasPersonalIntegration}
             onScopeChange={shareActions.handleScopeChange}
             onGrantAdd={shareActions.handleGrantAdd}
             onGrantUpdate={shareActions.handleGrantUpdate}
