@@ -21,11 +21,23 @@ export function initSentry() {
     // NO session replay - LaunchDarkly handles this
     integrations: [Sentry.browserTracingIntegration()],
 
+    // Drop errors thrown from browser extensions (e.g. extensions that
+    // override window.fetch and break our telemetry POSTs). These aren't
+    // actionable from our code and add noise.
+    denyUrls: [
+      /^chrome-extension:\/\//,
+      /^moz-extension:\/\//,
+      /^safari(-web)?-extension:\/\//,
+    ],
+
     // Filter out noisy errors
     ignoreErrors: [
       "ResizeObserver loop",
       "Network request failed",
       /^Loading chunk .* failed/,
+      // Datadog RUM transport failures — usually a user's extension or
+      // network filter blocking telemetry; not actionable from our app.
+      /Failed to fetch.*browser-intake/,
     ],
 
     // Don't send PII
