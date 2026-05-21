@@ -53,12 +53,15 @@ export function useAuthorizeIntegration() {
 
       // Only open OAuth URL for OAuth integrations (non-OAuth integrations return empty authorizationUrl)
       if (data.authorizationUrl && data.authorizationUrl.trim() !== "") {
+        const popupBlockedMessage =
+          "Please allow popups for this site to complete OAuth authorization";
+
         // Open OAuth URL in new tab
         const oauthWindow = window.open(data.authorizationUrl, "_blank");
 
         // Check if popup was blocked - multiple detection methods
         if (!oauthWindow) {
-          throw new Error("POPUP_BLOCKED");
+          throw new Error(popupBlockedMessage);
         }
 
         // Check if window is actually open after a brief delay
@@ -68,7 +71,7 @@ export function useAuthorizeIntegration() {
         );
 
         if (oauthWindow.closed) {
-          throw new Error("POPUP_BLOCKED");
+          throw new Error(popupBlockedMessage);
         }
 
         // Additional check: try to access window properties
@@ -76,7 +79,7 @@ export function useAuthorizeIntegration() {
         try {
           // This will throw if popup was blocked by stricter blockers
           if (!oauthWindow.location) {
-            throw new Error("POPUP_BLOCKED");
+            throw new Error(popupBlockedMessage);
           }
         } catch (e) {
           // Some browsers throw when accessing .location on blocked popups
@@ -88,7 +91,7 @@ export function useAuthorizeIntegration() {
             // This is actually okay - cross-origin restriction means popup opened successfully
             // The popup is on a different domain (OAuth provider)
           } else {
-            throw new Error("POPUP_BLOCKED");
+            throw new Error(popupBlockedMessage);
           }
         }
       }
@@ -101,15 +104,11 @@ export function useAuthorizeIntegration() {
       queryClient.invalidateQueries({ queryKey: ["integrations"] });
     },
     onError: (error: Error) => {
+      // Side-effect only — do NOT re-throw. React Query's onError throwing
+      // creates an unhandled rejection separate from the mutateAsync promise.
+      // Callers consume the error via the rejected mutateAsync promise.
       if (import.meta.env.DEV) {
         console.error("[useAuthorizeIntegration] Error:", error);
-      }
-
-      // Don't use alert - let the UI component handle the error display
-      if (error.message === "POPUP_BLOCKED") {
-        throw new Error(
-          "Please allow popups for this site to complete OAuth authorization",
-        );
       }
     },
   });
