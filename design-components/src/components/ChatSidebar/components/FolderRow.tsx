@@ -37,7 +37,8 @@ export const FolderRow: React.FC<FolderRowProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [editValue, setEditValue] = useState(folder.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  const hasActions = !!(onContextMenu || onPinFolder);
+  // System folders are read-only — rename / delete / pin are all suppressed.
+  const hasActions = !folder.isSystem && !!(onContextMenu || onPinFolder);
   const showButton = hasActions && (isHovered || isMenuOpen) && !isEditing;
   const showPinButton = hasActions && (folder.isPinned || isHovered) && !isEditing;
 
@@ -77,7 +78,7 @@ export const FolderRow: React.FC<FolderRowProps> = ({
     <div
       className="group relative flex items-center justify-between gap-2.5 px-2 h-8 text-sm text-gray-800 hover:text-gray-900 rounded-xl border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors duration-150 cursor-pointer"
       onClick={isEditing ? undefined : onClick}
-      onContextMenu={isEditing ? undefined : onContextMenu}
+      onContextMenu={isEditing || folder.isSystem ? undefined : onContextMenu}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

@@ -204,6 +204,14 @@ export function ChatSidebarContainer({
     isLoading: isFetchingNextPage,
   });
 
+  // System folders (e.g. auto-created "Schedule Command") are read-only.
+  // The UI already hides the rename/delete/pin affordances; this set powers
+  // a belt-and-suspenders guard inside each folder mutation handler below.
+  const systemFolderIds = useMemo(
+    () => new Set(folders.filter((f) => f.isSystem).map((f) => f.id)),
+    [folders],
+  );
+
   const handleChatClick = useCallback(
     (conversationId: string) => {
       const isInFolder = Object.values(folderItems).some((items) =>
@@ -471,6 +479,8 @@ export function ChatSidebarContainer({
 
   const handleRenameFolder = useCallback(
     async (folderId: string, newName: string) => {
+      // System folders (e.g. "Schedule Command") are read-only.
+      if (systemFolderIds.has(folderId)) return;
       const oldName = folderLabelById.get(folderId) ?? "";
       try {
         await renameFolderAsync(folderId, newName);
@@ -490,21 +500,23 @@ export function ChatSidebarContainer({
         });
       }
     },
-    [renameFolderAsync, folderLabelById],
+    [renameFolderAsync, folderLabelById, systemFolderIds],
   );
 
   const handlePinFolder = useCallback(
     (folderId: string, isPinned: boolean) => {
+      if (systemFolderIds.has(folderId)) return;
       pinFolder(folderId, isPinned);
       if (isPinned) {
         report.foldersFolderPinned(folderLabelById.get(folderId) ?? "");
       }
     },
-    [pinFolder, folderLabelById],
+    [pinFolder, folderLabelById, systemFolderIds],
   );
 
   const handleDeleteFolder = useCallback(
     async (folderId: string) => {
+      if (systemFolderIds.has(folderId)) return;
       const folderName = folderLabelById.get(folderId) ?? "";
       const chatCount = folderSectionTotals[folderId]?.conversation ?? 0;
       try {
@@ -525,7 +537,7 @@ export function ChatSidebarContainer({
         });
       }
     },
-    [deleteFolderAsync, folderLabelById, folderSectionTotals],
+    [deleteFolderAsync, folderLabelById, folderSectionTotals, systemFolderIds],
   );
 
   const handleDeleteFolderClick = useCallback(
@@ -598,12 +610,12 @@ export function ChatSidebarContainer({
         }
         contextMenuShareInfo={contextMenuShareInfo}
         onDeleteItem={handleDeleteItem}
-        onDeleteFolder={handleDeleteFolder}
         onDeleteFolderClick={handleDeleteFolderClick}
         onDeleteFolderCancelled={handleDeleteFolderCancelled}
+        onFolderToggle={handleFolderToggle}
+        onDeleteFolder={handleDeleteFolder}
         onRenameFolder={handleRenameFolder}
         onPinFolder={handlePinFolder}
-        onFolderToggle={handleFolderToggle}
         onRemoveItemFromFolder={handleRemoveItemFromFolder}
         onManageItemFolders={handleManageItemFolders}
         sectionShowMore={sectionShowMore}

@@ -118,14 +118,18 @@ export function ManageFoldersModal({
   const isBusy = isCreatingFolder || isSettingFolders;
   const isLoading = isFoldersLoading || isMembershipsLoading || !hasSeeded;
 
+  // System folders (e.g. "Schedule Command") are server-managed — items can't
+  // be added to or removed from them via this picker, so hide them entirely.
   const sortedFolders = useMemo<Folder[]>(
     () =>
-      [...folders].sort((a, b) => {
-        if (a.displayOrder !== b.displayOrder) {
-          return a.displayOrder - b.displayOrder;
-        }
-        return a.name.localeCompare(b.name);
-      }),
+      [...folders]
+        .filter((f) => f.systemFolderType == null)
+        .sort((a, b) => {
+          if (a.displayOrder !== b.displayOrder) {
+            return a.displayOrder - b.displayOrder;
+          }
+          return a.name.localeCompare(b.name);
+        }),
     [folders],
   );
 

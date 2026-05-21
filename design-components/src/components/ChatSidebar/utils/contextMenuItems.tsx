@@ -85,9 +85,15 @@ export function getContextMenuItems(
 }
 
 /**
- * Get context menu items for folders
+ * Get context menu items for folders.
+ *
+ * System folders are read-only: callers should pass `isSystem: true` so the
+ * menu renders empty (rename / delete / pin are all rejected server-side).
  */
-export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}): ContextMenuItem[] {
+export function getFolderContextMenuItems(
+  options: { isPinned?: boolean; isSystem?: boolean } = {}
+): ContextMenuItem[] {
+  if (options.isSystem) return [];
   return [
     {
       id: 'pin',

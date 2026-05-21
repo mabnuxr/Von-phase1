@@ -88,6 +88,7 @@ export interface Folder {
   isPinned?: boolean;
   /** Display order for sorting (0 = pinned, 100 = default) */
   displayOrder?: number;
+  isSystem?: boolean;
 }
 
 /**
@@ -1004,7 +1005,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <ContextMenu
         isOpen={folderContextMenu.isOpen}
         onClose={handleCloseFolderContextMenu}
-        items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
+        items={getFolderContextMenuItems({
+          isPinned: folderContextMenu.folder?.isPinned,
+          isSystem: folderContextMenu.folder?.isSystem,
+        })}
         fixedPosition={folderContextMenu.position}
         width={128}
         onItemClick={(menuItem) => {

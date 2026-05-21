@@ -113,12 +113,14 @@ function dashboardRowToFolderItem(
 }
 
 function apiFolderToUiFolder(folder: ApiFolder, isExpanded: boolean): UiFolder {
+  const isSystem = folder.systemFolderType != null;
   return {
     id: folder.folderId,
     label: folder.name,
     isExpanded,
     isPinned: folder.displayOrder === 0,
     displayOrder: folder.displayOrder,
+    isSystem,
   };
 }
 
@@ -433,15 +435,25 @@ export function useChatSidebar(): UseChatSidebarReturn {
       const data = query?.data as FolderContentsResponse | undefined;
       loadingMap[folderId] = !!query?.isLoading;
 
+      // System folders (e.g. "Schedule Command") are conversation-only —
+      // we never surface dashboards inside them even if the server returns
+      // any. The /set-item-folders endpoint also rejects adds, so in
+      // practice this slice should always be empty, but rendering is
+      // gated here so a stray membership row can't leak through.
+      const folderMeta = foldersData[idx];
+      const isSystem = folderMeta?.systemFolderType != null;
+
       const baseConvs = data?.conversations?.items ?? [];
-      const baseDashs = data?.dashboards?.items ?? [];
+      const baseDashs = isSystem ? [] : (data?.dashboards?.items ?? []);
       const extraConvs = (sectionExtraRows[
         sectionKey(folderId, "conversation")
       ] ?? []) as FolderConversationRow[];
-      const extraDashs = (sectionExtraRows[sectionKey(folderId, "dashboard")] ??
-        []) as FolderDashboardRow[];
+      const extraDashs = isSystem
+        ? []
+        : ((sectionExtraRows[sectionKey(folderId, "dashboard")] ??
+            []) as FolderDashboardRow[]);
       const convsTotal = data?.conversations?.total;
-      const dashsTotal = data?.dashboards?.total;
+      const dashsTotal = isSystem ? 0 : data?.dashboards?.total;
       // Server total can be smaller than what we hold from earlier pages
       // (e.g. items deleted server-side); never render past it.
       const conversations = [...baseConvs, ...extraConvs].slice(
@@ -473,7 +485,7 @@ export function useChatSidebar(): UseChatSidebarReturn {
       folderLoadingMap: loadingMap,
       folderSectionTotals: totals,
     };
-  }, [folderIds, folderContentsQueries, sectionExtraRows]);
+  }, [folderIds, foldersData, folderContentsQueries, sectionExtraRows]);
 
   // ── Mutations ──────────────────────────────────────────────────────────
   const {

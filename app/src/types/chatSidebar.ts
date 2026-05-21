@@ -57,12 +57,13 @@ export interface Folder {
   folderId: string;
   name: string;
   description: string | null;
-  maxItems: number;
+  maxItems: number | null;
   itemCount: number;
   displayOrder: number;
   createdAt: string;
   createdBy: string;
   updatedAt: string;
+  systemFolderType: string | null;
 }
 
 /**
