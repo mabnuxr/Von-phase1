@@ -10,11 +10,11 @@ interface DiscardChangesModalProps {
 }
 
 /**
- * Confirmation gate for the dashboard's destructive "discard / revert"
- * actions. Same modal serves both the legacy Revert button (rolls back to
- * the last published version) and the collab Discard button (soft-deletes
- * the active draft). Tone is amber/soft — the action is recoverable from
- * version history, so the warning is informational rather than red.
+ * Confirmation gate for the dashboard's destructive Discard action —
+ * soft-deletes the active draft (or releases the lock for an
+ * unedited clone). Tone is amber/soft — the action is recoverable
+ * from version history, so the warning is informational rather than
+ * red.
  */
 export const DiscardChangesModal: React.FC<DiscardChangesModalProps> = ({
   isOpen,

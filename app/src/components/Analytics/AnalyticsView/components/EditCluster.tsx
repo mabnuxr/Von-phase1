@@ -1,42 +1,34 @@
 import { SpinnerGapIcon } from "@phosphor-icons/react";
 import { Tooltip } from "@vonlabs/design-components";
 import { EditModeActionsV2 } from "../EditModeActionsV2";
-import { SaveButton } from "../SaveButton";
 import { EditButton } from "./EditButton";
 import type { MutationPhase } from "../../../../hooks/useMutationPhase";
 import type { EditModeActions } from "../hooks/useEditModeActions";
 
 interface EditClusterProps {
-  isDashboardCollabEnabled: boolean;
   isEditMode: boolean;
   dashboardVersion: number;
   savePhase: MutationPhase;
   discardDraftPhase: MutationPhase;
   saveDraftPhase: MutationPhase;
   acquireLockPhase: MutationPhase;
-  editModePhase: MutationPhase;
   editActions: EditModeActions;
 }
 
 // Edit / Save cluster (flat — no nested ternaries):
-//   0. dashboardVersion < 1 (never published) → "Publish" CTA. Fires
-//      regardless of the collab flag — a not-yet-published preview has
-//      nothing to draft and no other editors to lock out, so we skip the
-//      triad / Edit-mode dance and surface the single action that makes
-//      sense: publish it.
-//   1. dashboardCollab ON + in edit mode  → triad (Discard / Save / Publish)
-//   2. dashboardCollab OFF + save-able    → legacy SaveButton
-//   3. otherwise                          → Edit button (entry phase
-//      sourced from acquireLock under flag, legacy is_editable PATCH otherwise).
+//   0. dashboardVersion < 1 (never published) → "Publish" CTA. A
+//      not-yet-published preview has nothing to draft and no other
+//      editors to lock out, so we skip the triad / Edit-mode dance
+//      and surface the single action that makes sense: publish it.
+//   1. in edit mode → triad (Discard / Save as draft / Publish)
+//   2. otherwise    → Edit button (routes through acquireLock).
 export function EditCluster({
-  isDashboardCollabEnabled,
   isEditMode,
   dashboardVersion,
   savePhase,
   discardDraftPhase,
   saveDraftPhase,
   acquireLockPhase,
-  editModePhase,
   editActions,
 }: EditClusterProps) {
   if (dashboardVersion < 1) {
@@ -60,7 +52,7 @@ export function EditCluster({
     );
   }
 
-  if (isDashboardCollabEnabled && isEditMode) {
+  if (isEditMode) {
     // The triad only mounts in edit mode, which means a draft is active —
     // mark dirty unconditionally so the cluster's emphasis styling kicks in.
     return (
@@ -76,22 +68,9 @@ export function EditCluster({
     );
   }
 
-  if (!isDashboardCollabEnabled && (isEditMode || savePhase !== "idle")) {
-    return (
-      <SaveButton
-        savePhase={savePhase}
-        onSave={editActions.handleSaveFromEditMode}
-        isSaved={false}
-      />
-    );
-  }
-
-  const entryPhase = isDashboardCollabEnabled
-    ? acquireLockPhase
-    : editModePhase;
   return (
     <EditButton
-      entryPhase={entryPhase}
+      entryPhase={acquireLockPhase}
       onClick={editActions.handleEnterEditMode}
     />
   );

@@ -20,9 +20,8 @@ interface EditModeActionsV2Props {
 }
 
 /**
- * Edit-mode action cluster (VON-1147 §3.4.1). Replaces the legacy
- * `SaveButton` when the dashboardCollab flag is on AND the dashboard is
- * in edit mode. Three CTAs, left to right:
+ * Edit-mode action cluster (VON-1147 §3.4.1). Renders while the
+ * dashboard is in edit mode. Three CTAs, left to right:
  *
  *   - Discard       : amber, soft-warning — moves the draft to history.
  *   - Save as draft : neutral — stores the draft and releases the lock.

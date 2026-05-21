@@ -27,7 +27,6 @@ interface AnalyticsHeaderActionsProps {
   //    in version-history preview because the chip would misleadingly
   //    attribute the historical snapshot to the current editor.
   canEditDashboard: boolean;
-  isDashboardCollabEnabled: boolean;
   editLock: Dashboard["editLock"];
   lastEditedBy: Dashboard["lastEditedBy"];
   lastEditedAt: Dashboard["lastEditedAt"];
@@ -50,7 +49,6 @@ export function AnalyticsHeaderActions({
   isChatOpen,
   onClose,
   canEditDashboard,
-  isDashboardCollabEnabled,
   editLock,
   lastEditedBy,
   lastEditedAt,
@@ -61,15 +59,10 @@ export function AnalyticsHeaderActions({
   // While in edit mode, the EditLockBadge replaces the "Created by"
   // chip — the lock holder + last-edit time is more informative than
   // creator attribution at that point. Falls back to the chip outside
-  // of edit mode (or when the badge isn't applicable: collab off,
-  // viewer-only access, missing lock data, or version-history
-  // preview).
+  // of edit mode (or when the badge isn't applicable: viewer-only
+  // access, missing lock data, or version-history preview).
   const showEditLockBadge =
-    isDashboardCollabEnabled &&
-    canEditDashboard &&
-    isEditMode &&
-    !isVersionPreview &&
-    !!editLock;
+    canEditDashboard && isEditMode && !isVersionPreview && !!editLock;
 
   return (
     <>

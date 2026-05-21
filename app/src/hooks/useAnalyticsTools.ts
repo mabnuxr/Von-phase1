@@ -117,93 +117,12 @@ export function useAnalyticsTools(dashboardId: string) {
     saveMutation.isSuccess,
   );
 
-  // ─── Revert to Saved ───────────────────────────────────────────
-  const revertMutation = useMutation({
-    mutationFn: async () => {
-      await dashboardService.revertToPublished(dashboardId);
-      await queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-    onSuccess: () => {
-      showToast({
-        message: "Dashboard reverted to last saved version.",
-        variant: "success",
-      });
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-  });
-
-  const handleRevert = useCallback(
-    ({ onSuccess }: { onSuccess?: () => void } = {}) => {
-      revertMutation.mutate(undefined, {
-        onSuccess,
-        onError: (error) => {
-          console.error("[useAnalyticsTools] Revert failed:", error);
-          showToast({
-            message: "Failed to revert dashboard. Please try again.",
-            variant: "error",
-          });
-        },
-      });
-    },
-    [revertMutation, showToast],
-  );
-
-  const revertPhase = useMutationPhase(
-    revertMutation.isPending,
-    revertMutation.isSuccess,
-  );
-
-  // ─── Share ─────────────────────────────────────────────────────
-  const shareMutation = useMutation({
-    mutationFn: ({
-      isSharedWithTenant,
-      sharedDataScope,
-    }: {
-      isSharedWithTenant: boolean;
-      sharedDataScope?: string | null;
-    }) =>
-      dashboardService.shareDashboard(
-        dashboardId,
-        isSharedWithTenant,
-        sharedDataScope,
-      ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-  });
-
-  const handleShare = useCallback(
-    (isSharedWithTenant: boolean, sharedDataScope?: string | null) => {
-      shareMutation.mutate({ isSharedWithTenant, sharedDataScope });
-    },
-    [shareMutation],
-  );
-
-  const sharePhase = useMutationPhase(
-    shareMutation.isPending,
-    shareMutation.isSuccess,
-  );
-
-  // ─── Share V2 — unified scope + user_grants + data-scope ──────
+  // ─── Share — unified scope + user_grants + data-scope ─────────
   //
   // Backend M2 (VON-1283) collapses scope changes, per-user grant edits, and
-  // data-scope toggles into a single full-state POST. The FE mirrors that:
-  // the dashboardCollab share dialog builds the desired state and calls
-  // this mutation for every change (add/update/remove grant, scope toggle,
-  // data-scope toggle).
+  // data-scope toggles into a single full-state POST. The share dialog
+  // builds the desired state and calls this mutation for every change
+  // (add/update/remove grant, scope toggle, data-scope toggle).
   //
   // Backend echoes structured error codes via ApiError; the caller surfaces
   // human messages so the share dialog can localise per code in the future.
@@ -423,38 +342,9 @@ export function useAnalyticsTools(dashboardId: string) {
     2500,
   );
 
-  // ─── Edit Mode ─────────────────────────────────────────────────
-  const editModeMutation = useMutation({
-    mutationFn: async (isEditable: boolean) => {
-      await dashboardService.updateDashboard(dashboardId, {
-        is_editable: isEditable,
-      });
-      await queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
-    },
-    onMutate: () =>
-      queryClient.cancelQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      }),
-    onError: (error: unknown) => {
-      console.error("[useAnalyticsTools] Edit mode toggle failed:", error);
-      showToast({
-        message: "Failed to toggle edit mode. Please try again.",
-        variant: "error",
-      });
-    },
-  });
-
-  const editModePhase = useMutationPhase(
-    editModeMutation.isPending,
-    editModeMutation.isSuccess,
-  );
-
   // ─── Edit Lock (M1 — VON-1281) ────────────────────────────────
   //
-  // Replaces the legacy `is_editable` PATCH under the dashboardCollab
-  // flag. The 200 path silently transitions the caller into edit mode
+  // The 200 path silently transitions the caller into edit mode
   // (next dashboard refetch carries the new `edit_lock`, which the
   // adapter surfaces as `dashboard.isEditable=true`). The 409
   // `LOCK_HELD_BY_OTHER` path bubbles up so the caller can open the
@@ -864,12 +754,6 @@ export function useAnalyticsTools(dashboardId: string) {
     showSaveToast,
     saveToastKind: saveToastKindRef.current,
     isFirstSave: isFirstSaveRef.current,
-    handleRevert,
-    revertPhase,
-    revertMutation,
-    handleShare,
-    shareMutation,
-    sharePhase,
     handleShareV2,
     shareV2Mutation,
     shareV2Phase,
@@ -886,7 +770,5 @@ export function useAnalyticsTools(dashboardId: string) {
     saveDraftPhase,
     handleRefresh,
     refreshMutation,
-    editModeMutation,
-    editModePhase,
   };
 }

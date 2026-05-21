@@ -368,22 +368,6 @@ class DashboardService {
     );
   }
 
-  async shareDashboard(
-    dashboardId: string,
-    isSharedWithTenant: boolean,
-    sharedDataScope?: string | null,
-  ): Promise<DashboardMetadataResponse> {
-    return apiClient.post<DashboardMetadataResponse>(
-      `/api/v1/dashboards/${dashboardId}/share`,
-      {
-        is_shared_with_tenant: isSharedWithTenant,
-        shared_data_scope: isSharedWithTenant
-          ? (sharedDataScope ?? null)
-          : null,
-      },
-    );
-  }
-
   /**
    * Unified share endpoint (M2 — VON-1283). Sends the full desired sharing
    * state in one round-trip: scope + complete user_grants list + data scope.
@@ -396,14 +380,6 @@ class DashboardService {
     return apiClient.post<DashboardMetadataResponse>(
       `/api/v1/dashboards/${dashboardId}/share`,
       payload,
-    );
-  }
-
-  async revertToPublished(
-    dashboardId: string,
-  ): Promise<DashboardMetadataResponse> {
-    return apiClient.post<DashboardMetadataResponse>(
-      `/api/v1/dashboards/${dashboardId}/revert-to-published`,
     );
   }
 
