@@ -11,6 +11,17 @@ interface EditLockModalProps {
    * the message stays accurate either way.
    */
   holderName: string | null;
+  /**
+   * Override the default title. Used by callers that reuse this modal for
+   * lock-required prompts ("You must be in edit mode to restore a draft")
+   * rather than the held-by-other case.
+   */
+  title?: string;
+  /**
+   * Override the default body copy. Pairs with `title` to repurpose the
+   * modal for lock-required prompts.
+   */
+  description?: string;
 }
 
 /**
@@ -27,6 +38,8 @@ export const EditLockModal: React.FC<EditLockModalProps> = ({
   isOpen,
   onClose,
   holderName,
+  title,
+  description,
 }) => {
   // Esc to dismiss — matches the share dialog and stays consistent with
   // the rest of the app's modal conventions.
@@ -40,6 +53,10 @@ export const EditLockModal: React.FC<EditLockModalProps> = ({
   }, [isOpen, onClose]);
 
   const editorLabel = holderName ?? "Another editor";
+  const resolvedTitle =
+    title ?? `${editorLabel} is currently editing this dashboard`;
+  const resolvedDescription =
+    description ?? "Ask them to save the draft to continue editing it.";
 
   return (
     <AnimatePresence>
@@ -74,10 +91,10 @@ export const EditLockModal: React.FC<EditLockModalProps> = ({
                     id="edit-lock-modal-title"
                     className="mb-2 text-[15px] font-medium leading-snug tracking-[-0.005em] text-gray-900"
                   >
-                    {editorLabel} is currently editing this dashboard
+                    {resolvedTitle}
                   </div>
                   <div className="text-[13px] leading-relaxed text-gray-600">
-                    Ask them to save the draft to continue editing it.
+                    {resolvedDescription}
                   </div>
                 </div>
               </div>

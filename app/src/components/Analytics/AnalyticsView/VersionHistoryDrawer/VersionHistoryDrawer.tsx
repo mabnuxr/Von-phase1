@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ClockCounterClockwiseIcon,
   FileTextIcon,
+  SpinnerGapIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { VersionRow } from "./VersionRow";
@@ -39,6 +40,18 @@ interface VersionHistoryDrawerProps {
    * to "Unknown".
    */
   editLockUserId?: string | null;
+  /**
+   * Restore the selected historical version as a new active draft.
+   * Surfaces a footer CTA whenever the selection is restorable — i.e.
+   * not the active draft itself and not the live published row.
+   *
+   * `versionLabel` is the row's user-facing label ("v3", "v3.2") — fed
+   * back so callers can surface it in success toasts without re-doing
+   * the lookup against the versions query.
+   */
+  onRestoreVersion?: (dashboardVersion: number, versionLabel: string) => void;
+  /** Drives the footer CTA's spinner + disabled state. */
+  isRestorePending?: boolean;
 }
 
 // ─── Empty states (per tab) ──────────────────────────────────────
@@ -90,6 +103,8 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   selectedVersion = null,
   onSelectVersion,
   editLockUserId = null,
+  onRestoreVersion,
+  isRestorePending = false,
 }) => {
   const { user } = useUser();
   const { data: teamMembers } = useTeamMembers(user?.tenantId);
@@ -148,6 +163,33 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   const rows = tab === "current" ? drafts : publishedVersions;
   const isLoading = versionsQuery.isLoading;
 
+  // Restore eligibility — only show the footer CTA when restoring the
+  // selection would actually do something.
+  //   - Active draft → already the editable head; restoring it is a no-op.
+  //   - Latest published row → only a no-op when there's no draft
+  //     lineage yet. Once at least one `draft_saved` exists, restoring
+  //     the live published row creates a new draft from it (the current
+  //     active draft is frozen as the next `draft_saved`), which is a
+  //     meaningful action.
+  // Everything else (draft_saved snapshots, archived published rows) is
+  // restorable.
+  const selectedItem = useMemo(() => {
+    if (selectedVersion === null) return null;
+    return (
+      rows.find((item) => item.dashboardVersion === selectedVersion) ?? null
+    );
+  }, [rows, selectedVersion]);
+
+  const hasDraftSaved = drafts.some((item) => item.kind === "draft_saved");
+  const isSelectionLatestPublished =
+    tab === "published" &&
+    publishedVersions[0]?.dashboardVersion === selectedVersion;
+  const canRestoreSelection =
+    !!onRestoreVersion &&
+    selectedItem !== null &&
+    selectedItem.kind !== "active_draft" &&
+    (!isSelectionLatestPublished || hasDraftSaved);
+
   return (
     <div
       role="dialog"
@@ -204,7 +246,7 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         {isLoading && rows.length === 0 ? (
           <div className="flex h-full items-center justify-center px-6 py-10 text-[12px] text-gray-400">
             Loading versions…
@@ -249,6 +291,36 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Footer — restore CTA. Mounts only when the selection is
+          restorable so the canvas / list don't reflow when the user
+          flips between the active draft (or live published) and a
+          historical row. Right-aligned per design. */}
+      {canRestoreSelection && selectedItem && (
+        <div className="flex shrink-0 items-center justify-end border-t border-gray-100 px-3 py-3">
+          <button
+            type="button"
+            onClick={() =>
+              !isRestorePending &&
+              onRestoreVersion?.(
+                selectedItem.dashboardVersion,
+                selectedItem.versionLabel,
+              )
+            }
+            disabled={isRestorePending}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-4 text-[13px] font-medium text-white transition-colors ${
+              isRestorePending
+                ? "bg-blue-500 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
+            }`}
+          >
+            {isRestorePending && (
+              <SpinnerGapIcon size={13} className="animate-spin" />
+            )}
+            Restore as a draft
+          </button>
+        </div>
+      )}
     </div>
   );
 };

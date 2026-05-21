@@ -1,20 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
-import { useDashboardQuery } from "../hooks/useDashboardQuery";
+import { dashboardKeys, useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
 import { useAnalyticsTools } from "../hooks/useAnalyticsTools";
 import { useTableServerPagination } from "../hooks/useTableServerPagination";
 import { useDrilldownV2 } from "../hooks/useDrilldownV2";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useResizablePane } from "../hooks/useResizablePane";
+import { useRestoreDashboardVersion } from "../hooks/useRestoreDashboardVersion";
+import { useTeamMembers } from "../hooks/useTeam";
+import { useToast } from "../hooks/useToast";
+import { useUser } from "../hooks/useUser";
+import { ApiError } from "../services/apiClient";
 import {
   AnalyticsView,
   AnalyticsSkeleton,
   AnalyticsError,
 } from "../components/Analytics";
 import { VersionHistoryDrawer } from "../components/Analytics/AnalyticsView/VersionHistoryDrawer";
+import { EditLockModal } from "../components/Analytics/AnalyticsView/EditLockModal";
 import {
   Tooltip,
   useVisibilityToggle,
@@ -98,7 +104,9 @@ function DashboardCanvas({
     handleSaveDraft,
     saveDraftPhase,
     handleRefresh,
-  } = useAnalyticsTools(dashboardId);
+  } = useAnalyticsTools(dashboardId, {
+    dashboardVersion: data?.dashboard?.dashboardVersion,
+  });
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
 
@@ -607,6 +615,91 @@ const Analytics = () => {
     setPreviewVersion(dashboardVersion);
   }, []);
 
+  // ── Restore as draft (VON-1282) ───────────────────────────────────
+  //
+  // The drawer's footer CTA routes through here. Success drops the user
+  // back onto the live (now editable) dashboard — the new active draft —
+  // by closing the panel and clearing the preview pin. Lock-conflict
+  // errors reuse the EditLockModal:
+  //   - HELD_BY_OTHER → default copy ("X is currently editing this
+  //     dashboard / Ask them to save the draft to continue editing it.")
+  //   - LOCK_REQUIRED → swapped copy ("You must be in edit mode to
+  //     restore a draft.") so the user knows to click Edit first.
+  const { showToast } = useToast();
+  const { user } = useUser();
+  const { data: teamMembersData } = useTeamMembers(user?.tenantId);
+  const restoreMutation = useRestoreDashboardVersion(dashboardId);
+
+  const [restoreLockModal, setRestoreLockModal] = useState<
+    { kind: "held_by_other" } | { kind: "lock_required" } | null
+  >(null);
+
+  const dashboardLockHolderName = useMemo(() => {
+    const holderId = data?.dashboard?.editLock?.userId;
+    if (!holderId) return null;
+    const member = teamMembersData?.find((m) => m.id === holderId);
+    if (!member) return null;
+    return `${member.firstName} ${member.lastName}`.trim() || member.email;
+  }, [data?.dashboard?.editLock?.userId, teamMembersData]);
+
+  const handleCloseRestoreLockModal = useCallback(() => {
+    setRestoreLockModal(null);
+  }, []);
+
+  const handleRestoreVersion = useCallback(
+    async (dashboardVersion: number, versionLabel: string) => {
+      try {
+        await restoreMutation.mutateAsync(dashboardVersion);
+        // Restored. Close the version-history drawer and drop the
+        // preview pin so the canvas re-fetches metadata and renders the
+        // new active draft via `editable_version` — same flow as
+        // entering edit mode normally (the lock is retained).
+        handleCloseVersionHistory();
+        showToast({
+          message: `Dashboard version ${versionLabel} is restored, you can continue to edit.`,
+          variant: "success",
+        });
+      } catch (error) {
+        const code =
+          error instanceof ApiError
+            ? (error.response as { error?: { code?: string } })?.error?.code
+            : undefined;
+        if (code === "APP_DASHBOARD_LOCK_HELD_BY_OTHER") {
+          // Refresh detail so `editLock` reflects the new holder before
+          // the modal reads it for the name.
+          queryClient.invalidateQueries({
+            queryKey: dashboardKeys.detail(dashboardId),
+          });
+          setRestoreLockModal({ kind: "held_by_other" });
+          return;
+        }
+        if (code === "APP_DASHBOARD_LOCK_REQUIRED") {
+          setRestoreLockModal({ kind: "lock_required" });
+          return;
+        }
+        if (code === "APP_DASHBOARD_NOT_FOUND") {
+          showToast({
+            message: "This dashboard no longer exists.",
+            variant: "error",
+          });
+          return;
+        }
+        console.error("[Analytics] Restore version failed:", error);
+        showToast({
+          message: "Failed to restore version. Please try again.",
+          variant: "error",
+        });
+      }
+    },
+    [
+      restoreMutation,
+      queryClient,
+      dashboardId,
+      showToast,
+      handleCloseVersionHistory,
+    ],
+  );
+
   const {
     widthCss: chatPaneWidth,
     isResizing,
@@ -617,6 +710,26 @@ const Analytics = () => {
 
   return (
     <div className="flex h-full w-full gap-1.5">
+      {/* Lock-conflict modal for the restore-as-draft flow. Reuses the
+          modal that EditButton already shows for the acquire-lock 409,
+          so the two conflict surfaces stay visually identical. Copy
+          swaps when nobody is holding the lock — the user just needs
+          to enter edit mode first. */}
+      <EditLockModal
+        isOpen={restoreLockModal !== null}
+        onClose={handleCloseRestoreLockModal}
+        holderName={dashboardLockHolderName}
+        title={
+          restoreLockModal?.kind === "lock_required"
+            ? "You must be in edit mode to restore a draft"
+            : undefined
+        }
+        description={
+          restoreLockModal?.kind === "lock_required"
+            ? "Click Edit on the dashboard to start an edit session, then try restoring again."
+            : undefined
+        }
+      />
       {/* Shared dashboard card. The dashboard canvas and the version
           history side-pane sit inside this wrapper so they read as
           one continuous panel: the wrapper owns the card chrome
@@ -657,6 +770,8 @@ const Analytics = () => {
             selectedVersion={previewVersion}
             onSelectVersion={handleSelectVersion}
             editLockUserId={data?.dashboard?.editLock?.userId ?? null}
+            onRestoreVersion={handleRestoreVersion}
+            isRestorePending={restoreMutation.isPending}
           />
         </div>
       </div>
