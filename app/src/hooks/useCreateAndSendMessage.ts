@@ -223,6 +223,7 @@ export function useCreateAndSendMessage({
             references: options.command.references,
             accessLevel:
               options.command.sharingScope === "org" ? "tenant" : "user",
+            autoApprove: options.command.autoApprove ?? false,
           }
         : undefined;
 

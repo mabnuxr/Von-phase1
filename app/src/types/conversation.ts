@@ -81,6 +81,8 @@ export interface MessageCommand {
   references?: QuickCommandReference[];
   /** 'tenant' = org-level (public), 'user' = private. Sent at message-creation time. */
   accessLevel?: string;
+  /** Run-scope auto-approve flag, snapshotted from the command at send time. */
+  autoApprove?: boolean;
 }
 
 import type { ReferenceType } from "./constants";

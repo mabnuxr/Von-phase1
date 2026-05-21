@@ -162,6 +162,28 @@ export class ApiClient {
           response.statusText,
         );
 
+        // Identity provider transiently unavailable (e.g. Scalekit 5xx).
+        // Retry once after Retry-After; if still failing, surface the error
+        // but keep the session intact — the next call can succeed once the
+        // provider recovers.
+        if (
+          response.status === 503 &&
+          getErrorCode(errorData) === "identity_provider_unavailable" &&
+          !_isRetry
+        ) {
+          const retryAfter =
+            parseInt(response.headers.get("Retry-After") || "2", 10) || 2;
+          if (import.meta.env.DEV) {
+            console.log(
+              `[API] 503 identity_provider_unavailable - retrying in ${retryAfter}s`,
+            );
+          }
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryAfter * 1000),
+          );
+          return this.request<T>(endpoint, options, true);
+        }
+
         // Handle 401 Unauthorized
         if (response.status === 401) {
           const errorCode = getErrorCode(errorData);

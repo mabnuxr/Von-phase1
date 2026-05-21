@@ -6,6 +6,7 @@ import {
   LinkSimpleIcon,
   QuestionIcon,
   ShareNetworkIcon,
+  WarningCircleIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { Tooltip } from "@vonlabs/design-components";
@@ -222,6 +223,11 @@ export interface ShareDashboardDialogV2Props {
   dataScopingAvailable: boolean;
   /** Current data-scope option (only applied when scope = org_wide and viewers exist). */
   dataScopeOwnership: DataScopeOptionV2 | null;
+  /** When true, the dashboard reads from at least one personal integration —
+   *  surfaces an inline warning above the footer so the owner is conscious
+   *  that recipients will see data accessed through their personal
+   *  connection before they confirm a share. */
+  hasPersonalIntegration?: boolean;
   /** Actions — caller wires to mutations / mock handlers during the rollout.
    *  All return `Promise<void>` so the dialog's fire-and-forget
    *  wrappers can chain `.catch()` to silence the serialization-drop
@@ -284,6 +290,7 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
   directory,
   dataScopingAvailable,
   dataScopeOwnership,
+  hasPersonalIntegration,
   onScopeChange,
   onGrantAdd,
   onGrantUpdate,
@@ -514,6 +521,7 @@ export const ShareDashboardDialogV2: React.FC<ShareDashboardDialogV2Props> = ({
                     workspaceLabel={workspaceLabel}
                     dataScopingAvailable={dataScopingAvailable}
                     dataScopeOwnership={pendingDataScope}
+                    hasPersonalIntegration={hasPersonalIntegration}
                     canChangeDataScope={canChangeDataScope}
                     canManageEditorGrants={canManageEditorGrants}
                     isSavingShare={isSavingShare}
@@ -630,6 +638,8 @@ interface DefaultViewProps {
   workspaceLabel: string;
   dataScopingAvailable: boolean;
   dataScopeOwnership: DataScopeOptionV2 | null;
+  /** Renders the personal-integration caution banner above the footer. */
+  hasPersonalIntegration?: boolean;
   /** Editor+ only — viewers see the toggle but cannot flip it. */
   canChangeDataScope: boolean;
   /** Editor+ only — gates the editor role option in the per-row menu and
@@ -660,6 +670,7 @@ const DefaultView: React.FC<DefaultViewProps> = ({
   workspaceLabel,
   dataScopingAvailable,
   dataScopeOwnership,
+  hasPersonalIntegration,
   canChangeDataScope,
   canManageEditorGrants,
   isSavingShare,
@@ -769,6 +780,20 @@ const DefaultView: React.FC<DefaultViewProps> = ({
           }
           onSelect={(next) => onDataScopeChange(next)}
         />
+      )}
+
+      {hasPersonalIntegration && (
+        <div className="mt-2.5 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] leading-snug text-amber-700">
+          <WarningCircleIcon
+            size={14}
+            weight="regular"
+            className="mt-0.5 shrink-0 text-amber-600"
+          />
+          <span>
+            This dashboard uses personal integrations. Anyone you share with
+            will be able to see data accessed through them.
+          </span>
+        </div>
       )}
     </>
   );

@@ -112,6 +112,10 @@ export interface Dashboard {
     | "MY_MANAGERS_TEAM"
     | "ALL_RECORDS"
     | null;
+  /** True when the dashboard reads from at least one personal integration —
+   *  drives a share-time warning so the owner is conscious that recipients
+   *  will see data accessed through their personal connection. */
+  hasPersonalIntegration?: boolean;
   gridConfig: GridConfig;
   layout: LayoutItem[];
   widgets: Record<string, WidgetConfig>;

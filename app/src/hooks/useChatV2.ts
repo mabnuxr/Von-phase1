@@ -857,6 +857,7 @@ export function useChatV2(props: UseChatV2Props) {
                 })),
               accessLevel:
                 options.command.sharingScope === "org" ? "tenant" : "user",
+              autoApprove: options.command.autoApprove ?? false,
             }
           : undefined,
       });

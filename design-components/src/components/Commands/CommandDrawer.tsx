@@ -180,6 +180,12 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
     );
   };
 
+  const setAutoApprove = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      setForm((v) => ({ ...v, autoApprove: e.target.checked })),
+    [setForm]
+  );
+
   const setPromptText = useCallback(
     (next: string) => setForm((v) => ({ ...v, prompt: next })),
     [setForm]
@@ -265,6 +271,25 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                 on your prompt and data sources.
               </p>
             )}
+          </div>
+
+          {/* Auto-approve toggle — bordered to match sibling sections */}
+          <div>
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.autoApprove}
+                onChange={setAutoApprove}
+                disabled={readOnly}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-1 focus:ring-gray-300 disabled:cursor-default"
+              />
+              <span className="flex flex-col">
+                <span className="text-xs font-medium text-gray-800/80">Auto-approve</span>
+                <span className="mt-0.5 text-xs text-gray-500">
+                  Write commands will execute automatically without approval prompts.
+                </span>
+              </span>
+            </label>
           </div>
 
           {/* Pre-fill text — collapsible */}
@@ -388,8 +413,6 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
               teamMembers={teamMembers}
               readOnly={readOnly}
               onSendTest={handleSendTest}
-              autoApprove={form.autoApprove}
-              onAutoApproveChange={(next) => setForm((v) => ({ ...v, autoApprove: next }))}
             />
           )}
         </div>
