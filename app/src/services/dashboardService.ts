@@ -393,6 +393,28 @@ class DashboardService {
     );
   }
 
+  /**
+   * Restore a historical `draft_saved` or `published` row as the new
+   * active draft. The current active draft (if any) is frozen as a
+   * `draft_saved` snapshot, and the caller keeps the edit lock so they
+   * can continue editing the restored content.
+   *
+   * `version` is the `dashboard_version` (float — published rows are
+   * integers, drafts decimals) of the row to restore.
+   *
+   * Errors (409):
+   *   - `APP_DASHBOARD_LOCK_HELD_BY_OTHER` — another user holds the lock.
+   *   - `APP_DASHBOARD_LOCK_REQUIRED`     — caller doesn't hold a lock.
+   */
+  async restoreVersion(
+    dashboardId: string,
+    version: number,
+  ): Promise<{ dashboard_id: string; dashboard_version: number }> {
+    return apiClient.post<{ dashboard_id: string; dashboard_version: number }>(
+      `/api/v1/dashboards/${dashboardId}/restore/${version}`,
+    );
+  }
+
   async renderPanels(
     dashboardId: string,
     request: PanelRenderRequest,
