@@ -31,11 +31,25 @@ interface DashboardQueryCacheShape {
 
 const SAVE_TOAST_DURATION_MS = 3000;
 
+interface UseAnalyticsToolsOptions {
+  /**
+   * `dashboard_version` the caller is currently rendering. Forwarded as
+   * the body on `POST /refresh` so the BE refreshes the right snapshot
+   * — works both for the metadata-driven default view and for a
+   * version-history preview. Null/undefined → omitted from the body.
+   */
+  dashboardVersion?: number | null;
+}
+
 /**
  * Hook that provides all action handlers for AnalyticsView toolbar.
  * Used by both the Analytics page and DashboardPreviewPane.
  */
-export function useAnalyticsTools(dashboardId: string) {
+export function useAnalyticsTools(
+  dashboardId: string,
+  options: UseAnalyticsToolsOptions = {},
+) {
+  const { dashboardVersion } = options;
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -696,8 +710,13 @@ export function useAnalyticsTools(dashboardId: string) {
   );
 
   // ─── Refresh ───────────────────────────────────────────────────
+  //
+  // The mutation closes over the latest `dashboardVersion` from props so
+  // the refresh body always reflects the snapshot the caller is rendering
+  // right now — no need to thread the value through the click handler.
   const refreshMutation = useMutation({
-    mutationFn: () => dashboardService.triggerRefresh(dashboardId),
+    mutationFn: () =>
+      dashboardService.triggerRefresh(dashboardId, dashboardVersion),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: dashboardKeys.detail(dashboardId),

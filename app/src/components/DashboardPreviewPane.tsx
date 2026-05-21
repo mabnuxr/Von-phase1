@@ -58,7 +58,9 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
     handleSaveDraft,
     saveDraftPhase,
     handleRefresh,
-  } = useAnalyticsTools(dashboardId);
+  } = useAnalyticsTools(dashboardId, {
+    dashboardVersion: data?.dashboard?.dashboardVersion,
+  });
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
   const { isRefreshing } = useDashboardRefreshEvents(dashboardId);

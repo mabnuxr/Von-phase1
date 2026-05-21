@@ -255,9 +255,23 @@ class DashboardService {
     );
   }
 
-  async triggerRefresh(dashboardId: string): Promise<{ jobId: string }> {
+  /**
+   * Trigger a dashboard refresh. `dashboardVersion` pins the refresh to
+   * the snapshot the caller is currently rendering so the BE refreshes
+   * the right widgets even when the FE is previewing a historical
+   * version. Omitted when null/undefined.
+   */
+  async triggerRefresh(
+    dashboardId: string,
+    dashboardVersion?: number | null,
+  ): Promise<{ jobId: string }> {
+    const body =
+      dashboardVersion !== undefined && dashboardVersion !== null
+        ? { dashboard_version: dashboardVersion }
+        : undefined;
     return apiClient.post<{ jobId: string }>(
       `/api/v1/dashboards/${dashboardId}/refresh`,
+      body,
     );
   }
 

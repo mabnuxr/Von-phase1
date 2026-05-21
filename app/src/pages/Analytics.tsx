@@ -104,7 +104,9 @@ function DashboardCanvas({
     handleSaveDraft,
     saveDraftPhase,
     handleRefresh,
-  } = useAnalyticsTools(dashboardId);
+  } = useAnalyticsTools(dashboardId, {
+    dashboardVersion: data?.dashboard?.dashboardVersion,
+  });
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
 
