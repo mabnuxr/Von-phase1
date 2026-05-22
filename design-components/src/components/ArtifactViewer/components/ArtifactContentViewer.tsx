@@ -30,6 +30,8 @@ export interface ArtifactContentViewerProps {
   isLoading?: boolean;
   /** Error message if query execution failed */
   errorMessage?: string;
+  /** Called when the user downloads the CSV */
+  onCSVDownloaded?: (rowCount: number) => void;
 }
 
 // ============================================================================
@@ -114,7 +116,7 @@ function LoadingSkeleton() {
  * - SingleArtifactDrawer (for thinking process steps)
  */
 export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
-  ({ query, columns, rows, duration, isLoading, errorMessage }) => {
+  ({ query, columns, rows, duration, isLoading, errorMessage, onCSVDownloaded }) => {
     // Calculate dynamic rows per page based on container height
     const { rowsPerPage, containerRef } = useDynamicPageSize({
       // Add extra overhead when query section exists (collapsed state)
@@ -138,7 +140,8 @@ export const ArtifactContentViewer = React.memo<ArtifactContentViewerProps>(
       const filename = `data_export_${timestamp}.csv`;
 
       downloadCSV(csvContent, filename);
-    }, [columns, rows]);
+      onCSVDownloaded?.(rows.length);
+    }, [columns, rows, onCSVDownloaded]);
 
     const {
       isQueryExpanded,

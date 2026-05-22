@@ -312,6 +312,17 @@ export const report = {
       message_index: messageIndex,
     }),
 
+  chatQueryResultCSVDownloaded: (
+    chatId: string,
+    toolName: string,
+    rowCount: number,
+  ) =>
+    track("Chat - Query Result CSV Downloaded", {
+      chat_id: chatId,
+      tool_name: toolName,
+      row_count: rowCount,
+    }),
+
   chatResponseSectionCopied: (sectionType: string, messageId: string) =>
     track("Chat - Response Section Copied", {
       section_type: sectionType,

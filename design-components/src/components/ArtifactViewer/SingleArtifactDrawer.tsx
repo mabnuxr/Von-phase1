@@ -64,6 +64,8 @@ export interface DataViewProps extends BaseDrawerProps {
   rows: Record<string, string | number>[];
   /** Query execution duration in ms */
   duration?: number;
+  /** Called when the user downloads the query result as CSV */
+  onCSVDownloaded?: (rowCount: number) => void;
 }
 
 /** Props for calls/timeline view mode */
@@ -455,9 +457,15 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
       );
     }
 
-    const { query, columns, rows, duration } = props as DataViewProps;
+    const { query, columns, rows, duration, onCSVDownloaded } = props as DataViewProps;
     return (
-      <ArtifactContentViewer query={query} columns={columns} rows={rows} duration={duration} />
+      <ArtifactContentViewer
+        query={query}
+        columns={columns}
+        rows={rows}
+        duration={duration}
+        onCSVDownloaded={onCSVDownloaded}
+      />
     );
   };
 

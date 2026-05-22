@@ -1145,6 +1145,13 @@ function Overlays({
         conversationId={conversationId}
         drawerState={chatV2.artifactState}
         onClose={chatV2.closeArtifact}
+        onCSVDownloaded={(toolName, rowCount) =>
+          report.chatQueryResultCSVDownloaded(
+            conversationId ?? "",
+            toolName,
+            rowCount,
+          )
+        }
       />
       {chatV2.filePreviewAttachment && (
         <FilePreviewModal
