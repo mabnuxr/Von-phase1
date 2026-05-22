@@ -34,7 +34,9 @@ export function SentryErrorFallback({
     const errorType = error instanceof Error ? error.name : "Unknown";
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorCode =
-      error instanceof Error && "code" in error
+      error instanceof Error &&
+      "code" in error &&
+      (error as Error & { code: unknown }).code != null
         ? String((error as Error & { code: unknown }).code)
         : null;
     const page = window.location.pathname;
