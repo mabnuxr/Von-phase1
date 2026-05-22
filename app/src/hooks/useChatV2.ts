@@ -14,6 +14,7 @@ import { useFileDownload } from "./useFileDownload";
 import type {
   SendMessageOptions,
   FileAttachment,
+  FileArtifact,
   MessageFileAttachment,
 } from "@vonlabs/design-components";
 
@@ -533,7 +534,7 @@ export function useChatV2(props: UseChatV2Props) {
               fileName: liveAiField.name,
               artifactType: "ai_field",
               mimeType: "application/json",
-            },
+            } satisfies FileArtifact,
           ],
         };
       }
@@ -569,7 +570,7 @@ export function useChatV2(props: UseChatV2Props) {
                   "AI Field",
                 artifactType: "ai_field",
                 mimeType: "application/json",
-              },
+              } satisfies FileArtifact,
             ],
           };
         }

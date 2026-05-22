@@ -23,4 +23,5 @@ export type {
 } from './SlackMessageComposer';
 
 // Shared types
-export type { ArtifactType, FileArtifact, EmailDraftArtifact } from './types';
+export { ArtifactType } from './types';
+export type { FileArtifact, EmailDraftArtifact } from './types';

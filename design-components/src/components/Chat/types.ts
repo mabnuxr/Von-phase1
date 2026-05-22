@@ -4,7 +4,7 @@
 
 import type { ConversationMode } from './StandardChatInput/types';
 import type { Template, TemplateCategory } from '../Templates/types';
-import type { FileArtifact } from './ArtifactCards/types';
+import type { ArtifactType, FileArtifact } from './ArtifactCards/types';
 import type { Command, DashboardOption, ScheduleRecipient } from '../Commands/types';
 import type { FileAttachment } from './FileAttachment/types';
 import type { MentionItem } from '../Mentions/types';
@@ -172,14 +172,7 @@ export interface Message {
   /**
    * Agent-generated file artifacts associated with this message (matched by runId)
    */
-  artifacts?: Array<{
-    fileId: string;
-    fileName: string;
-    artifactType: string;
-    mimeType: string;
-    isPending?: boolean;
-    pdfPreview?: { id: string; fileName: string };
-  }>;
+  artifacts?: FileArtifact[];
   /**
    * Integration write block metadata (persisted on assistant messages).
    * When present, renders integration cards inline on the message.
@@ -500,16 +493,7 @@ export interface ToolCall {
    */
   artifact?: {
     artifact_id: string;
-    artifact_type:
-      | 'table'
-      | 'json'
-      | 'text'
-      | 'values'
-      | 'metrics'
-      | 'schema'
-      | 'query'
-      | 'statistics'
-      | 'table_list';
+    artifact_type: ArtifactType;
     size_bytes: number;
     tool_name: string;
     run_id: string; // LangGraph run_id that created this artifact

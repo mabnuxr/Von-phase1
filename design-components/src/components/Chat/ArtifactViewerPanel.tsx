@@ -17,6 +17,11 @@ import {
   TableIcon,
   SpinnerGapIcon,
   WarningCircleIcon,
+  ImageIcon,
+  GlobeIcon,
+  DatabaseIcon,
+  ArchiveIcon,
+  NotebookIcon,
 } from '@phosphor-icons/react';
 import { StorageExportButton, buildStorageServices } from './StorageExport';
 import { useHorizontalResize } from '../ArtifactViewer/hooks/useHorizontalResize';
@@ -25,6 +30,9 @@ import { TextViewer } from './viewers/TextViewer';
 import { DocxViewer } from './viewers/DocxViewer';
 import { HtmlSpreadsheetViewer } from './viewers/HtmlSpreadsheetViewer';
 import { PdfViewer } from './viewers/PdfViewer';
+import { ImageViewer } from './viewers/ImageViewer';
+import { HtmlViewer } from './viewers/HtmlViewer';
+import { DataViewer } from './viewers/DataViewer';
 
 // ============================================================================
 // Types
@@ -67,6 +75,30 @@ const TYPE_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = {
   spreadsheet: {
     icon: <TableIcon size={20} weight="regular" className="text-gray-500" />,
     label: 'Spreadsheet',
+  },
+  slide_preview_pdf: {
+    icon: <PresentationChartIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Slide preview',
+  },
+  image: {
+    icon: <ImageIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Image',
+  },
+  web: {
+    icon: <GlobeIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Web page',
+  },
+  data: {
+    icon: <DatabaseIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Data file',
+  },
+  archive: {
+    icon: <ArchiveIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Archive',
+  },
+  notebook: {
+    icon: <NotebookIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Notebook',
   },
 };
 
@@ -197,6 +229,19 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
           {content.kind === 'spreadsheet' && (
             <HtmlSpreadsheetViewer sheets={content.sheets} truncated={content.truncated} />
+          )}
+
+          {content.kind === 'image' && <ImageViewer url={content.url} fileName={fileName} />}
+
+          {content.kind === 'html' && <HtmlViewer html={content.html} />}
+
+          {content.kind === 'data' && (
+            <DataViewer
+              text={content.text}
+              format={content.format}
+              sizeBytes={content.sizeBytes}
+              fileName={fileName}
+            />
           )}
 
           {content.kind === 'unsupported' && (

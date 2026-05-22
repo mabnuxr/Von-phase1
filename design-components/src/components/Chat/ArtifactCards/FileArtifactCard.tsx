@@ -11,6 +11,11 @@ import {
   PresentationChartIcon,
   TableIcon,
   ArrowRightIcon,
+  ImageIcon,
+  GlobeIcon,
+  DatabaseIcon,
+  ArchiveIcon,
+  NotebookIcon,
 } from '@phosphor-icons/react';
 import { BaseArtifactCard, ActionButton } from './BaseArtifactCard';
 import { StorageExportButton, buildStorageServices } from '../StorageExport';
@@ -32,6 +37,30 @@ const FILE_ICON_CONFIG: Record<string, { icon: React.ReactNode; label: string }>
   spreadsheet: {
     icon: <TableIcon size={20} weight="regular" className="text-gray-500" />,
     label: 'Spreadsheet',
+  },
+  slide_preview_pdf: {
+    icon: <PresentationChartIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Slide preview',
+  },
+  image: {
+    icon: <ImageIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Image',
+  },
+  web: {
+    icon: <GlobeIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Web page',
+  },
+  data: {
+    icon: <DatabaseIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Data file',
+  },
+  archive: {
+    icon: <ArchiveIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Archive',
+  },
+  notebook: {
+    icon: <NotebookIcon size={20} weight="regular" className="text-gray-500" />,
+    label: 'Notebook',
   },
 };
 
