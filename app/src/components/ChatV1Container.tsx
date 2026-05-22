@@ -162,7 +162,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onArtifactClick={handleArtifactClick}
         banner={banner}
         disableSubmit={!canSubmitFinal}
-        examplePromptsDisabled={!canSubmitFinal}
         onExamplePromptDisabledClick={onDisabledInteraction}
         onInputWhileDisabled={onDisabledInteraction}
         enableCommands={isSlashCommandsEnabled}
