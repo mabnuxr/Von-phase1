@@ -8,7 +8,6 @@ export const FEATURE_FLAGS = {
   GOOGLE_CALENDAR_INTEGRATION: "enableGoogleCalender",
   /** @deprecated permanently enabled — kept for reference only */
   GOOGLE_DRIVE_INTEGRATION: "enableGoogleDrive",
-  EMAIL_CATEGORIZATION: "enableEmailConfiguration",
   SLASH_COMMANDS: "enableSlashCommands",
   ACTIONS: "enableDashboards",
   /** @deprecated permanently enabled — kept for reference only */
@@ -75,7 +74,7 @@ export type FeatureFlagKey = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
  *
  * @example
  * ```tsx
- * const { isGoogleCalendarEnabled, isEmailCategorizationEnabled } = useFeatureFlag();
+ * const { isGoogleCalendarEnabled } = useFeatureFlag();
  *
  * if (isGoogleCalendarEnabled) {
  *   // Show Google Calendar integration
@@ -95,12 +94,6 @@ export function useFeatureFlag() {
      * Google Drive integration — permanently enabled, no longer behind a feature flag
      */
     isGoogleDriveEnabled: true,
-
-    /**
-     * Controls whether Email Categorization tab is visible
-     */
-    isEmailCategorizationEnabled:
-      flags[FEATURE_FLAGS.EMAIL_CATEGORIZATION] === true,
 
     /**
      * Controls whether Slash Commands feature is enabled in chat
@@ -274,11 +267,6 @@ export function useFeatureFlag() {
      * Controls whether Hubspot integration is visible
      */
     isHubspotEnabled: true,
-
-    /**
-     * Raw flags object for advanced usage
-     */
-    flags,
   };
 }
 
