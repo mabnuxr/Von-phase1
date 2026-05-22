@@ -33,8 +33,17 @@ export function SentryErrorFallback({
   useEffect(() => {
     const errorType = error instanceof Error ? error.name : "Unknown";
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorCode =
+      error instanceof Error && "code" in error
+        ? String((error as Error & { code: unknown }).code)
+        : null;
     const page = window.location.pathname;
     const chatIdMatch = page.match(/\/chat\/([0-9a-f-]{36})/);
+    const chatType = chatIdMatch
+      ? "existing"
+      : page.includes("/chat/new")
+        ? "new"
+        : null;
     const component =
       componentStack
         .split("\n")
@@ -43,9 +52,11 @@ export function SentryErrorFallback({
     report.appErrorsClientError({
       errorType,
       errorMessage,
+      errorCode,
       page,
       component,
       chatId: chatIdMatch ? chatIdMatch[1] : null,
+      chatType,
     });
 
     if (import.meta.env.DEV) {
