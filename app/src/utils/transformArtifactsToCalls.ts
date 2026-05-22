@@ -443,9 +443,25 @@ function transformRowToSlack(
   const rawType = row.type;
   if (rawType !== "slack_message" && rawType !== "slack_thread") return null;
 
-  const id = String(row.conversation_id || row.channel_id || "");
-  if (!id || seenIds.has(id)) return null;
-  seenIds.add(id);
+  const id = row.conversation_id ? String(row.conversation_id) : "";
+  if (!id) return null;
+
+  // Mirror backend `slack_dedup_key` (see slack_helpers.py): threads dedup
+  // by conversation_id, but slack_message rows share conversation_id with
+  // their channel — two days of hits from one channel are distinct backend
+  // rows with the SAME conversation_id, so deduping by id alone collapses
+  // them on the FE. Bucket by (channel_id, day-of-hit_start_ts) instead.
+  let dedupKey: string;
+  if (rawType === "slack_thread") {
+    dedupKey = id;
+  } else {
+    const ts = typeof row.hit_start_ts === "number" ? row.hit_start_ts : 0;
+    const day = Math.floor(ts / 86400);
+    const channel = row.channel_id ? String(row.channel_id) : id;
+    dedupKey = `slack_message::${channel}::${day}`;
+  }
+  if (seenIds.has(dedupKey)) return null;
+  seenIds.add(dedupKey);
 
   const channelId = String(row.channel_id || row.conversation_id || "");
   const channelName = row.channel_name ? String(row.channel_name) : undefined;
@@ -462,10 +478,12 @@ function transformRowToSlack(
     : undefined;
 
   // Prefer hit_start_ts (set by both formatters), fall back to start_time.
+  // When both are missing, anchor to epoch so undated rows sink to the bottom
+  // of date-desc sorts instead of masquerading as the most recent hit.
   const date =
     unixToIso(row.hit_start_ts) ||
     unixToIso(row.start_time) ||
-    new Date().toISOString();
+    new Date(0).toISOString();
 
   return {
     id,
@@ -528,7 +546,9 @@ function transformFetchConversationToSlack(
     return Math.min(acc, ts);
   }, 0);
 
-  const date = unixToIso(earliestTs) || new Date().toISOString();
+  // Anchor to epoch when the timeline has no usable timestamps so undated
+  // rows sink in date-desc sorts rather than appearing as "just now."
+  const date = unixToIso(earliestTs) || new Date(0).toISOString();
 
   // Surface a sensible chunkText preview for the collapsed row even when
   // the full content lives in `timeline`.

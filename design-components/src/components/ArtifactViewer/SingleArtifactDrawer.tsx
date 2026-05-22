@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -283,6 +283,22 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const isConversationsView = viewMode === 'conversations';
   const isMarkdownView = viewMode === 'markdown';
 
+  // Slack pill visibility — only render when there's data to show. Hoisted to
+  // component scope so the effect below can keep `activeTab` in sync; the
+  // render branch reads the same value.
+  const slackRowsForTab = isConversationsView
+    ? (props as ConversationsViewProps).slack ?? []
+    : [];
+  const showSlackTab = slackRowsForTab.length > 0;
+
+  // If the Slack pill disappears (e.g. on data refresh) while it's selected,
+  // snap back to Calls so the visible content matches the highlighted pill.
+  useEffect(() => {
+    if (!showSlackTab && activeTab === 'slack') {
+      setActiveTab('calls');
+    }
+  }, [showSlackTab, activeTab]);
+
   // Determine if there's data based on view mode
   const hasData = isConversationsView
     ? ((props as ConversationsViewProps).calls?.length ?? 0) > 0 ||
@@ -369,10 +385,8 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
     }
 
     if (isConversationsView) {
-      const { calls, emails, slack } = props as ConversationsViewProps;
-      const slackRows = slack ?? [];
-      // Only render the Slack pill when there's data to show.
-      const showSlackTab = slackRows.length > 0;
+      const { calls, emails } = props as ConversationsViewProps;
+      const slackRows = slackRowsForTab;
       return (
         <div className="flex flex-col h-full">
           {/* Pill Tabs */}
