@@ -290,9 +290,11 @@ export type EventMap = {
   "App Errors - Client Error": {
     error_type: string;
     error_message: string;
+    error_code: string | null;
     page: string;
     component: string | null;
     chat_id: string | null;
+    chat_type: "new" | "existing" | null;
   };
 
   // ── Folders ───────────────────────────────────────────────────────────────

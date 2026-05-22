@@ -594,16 +594,20 @@ export const report = {
   appErrorsClientError: (params: {
     errorType: string;
     errorMessage: string;
+    errorCode: string | null;
     page: string;
     component: string | null;
     chatId: string | null;
+    chatType: "new" | "existing" | null;
   }) =>
     track("App Errors - Client Error", {
       error_type: params.errorType,
       error_message: params.errorMessage,
+      error_code: params.errorCode,
       page: params.page,
       component: params.component,
       chat_id: params.chatId,
+      chat_type: params.chatType,
     }),
 
   // ── Folders ───────────────────────────────────────────────────────────────
