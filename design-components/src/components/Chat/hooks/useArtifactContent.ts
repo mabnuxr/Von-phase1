@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import type XLSX_NS from 'xlsx';
 import DOMPurify from 'dompurify';
+import { DataFormat } from '../viewers/DataViewer';
 
 // Lazy-load SheetJS (~700 KB) only when a spreadsheet is actually opened
 let _xlsx: typeof XLSX_NS | null = null;
@@ -39,6 +40,8 @@ export type ArtifactContent =
   | { kind: 'text'; text: string }
   | { kind: 'docx'; buffer: ArrayBuffer }
   | { kind: 'spreadsheet'; sheets: HtmlSheet[]; truncated: boolean }
+  | { kind: 'html'; html: string }
+  | { kind: 'data'; format: DataFormat; text: string; sizeBytes?: number }
   | { kind: 'unsupported' };
 
 // ============================================================================
@@ -64,6 +67,21 @@ const PPTX_MIMES = new Set([
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'application/vnd.ms-powerpoint',
 ]);
+
+const HTML_MIMES = new Set(['text/html']);
+
+// Structured data — rendered as text by DataViewer
+const DATA_TEXT_MIMES: Record<string, DataFormat> = {
+  'application/json': DataFormat.Json,
+  'application/x-ndjson': DataFormat.Jsonl,
+  'application/xml': DataFormat.Xml,
+  'text/xml': DataFormat.Xml,
+  'application/yaml': DataFormat.Yaml,
+  'text/yaml': DataFormat.Yaml,
+};
+
+// Binary data formats — DataViewer shows a metadata placeholder, no text fetch.
+const DATA_BINARY_MIMES = new Set(['application/vnd.apache.parquet']);
 
 // ============================================================================
 // Parsers
@@ -158,6 +176,23 @@ async function parseArtifact(
     const isCsv = mimeType === 'text/csv';
     const data = isCsv ? await response.text() : await response.arrayBuffer();
     return parseSpreadsheet(data, isCsv);
+  }
+
+  if (HTML_MIMES.has(mimeType)) {
+    const response = await fetchOrThrow(downloadUrl);
+    return { kind: 'html', html: await response.text() };
+  }
+
+  const dataFormat = DATA_TEXT_MIMES[mimeType];
+  if (dataFormat) {
+    const response = await fetchOrThrow(downloadUrl);
+    const text = await response.text();
+    const size = Number(response.headers.get('content-length')) || text.length;
+    return { kind: 'data', format: dataFormat, text, sizeBytes: size };
+  }
+
+  if (DATA_BINARY_MIMES.has(mimeType)) {
+    return { kind: 'data', format: DataFormat.Binary, text: '' };
   }
 
   return { kind: 'unsupported' };
