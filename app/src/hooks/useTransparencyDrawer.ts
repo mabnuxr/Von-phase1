@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import type {
   CallTranscript,
   EmailTranscript,
+  SlackTranscript,
   TransparencyQueryResult,
   IQQueryResult,
 } from "@vonlabs/design-components";
@@ -27,7 +28,7 @@ import {
   MEMORY_TOOL_NAMES,
   type ArtifactSummary,
 } from "../utils/transformArtifactsToTransparency";
-import { separateCallsAndEmails } from "../utils/transformArtifactsToCalls";
+import { separateConversations } from "../utils/transformArtifactsToCalls";
 import type { ArtifactResponse } from "../services/conversationsService";
 
 export interface UseTransparencyDrawerParams {
@@ -47,6 +48,8 @@ export interface UseTransparencyDrawerReturn {
   callsError: Error | null;
   // Emails tab
   emails: EmailTranscript[];
+  // Slack tab
+  slack: SlackTranscript[];
   // Deep Research tab (VonIQ artifacts)
   vonIqQueries: IQQueryResult[];
   handleVonIqSelect: (queryId: string) => void;
@@ -372,9 +375,8 @@ export function useTransparencyDrawer({
     ],
   );
 
-  // Transform RAG artifacts to CallTranscripts and EmailTranscripts
-  const { calls, emails } = useMemo(
-    () => separateCallsAndEmails(bulkRagArtifacts),
+  const { calls, emails, slack } = useMemo(
+    () => separateConversations(bulkRagArtifacts),
     [bulkRagArtifacts],
   );
 
@@ -396,6 +398,8 @@ export function useTransparencyDrawer({
     callsError: callsError as Error | null,
     // Emails tab
     emails,
+    // Slack tab
+    slack,
     // Deep Research tab
     vonIqQueries,
     handleVonIqSelect,

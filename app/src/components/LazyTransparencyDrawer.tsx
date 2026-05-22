@@ -16,6 +16,7 @@ import {
   CallsTabContent,
   CallsTabError,
   EmailsTabContent,
+  SlackTabContent,
   IQDataTabContent,
   type TransparencyTabConfig,
 } from "@vonlabs/design-components";
@@ -56,6 +57,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     handleQuerySelect,
     calls,
     emails,
+    slack,
     isCallsLoading,
     callsError,
     vonIqQueries,
@@ -95,6 +97,15 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
     [emails.length, callsError],
   );
 
+  const slackTabConfig: TransparencyTabConfig = useMemo(
+    () => ({
+      id: "slack",
+      label: "Slack",
+      count: slack.length,
+    }),
+    [slack.length],
+  );
+
   const deepResearchTabConfig: TransparencyTabConfig = useMemo(
     () => ({
       id: "deep-research",
@@ -111,6 +122,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         dataTabConfig,
         callsTabConfig,
         emailsTabConfig,
+        slackTabConfig,
         deepResearchTabConfig,
       ];
       const config = configs.find((c) => c.id === tabId);
@@ -119,6 +131,7 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
         data: queries.length,
         calls: calls.length,
         emails: emails.length,
+        slack: slack.length,
         "deep-research": vonIqQueries.length,
       };
       onSourceTabClicked(
@@ -132,10 +145,12 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
       dataTabConfig,
       callsTabConfig,
       emailsTabConfig,
+      slackTabConfig,
       deepResearchTabConfig,
       queries.length,
       calls.length,
       emails.length,
+      slack.length,
       vonIqQueries.length,
       messageIndex,
     ],
@@ -176,6 +191,12 @@ export const LazyTransparencyDrawer: React.FC<LazyTransparencyDrawerProps> = ({
           ) : (
             <EmailsTabContent emails={emails} />
           )}
+        </TransparencyDrawer.Tab>
+      )}
+
+      {!isCallsLoading && slack.length > 0 && (
+        <TransparencyDrawer.Tab config={slackTabConfig}>
+          <SlackTabContent slack={slack} />
         </TransparencyDrawer.Tab>
       )}
 

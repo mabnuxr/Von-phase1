@@ -9,6 +9,8 @@
 import type {
   CallTranscript,
   EmailTranscript,
+  SlackTranscript,
+  SlackTimelineEntry,
 } from "@vonlabs/design-components";
 import type { ArtifactResponse } from "../services/conversationsService";
 
@@ -366,7 +368,43 @@ type FetchConversationContent = {
     start_time?: string;
     subject?: string;
   };
+  // Slack-specific fields (for slack_message / slack_thread fetch_conversation artifacts)
+  slack_content?: {
+    channel_id?: string;
+    channel_name?: string;
+    thread_ts?: string;
+    hit_chunk_index?: number;
+    window_size?: number;
+    timeline?: Array<{
+      type?: string;
+      chunk_index?: number;
+      chunk_text?: string;
+      start_ts?: number;
+    }>;
+    thread_chunk_count?: number;
+    context_chunk_count?: number;
+    message_chunk_count?: number;
+    thread_count_in_window?: number;
+  };
 };
+
+/**
+ * Convert a Unix epoch second (or numeric string) to ISO date string.
+ * Used to normalize Slack `start_time` / `hit_start_ts` to the date string
+ * SlackTranscript carries.
+ */
+function unixToIso(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const num =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value)
+        : NaN;
+  if (!isFinite(num) || num <= 0) return null;
+  const d = new Date(num * 1000);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
 
 /**
  * Check if artifact content is a fetch_conversation shape
@@ -386,6 +424,130 @@ function formatDurationSeconds(seconds: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+}
+
+/**
+ * Transform a single Slack row from execute_conversation_search /
+ * find_entity_conversations into a SlackTranscript.
+ *
+ * Backend row shape (see SlackResultRow in slack_helpers.py):
+ *   type, conversation_id, channel_id, channel_name?, thread_ts?,
+ *   hit_chunk_index?, hit_start_ts?, start_time?, chunk_text?,
+ *   participant_emails: string[], message_count?, relevance_score?,
+ *   recency_score? (topic_search only)
+ */
+function transformRowToSlack(
+  row: Record<string, unknown>,
+  seenIds: Set<string>,
+): SlackTranscript | null {
+  const rawType = row.type;
+  if (rawType !== "slack_message" && rawType !== "slack_thread") return null;
+
+  const id = String(row.conversation_id || row.channel_id || "");
+  if (!id || seenIds.has(id)) return null;
+  seenIds.add(id);
+
+  const channelId = String(row.channel_id || row.conversation_id || "");
+  const channelName = row.channel_name ? String(row.channel_name) : undefined;
+  const threadTs = row.thread_ts ? String(row.thread_ts) : undefined;
+  const chunkText = row.chunk_text ? String(row.chunk_text) : undefined;
+  const hitChunkIndex =
+    typeof row.hit_chunk_index === "number" ? row.hit_chunk_index : undefined;
+  const messageCount =
+    typeof row.message_count === "number" ? row.message_count : undefined;
+  const participants = Array.isArray(row.participant_emails)
+    ? row.participant_emails
+        .map((e) => (typeof e === "string" ? e : null))
+        .filter((e): e is string => Boolean(e))
+    : undefined;
+
+  // Prefer hit_start_ts (set by both formatters), fall back to start_time.
+  const date =
+    unixToIso(row.hit_start_ts) ||
+    unixToIso(row.start_time) ||
+    new Date().toISOString();
+
+  return {
+    id,
+    type: rawType,
+    channelId,
+    channelName,
+    threadTs,
+    date,
+    chunkText,
+    participants,
+    messageCount,
+    hitChunkIndex,
+    relevanceScore:
+      typeof row.relevance_score === "number" ? row.relevance_score : undefined,
+    recencyScore:
+      typeof row.recency_score === "number" ? row.recency_score : undefined,
+  };
+}
+
+/**
+ * Transform a fetch_conversation artifact (slack_message / slack_thread) into
+ * a SlackTranscript carrying the chronological `timeline` for the drawer.
+ */
+function transformFetchConversationToSlack(
+  content: FetchConversationContent,
+  seenIds: Set<string>,
+): SlackTranscript | null {
+  const convType = content.conversation_type;
+  if (convType !== "slack_message" && convType !== "slack_thread") return null;
+
+  const id = content.conversation_id;
+  if (!id || seenIds.has(id)) return null;
+  seenIds.add(id);
+
+  const slackContent = content.slack_content;
+  const channelId = slackContent?.channel_id || id;
+  const threadTs = slackContent?.thread_ts;
+
+  // Earliest timeline entry anchors the row's date so timeline rows still
+  // sort sensibly alongside calls/emails (which use the start_time field).
+  const timeline: SlackTimelineEntry[] | undefined = slackContent?.timeline
+    ?.map((entry): SlackTimelineEntry => {
+      const type: SlackTimelineEntry["type"] =
+        entry.type === "slack_message" || entry.type === "slack_thread"
+          ? entry.type
+          : undefined;
+      return {
+        chunkIndex: entry.chunk_index,
+        chunkText: entry.chunk_text,
+        startTs: entry.start_ts,
+        type,
+      };
+    })
+    .filter((e) => e.chunkText || e.startTs);
+
+  const earliestTs = timeline?.reduce<number>((acc, e) => {
+    const ts = e.startTs ?? 0;
+    if (!ts) return acc;
+    if (!acc) return ts;
+    return Math.min(acc, ts);
+  }, 0);
+
+  const date = unixToIso(earliestTs) || new Date().toISOString();
+
+  // Surface a sensible chunkText preview for the collapsed row even when
+  // the full content lives in `timeline`.
+  const chunkText = timeline?.find((e) => e.chunkText)?.chunkText ?? undefined;
+
+  const messageCount =
+    slackContent?.thread_chunk_count ?? slackContent?.message_chunk_count;
+
+  return {
+    id,
+    type: convType,
+    channelId,
+    threadTs,
+    date,
+    chunkText,
+    messageCount,
+    hitChunkIndex: slackContent?.hit_chunk_index,
+    timeline,
+  };
 }
 
 /**
@@ -491,29 +653,38 @@ function transformFetchConversationToEmail(
 }
 
 /**
- * Separate calls and emails from bulk RAG artifacts
+ * Separate calls, emails, and Slack hits from bulk RAG artifacts.
+ *
  * Supports both row-based artifacts (execute_conversation_search) and
- * single-conversation artifacts (fetch_conversation)
- * Returns both arrays sorted by date descending (most recent first)
+ * single-conversation artifacts (fetch_conversation). Returns three arrays,
+ * each sorted by date descending (most recent first). Slack rows are silently
+ * skipped on the conversation_type/email branch and routed through their own
+ * formatter — they don't fit the call/email shapes.
  */
-export function separateCallsAndEmails(
+export function separateConversations(
   bulkRagArtifacts:
     | ArtifactResponse[]
     | { artifacts?: ArtifactResponse[] }
     | undefined,
-): { calls: CallTranscript[]; emails: EmailTranscript[] } {
+): {
+  calls: CallTranscript[];
+  emails: EmailTranscript[];
+  slack: SlackTranscript[];
+} {
   const artifacts = Array.isArray(bulkRagArtifacts)
     ? bulkRagArtifacts
     : bulkRagArtifacts?.artifacts;
 
   if (!artifacts || artifacts.length === 0) {
-    return { calls: [], emails: [] };
+    return { calls: [], emails: [], slack: [] };
   }
 
   const calls: CallTranscript[] = [];
   const emails: EmailTranscript[] = [];
+  const slack: SlackTranscript[] = [];
   const seenCallIds = new Set<string>();
   const seenEmailIds = new Set<string>();
+  const seenSlackIds = new Set<string>();
 
   // Partition artifacts: process fetch_conversation artifacts first so their
   // rich data (title, summary, duration, speakers) populates the seenIds sets
@@ -540,9 +711,13 @@ export function separateCallsAndEmails(
       continue;
     }
 
-    if (content.conversation_type === "email") {
+    const convType = content.conversation_type;
+    if (convType === "email") {
       const email = transformFetchConversationToEmail(content, seenEmailIds);
       if (email) emails.push(email);
+    } else if (convType === "slack_message" || convType === "slack_thread") {
+      const slackRow = transformFetchConversationToSlack(content, seenSlackIds);
+      if (slackRow) slack.push(slackRow);
     } else {
       const call = transformFetchConversationToCall(content, seenCallIds);
       if (call) calls.push(call);
@@ -568,13 +743,31 @@ export function separateCallsAndEmails(
       } else if (type === "email") {
         const email = transformRowToEmail(row, seenEmailIds);
         if (email) emails.push(email);
+      } else if (type === "slack_message" || type === "slack_thread") {
+        const slackRow = transformRowToSlack(row, seenSlackIds);
+        if (slackRow) slack.push(slackRow);
       }
     }
   }
 
-  // Sort both by date descending (most recent first)
+  // Sort all by date descending (most recent first)
   calls.sort(sortByDateDescending);
   emails.sort(sortByDateDescending);
+  slack.sort(sortByDateDescending);
 
+  return { calls, emails, slack };
+}
+
+/**
+ * @deprecated Use `separateConversations` — adds Slack rows to the return.
+ * Kept as a thin shim during the transition.
+ */
+export function separateCallsAndEmails(
+  bulkRagArtifacts:
+    | ArtifactResponse[]
+    | { artifacts?: ArtifactResponse[] }
+    | undefined,
+): { calls: CallTranscript[]; emails: EmailTranscript[] } {
+  const { calls, emails } = separateConversations(bulkRagArtifacts);
   return { calls, emails };
 }
