@@ -77,7 +77,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       disableSubmit = false,
       disableInput = false,
       disabledTooltip,
-      examplePromptsDisabled = false,
       onExamplePromptDisabledClick,
       onTemplateCategoryClick,
       onTemplateClick,
@@ -294,7 +293,9 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 defaultValue={defaultInputValue}
                 placeholder={placeholder}
                 onSendMessage={handleSendMessage}
-                disabled={examplePromptsDisabled}
+                disableSubmit={disableSubmit}
+                disableInput={disableInput}
+                disabledTooltip={disabledTooltip}
                 onDisabledClick={onExamplePromptDisabledClick}
                 onTemplateCategoryClick={onTemplateCategoryClick}
                 onTemplateClick={onTemplateClick}

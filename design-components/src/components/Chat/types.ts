@@ -1341,8 +1341,9 @@ export interface ChatProps {
   topBanner?: React.ReactNode;
 
   /**
-   * Disable message submission (send button and Enter key)
-   * Input field remains enabled for typing
+   * Disable message submission — the send button, Enter key, AND the
+   * empty-state example prompts. Input field remains enabled for typing
+   * (use `disableInput` to also block typing).
    * @default false
    */
   disableSubmit?: boolean;
@@ -1364,12 +1365,6 @@ export interface ChatProps {
    * surface.
    */
   disabledTooltip?: string;
-
-  /**
-   * Whether the example prompts in empty state are disabled
-   * @default false
-   */
-  examplePromptsDisabled?: boolean;
 
   /**
    * Callback when a disabled example prompt is clicked

@@ -724,7 +724,6 @@ function ExistingChatInner(
       disabledTooltip={props.disabledTooltip}
       // Banner
       banner={fullBanner}
-      examplePromptsDisabled={!chatV2.canSubmitFinal}
       onExamplePromptDisabledClick={props.onDisabledInteraction}
       onInputWhileDisabled={props.onDisabledInteraction}
       // File upload

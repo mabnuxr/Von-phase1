@@ -34,9 +34,22 @@ export interface ChatEmptyStateProps {
    */
   defaultValue?: string;
   /**
-   * Whether the input/prompts are disabled
+   * Disable message submission — the send button, Enter key, AND the
+   * example prompts/category pills. Input field remains enabled for
+   * typing (use `disableInput` to also block typing).
+   * @default false
    */
-  disabled?: boolean;
+  disableSubmit?: boolean;
+  /**
+   * Fully disable the input — blocks typing AND submission. Pair with
+   * `disabledTooltip` to explain why. Stronger than `disableSubmit`.
+   * @default false
+   */
+  disableInput?: boolean;
+  /**
+   * Tooltip surfaced on hover when the input is disabled.
+   */
+  disabledTooltip?: string;
   /**
    * Callback when a disabled prompt/input is clicked
    */
@@ -201,7 +214,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   userName,
   onSendMessage,
   defaultValue = '',
-  disabled = false,
+  disableSubmit = false,
+  disableInput = false,
+  disabledTooltip,
   onDisabledClick,
   onTemplateCategoryClick,
   onTemplateClick,
@@ -310,9 +325,13 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
     [onTemplateCategoryClick]
   );
 
+  // Templates/category pills are blocked whenever submission is — that
+  // covers both `disableSubmit` and the stronger `disableInput`.
+  const promptsDisabled = disableSubmit || disableInput;
+
   const handleTemplateClick = useCallback(
     (template: Template, position: number) => {
-      if (disabled) {
+      if (promptsDisabled) {
         onDisabledClick?.();
         return;
       }
@@ -320,7 +339,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
       setInputValue(template.prompt);
       onTemplateClick?.(template, position);
     },
-    [disabled, onDisabledClick, onTemplateClick]
+    [promptsDisabled, onDisabledClick, onTemplateClick]
   );
 
   const handleSend = useCallback(
@@ -447,8 +466,9 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           availableDashboards={availableDashboards}
           placeholder={placeholder}
           onSend={handleSend}
-          disabled={disabled}
-          disableSubmit={disabled}
+          disabled={disableInput}
+          disabledTooltip={disabledTooltip}
+          disableSubmit={disableSubmit || disableInput}
           value={inputValue}
           onChange={handleInputChange}
           onDisabledInput={onDisabledClick}
@@ -493,7 +513,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
             return (
               <button
                 key={category}
-                onClick={() => !disabled && handleCategoryChange(category)}
+                onClick={() => !promptsDisabled && handleCategoryChange(category)}
                 className={`
                   px-3 py-1 text-xs font-medium rounded-full
                   transition-all duration-200 inline-flex items-center gap-1
@@ -502,7 +522,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                       ? 'bg-gray-50 border border-gray-200 shadow-xs text-gray-900'
                       : 'bg-white border border-gray-100 text-gray-600 hover:border-gray-200'
                   }
-                  ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  ${promptsDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
                 {category}
@@ -540,7 +560,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                   rounded-xl bg-white border border-gray-100
                   text-left transition-all flex flex-col justify-start
                   ${
-                    disabled
+                    promptsDisabled
                       ? 'opacity-50 cursor-not-allowed'
                       : 'hover:border-gray-200 cursor-pointer'
                   }
