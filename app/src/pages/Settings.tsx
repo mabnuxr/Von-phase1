@@ -9,14 +9,12 @@ import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import {
   GitCommitIcon,
-  EnvelopeIcon,
   UsersIcon,
   BrainIcon,
   ChartBarIcon,
 } from "@phosphor-icons/react";
 import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
-import { EmailCategorizationTab } from "../components/tabs/EmailCategorizationTab";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { OrgContextTabV2 } from "../components/tabs/OrgContextTabV2";
@@ -43,7 +41,6 @@ const TAB_LABELS: Record<string, string> = {
   "custom-iq": "AI Fields",
   "custom-iq-default": "Default Fields",
   "custom-iq-custom": "Custom Fields",
-  email: "Email",
   team: "Manage Team",
   usage: "Usage",
 };
@@ -55,7 +52,6 @@ const Settings = () => {
   const { user } = useUser();
 
   const {
-    isEmailCategorizationEnabled,
     isUsageMetricsEnabled,
     isUserMemoryEnabled,
     isVonAiFieldsEnabled,
@@ -280,16 +276,6 @@ const Settings = () => {
             },
           ]
         : []),
-      // Conditionally include Email tab based on feature flag
-      ...(isEmailCategorizationEnabled
-        ? [
-            {
-              id: "email",
-              label: "Email",
-              icon: <EnvelopeIcon size={20} weight="regular" />,
-            },
-          ]
-        : []),
     ],
     team: [
       {
@@ -315,8 +301,6 @@ const Settings = () => {
     switch (selectedSettingId) {
       case "integrations":
         return <IntegrationsPanel />;
-      case "email":
-        return <EmailCategorizationTab />;
       case "team":
         return <ManageUsersTab />;
       case "memory":

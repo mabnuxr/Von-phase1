@@ -1961,31 +1961,6 @@ Provide a scannable list organized by priority, with critical blockers at the to
   },
 ];
 
-// Email categorization settings
-export interface EmailCategorizationSettings {
-  enabled: boolean;
-  emailObjectType: string; // e.g., "Task"
-  opportunityField: string; // e.g., "Related To ID"
-  accountField: string; // e.g., "Account ID"
-  emailBodyField: string; // e.g., "Description"
-  filterConditions: FilterCondition[];
-  filterGroups?: FilterGroup[]; // Optional grouped filters
-}
-
-export interface FilterCondition {
-  id: string;
-  field: string;
-  operator: "equals" | "contains" | "startsWith" | "endsWith";
-  value: string;
-}
-
-export interface FilterGroup {
-  id: string;
-  conditions: FilterCondition[];
-  internalLogicalOperator: "AND" | "OR"; // How conditions within group are combined
-  groupLogicalOperator: "AND" | "OR"; // How this group connects to previous groups/conditions
-}
-
 // Process configuration settings
 export interface ProcessConfigurationSettings {
   businessStages: BusinessStage[];
@@ -2013,12 +1988,6 @@ export interface IntegrationConfig {
 }
 
 interface PreferencesState {
-  // Tab state for defaults panel
-  defaultsActiveTab: "email-categorization" | "process-configuration";
-  setDefaultsActiveTab: (
-    tab: "email-categorization" | "process-configuration",
-  ) => void;
-
   // Tab state for fields panel
   fieldsActiveTab: "salesforce" | "voniq";
   setFieldsActiveTab: (tab: "salesforce" | "voniq") => void;
@@ -2036,7 +2005,6 @@ interface PreferencesState {
     voniqFields?: VonIQField[];
     voniqFieldCustomizations?: VonIQFieldCustomization[];
     userDefinedVonIQFields?: VonIQField[];
-    emailCategorization: EmailCategorizationSettings;
     processConfiguration: ProcessConfigurationSettings;
   }) => void;
 
@@ -2069,32 +2037,6 @@ interface PreferencesState {
     updates: Partial<VonIQField>,
   ) => void;
   deleteUserDefinedVonIQField: (id: string) => void;
-
-  // Email categorization settings
-  emailCategorization: EmailCategorizationSettings;
-  updateEmailCategorization: (
-    settings: Partial<EmailCategorizationSettings>,
-  ) => void;
-  addFilterCondition: (condition: FilterCondition) => void;
-  removeFilterCondition: (id: string) => void;
-  updateFilterCondition: (
-    id: string,
-    updates: Partial<FilterCondition>,
-  ) => void;
-  addFilterGroup: (group: FilterGroup) => void;
-  removeFilterGroup: (groupId: string) => void;
-  addConditionToGroup: (groupId: string, condition: FilterCondition) => void;
-  removeConditionFromGroup: (groupId: string, conditionId: string) => void;
-  updateConditionInGroup: (
-    groupId: string,
-    conditionId: string,
-    updates: Partial<FilterCondition>,
-  ) => void;
-  updateFilterGroup: (groupId: string, updates: Partial<FilterGroup>) => void;
-  updateGroupInternalOperator: (
-    groupId: string,
-    operator: "AND" | "OR",
-  ) => void;
 
   // Process configuration settings
   processConfiguration: ProcessConfigurationSettings;
@@ -2133,10 +2075,6 @@ interface PreferencesState {
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
-  // Tab state
-  defaultsActiveTab: "process-configuration",
-  setDefaultsActiveTab: (tab) => set({ defaultsActiveTab: tab }),
-
   // Fields tab state
   fieldsActiveTab: "voniq",
   setFieldsActiveTab: (tab) => set({ fieldsActiveTab: tab }),
@@ -2172,7 +2110,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       salesforceFields: data.salesforceFields,
       voniqFieldCustomizations: data.voniqFieldCustomizations || [],
       userDefinedVonIQFields: data.userDefinedVonIQFields || [],
-      emailCategorization: data.emailCategorization,
       processConfiguration: data.processConfiguration,
     }),
 
@@ -2281,141 +2218,6 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
       userDefinedVonIQFields: state.userDefinedVonIQFields.filter(
         (field) => field.id !== id,
       ),
-    })),
-
-  // Email categorization defaults
-  emailCategorization: {
-    enabled: true,
-    emailObjectType: "",
-    opportunityField: "",
-    accountField: "",
-    emailBodyField: "",
-    filterConditions: [],
-    filterGroups: [],
-  },
-
-  updateEmailCategorization: (settings) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        ...settings,
-      },
-    })),
-
-  addFilterCondition: (condition) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterConditions: [
-          ...state.emailCategorization.filterConditions,
-          condition,
-        ],
-      },
-    })),
-
-  removeFilterCondition: (id) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterConditions: state.emailCategorization.filterConditions.filter(
-          (c) => c.id !== id,
-        ),
-      },
-    })),
-
-  updateFilterCondition: (id, updates) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterConditions: state.emailCategorization.filterConditions.map((c) =>
-          c.id === id ? { ...c, ...updates } : c,
-        ),
-      },
-    })),
-
-  addFilterGroup: (group) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: [
-          ...(state.emailCategorization.filterGroups || []),
-          group,
-        ],
-      },
-    })),
-
-  removeFilterGroup: (groupId) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).filter(
-          (g) => g.id !== groupId,
-        ),
-      },
-    })),
-
-  addConditionToGroup: (groupId, condition) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId
-            ? { ...g, conditions: [...g.conditions, condition] }
-            : g,
-        ),
-      },
-    })),
-
-  removeConditionFromGroup: (groupId, conditionId) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId
-            ? {
-                ...g,
-                conditions: g.conditions.filter((c) => c.id !== conditionId),
-              }
-            : g,
-        ),
-      },
-    })),
-
-  updateConditionInGroup: (groupId, conditionId, updates) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId
-            ? {
-                ...g,
-                conditions: g.conditions.map((c) =>
-                  c.id === conditionId ? { ...c, ...updates } : c,
-                ),
-              }
-            : g,
-        ),
-      },
-    })),
-
-  updateFilterGroup: (groupId, updates) =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId ? { ...g, ...updates } : g,
-        ),
-      },
-    })),
-
-  updateGroupInternalOperator: (groupId: string, operator: "AND" | "OR") =>
-    set((state) => ({
-      emailCategorization: {
-        ...state.emailCategorization,
-        filterGroups: (state.emailCategorization.filterGroups || []).map((g) =>
-          g.id === groupId ? { ...g, internalLogicalOperator: operator } : g,
-        ),
-      },
     })),
 
   // Process configuration defaults

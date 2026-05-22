@@ -1,7 +1,6 @@
 import { apiClient } from "./apiClient";
 import type {
   Field,
-  EmailCategorizationSettings,
   ProcessConfigurationSettings,
 } from "../store/preferencesStore";
 
@@ -10,7 +9,6 @@ import type {
  */
 interface PreferencesBackendResponse {
   salesforce_fields: Field[];
-  email_categorization: EmailCategorizationSettings | Record<string, never>;
   process_configuration:
     | Partial<ProcessConfigurationSettings>
     | Record<string, never>;
@@ -22,7 +20,6 @@ interface PreferencesBackendResponse {
  */
 export interface PreferencesData {
   salesforceFields: Field[];
-  emailCategorization: EmailCategorizationSettings;
   processConfiguration: ProcessConfigurationSettings;
   updatedAt: string;
 }
@@ -52,8 +49,6 @@ function transformPreferences(
 ): PreferencesData {
   return {
     salesforceFields: backend.salesforce_fields,
-    emailCategorization:
-      backend.email_categorization as EmailCategorizationSettings,
     processConfiguration: {
       ...DEFAULT_PROCESS_CONFIG,
       ...(backend.process_configuration as Partial<ProcessConfigurationSettings>),
@@ -68,7 +63,6 @@ function transformPreferences(
 function toBackendFormat(data: Partial<PreferencesData>) {
   return {
     salesforce_fields: data.salesforceFields,
-    email_categorization: data.emailCategorization,
     process_configuration: data.processConfiguration,
   };
 }
