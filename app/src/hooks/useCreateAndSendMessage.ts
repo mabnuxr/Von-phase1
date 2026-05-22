@@ -193,15 +193,6 @@ export function useCreateAndSendMessage({
       // if this one also fails, we'll repopulate with the new content.
       clearRestoredInput();
 
-      // #19 Message Submitted — fire immediately; chat_id is null (not created yet)
-      report.chatMessageSubmitted({
-        chatId: null,
-        chatType: "new",
-        messageLength: content.length,
-        inputMethod: options?.inputMethod ?? "typed",
-        queryCategory: null,
-      });
-
       // Show user message + thinking indicator immediately, before any API call.
       // Build command early so it's visible in the pending message.
       const command: MessageCommand | undefined = options?.command
@@ -276,6 +267,15 @@ export function useCreateAndSendMessage({
           createConversation({ title, agentVersion }),
         );
         newId = res.conversation.conversationId;
+
+        // #19 Message Submitted — fired after createConversation so chat_id is available
+        report.chatMessageSubmitted({
+          chatId: newId,
+          chatType: "new",
+          messageLength: content.length,
+          inputMethod: options?.inputMethod ?? "typed",
+          queryCategory: null,
+        });
 
         // 2. Pre-populate React Query cache so the chat renders without waiting for a round-trip
         queryClient.setQueryData(["conversation", newId], res.conversation);
