@@ -287,7 +287,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   // component scope so the effect below can keep `activeTab` in sync; the
   // render branch reads the same value.
   const slackRowsForTab = isConversationsView
-    ? (props as ConversationsViewProps).slack ?? []
+    ? ((props as ConversationsViewProps).slack ?? [])
     : [];
   const showSlackTab = slackRowsForTab.length > 0;
 
