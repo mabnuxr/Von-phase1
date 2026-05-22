@@ -53,6 +53,42 @@ export interface EmailTranscript {
   recencyScore?: number;
 }
 
+/**
+ * Slack search hit — emitted by find_entity_conversations / conversation_search.
+ * Two subtypes:
+ *  - 'slack_message': a windowed channel chunk (chunkText is the speaker-aware excerpt)
+ *  - 'slack_thread': an entire thread surface
+ *
+ * `timeline` is populated only by fetch_conversation responses (the chronological
+ * stitch of parent + neighbors + thread). Search hits leave it undefined and rely
+ * on `chunkText` for the inline preview.
+ */
+export interface SlackTimelineEntry {
+  chunkIndex?: number;
+  chunkText?: string;
+  startTs?: number;
+  type?: 'slack_message' | 'slack_thread';
+}
+
+export interface SlackTranscript {
+  id: string;
+  type: 'slack_message' | 'slack_thread';
+  channelId: string;
+  channelName?: string;
+  threadTs?: string;
+  /** ISO date string derived from start_ts/start_time */
+  date: string;
+  /** The matched chunk excerpt (or the joined thread transcript on a thread row) */
+  chunkText?: string;
+  participants?: string[];
+  messageCount?: number;
+  hitChunkIndex?: number;
+  relevanceScore?: number;
+  recencyScore?: number;
+  /** Chronologically-ordered stitch from fetch_conversation (slack_content.timeline). */
+  timeline?: SlackTimelineEntry[];
+}
+
 export type TopLevelTab = 'data' | 'calls';
 
 export interface ArtifactSummary {

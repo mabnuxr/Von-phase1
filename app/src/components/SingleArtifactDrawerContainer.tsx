@@ -16,6 +16,7 @@ import type {
   QueryColumn,
   CallTranscript,
   EmailTranscript,
+  SlackTranscript,
   ReportColumn,
 } from "@vonlabs/design-components";
 import {
@@ -25,7 +26,7 @@ import {
 import type { ArtifactState } from "../hooks/useArtifactState";
 import {
   isRagArtifact,
-  separateCallsAndEmails,
+  separateConversations,
 } from "../utils/transformArtifactsToCalls";
 import {
   transformIQArtifactToDataTable,
@@ -61,6 +62,7 @@ interface TransformedConversationsArtifact {
   viewMode: "conversations";
   calls: CallTranscript[];
   emails: EmailTranscript[];
+  slack: SlackTranscript[];
 }
 
 interface TransformedMemoryArtifact {
@@ -248,16 +250,20 @@ function transformArtifactToDisplayFormat(
     };
   }
 
-  // Handle RAG/conversation search artifacts - render with calls + emails tabs
+  // Handle RAG/conversation search artifacts - render with calls + emails + slack tabs
   if (category && isRagArtifact(category)) {
-    const { calls, emails } = separateCallsAndEmails([artifact]);
+    const { calls, emails, slack } = separateConversations([artifact]);
 
-    // Use "conversations" mode if we have emails, otherwise fallback to "calls"
-    if (emails.length > 0) {
+    // Use "conversations" mode if there's anything beyond calls — emails OR
+    // slack triggers the tabbed view. The slack pill auto-hides inside the
+    // drawer when the array is empty, so tenants without the flag still
+    // see the existing calls+emails experience.
+    if (emails.length > 0 || slack.length > 0) {
       return {
         viewMode: "conversations",
         calls,
         emails,
+        slack,
       };
     }
 
@@ -532,6 +538,7 @@ export const SingleArtifactDrawerContainer: React.FC<
         viewMode="conversations"
         calls={displayData.calls}
         emails={displayData.emails}
+        slack={displayData.slack}
         isLoading={isLoading}
         error={errorMessage}
       />

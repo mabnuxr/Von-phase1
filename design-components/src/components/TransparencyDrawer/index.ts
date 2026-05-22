@@ -9,6 +9,8 @@ export type {
   QueryColumn,
   CallTranscript,
   EmailTranscript,
+  SlackTranscript,
+  SlackTimelineEntry,
   SentimentType,
   TopLevelTab,
   QueryTabProps,
@@ -31,6 +33,7 @@ export {
   QueryContent,
   CallsTabContent,
   EmailsTabContent,
+  SlackTabContent,
   TabNavigation,
   DataTabContent,
   DataTabShimmer,
@@ -38,7 +41,12 @@ export {
   CallsTabError,
   IQDataTabContent,
 } from './components';
-export type { IQQueryResult, IQDataTabContentProps, EmailsTabContentProps } from './components';
+export type {
+  IQQueryResult,
+  IQDataTabContentProps,
+  EmailsTabContentProps,
+  SlackTabContentProps,
+} from './components';
 
 // Re-export hooks
 export { useQueryPagination, useCallsExpansion } from './hooks';

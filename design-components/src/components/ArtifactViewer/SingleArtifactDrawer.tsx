@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -7,12 +7,22 @@ import {
   DatabaseIcon,
   PhoneIcon,
   EnvelopeIcon,
+  ChatCircleDotsIcon,
   Brain as BrainIcon,
 } from '@phosphor-icons/react';
 import { ArtifactContentViewer } from './components';
 import { useHorizontalResize } from './hooks';
-import type { QueryColumn, CallTranscript, EmailTranscript } from '../TransparencyDrawer/types';
-import { CallsTabContent, EmailsTabContent } from '../TransparencyDrawer/components';
+import type {
+  QueryColumn,
+  CallTranscript,
+  EmailTranscript,
+  SlackTranscript,
+} from '../TransparencyDrawer/types';
+import {
+  CallsTabContent,
+  EmailsTabContent,
+  SlackTabContent,
+} from '../TransparencyDrawer/components';
 import { getToolDisplayName } from '../Chat/utils/toolNameFormatter';
 import { MemoryResultRenderer } from '../Chat/MemoryResultRenderer';
 import type { MemoryResultData } from '../Chat/types';
@@ -84,14 +94,16 @@ export interface IQViewProps extends BaseDrawerProps {
   rowCount: number;
 }
 
-/** Props for conversations view mode - shows both calls and emails with tabs */
+/** Props for conversations view mode - shows calls, emails, and Slack with tabs */
 export interface ConversationsViewProps extends BaseDrawerProps {
-  /** View mode: 'conversations' for tabbed calls + emails view */
+  /** View mode: 'conversations' for tabbed calls + emails + slack view */
   viewMode: 'conversations';
   /** Call transcripts */
   calls: CallTranscript[];
   /** Email transcripts */
   emails: EmailTranscript[];
+  /** Slack messages/threads. Omit or empty array when slack search isn't gated on. */
+  slack?: SlackTranscript[];
 }
 
 /** Props for markdown view mode - renders agent-friendly markdown payloads (e.g. unwrapped MCP tool responses). */
@@ -254,7 +266,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const { isOpen, onClose, toolName, queryName, viewMode, isLoading = false, error = null } = props;
 
   // Tab state for conversations view
-  const [activeTab, setActiveTab] = useState<'calls' | 'emails'>('calls');
+  const [activeTab, setActiveTab] = useState<'calls' | 'emails' | 'slack'>('calls');
 
   // Horizontal resize functionality - larger default for data tables
   const { width, handleProps } = useHorizontalResize({
@@ -271,10 +283,27 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
   const isConversationsView = viewMode === 'conversations';
   const isMarkdownView = viewMode === 'markdown';
 
+  // Slack pill visibility — only render when there's data to show. Hoisted to
+  // component scope so the effect below can keep `activeTab` in sync; the
+  // render branch reads the same value.
+  const slackRowsForTab = isConversationsView
+    ? ((props as ConversationsViewProps).slack ?? [])
+    : [];
+  const showSlackTab = slackRowsForTab.length > 0;
+
+  // If the Slack pill disappears (e.g. on data refresh) while it's selected,
+  // snap back to Calls so the visible content matches the highlighted pill.
+  useEffect(() => {
+    if (!showSlackTab && activeTab === 'slack') {
+      setActiveTab('calls');
+    }
+  }, [showSlackTab, activeTab]);
+
   // Determine if there's data based on view mode
   const hasData = isConversationsView
     ? ((props as ConversationsViewProps).calls?.length ?? 0) > 0 ||
-      ((props as ConversationsViewProps).emails?.length ?? 0) > 0
+      ((props as ConversationsViewProps).emails?.length ?? 0) > 0 ||
+      ((props as ConversationsViewProps).slack?.length ?? 0) > 0
     : isCallsView
       ? ((props as CallsViewProps).calls?.length ?? 0) > 0
       : isMemoryView
@@ -357,6 +386,7 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
 
     if (isConversationsView) {
       const { calls, emails } = props as ConversationsViewProps;
+      const slackRows = slackRowsForTab;
       return (
         <div className="flex flex-col h-full">
           {/* Pill Tabs */}
@@ -383,14 +413,29 @@ export const SingleArtifactDrawer: React.FC<SingleArtifactDrawerProps> = (props)
               <EnvelopeIcon size={14} weight="regular" className="inline mr-1.5" />
               Emails ({emails.length})
             </button>
+            {showSlackTab && (
+              <button
+                onClick={() => setActiveTab('slack')}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  activeTab === 'slack'
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <ChatCircleDotsIcon size={14} weight="regular" className="inline mr-1.5" />
+                Slack ({slackRows.length})
+              </button>
+            )}
           </div>
 
           {/* Tab Content */}
           <div className="flex-1 min-h-0">
-            {activeTab === 'calls' ? (
-              <CallsTabContent calls={calls} />
-            ) : (
+            {activeTab === 'slack' && showSlackTab ? (
+              <SlackTabContent slack={slackRows} />
+            ) : activeTab === 'emails' ? (
               <EmailsTabContent emails={emails} />
+            ) : (
+              <CallsTabContent calls={calls} />
             )}
           </div>
         </div>
