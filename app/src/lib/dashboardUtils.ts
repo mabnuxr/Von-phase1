@@ -5,6 +5,7 @@ import type {
   StepStatus,
   RunFinishedEvent,
   DashboardReadyEvent,
+  FileArtifact,
 } from "@vonlabs/design-components";
 
 // App services
@@ -565,7 +566,7 @@ function transformMessagesForV2(
           );
           transformedMessages[i] = {
             ...msg,
-            artifacts: displayArtifacts.map((a) => {
+            artifacts: displayArtifacts.map((a): FileArtifact => {
               const stem = a.fileName.replace(/\.pptx$/i, "");
               const pdfPreview = previewPdfs.find(
                 (p) => p.fileName === `${stem}.pdf`,
@@ -573,7 +574,8 @@ function transformMessagesForV2(
               return {
                 fileId: a.id,
                 fileName: a.fileName,
-                artifactType: a.artifactType ?? "document",
+                artifactType: (a.artifactType ??
+                  "document") as FileArtifact["artifactType"],
                 mimeType: a.mimeType,
                 isPending: a.isPending ?? a.status !== "completed",
                 pdfPreview: pdfPreview
@@ -593,12 +595,7 @@ function transformMessagesForV2(
     const msg = transformedMessages[i];
     if (msg.type !== "assistant") continue;
 
-    const aiFieldArtifacts: Array<{
-      fileId: string;
-      fileName: string;
-      artifactType: string;
-      mimeType: string;
-    }> = [];
+    const aiFieldArtifacts: FileArtifact[] = [];
 
     // Check toolCalls on the message directly
     const toolCalls = msg.toolCalls ?? [];

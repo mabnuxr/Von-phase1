@@ -49,6 +49,7 @@ export const ArtifactType = {
   Data: 'data',
   Archive: 'archive',
   Notebook: 'notebook',
+  AiField: 'ai_field',
 } as const;
 
 export type ArtifactType = (typeof ArtifactType)[keyof typeof ArtifactType];
