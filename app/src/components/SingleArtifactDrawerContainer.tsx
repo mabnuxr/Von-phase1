@@ -41,6 +41,8 @@ export interface SingleArtifactDrawerContainerProps {
   drawerState: ArtifactState;
   /** Callback to close the drawer */
   onClose: () => void;
+  /** Called when the user downloads a query result as CSV */
+  onCSVDownloaded?: (toolName: string, rowCount: number) => void;
 }
 
 interface TransformedDataArtifact {
@@ -470,7 +472,7 @@ function transformArtifactToDisplayFormat(
 
 export const SingleArtifactDrawerContainer: React.FC<
   SingleArtifactDrawerContainerProps
-> = ({ conversationId, drawerState, onClose }) => {
+> = ({ conversationId, drawerState, onClose, onCSVDownloaded }) => {
   const { isOpen, artifactId, toolName, runId } = drawerState;
 
   // Fetch artifact content when drawer is open
@@ -607,6 +609,11 @@ export const SingleArtifactDrawerContainer: React.FC<
       duration={dataDisplayData?.duration}
       isLoading={isLoading}
       error={errorMessage}
+      onCSVDownloaded={
+        onCSVDownloaded
+          ? (rowCount) => onCSVDownloaded(toolName, rowCount)
+          : undefined
+      }
     />
   );
 };

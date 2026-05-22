@@ -141,6 +141,11 @@ export type EventMap = {
     row_count: number;
     message_index: number;
   };
+  "Chat - Query Result CSV Downloaded": {
+    chat_id: string;
+    tool_name: string;
+    row_count: number;
+  };
   "Chat - Response Section Copied": {
     section_type: string;
     message_id: string;
