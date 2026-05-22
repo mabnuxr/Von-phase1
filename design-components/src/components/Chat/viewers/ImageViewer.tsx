@@ -16,7 +16,6 @@ import {
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
   ArrowsOutIcon,
-  ArrowCounterClockwiseIcon,
 } from '@phosphor-icons/react';
 
 interface ImageViewerProps {
@@ -139,7 +138,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ url, fileName }) => {
 
       {/* Toolbar */}
       <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 border border-gray-200 rounded-lg shadow-sm px-1 py-1">
-        <ZoomButton onClick={() => zoomBy(1 / ZOOM_STEP)} title="Zoom out" disabled={zoom <= MIN_ZOOM}>
+        <ZoomButton
+          onClick={() => zoomBy(1 / ZOOM_STEP)}
+          title="Zoom out"
+          disabled={zoom <= MIN_ZOOM}
+        >
           <MagnifyingGlassMinusIcon size={16} weight="regular" />
         </ZoomButton>
         <span className="text-xs text-gray-600 font-medium tabular-nums w-12 text-center">
@@ -149,11 +152,12 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ url, fileName }) => {
           <MagnifyingGlassPlusIcon size={16} weight="regular" />
         </ZoomButton>
         <div className="w-px h-4 bg-gray-200 mx-1" />
-        <ZoomButton onClick={reset} title="Fit to screen">
+        <ZoomButton
+          onClick={reset}
+          title="Fit to screen"
+          disabled={zoom === 1 && pan.x === 0 && pan.y === 0}
+        >
           <ArrowsOutIcon size={16} weight="regular" />
-        </ZoomButton>
-        <ZoomButton onClick={reset} title="Reset" disabled={zoom === 1 && pan.x === 0 && pan.y === 0}>
-          <ArrowCounterClockwiseIcon size={16} weight="regular" />
         </ZoomButton>
       </div>
     </div>

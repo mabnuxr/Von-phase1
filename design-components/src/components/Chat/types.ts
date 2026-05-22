@@ -172,14 +172,7 @@ export interface Message {
   /**
    * Agent-generated file artifacts associated with this message (matched by runId)
    */
-  artifacts?: Array<{
-    fileId: string;
-    fileName: string;
-    artifactType: string;
-    mimeType: string;
-    isPending?: boolean;
-    pdfPreview?: { id: string; fileName: string };
-  }>;
+  artifacts?: FileArtifact[];
   /**
    * Integration write block metadata (persisted on assistant messages).
    * When present, renders integration cards inline on the message.

@@ -23,7 +23,7 @@ export const HtmlViewer: React.FC<HtmlViewerProps> = ({ html, allowScripts = fal
     () =>
       DOMPurify.sanitize(html, {
         WHOLE_DOCUMENT: true,
-        ALLOWED_URI_REGEXP: /^(?:https?|mailto|tel|data:image\/):/i,
+        ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|data:image\/)/i,
       }),
     [html]
   );
