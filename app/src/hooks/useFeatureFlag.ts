@@ -267,11 +267,6 @@ export function useFeatureFlag() {
      * Controls whether Hubspot integration is visible
      */
     isHubspotEnabled: true,
-
-    /**
-     * Raw flags object for advanced usage
-     */
-    flags,
   };
 }
 
