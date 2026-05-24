@@ -867,6 +867,7 @@ export function isApprovalTool(toolName: string): boolean {
   return (
     toolName === 'request_salesforce_approval' ||
     toolName === 'salesforce_tooling_mutate' ||
+    toolName === 'salesforce_metadata' ||
     toolName === 'hubspot_write' ||
     toolName === 'hubspot_bulk_write' ||
     toolName === 'create_command' ||

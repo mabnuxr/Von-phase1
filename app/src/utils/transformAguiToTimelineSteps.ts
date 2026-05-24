@@ -485,6 +485,37 @@ function detectApprovalFromArgs(
     };
   }
 
+  // Pattern 5: Salesforce Metadata API tool — args may be at the top level OR
+  // nested under a `request` key (Pydantic AI generates the schema using the
+  // tool's parameter name; the LLM wraps everything under `request`). Try the
+  // nested shape first, fall back to top-level.
+  const metadataArgs = (
+    parsed.request && typeof parsed.request === "object"
+      ? (parsed.request as Record<string, unknown>)
+      : parsed
+  ) as Record<string, unknown>;
+  if (metadataArgs.summary && metadataArgs.record_name && metadataArgs.mode) {
+    const modeToOperation: Record<string, "create" | "update" | "delete"> = {
+      create: "create",
+      upsert: "create",
+      update: "update",
+      rename: "update",
+      deploy: "update",
+      retrieve: "update",
+      delete: "delete",
+      cancel_deploy: "delete",
+    };
+    return {
+      toolCallId,
+      summary: metadataArgs.summary as string,
+      label: (metadataArgs.metadata_type as string) || "Metadata",
+      recordName: metadataArgs.record_name as string,
+      operation: modeToOperation[metadataArgs.mode as string] ?? "update",
+      changes: normalizeChanges(metadataArgs.changes) || [],
+      approvalType: "salesforce",
+    };
+  }
+
   return null;
 }
 
@@ -996,6 +1027,15 @@ export function transformAguiToTimelineSteps(
                 if (approvalData) {
                   // Update with parsed data from arguments
                   step.approval = approvalData;
+                } else {
+                  // Pre-marked as approval at TOOL_CALL_START by tool name, but
+                  // assembled args show this call doesn't need approval (e.g.
+                  // salesforce_metadata read modes: describe / list / read /
+                  // describeValueType / check_status). Demote to a regular tool
+                  // call so the UI doesn't render a stray "Approved" card.
+                  step.type = "tool_call" as StepType;
+                  step.status = "running" as StepStatus;
+                  step.approval = undefined;
                 }
               } else {
                 // Fallback: detect generic approvals by argument patterns
