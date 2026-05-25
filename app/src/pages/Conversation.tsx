@@ -112,6 +112,7 @@ const Conversation = () => {
   const {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
+    isLoading: isSalesforceLoading,
     integration: salesforceIntegration,
   } = useSalesforceConnection();
 
@@ -274,6 +275,7 @@ const Conversation = () => {
   ) : (
     <SalesforceConnectionBanner
       isSalesforceReady={isSalesforceReady}
+      isLoading={isSalesforceLoading}
       shouldShakeBanner={shouldShakeBanner}
       onShakeComplete={() => setShouldShakeBanner(false)}
     />

@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 
 interface SalesforceConnectionBannerProps {
   isSalesforceReady: boolean;
+  isLoading: boolean;
   shouldShakeBanner: boolean;
   onShakeComplete: () => void;
 }
@@ -12,10 +13,11 @@ interface SalesforceConnectionBannerProps {
  */
 export function SalesforceConnectionBanner({
   isSalesforceReady,
+  isLoading,
   shouldShakeBanner,
   onShakeComplete,
 }: SalesforceConnectionBannerProps) {
-  if (isSalesforceReady) {
+  if (isLoading || isSalesforceReady) {
     return null;
   }
 
