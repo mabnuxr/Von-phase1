@@ -511,7 +511,10 @@ function detectApprovalFromArgs(
       label: (metadataArgs.metadata_type as string) || "Metadata",
       recordName: metadataArgs.record_name as string,
       operation: modeToOperation[metadataArgs.mode as string] ?? "update",
-      changes: normalizeChanges(metadataArgs.changes) || [],
+      changes:
+        normalizeChanges(
+          metadataArgs.changes as Parameters<typeof normalizeChanges>[0],
+        ) || [],
       approvalType: "salesforce",
     };
   }
