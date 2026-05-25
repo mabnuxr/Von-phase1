@@ -177,7 +177,11 @@ const Settings = () => {
 
   const handleBackToHome = useCallback(() => {
     report.settingsBackToHomeClicked(getTabLabel(selectedSettingId));
-    navigate("/chat");
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/chat/new", { replace: true });
+    }
   }, [selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {

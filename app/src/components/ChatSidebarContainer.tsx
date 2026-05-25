@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ChatSidebar } from "@vonlabs/design-components";
 import type { ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
@@ -97,6 +97,9 @@ export function ChatSidebarContainer({
   onHelpDocsClick,
 }: ChatSidebarContainerProps) {
   const navigate = useGuardedNavigate();
+  // Raw navigate for chat-deletion: guarded navigate cannot pass { replace: true },
+  // and the chat is being destroyed so the unsaved-changes guard is moot.
+  const routerNavigate = useNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
   const { isChatSharingEnabled, isDeepResearchEnabled } = useFeatureFlag();
@@ -325,7 +328,7 @@ export function ChatSidebarContainer({
           success: true,
           error: null,
         });
-        if (id === currentConversationId) navigate("/chat");
+        if (id === currentConversationId) routerNavigate("/chat/new", { replace: true });
       } catch (e) {
         const error = e instanceof Error ? e.message : "Unknown error";
         report.chatListChatDeleted({
@@ -346,7 +349,7 @@ export function ChatSidebarContainer({
     [
       deleteConversationAsync,
       currentConversationId,
-      navigate,
+      routerNavigate,
       chatLabelById,
       getChatLocation,
     ],
