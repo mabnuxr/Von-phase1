@@ -20,7 +20,7 @@ export default function RootGate() {
 
     // Check if user is already authenticated (id_token in localStorage)
     if (isAuthenticated()) {
-      navigate("/chat", { replace: true });
+      navigate("/chat/new", { replace: true });
     } else {
       // Not authenticated, redirect to ScaleKit auth
       const t = setTimeout(() => {

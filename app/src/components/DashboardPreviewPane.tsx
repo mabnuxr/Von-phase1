@@ -196,6 +196,7 @@ export const DashboardPreviewPane = memo(function DashboardPreviewPane({
   const handleExpand = useCallback(() => {
     navigate(
       `/redirecting?to=${encodeURIComponent(`/dashboard/${dashboardId}?conversationId=${conversationId}`)}`,
+      undefined,
       collapseSidebar,
     );
   }, [navigate, dashboardId, conversationId, collapseSidebar]);

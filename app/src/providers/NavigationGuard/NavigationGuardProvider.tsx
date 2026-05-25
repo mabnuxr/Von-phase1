@@ -1,5 +1,8 @@
 import { useCallback, useRef, useState, useMemo } from "react";
-import { useNavigate as useRouterNavigate } from "react-router-dom";
+import {
+  useNavigate as useRouterNavigate,
+  type NavigateOptions,
+} from "react-router-dom";
 import { UnsavedChangesModal } from "../../components/Analytics/UnsavedChangesModal";
 import {
   NavigationGuardContext,
@@ -27,7 +30,7 @@ export function NavigationGuardProvider({
   }, []);
 
   const navigate = useCallback(
-    (to: string, onNavigate?: () => void) => {
+    (to: string, options?: NavigateOptions, onNavigate?: () => void) => {
       const check = guardCheckRef.current;
       if (check) {
         const config = check();
@@ -35,13 +38,13 @@ export function NavigationGuardProvider({
           setModalConfig(config);
           setPendingAction(() => () => {
             onNavigate?.();
-            routerNavigate(to);
+            routerNavigate(to, options);
           });
           return;
         }
       }
       onNavigate?.();
-      routerNavigate(to);
+      routerNavigate(to, options);
     },
     [routerNavigate],
   );

@@ -218,7 +218,7 @@ const Conversation = () => {
   const handleGoogleDriveClick = useCallback(
     async (fileId: string) => {
       if (!isDriveConnected) {
-        navigate("/settings?tab=integrations");
+        navigate("/settings?tab=integrations", { state: { fromApp: true } });
         return;
       }
       if (!currentConversationId) return;
@@ -244,7 +244,7 @@ const Conversation = () => {
   const handleBoxClick = useCallback(
     async (fileId: string) => {
       if (!isBoxConnected) {
-        navigate("/settings?tab=integrations");
+        navigate("/settings?tab=integrations", { state: { fromApp: true } });
         return;
       }
       if (!currentConversationId) return;

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, Profiler } from "react";
 import { report } from "../lib/analytics/tracker";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
@@ -47,7 +47,18 @@ const TAB_LABELS: Record<string, string> = {
 
 const Settings = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+
+  // Captured once at mount: did the user reach Settings via an in-app
+  // navigation (sidebar click, banner CTA, etc.)? If so, back-to-home does
+  // navigate(-1) to return to the previous chat. If not (deep link, fresh
+  // tab), we fall back to /chat/new. The flag is on location.state from the
+  // caller; intra-Settings tab replaces wipe location.state, so we capture
+  // into a ref at mount before those run.
+  const cameFromAppRef = useRef(
+    Boolean((location.state as { fromApp?: boolean } | null)?.fromApp),
+  );
   useAuthCheck();
   const { user } = useUser();
 
@@ -177,7 +188,11 @@ const Settings = () => {
 
   const handleBackToHome = useCallback(() => {
     report.settingsBackToHomeClicked(getTabLabel(selectedSettingId));
-    navigate("/chat");
+    if (cameFromAppRef.current) {
+      navigate(-1);
+    } else {
+      navigate("/chat/new", { replace: true });
+    }
   }, [selectedSettingId, navigate, getTabLabel]);
 
   const handleHelpDocsClick = useCallback(() => {
@@ -216,7 +231,7 @@ const Settings = () => {
             "[Settings] No redirect URL provided, using default logout flow",
           );
         }
-        window.location.href = location.origin;
+        window.location.href = window.location.origin;
       }
     } catch (error) {
       // Log error but continue with logout flow
@@ -224,7 +239,7 @@ const Settings = () => {
         console.error("[Settings] Backend logout failed:", error);
       }
       clearAllAuth();
-      window.location.href = location.origin;
+      window.location.href = window.location.origin;
     }
   };
 

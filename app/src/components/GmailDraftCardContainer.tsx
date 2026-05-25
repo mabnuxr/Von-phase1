@@ -121,7 +121,10 @@ export const GmailDraftCardContainer: React.FC<
           variant: "error",
           action: {
             label: "Reconnect",
-            onClick: () => navigate("/settings?tab=integrations"),
+            onClick: () =>
+              navigate("/settings?tab=integrations", {
+                state: { fromApp: true },
+              }),
           },
         });
       } else if (e instanceof ApiError && e.statusCode === 403) {
@@ -130,7 +133,10 @@ export const GmailDraftCardContainer: React.FC<
           variant: "error",
           action: {
             label: "Connect",
-            onClick: () => navigate("/settings?tab=integrations"),
+            onClick: () =>
+              navigate("/settings?tab=integrations", {
+                state: { fromApp: true },
+              }),
           },
         });
       } else {
@@ -331,7 +337,10 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
           variant: "error",
           action: {
             label: "Reconnect",
-            onClick: () => navigate("/settings?tab=integrations"),
+            onClick: () =>
+              navigate("/settings?tab=integrations", {
+                state: { fromApp: true },
+              }),
           },
         });
       } else if (e instanceof ApiError && e.statusCode === 403) {
@@ -340,7 +349,10 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
           variant: "error",
           action: {
             label: "Connect",
-            onClick: () => navigate("/settings?tab=integrations"),
+            onClick: () =>
+              navigate("/settings?tab=integrations", {
+                state: { fromApp: true },
+              }),
           },
         });
       } else {

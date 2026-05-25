@@ -30,7 +30,11 @@ export function WriteBlockedBanner({
         <p className="flex-1 text-sm text-amber-800">{writeBlocked.message}</p>
         {showConnect ? (
           <button
-            onClick={() => navigate("/settings?tab=integrations")}
+            onClick={() =>
+              navigate("/settings?tab=integrations", {
+                state: { fromApp: true },
+              })
+            }
             className="shrink-0 text-sm font-medium text-von-purple hover:opacity-80 cursor-pointer bg-transparent border-none p-0 whitespace-nowrap"
           >
             Go to Integrations →

@@ -82,7 +82,7 @@ export default function Callback() {
       // Identify user in LaunchDarkly after successful login
       await identifyUser();
 
-      navigate("/chat", { replace: true });
+      navigate("/chat/new", { replace: true });
     } catch (error: unknown) {
       if (import.meta.env.DEV) {
         console.error("Token exchange failed:", error);

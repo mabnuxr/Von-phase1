@@ -609,6 +609,7 @@ function ExistingChatInner(
       ) {
         navigate(
           `/settings?tab=custom-iq&fieldId=${mention.aiFieldContext?.aiFieldId ?? mention.id}`,
+          { state: { fromApp: true } },
         );
         return;
       }
@@ -966,7 +967,9 @@ function ExistingChatInner(
                 onClose={closeChatPanel}
                 onNavigateToSettings={(realFieldId) => {
                   closeChatPanel();
-                  navigate(`/settings?tab=custom-iq&fieldId=${realFieldId}`);
+                  navigate(`/settings?tab=custom-iq&fieldId=${realFieldId}`, {
+                    state: { fromApp: true },
+                  });
                 }}
               />
             </div>

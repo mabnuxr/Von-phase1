@@ -325,7 +325,8 @@ export function ChatSidebarContainer({
           success: true,
           error: null,
         });
-        if (id === currentConversationId) navigate("/chat");
+        if (id === currentConversationId)
+          navigate("/chat/new", { replace: true });
       } catch (e) {
         const error = e instanceof Error ? e.message : "Unknown error";
         report.chatListChatDeleted({
