@@ -208,9 +208,10 @@ function DashboardCanvas({
   }, [dashboardId, sessionId]);
 
   const handleWidgetQueryViewed = useCallback(
-    (_panelId: string, widgetTitle: string, widgetType: string) => {
+    (panelId: string, widgetTitle: string, widgetType: string) => {
       report.dashboardWidgetQueryViewed(
         dashboardId,
+        panelId,
         widgetTitle,
         widgetType,
         sessionId,

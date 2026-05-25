@@ -154,6 +154,7 @@ export type EventMap = {
   };
   "Dashboard - Widget Query Viewed": {
     dashboard_id: string;
+    widget_id: string;
     widget_name: string;
     widget_type: string;
     session_id: string;

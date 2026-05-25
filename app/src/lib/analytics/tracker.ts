@@ -323,12 +323,14 @@ export const report = {
 
   dashboardWidgetQueryViewed: (
     dashboardId: string,
+    widgetId: string,
     widgetName: string,
     widgetType: string,
     sessionId: string,
   ) =>
     track("Dashboard - Widget Query Viewed", {
       dashboard_id: dashboardId,
+      widget_id: widgetId,
       widget_name: widgetName,
       widget_type: widgetType,
       session_id: sessionId,
