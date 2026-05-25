@@ -45,8 +45,9 @@ export function getContextMenuItems(
     <ExportIcon size={14} />
   );
 
-  // Server-managed items (e.g. scheduled command runs) reject folder
-  // changes on the API; tell the user exactly what's not allowed.
+  // Server-managed items (e.g. scheduled command runs) don't allow folder
+  // mutations on the API — hide those entries entirely rather than show
+  // them disabled.
   const managed = !!options.isSystemManaged;
 
   return [
@@ -56,25 +57,24 @@ export function getContextMenuItems(
       icon: <PencilSimpleIcon size={14} />,
       disabled: !isOwner,
     },
-    // Multi-folder membership picker.
-    {
-      id: 'manage-folders',
-      label: options.isInFolder ? 'Manage Folders' : 'Add to Folder',
-      icon: <FoldersIcon size={14} />,
-      disabled: managed,
-      tooltip: managed ? "Scheduled command runs can't be re-filed." : undefined,
-    },
+    ...(managed
+      ? []
+      : [
+          {
+            id: 'manage-folders',
+            label: options.isInFolder ? 'Manage Folders' : 'Add to Folder',
+            icon: <FoldersIcon size={14} />,
+          },
+        ]),
     ...(options.enableShare && itemType === 'chat'
       ? [{ id: 'share', label: isShared ? 'Shared' : 'Share', icon: shareIcon }]
       : []),
-    ...(options.isInFolder
+    ...(options.isInFolder && !managed
       ? [
           {
             id: 'remove-from-folder',
             label: 'Remove from Folder',
             icon: <FolderSimpleIcon size={14} />,
-            disabled: managed,
-            tooltip: managed ? 'Scheduled command runs stay in their managed folder.' : undefined,
           },
         ]
       : []),
