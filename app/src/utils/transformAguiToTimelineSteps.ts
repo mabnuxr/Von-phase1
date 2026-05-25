@@ -494,23 +494,28 @@ function detectApprovalFromArgs(
       ? (parsed.request as Record<string, unknown>)
       : parsed
   ) as Record<string, unknown>;
-  if (metadataArgs.summary && metadataArgs.record_name && metadataArgs.mode) {
-    const modeToOperation: Record<string, "create" | "update" | "delete"> = {
-      create: "create",
-      upsert: "create",
-      update: "update",
-      rename: "update",
-      deploy: "update",
-      retrieve: "update",
-      delete: "delete",
-      cancel_deploy: "delete",
-    };
+  const modeToOperation: Record<string, "create" | "update" | "delete"> = {
+    create: "create",
+    upsert: "create",
+    update: "update",
+    rename: "update",
+    deploy: "update",
+    retrieve: "update",
+    delete: "delete",
+    cancel_deploy: "delete",
+  };
+  if (
+    metadataArgs.summary &&
+    metadataArgs.record_name &&
+    typeof metadataArgs.mode === "string" &&
+    metadataArgs.mode in modeToOperation
+  ) {
     return {
       toolCallId,
       summary: metadataArgs.summary as string,
       label: (metadataArgs.metadata_type as string) || "Metadata",
       recordName: metadataArgs.record_name as string,
-      operation: modeToOperation[metadataArgs.mode as string] ?? "update",
+      operation: modeToOperation[metadataArgs.mode],
       changes:
         normalizeChanges(
           metadataArgs.changes as Parameters<typeof normalizeChanges>[0],
