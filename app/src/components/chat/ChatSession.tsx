@@ -161,6 +161,14 @@ export interface ChatSessionProps {
   dashboardId?: string;
   dashboardTitle?: string;
   dashboardVersion?: number;
+  /** Session ID from the dashboard page — when set alongside dashboardId, fires
+   *  Dashboard-scoped PostHog events (Chat Message Sent, Response Feedback,
+   *  Sources Viewed) in addition to the standard chat events. */
+  analyticsSessionId?: string;
+  /** Whether the dashboard is currently in edit mode — used for the Dashboard - Chat Message Sent event. */
+  dashboardMode?: "edit" | "published";
+  /** Number of widgets on the dashboard — used for the Dashboard - Chat Message Sent event. */
+  dashboardWidgetCount?: number;
 
   /**
    * Widget chips to show in the input before a conversation exists (new-chat path).
@@ -630,6 +638,105 @@ function ExistingChatInner(
     [widgetMentions, aiFieldMention],
   );
 
+  // ── Dashboard-scoped analytics wrappers ──────────────────────────
+  // When both dashboardId and analyticsSessionId are present, fire
+  // Dashboard-specific PostHog events alongside the standard chat events.
+  const dashboardAnalyticsActive = !!(
+    props.dashboardId && props.analyticsSessionId
+  );
+
+  const handleSendMessageWithDashboard = useCallback(
+    async (
+      content: string,
+      attachments?: Parameters<typeof handleSendMessage>[1],
+      options?: Parameters<typeof handleSendMessage>[2],
+    ) => {
+      if (dashboardAnalyticsActive) {
+        const pillLabels = (options?.mentions ?? []).map((m) => m.name);
+        report.dashboardChatMessageSent({
+          dashboardId: props.dashboardId!,
+          chatId: conversationId,
+          contextPills: pillLabels,
+          pillCount: pillLabels.length,
+          messageLength: content.length,
+          mode: props.dashboardMode ?? "published",
+          dashboardWidgetCount: props.dashboardWidgetCount ?? 0,
+          sessionId: props.analyticsSessionId!,
+        });
+      }
+      return handleSendMessage(content, attachments, options);
+    },
+    [
+      handleSendMessage,
+      dashboardAnalyticsActive,
+      props.dashboardId,
+      props.analyticsSessionId,
+      props.dashboardMode,
+      props.dashboardWidgetCount,
+      conversationId,
+    ],
+  );
+
+  const handleThumbsUpWithDashboard = useCallback(
+    (messageId: string) => {
+      report.chatThumbsUp(messageId);
+      if (dashboardAnalyticsActive) {
+        report.dashboardChatResponseFeedback({
+          dashboardId: props.dashboardId!,
+          chatId: conversationId,
+          feedback: "thumbs_up",
+          sessionId: props.analyticsSessionId!,
+        });
+      }
+    },
+    [
+      dashboardAnalyticsActive,
+      props.dashboardId,
+      props.analyticsSessionId,
+      conversationId,
+    ],
+  );
+
+  const handleThumbsDownWithDashboard = useCallback(
+    (messageId: string) => {
+      report.chatThumbsDown(messageId);
+      if (dashboardAnalyticsActive) {
+        report.dashboardChatResponseFeedback({
+          dashboardId: props.dashboardId!,
+          chatId: conversationId,
+          feedback: "thumbs_down",
+          sessionId: props.analyticsSessionId!,
+        });
+      }
+    },
+    [
+      dashboardAnalyticsActive,
+      props.dashboardId,
+      props.analyticsSessionId,
+      conversationId,
+    ],
+  );
+
+  const handleTransparencyClickWithDashboard = useCallback(
+    (messageId: string) => {
+      chatV2.handleTransparencyClick(messageId);
+      if (dashboardAnalyticsActive) {
+        report.dashboardChatSourcesViewed(
+          props.dashboardId!,
+          conversationId,
+          props.analyticsSessionId!,
+        );
+      }
+    },
+    [
+      chatV2.handleTransparencyClick,
+      dashboardAnalyticsActive,
+      props.dashboardId,
+      props.analyticsSessionId,
+      conversationId,
+    ],
+  );
+
   const handleCombinedWidgetMentionRemoved = useCallback(
     (args: { id: string }) => {
       if (aiFieldMention && args.id === aiFieldMention.id) {
@@ -705,7 +812,7 @@ function ExistingChatInner(
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId={conversationId}
       messages={chatV2.transformedMessages}
-      onSendMessage={handleSendMessage}
+      onSendMessage={handleSendMessageWithDashboard}
       onStopStreaming={chatV2.handleStopStreaming}
       inputValue={chatV2.autoPopulatedInput}
       onInputValueChange={chatV2.setAutoPopulatedInput}
@@ -763,15 +870,15 @@ function ExistingChatInner(
       }
       // Transparency
       showTransparency={base.features.isSourcesEnabled}
-      onTransparencyClick={chatV2.handleTransparencyClick}
+      onTransparencyClick={handleTransparencyClickWithDashboard}
       // Plus button
       onAddClick={report.chatPlusButtonClicked}
       // Message actions analytics
       onThinkingStepExpanded={report.chatThinkingStepExpanded}
       onCopyMessage={report.chatResponseCopied}
       onDownloadMessage={report.chatResponseDownloaded}
-      onThumbsUp={report.chatThumbsUp}
-      onThumbsDown={report.chatThumbsDown}
+      onThumbsUp={handleThumbsUpWithDashboard}
+      onThumbsDown={handleThumbsDownWithDashboard}
       onResponseLinkClicked={report.chatResponseLinkClicked}
       onResponseSectionCopied={report.chatResponseSectionCopied}
       // Actions
@@ -1049,6 +1156,42 @@ function NewChatInner(
     onCreated: props.onCreated,
   });
 
+  // Fire Dashboard - Chat Message Sent for the first message in a new chat
+  // (chat_id is null because the conversation doesn't exist yet).
+  const newChatDashboardAnalyticsActive = !!(
+    props.dashboardId && props.analyticsSessionId
+  );
+  const newChatHandleSendMessage = useCallback(
+    async (
+      content: string,
+      attachments?: Parameters<typeof createFlow.handleSendMessage>[1],
+      options?: Parameters<typeof createFlow.handleSendMessage>[2],
+    ) => {
+      if (newChatDashboardAnalyticsActive) {
+        const pillLabels = (options?.mentions ?? []).map((m) => m.name);
+        report.dashboardChatMessageSent({
+          dashboardId: props.dashboardId!,
+          chatId: null,
+          contextPills: pillLabels,
+          pillCount: pillLabels.length,
+          messageLength: content.length,
+          mode: props.dashboardMode ?? "published",
+          dashboardWidgetCount: props.dashboardWidgetCount ?? 0,
+          sessionId: props.analyticsSessionId!,
+        });
+      }
+      return createFlow.handleSendMessage(content, attachments, options);
+    },
+    [
+      createFlow.handleSendMessage,
+      newChatDashboardAnalyticsActive,
+      props.dashboardId,
+      props.analyticsSessionId,
+      props.dashboardMode,
+      props.dashboardWidgetCount,
+    ],
+  );
+
   return (
     <Chat
       ref={chatRef}
@@ -1059,7 +1202,7 @@ function NewChatInner(
       apiBaseUrl={appConfig.apiBaseUrl}
       conversationId=""
       messages={createFlow.transformedMessages}
-      onSendMessage={createFlow.handleSendMessage}
+      onSendMessage={newChatHandleSendMessage}
       isLoading={false}
       defaultInputValue={createFlow.restoredInput ?? undefined}
       compact={props.compact}

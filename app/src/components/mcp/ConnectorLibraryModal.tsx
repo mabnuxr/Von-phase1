@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { report } from "../../lib/analytics/tracker";
 import {
   MagnifyingGlassIcon,
   XIcon,
@@ -840,6 +841,7 @@ function NativeDetailView({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => report.integrationsLearnMoreClicked()}
                   >
                     Documentation{" "}
                     <ArrowSquareOutIcon size={12} className="text-gray-400" />
@@ -1308,6 +1310,7 @@ function MCPDetailView({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                    onClick={() => report.integrationsLearnMoreClicked()}
                   >
                     Documentation{" "}
                     <ArrowSquareOutIcon size={12} className="text-gray-400" />

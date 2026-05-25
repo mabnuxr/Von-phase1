@@ -200,6 +200,10 @@ export interface CounterWidgetProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /** Fired when the query-info popover is opened (View query button). */
+  onQueryViewed?: () => void;
+  /** Fired when the SQL is copied from the query-info popover. */
+  onSQLCopied?: () => void;
   /**
    * When true, renders the orange tab-pill drag handle next to the title.
    * Only takes effect alongside the dashboard-level drag-and-drop flag.
@@ -294,6 +298,10 @@ export interface WidgetShellProps {
   filterSlot?: React.ReactNode;
   /** Callback when the "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: () => void;
+  /** Fired when the query-info popover is opened (View query button). */
+  onQueryViewed?: () => void;
+  /** Fired when the SQL is copied from the query-info popover. */
+  onSQLCopied?: () => void;
   /**
    * When true, renders the orange tab-pill drag handle next to the title.
    * Only takes effect alongside the dashboard-level drag-and-drop flag.
@@ -346,6 +354,10 @@ export interface WidgetRendererProps {
   filterSlot?: React.ReactNode;
   /** Callback when the widget's "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
+  /** Fired when the query-info popover is opened for this widget. */
+  onWidgetQueryViewed?: (widgetId: string, widgetTitle: string, widgetType: string) => void;
+  /** Fired when SQL is copied from the query-info popover for this widget. */
+  onWidgetSQLCopied?: (widgetId: string, widgetTitle: string) => void;
   /** Variables for `{{key}}` mustache tokens inside a text widget's content. */
   variables?: MustacheVariables;
   /**
@@ -409,6 +421,10 @@ export interface DashboardGridProps {
   widgetFilterSlot?: (panelId: string) => React.ReactNode;
   /** Callback when a widget's "add to chat" icon is clicked. Button hidden when absent. */
   onAddToChat?: (widget: WidgetAddToChatPayload) => void;
+  /** Fired when the query-info popover is opened on any widget. */
+  onWidgetQueryViewed?: (widgetId: string, widgetTitle: string, widgetType: string) => void;
+  /** Fired when SQL is copied from the query-info popover on any widget. */
+  onWidgetSQLCopied?: (widgetId: string, widgetTitle: string) => void;
   /** Per-widget variables map for `{{key}}` mustache tokens inside text widgets. */
   variablesByWidget?: Record<string, MustacheVariables>;
   /**

@@ -97,8 +97,114 @@ export type EventMap = {
   };
   "Manage Team - Learn More Clicked": Record<never, never>;
 
-  // ── Dashboards ────────────────────────────────────────────────────────────
+  // ── Dashboards (list) ─────────────────────────────────────────────────────
   "Dashboards - Dashboard Clicked": { dashboard_name: string };
+
+  // ── Dashboard (single view) ────────────────────────────────────────────────
+  "Dashboard - Page Viewed": {
+    dashboard_id: string;
+    dashboard_name: string;
+    view_type: "sidebar" | "fullscreen";
+    mode: "published" | "draft";
+    owner: "me" | "shared";
+    dashboard_widget_count: number;
+    chat_id: string | null;
+    session_id: string;
+  };
+  "Dashboard - Share Modal Opened": {
+    dashboard_id: string;
+    existing_collaborator_count: number;
+    session_id: string;
+  };
+  "Dashboard - Share Link Copied": {
+    dashboard_id: string;
+    session_id: string;
+  };
+  "Dashboard - Version History Opened": {
+    dashboard_id: string;
+    trigger: "overflow_menu" | "timestamp_click";
+    session_id: string;
+  };
+  "Dashboard - Version History Entry Previewed": {
+    dashboard_id: string;
+    version_id: string;
+    version_date: string;
+    session_id: string;
+  };
+  "Dashboard - Closed": {
+    dashboard_id: string;
+    time_spent_ms: number;
+    session_id: string;
+  };
+  "Dashboard - View in Dashboards Clicked": {
+    dashboard_id: string;
+    session_id: string;
+  };
+  "Dashboard - Ask Von Clicked": {
+    dashboard_id: string;
+    source: string;
+    session_id: string;
+  };
+  "Dashboard - Drilldown Record Clicked": {
+    dashboard_id: string;
+    widget_name: string;
+    record_id: string;
+    object_type: string;
+    session_id: string;
+  };
+  "Dashboard - Widget Query Viewed": {
+    dashboard_id: string;
+    widget_name: string;
+    widget_type: string;
+    session_id: string;
+  };
+  "Dashboard - Widget SQL Copied": {
+    dashboard_id: string;
+    widget_name: string;
+    session_id: string;
+  };
+  "Dashboard - Widget Added to Chat": {
+    dashboard_id: string;
+    widget_name: string;
+    widget_type: string;
+    session_id: string;
+  };
+  "Dashboard - Edit Entered": {
+    dashboard_id: string;
+    trigger: "edit_button" | "new_dashboard";
+    dashboard_status: "published" | "draft";
+    session_id: string;
+  };
+  "Dashboard - Discard Clicked": {
+    dashboard_id: string;
+    had_unsaved_changes: boolean;
+    time_in_edit_ms: number;
+    session_id: string;
+  };
+  "Dashboard - Chat Message Sent": {
+    dashboard_id: string;
+    chat_id: string | null;
+    source: "dashboard";
+    context_pills: string[];
+    pill_count: number;
+    message_length: number;
+    mode: "edit" | "published";
+    dashboard_widget_count: number;
+    session_id: string;
+  };
+  "Dashboard - Chat Response Feedback": {
+    dashboard_id: string;
+    chat_id: string | null;
+    source: "dashboard";
+    feedback: "thumbs_up" | "thumbs_down";
+    session_id: string;
+  };
+  "Dashboard - Chat Sources Viewed": {
+    dashboard_id: string;
+    chat_id: string | null;
+    source: "dashboard";
+    session_id: string;
+  };
 
   // ── Chat (sidebar & input) ─────────────────────────────────────────────────
   "Chat - New Chat Clicked": Record<never, never>;
@@ -201,6 +307,7 @@ export type EventMap = {
     integration_category: string;
     connection_type: string;
   };
+  "Integrations - Learn More Clicked": Record<never, never>;
   "Integrations - API Credentials Link Clicked": {
     integration_name: string;
     integration_category: string;
