@@ -85,9 +85,7 @@ export function getContextMenuItems(
 }
 
 /** Get context menu items for folders. */
-export function getFolderContextMenuItems(
-  options: { isPinned?: boolean } = {}
-): ContextMenuItem[] {
+export function getFolderContextMenuItems(options: { isPinned?: boolean } = {}): ContextMenuItem[] {
   return [
     {
       id: 'pin',
