@@ -1005,10 +1005,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       <ContextMenu
         isOpen={folderContextMenu.isOpen}
         onClose={handleCloseFolderContextMenu}
-        items={getFolderContextMenuItems({
-          isPinned: folderContextMenu.folder?.isPinned,
-          isSystem: folderContextMenu.folder?.isSystem,
-        })}
+        items={getFolderContextMenuItems({ isPinned: folderContextMenu.folder?.isPinned })}
         fixedPosition={folderContextMenu.position}
         width={128}
         onItemClick={(menuItem) => {
