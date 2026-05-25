@@ -174,6 +174,7 @@ const NewConversation = () => {
   const {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
+    isLoading: isSalesforceLoading,
   } = useSalesforceConnection();
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
@@ -353,6 +354,7 @@ const NewConversation = () => {
   ) : (
     <SalesforceConnectionBanner
       isSalesforceReady={isSalesforceReady}
+      isLoading={isSalesforceLoading}
       shouldShakeBanner={shouldShakeBanner}
       onShakeComplete={() => setShouldShakeBanner(false)}
     />
