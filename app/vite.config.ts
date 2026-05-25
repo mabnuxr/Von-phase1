@@ -82,6 +82,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path,
+          cookieDomainRewrite: "",
           configure: (proxy) => {
             proxy.on("error", (err) => {
               console.log("proxy error", err);
