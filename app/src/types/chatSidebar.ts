@@ -97,6 +97,8 @@ export interface FolderConversationRow {
   title: string;
   mode: ConversationMode;
   agent_version: "v1" | "v2";
+  /** What kind of action created this conversation (e.g. "user_chat"). */
+  source?: string;
   created_at: string;
   created_by: string;
   updated_at: string;

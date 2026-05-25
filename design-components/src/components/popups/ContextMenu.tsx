@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TransparentButton } from '../forms/buttons';
+import { Tooltip } from '../Tooltip';
 
 // ============================================================================
 // Types
@@ -38,6 +39,11 @@ export interface ContextMenuItem {
    * @default false
    */
   disabled?: boolean;
+  /**
+   * Native tooltip text — useful for explaining why a disabled item can't
+   * be used. Rendered via the `title` attribute on the row wrapper.
+   */
+  tooltip?: string;
 }
 
 export type ContextMenuPosition =
@@ -363,17 +369,23 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             {/* Menu items */}
             <div className="py-0.5">
               {items.map((item) => (
-                <TransparentButton
+                <Tooltip
                   key={item.id}
-                  onClick={() => handleItemClick(item)}
-                  icon={item.icon}
-                  active={item.active}
-                  rightContent={item.rightContent}
-                  variant={item.variant}
-                  disabled={item.disabled}
+                  content={item.tooltip}
+                  enabled={!!item.tooltip}
+                  wrapperClassName="block"
                 >
-                  {item.label}
-                </TransparentButton>
+                  <TransparentButton
+                    onClick={() => handleItemClick(item)}
+                    icon={item.icon}
+                    active={item.active}
+                    rightContent={item.rightContent}
+                    variant={item.variant}
+                    disabled={item.disabled}
+                  >
+                    {item.label}
+                  </TransparentButton>
+                </Tooltip>
               ))}
             </div>
 

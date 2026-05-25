@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { conversationsService } from "../services";
+import { folderKeys } from "./folders";
 import type {
   ConversationMode,
   PaginatedConversationsResponse,
@@ -128,9 +129,8 @@ export function useDeleteConversation() {
       if (import.meta.env.DEV) {
         console.log("[useDeleteConversation] Deleted:", conversationId);
       }
-      // Invalidate all conversation lists
       queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-      // Remove messages cache for deleted conversation
+      queryClient.invalidateQueries({ queryKey: folderKeys.all });
       queryClient.removeQueries({
         queryKey: conversationKeys.messages(conversationId),
       });

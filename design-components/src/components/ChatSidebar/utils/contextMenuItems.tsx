@@ -25,6 +25,7 @@ export function getContextMenuItems(
     itemType?: 'chat' | 'dashboard';
     isOwner?: boolean;
     isInFolder?: boolean;
+    isSystemManaged?: boolean;
     enableShare?: boolean;
     shareInfo?: { isShared: boolean; accessType?: string | null };
   } = {}
@@ -44,6 +45,10 @@ export function getContextMenuItems(
     <ExportIcon size={14} />
   );
 
+  // Server-managed items (e.g. scheduled command runs) reject folder
+  // changes on the API; tell the user exactly what's not allowed.
+  const managed = !!options.isSystemManaged;
+
   return [
     {
       id: 'rename',
@@ -51,16 +56,13 @@ export function getContextMenuItems(
       icon: <PencilSimpleIcon size={14} />,
       disabled: !isOwner,
     },
-    // Multi-folder membership picker. Item id kept as `manage-folders` to keep
-    // the API a clean break from the legacy `move` (single-select) flow.
-    // Label swings on whether the row currently lives in a folder: rows
-    // already filed read as "Manage Folders" (the user is curating the set);
-    // unfiled rows read as "Add to Folder" (the user is filing for the first
-    // time). The underlying behavior is identical.
+    // Multi-folder membership picker.
     {
       id: 'manage-folders',
       label: options.isInFolder ? 'Manage Folders' : 'Add to Folder',
       icon: <FoldersIcon size={14} />,
+      disabled: managed,
+      tooltip: managed ? "Scheduled command runs can't be re-filed." : undefined,
     },
     ...(options.enableShare && itemType === 'chat'
       ? [{ id: 'share', label: isShared ? 'Shared' : 'Share', icon: shareIcon }]
@@ -71,6 +73,8 @@ export function getContextMenuItems(
             id: 'remove-from-folder',
             label: 'Remove from Folder',
             icon: <FolderSimpleIcon size={14} />,
+            disabled: managed,
+            tooltip: managed ? 'Scheduled command runs stay in their managed folder.' : undefined,
           },
         ]
       : []),
