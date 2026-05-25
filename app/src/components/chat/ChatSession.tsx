@@ -729,7 +729,7 @@ function ExistingChatInner(
       }
     },
     [
-      chatV2.handleTransparencyClick,
+      chatV2,
       dashboardAnalyticsActive,
       props.dashboardId,
       props.analyticsSessionId,
@@ -1183,7 +1183,7 @@ function NewChatInner(
       return createFlow.handleSendMessage(content, attachments, options);
     },
     [
-      createFlow.handleSendMessage,
+      createFlow,
       newChatDashboardAnalyticsActive,
       props.dashboardId,
       props.analyticsSessionId,
