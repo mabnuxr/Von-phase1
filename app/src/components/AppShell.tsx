@@ -63,7 +63,7 @@ export function AppShell() {
   // --- Navigation Handlers ---
   const handleSettingsClick = useCallback(() => {
     report.chatSettingsClicked();
-    navigate("/settings");
+    navigate("/settings", { state: { fromApp: true } });
   }, [navigate]);
 
   // --- Share Modal ---

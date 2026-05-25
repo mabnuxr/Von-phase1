@@ -7,7 +7,9 @@ import type {
 
 /**
  * Drop-in replacement for `useNavigate()` that respects active navigation guards.
- * Returns a `navigate(to)` function that shows a confirmation modal when blocked.
+ * Returns a `navigate(to, options?, onNavigate?)` function that shows a confirmation
+ * modal when blocked. `onNavigate` fires immediately before the route change, paired
+ * with any guard confirmation.
  */
 export function useGuardedNavigate() {
   const ctx = useContext(NavigationGuardContext);

@@ -549,7 +549,8 @@ function handleSendError(
       variant: "error",
       action: {
         label: "Reconnect",
-        onClick: () => navigate("/settings?tab=integrations"),
+        onClick: () =>
+          navigate("/settings?tab=integrations", { state: { fromApp: true } }),
       },
     });
   } else if (e instanceof ApiError && e.statusCode === 403) {
@@ -558,7 +559,8 @@ function handleSendError(
       variant: "error",
       action: {
         label: "Connect",
-        onClick: () => navigate("/settings?tab=integrations"),
+        onClick: () =>
+          navigate("/settings?tab=integrations", { state: { fromApp: true } }),
       },
     });
   } else if (errorCode === "slack_not_in_channel") {
