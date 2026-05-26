@@ -116,8 +116,8 @@ export interface ChatInputSelectorProps {
   onDeleteCommand?: (id: string) => void;
   /** True while a save/delete mutation is in-flight */
   isSavingCommand?: boolean;
-  /** Team members available as schedule recipients */
-  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Tenant members available as schedule recipients */
+  tenantMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: import('../Commands/types').ScheduleRecipient;
   /** Called when the bookmark/favorite icon is toggled on a command */
@@ -215,7 +215,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand = false,
-      teamMembers,
+      tenantMembers,
       currentUser,
       onToggleFavorite,
       onRequestFilePreviewUrl,
@@ -527,7 +527,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
             onSaveCommand={onSaveCommand ?? (() => {})}
             onDeleteCommand={handleDeleteCommand}
             isSaving={isSavingCommand}
-            teamMembers={teamMembers}
+            tenantMembers={tenantMembers}
             currentUser={currentUser}
             onToggleFavorite={onToggleFavorite}
             onRequestFilePreviewUrl={onRequestFilePreviewUrl}

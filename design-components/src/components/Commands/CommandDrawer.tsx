@@ -81,8 +81,8 @@ export interface CommandDrawerProps {
   onRequestFilePreviewUrl?: (s3Key: string) => Promise<string>;
   /** When provided, renders a back arrow in the header (e.g. when opened from the manage drawer) */
   onBack?: () => void;
-  /** Team members available as schedule recipients */
-  teamMembers?: ScheduleRecipient[];
+  /** Tenant members available as schedule recipients */
+  tenantMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
   /** Called when the user sends a test from the modal. Receives current form data. Should return a promise. */
@@ -107,7 +107,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
   onUploadFile,
   onRequestFilePreviewUrl,
   onBack,
-  teamMembers,
+  tenantMembers,
   currentUser,
   onSendTest,
   availableDashboards,
@@ -117,7 +117,7 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
       isOpen,
       editingCommand,
       currentUser,
-      teamMembers,
+      tenantMembers,
     });
 
   const {
@@ -398,19 +398,19 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   placeholder="Search team members..."
                   recipients={form.sharedUsers}
                   onChange={(next) => setForm((v) => ({ ...v, sharedUsers: next }))}
-                  availableRecipients={teamMembers?.filter((m) => m.id !== currentUser?.id) ?? []}
+                  availableRecipients={tenantMembers?.filter((m) => m.id !== currentUser?.id) ?? []}
                   readOnly={readOnly}
                 />
               </div>
             )}
           </Accordion>
 
-          {/* Schedule — collapsible (hidden when teamMembers is not provided) */}
-          {teamMembers && (
+          {/* Schedule — collapsible (hidden when tenantMembers is not provided) */}
+          {tenantMembers && (
             <ScheduleSection
               schedule={form.schedule}
               onScheduleChange={setSchedule}
-              teamMembers={teamMembers}
+              tenantMembers={tenantMembers}
               readOnly={readOnly}
               onSendTest={handleSendTest}
             />

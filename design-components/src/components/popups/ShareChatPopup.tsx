@@ -44,7 +44,7 @@ export interface ShareResult {
   allowFileAttachments: boolean;
 }
 
-export interface TeamMemberOption {
+export interface TenantMemberOption {
   id: string;
   email: string;
   firstName: string;
@@ -76,7 +76,7 @@ export interface ShareChatPopupProps {
   /** Deactivate share link */
   onDeactivateShare: (conversationId: string) => Promise<void>;
   /** Fetch team members for user picker */
-  onGetTeamMembers?: () => Promise<TeamMemberOption[]>;
+  onGetTenantMembers?: () => Promise<TenantMemberOption[]>;
   /** Toast callback — fired after each share action completes */
   onToast?: (message: string) => void;
 }
@@ -94,13 +94,13 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   onCreateShare,
   onUpdateShare,
   onDeactivateShare,
-  onGetTeamMembers,
+  onGetTenantMembers,
   onToast,
 }) => {
   const [shareStatus, setShareStatus] = useState<ShareStatus | null>(null);
   const [selectedType, setSelectedType] = useState<AccessType | 'private'>('private');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMemberOption[]>([]);
+  const [tenantMembers, setTenantMembers] = useState<TenantMemberOption[]>([]);
 
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -108,13 +108,13 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
   // RecipientPicker expects Recipient[] — derive from team members list
   const availableRecipients = useMemo<Recipient[]>(
     () =>
-      teamMembers.map((m) => ({
+      tenantMembers.map((m) => ({
         id: m.id,
         email: m.email,
         firstName: m.firstName,
         lastName: m.lastName,
       })),
-    [teamMembers]
+    [tenantMembers]
   );
   const selectedRecipients = useMemo<Recipient[]>(
     () => availableRecipients.filter((r) => selectedUserIds.includes(r.id)),
@@ -140,9 +140,9 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
           setSelectedUserIds([]);
         }
 
-        if (onGetTeamMembers) {
-          const members = await onGetTeamMembers();
-          setTeamMembers(members);
+        if (onGetTenantMembers) {
+          const members = await onGetTenantMembers();
+          setTenantMembers(members);
         }
       } catch (error) {
         console.error('Failed to load share status:', error);
@@ -150,7 +150,7 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
     };
 
     load();
-  }, [isOpen, conversationId, onGetShareStatus, onGetTeamMembers]);
+  }, [isOpen, conversationId, onGetShareStatus, onGetTenantMembers]);
 
   const handleCopyLink = useCallback(async () => {
     const url = shareStatus?.shareUrl;

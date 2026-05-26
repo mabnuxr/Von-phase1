@@ -200,7 +200,7 @@ export function AppShell() {
             onDeactivateShare={(id) =>
               conversationsService.deactivateShareLink(id)
             }
-            onGetTeamMembers={async () => {
+            onGetTenantMembers={async () => {
               const members = tenantMembersData ?? [];
               return members.map((m) => ({
                 id: m.id,

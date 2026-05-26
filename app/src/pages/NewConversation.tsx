@@ -398,7 +398,7 @@ const NewConversation = () => {
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
         availableDashboards={availableDashboards}
-        teamMembers={tenantMembersForSchedule}
+        tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         enableMentions={isDeepResearchEnabled}

@@ -170,7 +170,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onSaveCommand={handleSaveCommand}
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
-        teamMembers={tenantMembersForSchedule}
+        tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         onToggleFavorite={handleToggleFavorite}

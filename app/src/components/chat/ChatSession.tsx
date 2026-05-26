@@ -754,7 +754,7 @@ function ExistingChatInner(
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
       availableDashboards={base.commands.availableDashboards}
-      teamMembers={tenantMembersForSchedule}
+      tenantMembers={tenantMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={
         base.features.isScheduledCommandsEnabled

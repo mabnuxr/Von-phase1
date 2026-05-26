@@ -95,7 +95,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onSaveCommand,
       onDeleteCommand,
       isSavingCommand,
-      teamMembers,
+      tenantMembers,
       currentUser,
       onSendTest,
       onToggleFavorite,
@@ -306,7 +306,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 onSaveCommand={onSaveCommand}
                 onDeleteCommand={onDeleteCommand}
                 isSavingCommand={isSavingCommand}
-                teamMembers={teamMembers}
+                tenantMembers={tenantMembers}
                 currentUser={currentUser}
                 onSendTest={onSendTest}
                 onToggleFavorite={onToggleFavorite}
@@ -468,7 +468,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             onSaveCommand={onSaveCommand}
             onDeleteCommand={onDeleteCommand}
             isSavingCommand={isSavingCommand}
-            teamMembers={teamMembers}
+            tenantMembers={tenantMembers}
             currentUser={currentUser}
             onSendTest={onSendTest}
             onToggleFavorite={onToggleFavorite}
