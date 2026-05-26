@@ -568,7 +568,7 @@ export type {
   ShareRecipient as ChatShareRecipient,
   ShareStatus as ChatShareStatus,
   ShareResult as ChatShareResult,
-  TeamMemberOption,
+  TenantMemberOption,
 } from './popups';
 
 export { DeleteConfirmationPopup } from './popups';

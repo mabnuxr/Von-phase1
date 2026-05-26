@@ -37,9 +37,9 @@ const emptyForm: FormValues = {
   autoApprove: false,
 };
 
-function commandToForm(cmd: Command, teamMembers?: Recipient[]): FormValues {
+function commandToForm(cmd: Command, tenantMembers?: Recipient[]): FormValues {
   const ids = cmd.sharedUserIds ?? [];
-  const lookup = new Map((teamMembers ?? []).map((m) => [m.id, m]));
+  const lookup = new Map((tenantMembers ?? []).map((m) => [m.id, m]));
   const sharedUsers = ids
     .map((id) => lookup.get(id))
     .filter((r): r is Recipient => r !== undefined);
@@ -60,7 +60,7 @@ export interface UseCommandFormOptions {
   editingCommand?: Command | null;
   currentUser?: ScheduleRecipient;
   /** Used to hydrate sharedUserIds into Recipient chips when editing */
-  teamMembers?: Recipient[];
+  tenantMembers?: Recipient[];
 }
 
 export interface UseCommandFormReturn {
@@ -84,20 +84,20 @@ export function useCommandForm({
   isOpen,
   editingCommand,
   currentUser,
-  teamMembers,
+  tenantMembers,
 }: UseCommandFormOptions): UseCommandFormReturn {
   const [form, setForm] = useState<FormValues>(emptyForm);
   const [commandId, setCommandId] = useState(() => generateCommandId());
 
   // Reset form on open or when switching to a different command.
-  // Key on editingCommand.id (not the object identity) and omit teamMembers —
+  // Key on editingCommand.id (not the object identity) and omit tenantMembers —
   // the parent re-renders constantly during agent streaming and hands down a
-  // fresh teamMembers array each time, which would otherwise wipe in-progress
-  // edits. If teamMembers hasn't loaded by the time the drawer opens, the
+  // fresh tenantMembers array each time, which would otherwise wipe in-progress
+  // edits. If tenantMembers hasn't loaded by the time the drawer opens, the
   // sharedUsers chips will appear blank — closing and reopening fixes it.
   useEffect(() => {
     if (isOpen) {
-      setForm(editingCommand ? commandToForm(editingCommand, teamMembers) : emptyForm);
+      setForm(editingCommand ? commandToForm(editingCommand, tenantMembers) : emptyForm);
       setCommandId(editingCommand ? editingCommand.id : generateCommandId());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

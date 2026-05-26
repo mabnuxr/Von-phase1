@@ -26,8 +26,8 @@ import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
 import { VonAiFieldDefaultPreviewPane } from "../components/VonAiFieldDefaultPreviewPane";
 import type { DefaultAiFieldDefinition } from "../types/vonAiFields";
 import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
-import { AddTeamMembersPane } from "../components/AddTeamMembersPane";
-import { EditTeamMemberPane } from "../components/EditTeamMemberPane";
+import { AddTenantMembersPane } from "../components/AddTenantMembersPane";
+import { EditTenantMemberPane } from "../components/EditTenantMemberPane";
 import { usePreferences } from "../hooks/usePreferences";
 import usePreferencesStore from "../store/preferencesStore";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
@@ -385,13 +385,13 @@ const Settings = () => {
         {/* Field Detail Pane - Global */}
         <FieldDetailPane />
 
-        {/* Add Team Members Pane - Global (Individual + Bulk import tabs) */}
-        <AddTeamMembersPane />
+        {/* Add Tenant Members Pane - Global (Individual + Bulk import tabs) */}
+        <AddTenantMembersPane />
         {/* Von AI Field Run History - Global */}
         {showVonAiFields && <AIFieldRunHistory />}
 
-        {/* Edit Team Member Pane - Global */}
-        <EditTeamMemberPane />
+        {/* Edit Tenant Member Pane - Global */}
+        <EditTenantMemberPane />
 
         {/* Avatar Menu Dropdown */}
         <AvatarMenu

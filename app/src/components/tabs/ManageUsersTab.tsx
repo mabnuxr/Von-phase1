@@ -10,10 +10,10 @@ import {
   PencilSimple,
 } from "@phosphor-icons/react";
 import {
-  useTeamMembers,
-  useRemoveTeamMember,
-  useUpdateMemberPermissions,
-} from "../../hooks/useTeam";
+  useTenantMembers,
+  useRemoveTenantMember,
+  useUpdateTenantMemberPermissions,
+} from "../../hooks/useTenantMembers";
 import { useUser } from "../../hooks/useUser";
 import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
@@ -37,26 +37,32 @@ export function ManageUsersTab() {
   const { user } = useUser();
   const activeTenant = user?.tenantId as string | undefined;
 
-  // Get permissions for team resource
-  const { data: teamPermissions } = usePermissions(Resource.TEAM);
+  // Get permissions for tenant member resource
+  const { data: tenantMemberPermissions } = usePermissions(Resource.TEAM);
 
   const { isHubspotEnabled } = useFeatureFlag();
 
-  // Check if user can create/delete team members
-  const canCreateTeamMember = teamPermissions?.create ?? false;
-  const canDeleteTeamMember = teamPermissions?.delete ?? false;
+  // Check if user can create/delete tenant members
+  const canCreateTenantMember = tenantMemberPermissions?.create ?? false;
+  const canDeleteTenantMember = tenantMemberPermissions?.delete ?? false;
 
-  // Fetch team members
-  const { data: teamMembers, isLoading, error } = useTeamMembers(activeTenant);
+  // Fetch tenant members
+  const {
+    data: tenantMembers,
+    isLoading,
+    error,
+  } = useTenantMembers(activeTenant);
 
-  // Remove team member mutation
-  const removeMutation = useRemoveTeamMember(activeTenant);
+  // Remove tenant member mutation
+  const removeMutation = useRemoveTenantMember(activeTenant);
 
   // Update member permissions mutation
-  const updatePermissionsMutation = useUpdateMemberPermissions(activeTenant);
+  const updatePermissionsMutation =
+    useUpdateTenantMemberPermissions(activeTenant);
 
-  // Access store to open add team member panels
-  const { setAddingTeamMember, setEditingTeamMemberId } = usePreferencesStore();
+  // Access store to open add tenant member panels
+  const { setAddingTenantMember, setEditingTenantMemberId } =
+    usePreferencesStore();
 
   const pageViewCaptured = useRef(false);
   const tooltipViewedMembers = useRef<Set<string>>(new Set());
@@ -88,21 +94,21 @@ export function ManageUsersTab() {
 
   // Filter users based on search query
   const filteredUsers = useMemo(() => {
-    if (!teamMembers) return [];
+    if (!tenantMembers) return [];
 
     if (!searchQuery.trim()) {
-      return teamMembers;
+      return tenantMembers;
     }
 
     const query = searchQuery.toLowerCase();
-    return teamMembers.filter(
+    return tenantMembers.filter(
       (user) =>
         user.firstName.toLowerCase().includes(query) ||
         user.lastName.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query) ||
         user.role.toLowerCase().includes(query),
     );
-  }, [searchQuery, teamMembers]);
+  }, [searchQuery, tenantMembers]);
 
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -116,9 +122,9 @@ export function ManageUsersTab() {
     };
   }, [searchQuery, filteredUsers.length]);
 
-  const handleAddTeamMemberClick = () => {
+  const handleAddTenantMemberClick = () => {
     report.manageTeamAddMemberClicked();
-    setAddingTeamMember(true);
+    setAddingTenantMember(true);
   };
 
   const handleDeleteUser = (
@@ -286,9 +292,9 @@ export function ManageUsersTab() {
                 className="w-full pl-10 pr-3 py-2.5 text-sm text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-gray-100 focus:border-2 focus:border-gray-300 transition-all duration-200 bg-white hover:border-gray-300 shadow-xs"
               />
             </div>
-            {canCreateTeamMember && (
+            {canCreateTenantMember && (
               <button
-                onClick={handleAddTeamMemberClick}
+                onClick={handleAddTenantMemberClick}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 hover:cursor-pointer transition-colors duration-200 shadow-sm shrink-0"
               >
                 Invite Users
@@ -298,7 +304,7 @@ export function ManageUsersTab() {
 
           {/* Table Content */}
           {/* Loading State */}
-          {(isLoading || !teamMembers) && !error && (
+          {(isLoading || !tenantMembers) && !error && (
             <div className="overflow-x-auto border border-gray-200 rounded-lg">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -335,7 +341,7 @@ export function ManageUsersTab() {
                     >
                       Joined
                     </th>
-                    {canDeleteTeamMember && (
+                    {canDeleteTenantMember && (
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
@@ -363,7 +369,7 @@ export function ManageUsersTab() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
                       </td>
-                      {canDeleteTeamMember && (
+                      {canDeleteTenantMember && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
                         </td>
@@ -387,7 +393,7 @@ export function ManageUsersTab() {
           {/* Empty State */}
           {!isLoading &&
             !error &&
-            teamMembers &&
+            tenantMembers &&
             filteredUsers.length === 0 && (
               <div className="flex items-center justify-center min-h-75">
                 <p className="text-sm text-gray-500">
@@ -399,208 +405,213 @@ export function ManageUsersTab() {
             )}
 
           {/* Data Table */}
-          {!isLoading && !error && teamMembers && filteredUsers.length > 0 && (
-            <div className="overflow-visible border border-gray-200 rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
-                    >
-                      Name
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
-                    >
-                      Email
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
-                    >
-                      Role
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
-                    >
-                      <Tooltip content="Number of conversations created">
-                        <span className="cursor-default">Questions</span>
-                      </Tooltip>
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
-                    >
-                      Joined
-                    </th>
-                    {canDeleteTeamMember && (
+          {!isLoading &&
+            !error &&
+            tenantMembers &&
+            filteredUsers.length > 0 && (
+              <div className="overflow-visible border border-gray-200 rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
                       >
-                        Action
+                        Name
                       </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((member) => (
-                    <tr
-                      key={member.id}
-                      className="hover:bg-gray-50 transition-colors duration-150"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {member.firstName} {member.lastName}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">
-                          {member.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
-                          {member.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <Tooltip
-                          content={
-                            <div className="flex flex-col gap-1">
-                              <span>
-                                Last 7d:{" "}
-                                <span className="font-medium">
-                                  {member.usage.last_week}
-                                </span>
-                              </span>
-                              <span>
-                                Last 30d:{" "}
-                                <span className="font-medium">
-                                  {member.usage.last_month}
-                                </span>
-                              </span>
-                              <span>
-                                All time:{" "}
-                                <span className="font-medium">
-                                  {member.usage.total}
-                                </span>
-                              </span>
-                            </div>
-                          }
-                        >
-                          <span
-                            className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150"
-                            onMouseEnter={() => {
-                              if (
-                                tooltipViewedMembers.current.has(member.email)
-                              )
-                                return;
-                              tooltipViewedMembers.current.add(member.email);
-                              report.manageTeamQuestionsTooltipViewed({
-                                targetUserEmail: member.email,
-                                questionsLast7d: member.usage.last_week,
-                                questionsLast30d: member.usage.last_month,
-                                questionsAllTime: member.usage.total,
-                              });
-                            }}
-                          >
-                            {member.usage.total}
-                          </span>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
+                      >
+                        Email
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
+                      >
+                        Role
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-center text-xs text-gray-700 tracking-wide"
+                      >
+                        <Tooltip content="Number of conversations created">
+                          <span className="cursor-default">Questions</span>
                         </Tooltip>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">
-                          {formatDate(member.joinedDate)}
-                        </div>
-                      </td>
-                      {canDeleteTeamMember && (
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
+                      >
+                        Joined
+                      </th>
+                      {canDeleteTenantMember && (
+                        <th
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs text-gray-700 tracking-wide"
+                        >
+                          Action
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredUsers.map((member) => (
+                      <tr
+                        key={member.id}
+                        className="hover:bg-gray-50 transition-colors duration-150"
+                      >
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="relative">
-                            <button
-                              onClick={() => {
-                                if (openMenuUserId !== member.id) {
-                                  report.manageTeamActionsMenuOpened(
-                                    member.email,
-                                    member.role,
-                                  );
-                                }
-                                toggleMenu(member.id);
+                          <div className="text-sm font-medium text-gray-900">
+                            {member.firstName} {member.lastName}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-700">
+                            {member.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-von-purple-50 text-von-purple-700">
+                            {member.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <Tooltip
+                            content={
+                              <div className="flex flex-col gap-1">
+                                <span>
+                                  Last 7d:{" "}
+                                  <span className="font-medium">
+                                    {member.usage.last_week}
+                                  </span>
+                                </span>
+                                <span>
+                                  Last 30d:{" "}
+                                  <span className="font-medium">
+                                    {member.usage.last_month}
+                                  </span>
+                                </span>
+                                <span>
+                                  All time:{" "}
+                                  <span className="font-medium">
+                                    {member.usage.total}
+                                  </span>
+                                </span>
+                              </div>
+                            }
+                          >
+                            <span
+                              className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 cursor-default tabular-nums hover:bg-gray-200 transition-colors duration-150"
+                              onMouseEnter={() => {
+                                if (
+                                  tooltipViewedMembers.current.has(member.email)
+                                )
+                                  return;
+                                tooltipViewedMembers.current.add(member.email);
+                                report.manageTeamQuestionsTooltipViewed({
+                                  targetUserEmail: member.email,
+                                  questionsLast7d: member.usage.last_week,
+                                  questionsLast30d: member.usage.last_month,
+                                  questionsAllTime: member.usage.total,
+                                });
                               }}
-                              className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
-                                openMenuUserId === member.id
-                                  ? "bg-gray-200 text-gray-900"
-                                  : "hover:bg-gray-200 text-gray-600"
-                              }`}
-                              aria-label="Open menu"
                             >
-                              <DotsThreeVertical size={18} weight="bold" />
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {openMenuUserId === member.id && (
-                              <div
-                                ref={menuRef}
-                                className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-100"
-                              >
-                                {/* Edit Details */}
-                                <button
-                                  onClick={() => {
-                                    report.manageTeamEditDetailsClicked(
+                              {member.usage.total}
+                            </span>
+                          </Tooltip>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-600">
+                            {formatDate(member.joinedDate)}
+                          </div>
+                        </td>
+                        {canDeleteTenantMember && (
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="relative">
+                              <button
+                                onClick={() => {
+                                  if (openMenuUserId !== member.id) {
+                                    report.manageTeamActionsMenuOpened(
                                       member.email,
                                       member.role,
                                     );
-                                    setEditingTeamMemberId(member.id);
-                                    setOpenMenuUserId(null);
-                                  }}
-                                  className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100/80 transition-colors duration-150 cursor-pointer"
-                                >
-                                  <PencilSimple
-                                    size={14}
-                                    className="text-gray-800"
-                                  />
-                                  <span>Edit Details</span>
-                                </button>
+                                  }
+                                  toggleMenu(member.id);
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                                  openMenuUserId === member.id
+                                    ? "bg-gray-200 text-gray-900"
+                                    : "hover:bg-gray-200 text-gray-600"
+                                }`}
+                                aria-label="Open menu"
+                              >
+                                <DotsThreeVertical size={18} weight="bold" />
+                              </button>
 
-                                {/* Customize Permissions */}
-                                <div className="relative">
+                              {/* Dropdown Menu */}
+                              {openMenuUserId === member.id && (
+                                <div
+                                  ref={menuRef}
+                                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-100"
+                                >
+                                  {/* Edit Details */}
                                   <button
                                     onClick={() => {
-                                      const willOpen = !showPermissionsSubmenu;
-                                      if (willOpen)
-                                        report.manageTeamAccessPermissionsClicked(
-                                          member.email,
-                                          member.role,
-                                        );
-                                      setShowPermissionsSubmenu(willOpen);
+                                      report.manageTeamEditDetailsClicked(
+                                        member.email,
+                                        member.role,
+                                      );
+                                      setEditingTenantMemberId(member.id);
+                                      setOpenMenuUserId(null);
                                     }}
-                                    className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
-                                      showPermissionsSubmenu
-                                        ? "bg-gray-100/80"
-                                        : "hover:bg-gray-100/80"
-                                    }`}
+                                    className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-gray-900 hover:bg-gray-100/80 transition-colors duration-150 cursor-pointer"
                                   >
-                                    <div className="flex items-center gap-2.5">
-                                      <ShieldCheck
-                                        size={14}
-                                        className="text-gray-800"
-                                      />
-                                      <span>Access Permissions</span>
-                                    </div>
-                                    <CaretRight
+                                    <PencilSimple
                                       size={14}
-                                      className="text-gray-400"
+                                      className="text-gray-800"
                                     />
+                                    <span>Edit Details</span>
                                   </button>
 
-                                  {/* Permissions Submenu */}
-                                  {showPermissionsSubmenu && (
-                                    <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
-                                      {memberPermissionToggles[member.id]?.map(
-                                        (toggle) => (
+                                  {/* Customize Permissions */}
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => {
+                                        const willOpen =
+                                          !showPermissionsSubmenu;
+                                        if (willOpen)
+                                          report.manageTeamAccessPermissionsClicked(
+                                            member.email,
+                                            member.role,
+                                          );
+                                        setShowPermissionsSubmenu(willOpen);
+                                      }}
+                                      className={`w-full rounded-xl flex items-center justify-between px-3 py-2 text-sm text-gray-900 transition-colors duration-150 cursor-pointer ${
+                                        showPermissionsSubmenu
+                                          ? "bg-gray-100/80"
+                                          : "hover:bg-gray-100/80"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2.5">
+                                        <ShieldCheck
+                                          size={14}
+                                          className="text-gray-800"
+                                        />
+                                        <span>Access Permissions</span>
+                                      </div>
+                                      <CaretRight
+                                        size={14}
+                                        className="text-gray-400"
+                                      />
+                                    </button>
+
+                                    {/* Permissions Submenu */}
+                                    {showPermissionsSubmenu && (
+                                      <div className="absolute right-full top-0 mr-1 w-56 bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+                                        {memberPermissionToggles[
+                                          member.id
+                                        ]?.map((toggle) => (
                                           <div
                                             key={toggle.key}
                                             className="flex items-center justify-between rounded-xl px-3 py-2"
@@ -628,53 +639,52 @@ export function ManageUsersTab() {
                                               />
                                             </button>
                                           </div>
-                                        ),
-                                      )}
-                                      <p
-                                        className="px-3 pb-2"
-                                        style={{
-                                          color: "#9ca3af",
-                                          fontSize: "11px",
-                                          lineHeight: "1.3",
-                                        }}
-                                      >
-                                        Overrides org-level access
-                                      </p>
-                                    </div>
+                                        ))}
+                                        <p
+                                          className="px-3 pb-2"
+                                          style={{
+                                            color: "#9ca3af",
+                                            fontSize: "11px",
+                                            lineHeight: "1.3",
+                                          }}
+                                        >
+                                          Overrides org-level access
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Delete User - not shown for current user */}
+                                  {member.email !== user?.email && (
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteUser(
+                                          member.id,
+                                          `${member.firstName} ${member.lastName}`,
+                                          member.email,
+                                          member.role,
+                                        )
+                                      }
+                                      disabled={removeMutation.isPending}
+                                      className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
+                                    >
+                                      <TrashSimple size={14} />
+                                      {removeMutation.isPending
+                                        ? "Removing..."
+                                        : "Delete User"}
+                                    </button>
                                   )}
                                 </div>
-
-                                {/* Delete User - not shown for current user */}
-                                {member.email !== user?.email && (
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteUser(
-                                        member.id,
-                                        `${member.firstName} ${member.lastName}`,
-                                        member.email,
-                                        member.role,
-                                      )
-                                    }
-                                    disabled={removeMutation.isPending}
-                                    className="w-full rounded-xl flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150 cursor-pointer"
-                                  >
-                                    <TrashSimple size={14} />
-                                    {removeMutation.isPending
-                                      ? "Removing..."
-                                      : "Delete User"}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                              )}
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
         </div>
       </div>
 

@@ -34,7 +34,7 @@ import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
-import { useTeamMembers } from "../hooks/useTeam";
+import { useTenantMembers } from "../hooks/useTenantMembers";
 import { useDashboardList } from "../hooks/useDashboardList";
 import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
@@ -293,11 +293,11 @@ const NewConversation = () => {
     setPreloadDismissed(true);
   }, []);
 
-  const { data: teamMembersData } = useTeamMembers(
+  const { data: tenantMembersData } = useTenantMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
-  const teamMembersForSchedule = isScheduledCommandsEnabled
-    ? (teamMembersData ?? []).map((m) => ({
+  const tenantMembersForSchedule = isScheduledCommandsEnabled
+    ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
         firstName: m.firstName,
@@ -398,7 +398,7 @@ const NewConversation = () => {
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
         availableDashboards={availableDashboards}
-        teamMembers={teamMembersForSchedule}
+        tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         enableMentions={isDeepResearchEnabled}

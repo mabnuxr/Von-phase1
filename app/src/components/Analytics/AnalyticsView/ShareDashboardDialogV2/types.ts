@@ -51,7 +51,7 @@ export interface ShareDialogPersonV2 {
 
 /**
  * Suggested candidate from the tenant directory used to populate the
- * Add-people search dropdown. Maps from `TeamMember` (services/teamService).
+ * Add-people search dropdown. Maps from `TenantMember` (services/tenantMembersService).
  */
 export interface DirectoryPersonV2 {
   userId: string;

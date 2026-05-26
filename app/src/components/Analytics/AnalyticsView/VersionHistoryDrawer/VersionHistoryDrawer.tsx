@@ -8,7 +8,7 @@ import {
 import { VersionRow } from "./VersionRow";
 import { mapVersionsResponse } from "./mapVersions";
 import { useDashboardVersions } from "../../../../hooks/useDashboardVersions";
-import { useTeamMembers } from "../../../../hooks/useTeam";
+import { useTenantMembers } from "../../../../hooks/useTenantMembers";
 import { useUser } from "../../../../hooks/useUser";
 import type { VersionHistoryTab } from "./types";
 
@@ -107,15 +107,15 @@ export const VersionHistoryDrawer: React.FC<VersionHistoryDrawerProps> = ({
   isRestorePending = false,
 }) => {
   const { user } = useUser();
-  const { data: teamMembers } = useTeamMembers(user?.tenantId);
+  const { data: tenantMembers } = useTenantMembers(user?.tenantId);
   const versionsQuery = useDashboardVersions(dashboardId, { enabled: isOpen });
   const { drafts, publishedVersions } = useMemo(
     () =>
-      mapVersionsResponse(versionsQuery.data, teamMembers, {
+      mapVersionsResponse(versionsQuery.data, tenantMembers, {
         currentUser: user ?? null,
         editLockUserId,
       }),
-    [versionsQuery.data, teamMembers, user, editLockUserId],
+    [versionsQuery.data, tenantMembers, user, editLockUserId],
   );
 
   const [tab, setTab] = useState<VersionHistoryTab>("current");

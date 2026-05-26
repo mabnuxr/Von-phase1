@@ -1,31 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "./useToast";
-import { teamService } from "../services";
+import { tenantMembersService } from "../services";
 import type {
-  TeamMember,
-  AddTeamMemberRequest,
-  UpdateMemberRequest,
+  TenantMember,
+  AddTenantMemberRequest,
+  UpdateTenantMemberRequest,
   UpdateMemberPermissionsRequest,
-} from "../services/teamService";
-import type { BulkImportResponse } from "../services/teamService";
+} from "../services/tenantMembersService";
+import type { BulkImportTenantMemberResponse } from "../services/tenantMembersService";
 
 /**
- * Query keys for team - scoped by tenant
+ * Query keys for tenant members - scoped by tenant
  *
- * Team members and roles are tenant-specific, so we scope by tenantId
+ * Tenant members and roles are tenant-specific, so we scope by tenantId
  */
-export const teamKeys = {
-  all: ["team"] as const,
+export const tenantMembersKeys = {
+  all: ["tenant-members"] as const,
   members: (tenantId: string) =>
-    [...teamKeys.all, "members", tenantId] as const,
-  roles: (tenantId: string) => [...teamKeys.all, "roles", tenantId] as const,
-  user: (userId: string) => [...teamKeys.all, "user", userId] as const,
+    [...tenantMembersKeys.all, "members", tenantId] as const,
+  roles: (tenantId: string) =>
+    [...tenantMembersKeys.all, "roles", tenantId] as const,
+  user: (userId: string) => [...tenantMembersKeys.all, "user", userId] as const,
 };
 
-export function useTeamUser(userId: string | undefined) {
+export function useTenantMember(userId: string | undefined) {
   return useQuery({
-    queryKey: userId ? teamKeys.user(userId) : ["team", "user", "none"],
-    queryFn: () => teamService.getTeamUser(userId!),
+    queryKey: userId
+      ? tenantMembersKeys.user(userId)
+      : ["tenant-members", "user", "none"],
+    queryFn: () => tenantMembersService.getTenantMember(userId!),
     enabled: !!userId,
     staleTime: 300000,
     retry: false,
@@ -33,16 +36,16 @@ export function useTeamUser(userId: string | undefined) {
 }
 
 /**
- * Fetch team members for the current tenant
+ * Fetch tenant members for the current tenant
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useTeamMembers(tenantId: string | undefined) {
+export function useTenantMembers(tenantId: string | undefined) {
   return useQuery({
     queryKey: tenantId
-      ? teamKeys.members(tenantId)
-      : ["team", "members", "loading"],
-    queryFn: () => teamService.getTeamMembers(),
+      ? tenantMembersKeys.members(tenantId)
+      : ["tenant-members", "members", "loading"],
+    queryFn: () => tenantMembersService.getTenantMembers(),
     enabled: !!tenantId,
     staleTime: 30000, // 30 seconds
   });
@@ -56,41 +59,42 @@ export function useTeamMembers(tenantId: string | undefined) {
 export function useRoles(tenantId: string | undefined) {
   return useQuery({
     queryKey: tenantId
-      ? teamKeys.roles(tenantId)
-      : ["team", "roles", "loading"],
-    queryFn: () => teamService.getRoles(),
+      ? tenantMembersKeys.roles(tenantId)
+      : ["tenant-members", "roles", "loading"],
+    queryFn: () => tenantMembersService.getRoles(),
     enabled: !!tenantId,
     staleTime: 300000, // 5 minutes (roles change rarely)
   });
 }
 
 /**
- * Add a new team member with optimistic updates
+ * Add a new tenant member with optimistic updates
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useAddTeamMember(tenantId: string | undefined) {
+export function useAddTenantMember(tenantId: string | undefined) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
   return useMutation({
-    mutationFn: (data: AddTeamMemberRequest) => teamService.addTeamMember(data),
+    mutationFn: (data: AddTenantMemberRequest) =>
+      tenantMembersService.addTenantMember(data),
 
     // Optimistic update: Add member to cache immediately
     onMutate: async (newMember) => {
       if (!tenantId) return;
 
       await queryClient.cancelQueries({
-        queryKey: teamKeys.members(tenantId),
+        queryKey: tenantMembersKeys.members(tenantId),
       });
 
-      const previousMembers = queryClient.getQueryData<TeamMember[]>(
-        teamKeys.members(tenantId),
+      const previousMembers = queryClient.getQueryData<TenantMember[]>(
+        tenantMembersKeys.members(tenantId),
       );
 
       // Optimistically add the new member (with temporary ID)
       if (previousMembers) {
-        const optimisticMember: TeamMember = {
+        const optimisticMember: TenantMember = {
           id: `temp-${Date.now()}`,
           email: newMember.email,
           firstName: newMember.firstName,
@@ -101,10 +105,10 @@ export function useAddTeamMember(tenantId: string | undefined) {
           usage: { total: 0, last_week: 0, last_month: 0 },
         };
 
-        queryClient.setQueryData<TeamMember[]>(teamKeys.members(tenantId), [
-          ...previousMembers,
-          optimisticMember,
-        ]);
+        queryClient.setQueryData<TenantMember[]>(
+          tenantMembersKeys.members(tenantId),
+          [...previousMembers, optimisticMember],
+        );
       }
 
       return { previousMembers };
@@ -116,11 +120,11 @@ export function useAddTeamMember(tenantId: string | undefined) {
 
       if (context?.previousMembers) {
         queryClient.setQueryData(
-          teamKeys.members(tenantId),
+          tenantMembersKeys.members(tenantId),
           context.previousMembers,
         );
       }
-      console.error("[useAddTeamMember] Failed to add team member:", err);
+      console.error("[useAddTenantMember] Failed to add tenant member:", err);
     },
 
     // Update cache with server response
@@ -128,8 +132,8 @@ export function useAddTeamMember(tenantId: string | undefined) {
       if (!tenantId) return;
 
       // Update members list with actual data from server
-      const previousMembers = queryClient.getQueryData<TeamMember[]>(
-        teamKeys.members(tenantId),
+      const previousMembers = queryClient.getQueryData<TenantMember[]>(
+        tenantMembersKeys.members(tenantId),
       );
 
       if (previousMembers) {
@@ -138,10 +142,15 @@ export function useAddTeamMember(tenantId: string | undefined) {
           ...previousMembers.filter((m) => !m.id.startsWith("temp-")),
           serverData,
         ];
-        queryClient.setQueryData(teamKeys.members(tenantId), updatedMembers);
+        queryClient.setQueryData(
+          tenantMembersKeys.members(tenantId),
+          updatedMembers,
+        );
       } else {
         // Invalidate to refetch if cache is stale
-        queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+        queryClient.invalidateQueries({
+          queryKey: tenantMembersKeys.members(tenantId),
+        });
       }
 
       showToast({ message: "Team member added", variant: "success" });
@@ -150,30 +159,36 @@ export function useAddTeamMember(tenantId: string | undefined) {
 }
 
 /**
- * Bulk-import team members from a CSV file.
+ * Bulk-import tenant members from a CSV file.
  *
  * The mutation kicks off the upload + server-side processing. Live per-row
  * progress flows in via Pusher (handled by useBulkImportProgress, not this
- * hook), and the resolved BulkImportResponse is the source of truth for the
- * final results table. We invalidate the members list on success so the
- * existing tab re-fetches with the newly created users.
+ * hook), and the resolved BulkImportTenantMemberResponse is the source of
+ * truth for the final results table. We invalidate the members list on
+ * success so the existing tab re-fetches with the newly created users.
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useBulkImportTeamMembers(tenantId: string | undefined) {
+export function useBulkImportTenantMembers(tenantId: string | undefined) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  return useMutation<BulkImportResponse, Error, { file: File; jobId: string }>({
+  return useMutation<
+    BulkImportTenantMemberResponse,
+    Error,
+    { file: File; jobId: string }
+  >({
     mutationFn: ({ file, jobId }) =>
-      teamService.bulkImportTeamMembers(file, jobId),
+      tenantMembersService.bulkImportTenantMembers(file, jobId),
 
     onSuccess: (response) => {
       if (!tenantId) return;
       // Refetch the members list whenever any rows were created — skipped /
       // error rows leave the table unchanged.
       if (response.summary.created > 0) {
-        queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+        queryClient.invalidateQueries({
+          queryKey: tenantMembersKeys.members(tenantId),
+        });
       }
 
       const { created, skipped, errors } = response.summary;
@@ -194,38 +209,39 @@ export function useBulkImportTeamMembers(tenantId: string | undefined) {
     },
 
     onError: (err) => {
-      console.error("[useBulkImportTeamMembers] Bulk import failed:", err);
+      console.error("[useBulkImportTenantMembers] Bulk import failed:", err);
     },
   });
 }
 
 /**
- * Remove a team member with optimistic updates
+ * Remove a tenant member with optimistic updates
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useRemoveTeamMember(tenantId: string | undefined) {
+export function useRemoveTenantMember(tenantId: string | undefined) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) => teamService.removeTeamMember(userId),
+    mutationFn: (userId: string) =>
+      tenantMembersService.removeTenantMember(userId),
 
     // Optimistic update: Remove member from cache immediately
     onMutate: async (userId) => {
       if (!tenantId) return;
 
       await queryClient.cancelQueries({
-        queryKey: teamKeys.members(tenantId),
+        queryKey: tenantMembersKeys.members(tenantId),
       });
 
-      const previousMembers = queryClient.getQueryData<TeamMember[]>(
-        teamKeys.members(tenantId),
+      const previousMembers = queryClient.getQueryData<TenantMember[]>(
+        tenantMembersKeys.members(tenantId),
       );
 
       // Optimistically remove the member
       if (previousMembers) {
-        queryClient.setQueryData<TeamMember[]>(
-          teamKeys.members(tenantId),
+        queryClient.setQueryData<TenantMember[]>(
+          tenantMembersKeys.members(tenantId),
           previousMembers.filter((m) => m.id !== userId),
         );
       }
@@ -239,27 +255,32 @@ export function useRemoveTeamMember(tenantId: string | undefined) {
 
       if (context?.previousMembers) {
         queryClient.setQueryData(
-          teamKeys.members(tenantId),
+          tenantMembersKeys.members(tenantId),
           context.previousMembers,
         );
       }
-      console.error("[useRemoveTeamMember] Failed to remove team member:", err);
+      console.error(
+        "[useRemoveTenantMember] Failed to remove tenant member:",
+        err,
+      );
     },
 
     // Invalidate on success to ensure consistency
     onSuccess: () => {
       if (!tenantId) return;
-      queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      queryClient.invalidateQueries({
+        queryKey: tenantMembersKeys.members(tenantId),
+      });
     },
   });
 }
 
 /**
- * Update a team member's details (name, role) - admin only
+ * Update a tenant member's details (name, role) - admin only
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useUpdateMember(tenantId: string | undefined) {
+export function useUpdateTenantMember(tenantId: string | undefined) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -269,12 +290,14 @@ export function useUpdateMember(tenantId: string | undefined) {
       data,
     }: {
       userId: string;
-      data: UpdateMemberRequest;
-    }) => teamService.updateMember(userId, data),
+      data: UpdateTenantMemberRequest;
+    }) => tenantMembersService.updateTenantMember(userId, data),
 
     onSuccess: () => {
       if (!tenantId) return;
-      queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      queryClient.invalidateQueries({
+        queryKey: tenantMembersKeys.members(tenantId),
+      });
       showToast({
         message: "Team member updated successfully",
         variant: "success",
@@ -282,7 +305,7 @@ export function useUpdateMember(tenantId: string | undefined) {
     },
 
     onError: (err) => {
-      console.error("[useUpdateMember] Failed to update member:", err);
+      console.error("[useUpdateTenantMember] Failed to update member:", err);
     },
   });
 }
@@ -292,7 +315,7 @@ export function useUpdateMember(tenantId: string | undefined) {
  *
  * @param tenantId - Current tenant ID from user context
  */
-export function useUpdateMemberPermissions(tenantId: string | undefined) {
+export function useUpdateTenantMemberPermissions(tenantId: string | undefined) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
@@ -303,11 +326,14 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
     }: {
       userId: string;
       permissions: UpdateMemberPermissionsRequest;
-    }) => teamService.updateMemberPermissions(userId, permissions),
+    }) =>
+      tenantMembersService.updateTenantMemberPermissions(userId, permissions),
 
     onSuccess: (_data, { permissions }) => {
       if (!tenantId) return;
-      queryClient.invalidateQueries({ queryKey: teamKeys.members(tenantId) });
+      queryClient.invalidateQueries({
+        queryKey: tenantMembersKeys.members(tenantId),
+      });
       // Each mutation toggles exactly one key — pick whichever was set.
       let message = "Permissions updated";
       if (
@@ -330,7 +356,7 @@ export function useUpdateMemberPermissions(tenantId: string | undefined) {
 
     onError: (err) => {
       console.error(
-        "[useUpdateMemberPermissions] Failed to update permissions:",
+        "[useUpdateTenantMemberPermissions] Failed to update permissions:",
         err,
       );
       showToast({

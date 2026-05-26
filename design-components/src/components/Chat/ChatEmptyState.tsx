@@ -161,8 +161,8 @@ export interface ChatEmptyStateProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
   availableDashboards?: DashboardOption[];
-  /** Team members available as schedule recipients */
-  teamMembers?: import('../Commands/types').ScheduleRecipient[];
+  /** Tenant members available as schedule recipients */
+  tenantMembers?: import('../Commands/types').ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: import('../Commands/types').ScheduleRecipient;
   /** Called when the user clicks "Send test" in the schedule section */
@@ -244,7 +244,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onSaveCommand,
   onDeleteCommand,
   isSavingCommand,
-  teamMembers,
+  tenantMembers,
   currentUser,
   onSendTest,
   onToggleFavorite,
@@ -457,7 +457,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           onSaveCommand={onSaveCommand}
           onDeleteCommand={onDeleteCommand}
           isSavingCommand={isSavingCommand}
-          teamMembers={teamMembers}
+          tenantMembers={tenantMembers}
           currentUser={currentUser}
           onSendTest={onSendTest}
           onToggleFavorite={onToggleFavorite}

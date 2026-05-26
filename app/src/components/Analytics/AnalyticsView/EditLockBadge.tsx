@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Tooltip, formatRelativeTime } from "@vonlabs/design-components";
 import type { DashboardEditLock } from "../../../types/dashboard";
-import type { TeamMember } from "../../../services/teamService";
+import type { TenantMember } from "../../../services/tenantMembersService";
 
 // ─── Avatar helpers ───────────────────────────────────────────────
 // Same palette + hash used elsewhere in the dashboard surface (share
@@ -35,9 +35,9 @@ function initialsOf(name: string): string {
 
 function resolveDisplayName(
   userId: string,
-  teamMembers: TeamMember[] | undefined,
+  tenantMembers: TenantMember[] | undefined,
 ): string | null {
-  const member = teamMembers?.find((m) => m.id === userId);
+  const member = tenantMembers?.find((m) => m.id === userId);
   if (!member) return null;
   const full = `${member.firstName} ${member.lastName}`.trim();
   return full || member.email;
@@ -48,7 +48,7 @@ function resolveDisplayName(
 interface EditLockBadgeProps {
   editLock: DashboardEditLock;
   currentUserId: string | undefined;
-  teamMembers: TeamMember[] | undefined;
+  tenantMembers: TenantMember[] | undefined;
   /**
    * User ID of the last meaningful editor (commit / publish / discard
    * — BE PR #1109). Drives the chip's label and avatar. `null` on
@@ -89,7 +89,7 @@ interface EditLockBadgeProps {
 export const EditLockBadge: React.FC<EditLockBadgeProps> = ({
   editLock,
   currentUserId,
-  teamMembers,
+  tenantMembers,
   lastEditedBy = null,
   lastEditedAt = null,
   onClick,
@@ -109,8 +109,8 @@ export const EditLockBadge: React.FC<EditLockBadgeProps> = ({
   const isSelf = !!currentUserId && attributedUserId === currentUserId;
 
   const resolvedName = useMemo(
-    () => resolveDisplayName(attributedUserId, teamMembers),
-    [attributedUserId, teamMembers],
+    () => resolveDisplayName(attributedUserId, tenantMembers),
+    [attributedUserId, tenantMembers],
   );
   const displayName = isSelf ? "You" : (resolvedName ?? "another editor");
   // Avatar reads the resolved name for initials but always hashes

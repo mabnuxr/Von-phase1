@@ -83,8 +83,8 @@ export interface CommandsOverlayProps {
    * Should presign + upload the file and return the backend fileId and s3Key.
    */
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
-  /** Team members available as schedule recipients */
-  teamMembers?: ScheduleRecipient[];
+  /** Tenant members available as schedule recipients */
+  tenantMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
   /** Called when the user sends a test from the modal. Receives current form data. Should return a promise. */
@@ -153,7 +153,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
   onToggleFavorite,
   onRequestFilePreviewUrl,
   onUploadFile,
-  teamMembers,
+  tenantMembers,
   currentUser,
   onSendTest,
   availableDashboards,
@@ -290,7 +290,7 @@ export const CommandsOverlay: React.FC<CommandsOverlayProps> = ({
         onRequestFilePreviewUrl={onRequestFilePreviewUrl}
         onUploadFile={onUploadFile}
         onBack={openedFromManage ? handleBackToManage : undefined}
-        teamMembers={teamMembers}
+        tenantMembers={tenantMembers}
         currentUser={currentUser}
         onSendTest={onSendTest}
         availableDashboards={availableDashboards}

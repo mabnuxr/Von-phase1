@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AddTeamMembersTab = "individual" | "bulk";
+export type AddTenantMembersTab = "individual" | "bulk";
 
 export interface TabContentProps {
   onClose: () => void;

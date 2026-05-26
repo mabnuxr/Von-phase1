@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
-import { useAddTeamMember, useRoles } from "../../hooks/useTeam";
+import { useAddTenantMember, useRoles } from "../../hooks/useTenantMembers";
 import { useUser } from "../../hooks/useUser";
 import type { TabContentProps } from "./types";
 import { report } from "../../lib/analytics/tracker";
@@ -12,7 +12,7 @@ export function IndividualAddTab({
 }: TabContentProps) {
   const { user } = useUser();
 
-  const addMutation = useAddTeamMember(user?.tenantId as string | undefined);
+  const addMutation = useAddTenantMember(user?.tenantId as string | undefined);
   const { data: roles, isLoading: rolesLoading } = useRoles(
     user?.tenantId as string | undefined,
   );

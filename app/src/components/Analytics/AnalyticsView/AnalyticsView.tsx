@@ -12,7 +12,7 @@ import { EditModeBanner } from "../EditModeBanner";
 import { DashboardStatus } from "../../../types/dashboard";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
 import { useUser } from "../../../hooks/useUser";
-import { useTeamMembers } from "../../../hooks/useTeam";
+import { useTenantMembers } from "../../../hooks/useTenantMembers";
 import { getUserContext } from "../../../lib/auth";
 import { useDashboardLayoutData } from "./hooks/useDashboardLayoutData";
 import { useDashboardRoles } from "./hooks/useDashboardRoles";
@@ -332,15 +332,15 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // (filters, rename, save) stays available regardless.
   const { isDashboardDragDropEnabled } = useFeatureFlag();
   const { user } = useUser();
-  // Bootstrap the team-members fetch from the synchronously-available
+  // Bootstrap the tenant-members fetch from the synchronously-available
   // stored auth context so it doesn't wait on this component's own
   // `useUser` /me round-trip. AppShell does the same — both paths now
   // converge on the same React Query key as soon as the page renders,
   // which makes name resolution in the share dialog instant rather
-  // than gated on /me + /team/members in series.
-  const teamMembersTenantId =
+  // than gated on /me + /tenant-members/members in series.
+  const tenantMembersTenantId =
     getUserContext()?.tenant_id ?? user?.tenantId ?? undefined;
-  const { data: teamMembers } = useTeamMembers(teamMembersTenantId);
+  const { data: tenantMembers } = useTenantMembers(tenantMembersTenantId);
 
   // While version-history is driving the canvas, force edit mode off even if
   // the rendered dashboard's `is_editable` is true (happens when the user is
@@ -379,7 +379,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { shareState, shareActions } = useDashboardShareV2({
     dashboard,
     onShareV2,
-    teamMembers,
+    tenantMembers,
     currentUserId: user?.id,
     currentUser: user,
   });
@@ -388,7 +388,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
 
   const editLock = useEditLockConflict({
     editLock: dashboard.editLock,
-    teamMembers,
+    tenantMembers,
   });
 
   const { editActions, discardModal } = useEditModeActions({
@@ -464,7 +464,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 lastEditedBy={dashboard.lastEditedBy}
                 lastEditedAt={dashboard.lastEditedAt}
                 currentUserId={user?.id}
-                teamMembers={teamMembers}
+                tenantMembers={tenantMembers}
                 onOpenVersionHistory={onOpenVersionHistory}
               />
             </DashboardLayout.HeaderRow.Right>

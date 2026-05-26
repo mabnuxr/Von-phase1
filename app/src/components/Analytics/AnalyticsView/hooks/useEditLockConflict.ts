@@ -1,16 +1,16 @@
 import { useMemo } from "react";
 import { useVisibilityToggle } from "@vonlabs/design-components";
-import type { TeamMember } from "../../../../services/teamService";
+import type { TenantMember } from "../../../../services/tenantMembersService";
 import type { Dashboard } from "../../../../types/dashboard";
 
 interface UseEditLockConflictArgs {
   editLock: Dashboard["editLock"];
-  teamMembers: TeamMember[] | undefined;
+  tenantMembers: TenantMember[] | undefined;
 }
 
 export function useEditLockConflict({
   editLock,
-  teamMembers,
+  tenantMembers,
 }: UseEditLockConflictArgs) {
   // The embedded `dashboard.editLock` can be stale — another user may have
   // released their lock since the last refetch — so we never pre-branch off
@@ -19,8 +19,8 @@ export function useEditLockConflict({
   // server has actually rejected the acquire with HELD_BY_OTHER.
   const lockHolderMember = useMemo(() => {
     if (!editLock) return null;
-    return teamMembers?.find((m) => m.id === editLock.userId) ?? null;
-  }, [editLock, teamMembers]);
+    return tenantMembers?.find((m) => m.id === editLock.userId) ?? null;
+  }, [editLock, tenantMembers]);
 
   const lockHolderName = lockHolderMember
     ? `${lockHolderMember.firstName} ${lockHolderMember.lastName}`.trim() ||

@@ -19,7 +19,7 @@ import { useInfiniteScroll } from "../hooks/useInfiniteScroll";
 import { ArtifactPaneContainer } from "./ArtifactPaneContainer";
 import { reportRenderTiming } from "../lib/datadog";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
-import { useTeamMembers } from "../hooks/useTeam";
+import { useTenantMembers } from "../hooks/useTenantMembers";
 
 export interface ChatV1ContainerProps {
   conversationId: string;
@@ -116,11 +116,11 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     handleSendTest,
   } = useCommandsPanel(user?.id);
 
-  const { data: teamMembersData } = useTeamMembers(
+  const { data: tenantMembersData } = useTenantMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
-  const teamMembersForSchedule = isScheduledCommandsEnabled
-    ? (teamMembersData ?? []).map((m) => ({
+  const tenantMembersForSchedule = isScheduledCommandsEnabled
+    ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
         firstName: m.firstName,
@@ -170,7 +170,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onSaveCommand={handleSaveCommand}
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
-        teamMembers={teamMembersForSchedule}
+        tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         onToggleFavorite={handleToggleFavorite}

@@ -68,5 +68,5 @@ export type {
   ShareRecipient,
   ShareStatus,
   ShareResult,
-  TeamMemberOption,
+  TenantMemberOption,
 } from './ShareChatPopup';

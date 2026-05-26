@@ -1472,8 +1472,8 @@ export interface ChatProps {
   onUploadFile?: (commandId: string, file: File) => Promise<{ fileId: string; s3Key: string }>;
   /** Dashboards available to tag onto commands (renders the chip-picker when provided) */
   availableDashboards?: DashboardOption[];
-  /** Team members available as schedule recipients */
-  teamMembers?: ScheduleRecipient[];
+  /** Tenant members available as schedule recipients */
+  tenantMembers?: ScheduleRecipient[];
   /** Current user — auto-added as recipient when schedule is first enabled */
   currentUser?: ScheduleRecipient;
   /** Called when the user clicks "Send test" in the schedule section. Receives current form data. */

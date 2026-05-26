@@ -27,7 +27,7 @@ import type { Integration } from "./IntegrationsPanel";
 import type { TenantIntegrationEnriched } from "../types/appCatalog";
 import { getUserContext } from "../lib/auth";
 import { useUser } from "../hooks/useUser";
-import { useTeamUser } from "../hooks/useTeam";
+import { useTenantMember } from "../hooks/useTenantMembers";
 import {
   DotsThreeVerticalIcon,
   CaretRightIcon,
@@ -124,7 +124,7 @@ function MCPCatalogItem({
   const { user } = useUser();
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
-  const { data: workspaceOwner } = useTeamUser(
+  const { data: workspaceOwner } = useTenantMember(
     entry.workspace_published_by ?? undefined,
   );
   const modifiedBy =
@@ -516,7 +516,7 @@ function IntegrationItem({
   const workspace = connectedInstances.find((i) => i.accessLevel === "tenant");
   const personal = connectedInstances.find((i) => i.accessLevel === "user");
 
-  const { data: workspaceOwner } = useTeamUser(workspace?.userId);
+  const { data: workspaceOwner } = useTenantMember(workspace?.userId);
   const hasBoth = workspace && personal;
 
   // Get backend data for workspace integration

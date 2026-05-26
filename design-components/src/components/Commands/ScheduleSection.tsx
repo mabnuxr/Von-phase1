@@ -20,7 +20,7 @@ import { SendTestModal } from './SendTestModal';
 export interface ScheduleSectionProps {
   schedule: CommandSchedule;
   onScheduleChange: (schedule: CommandSchedule) => void;
-  teamMembers?: ScheduleRecipient[];
+  tenantMembers?: ScheduleRecipient[];
   readOnly?: boolean;
   /** Called when the user sends a test from the modal. Should return a promise. */
   onSendTest?: (recipients: ScheduleRecipient[]) => Promise<void>;
@@ -33,7 +33,7 @@ export interface ScheduleSectionProps {
 export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   schedule,
   onScheduleChange,
-  teamMembers = [],
+  tenantMembers = [],
   readOnly = false,
   onSendTest,
 }) => {
@@ -60,7 +60,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
               <RecipientPicker
                 recipients={schedule.recipients}
                 onChange={(recipients) => onScheduleChange({ ...schedule, recipients })}
-                availableRecipients={teamMembers}
+                availableRecipients={tenantMembers}
                 readOnly={readOnly}
               />
 
@@ -86,7 +86,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
           isOpen={showTestModal}
           onClose={() => setShowTestModal(false)}
           initialRecipients={schedule.recipients}
-          availableRecipients={teamMembers}
+          availableRecipients={tenantMembers}
           onSend={onSendTest}
         />
       )}

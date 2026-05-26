@@ -3,7 +3,7 @@ import type {
   DashboardVersionsResponse,
 } from "../../../../services/dashboardService";
 import type { User } from "../../../../services";
-import type { TeamMember } from "../../../../services/teamService";
+import type { TenantMember } from "../../../../services/tenantMembersService";
 import type { VersionEntryKind, VersionHistoryItem } from "./types";
 
 /** Context the row-mapper needs to attribute the freshly-cloned
@@ -31,7 +31,7 @@ interface ResolvedAuthor {
 
 function resolveAuthor(
   entry: DashboardVersionEntry,
-  teamMembers: TeamMember[] | undefined,
+  tenantMembers: TenantMember[] | undefined,
   context: VersionAuthorContext,
 ): ResolvedAuthor {
   const userId = entry.updated_by;
@@ -49,7 +49,7 @@ function resolveAuthor(
     return { id: "", name: "No edits yet" };
   }
   if (!userId) return { id: "", name: "" };
-  const member = teamMembers?.find((m) => m.id === userId);
+  const member = tenantMembers?.find((m) => m.id === userId);
   if (!member) return { id: userId, name: "Unknown" };
   return {
     id: userId,
@@ -77,10 +77,10 @@ function versionLabel(entry: DashboardVersionEntry): string {
 
 function toItem(
   entry: DashboardVersionEntry,
-  teamMembers: TeamMember[] | undefined,
+  tenantMembers: TenantMember[] | undefined,
   context: VersionAuthorContext,
 ): VersionHistoryItem {
-  const author = resolveAuthor(entry, teamMembers, context);
+  const author = resolveAuthor(entry, tenantMembers, context);
   return {
     id: entry.id,
     dashboardVersion: entry.dashboard_version,
@@ -121,7 +121,7 @@ function isOrphanActiveDraft(
  */
 export function mapVersionsResponse(
   response: DashboardVersionsResponse | undefined,
-  teamMembers: TeamMember[] | undefined,
+  tenantMembers: TenantMember[] | undefined,
   context: VersionAuthorContext,
 ): { drafts: VersionHistoryItem[]; publishedVersions: VersionHistoryItem[] } {
   if (!response) {
@@ -130,9 +130,9 @@ export function mapVersionsResponse(
   return {
     drafts: response.drafts
       .filter((e) => !isOrphanActiveDraft(e, context))
-      .map((e) => toItem(e, teamMembers, context)),
+      .map((e) => toItem(e, tenantMembers, context)),
     publishedVersions: response.published.map((e) =>
-      toItem(e, teamMembers, context),
+      toItem(e, tenantMembers, context),
     ),
   };
 }

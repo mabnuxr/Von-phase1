@@ -10,7 +10,7 @@ import { useDrilldownV2 } from "../hooks/useDrilldownV2";
 import { useDashboardUpdate } from "../hooks/useDashboardUpdate";
 import { useResizablePane } from "../hooks/useResizablePane";
 import { useRestoreDashboardVersion } from "../hooks/useRestoreDashboardVersion";
-import { useTeamMembers } from "../hooks/useTeam";
+import { useTenantMembers } from "../hooks/useTenantMembers";
 import { useToast } from "../hooks/useToast";
 import { useUser } from "../hooks/useUser";
 import { ApiError } from "../services/apiClient";
@@ -627,7 +627,7 @@ const Analytics = () => {
   //     restore a draft.") so the user knows to click Edit first.
   const { showToast } = useToast();
   const { user } = useUser();
-  const { data: teamMembersData } = useTeamMembers(user?.tenantId);
+  const { data: tenantMembersData } = useTenantMembers(user?.tenantId);
   const restoreMutation = useRestoreDashboardVersion(dashboardId);
 
   const [restoreLockModal, setRestoreLockModal] = useState<
@@ -637,10 +637,10 @@ const Analytics = () => {
   const dashboardLockHolderName = useMemo(() => {
     const holderId = data?.dashboard?.editLock?.userId;
     if (!holderId) return null;
-    const member = teamMembersData?.find((m) => m.id === holderId);
+    const member = tenantMembersData?.find((m) => m.id === holderId);
     if (!member) return null;
     return `${member.firstName} ${member.lastName}`.trim() || member.email;
-  }, [data?.dashboard?.editLock?.userId, teamMembersData]);
+  }, [data?.dashboard?.editLock?.userId, tenantMembersData]);
 
   const handleCloseRestoreLockModal = useCallback(() => {
     setRestoreLockModal(null);

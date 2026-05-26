@@ -3,8 +3,8 @@ import type { Channel } from "pusher-js";
 
 import {
   UserChannelEvents,
-  type BulkImportProgressEvent,
-  type BulkImportRowResult,
+  type BulkImportTenantMemberProgressEvent,
+  type BulkImportTenantMemberRowResult,
 } from "../types/userChannelEvents";
 
 interface UseBulkImportProgressParams {
@@ -16,7 +16,7 @@ interface UseBulkImportProgressParams {
 
 interface UseBulkImportProgressReturn {
   /** Per-row results keyed by 1-indexed row number, populated as events arrive. */
-  rowResults: Map<number, BulkImportRowResult>;
+  rowResults: Map<number, BulkImportTenantMemberRowResult>;
   /** Number of rows finished (any status). Driven by the highest 'completed' seen. */
   completed: number;
   /** Total row count reported by the server in the most recent event. */
@@ -37,7 +37,7 @@ export function useBulkImportProgress({
   jobId,
 }: UseBulkImportProgressParams): UseBulkImportProgressReturn {
   const [rowResults, setRowResults] = useState<
-    Map<number, BulkImportRowResult>
+    Map<number, BulkImportTenantMemberRowResult>
   >(() => new Map());
   const [completed, setCompleted] = useState(0);
   const [total, setTotal] = useState(0);
@@ -45,8 +45,8 @@ export function useBulkImportProgress({
   useEffect(() => {
     if (!userChannel || !jobId) return;
 
-    const handler = (raw: string | BulkImportProgressEvent) => {
-      const event: BulkImportProgressEvent =
+    const handler = (raw: string | BulkImportTenantMemberProgressEvent) => {
+      const event: BulkImportTenantMemberProgressEvent =
         typeof raw === "string" ? JSON.parse(raw) : raw;
       if (event.jobId !== jobId) return;
 
