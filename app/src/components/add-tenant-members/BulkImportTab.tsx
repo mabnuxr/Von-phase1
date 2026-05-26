@@ -249,7 +249,7 @@ export function BulkImportTab({
           <div className="text-sm text-gray-600">
             Upload a CSV with one row per member.{" "}
             <a
-              href={config.teamMembersCsvTemplateUrl}
+              href={config.tenantMembersCsvTemplateUrl}
               download
               className="text-gray-900 font-medium underline underline-offset-2 hover:text-gray-700"
             >

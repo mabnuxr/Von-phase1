@@ -34,7 +34,7 @@ export const config = {
   oauthGrantType: "authorization_code",
 
   // Public asset URLs (hosted in vonlabs-public-assets S3 bucket)
-  teamMembersCsvTemplateUrl:
+  tenantMembersCsvTemplateUrl:
     "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/templates/team-members-template.csv",
 };
 

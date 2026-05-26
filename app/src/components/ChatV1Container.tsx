@@ -119,7 +119,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
   const { data: tenantMembersData } = useTenantMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
-  const teamMembersForSchedule = isScheduledCommandsEnabled
+  const tenantMembersForSchedule = isScheduledCommandsEnabled
     ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
@@ -170,7 +170,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onSaveCommand={handleSaveCommand}
         onDeleteCommand={handleDeleteCommand}
         isSavingCommand={isSavingCommand}
-        teamMembers={teamMembersForSchedule}
+        teamMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         onToggleFavorite={handleToggleFavorite}

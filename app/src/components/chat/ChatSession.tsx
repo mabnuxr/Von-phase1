@@ -399,7 +399,7 @@ function ExistingChatInner(
   const { data: tenantMembersData } = useTenantMembers(
     base.features.isScheduledCommandsEnabled ? base.user?.tenantId : undefined,
   );
-  const teamMembersForSchedule = base.features.isScheduledCommandsEnabled
+  const tenantMembersForSchedule = base.features.isScheduledCommandsEnabled
     ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
@@ -754,7 +754,7 @@ function ExistingChatInner(
       onRequestFilePreviewUrl={base.commands.handleRequestFilePreviewUrl}
       onUploadFile={base.commands.handleUploadFile}
       availableDashboards={base.commands.availableDashboards}
-      teamMembers={teamMembersForSchedule}
+      teamMembers={tenantMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={
         base.features.isScheduledCommandsEnabled

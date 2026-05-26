@@ -296,7 +296,7 @@ const NewConversation = () => {
   const { data: tenantMembersData } = useTenantMembers(
     isScheduledCommandsEnabled ? user?.tenantId : undefined,
   );
-  const teamMembersForSchedule = isScheduledCommandsEnabled
+  const tenantMembersForSchedule = isScheduledCommandsEnabled
     ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
@@ -398,7 +398,7 @@ const NewConversation = () => {
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
         availableDashboards={availableDashboards}
-        teamMembers={teamMembersForSchedule}
+        teamMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
         onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
         enableMentions={isDeepResearchEnabled}
