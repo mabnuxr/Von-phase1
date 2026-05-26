@@ -123,7 +123,7 @@ export function ManageFoldersModal({
   const sortedFolders = useMemo<Folder[]>(
     () =>
       [...folders]
-        .filter((f) => f.systemFolderType == null)
+        .filter((f) => !f.systemFolderType)
         .sort((a, b) => {
           if (a.displayOrder !== b.displayOrder) {
             return a.displayOrder - b.displayOrder;
