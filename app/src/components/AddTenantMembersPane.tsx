@@ -7,27 +7,27 @@ import {
 } from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import { report } from "../lib/analytics/tracker";
-import { IndividualAddTab } from "./add-team-members/IndividualAddTab";
-import { BulkImportTab } from "./add-team-members/BulkImportTab";
-import type { AddTeamMembersTab } from "./add-team-members/types";
+import { IndividualAddTab } from "./add-tenant-members/IndividualAddTab";
+import { BulkImportTab } from "./add-tenant-members/BulkImportTab";
+import type { AddTenantMembersTab } from "./add-tenant-members/types";
 
-export function AddTeamMembersPane() {
-  const { addingTeamMember, setAddingTeamMember } = usePreferencesStore();
+export function AddTenantMembersPane() {
+  const { addingTenantMember, setAddingTenantMember } = usePreferencesStore();
 
-  const [activeTab, setActiveTab] = useState<AddTeamMembersTab>("individual");
+  const [activeTab, setActiveTab] = useState<AddTenantMembersTab>("individual");
   const [footer, setFooter] = useState<ReactNode>(null);
   const closeGuardRef = useRef<(() => boolean) | null>(null);
   const memberAddedRef = useRef(false);
 
   // Reset to default tab whenever the pane closes.
   useEffect(() => {
-    if (!addingTeamMember) {
+    if (!addingTenantMember) {
       setActiveTab("individual");
       setFooter(null);
       closeGuardRef.current = null;
       memberAddedRef.current = false;
     }
-  }, [addingTeamMember]);
+  }, [addingTenantMember]);
 
   const canClose = useCallback(() => {
     return closeGuardRef.current ? closeGuardRef.current() : true;
@@ -42,10 +42,10 @@ export function AddTeamMembersPane() {
     if (activeTab === "individual" && !memberAddedRef.current) {
       report.manageTeamAddMemberCancelled();
     }
-    setAddingTeamMember(false);
-  }, [canClose, setAddingTeamMember, activeTab]);
+    setAddingTenantMember(false);
+  }, [canClose, setAddingTenantMember, activeTab]);
 
-  const handleTabSwitch = (tab: AddTeamMembersTab) => {
+  const handleTabSwitch = (tab: AddTenantMembersTab) => {
     if (tab === activeTab) return;
     if (!canClose()) return; // bulk upload in flight — block switch too
     closeGuardRef.current = null;
@@ -64,7 +64,7 @@ export function AddTeamMembersPane() {
   };
 
   const tabButtonClass = (
-    tab: AddTeamMembersTab,
+    tab: AddTenantMembersTab,
     isUploadingDisabled = false,
   ) =>
     `pb-2 -mb-px text-sm font-medium transition-colors cursor-pointer border-b-2 ${
@@ -80,7 +80,7 @@ export function AddTeamMembersPane() {
       {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/20 transition-opacity duration-300 z-40 ${
-          addingTeamMember ? "opacity-100" : "opacity-0 pointer-events-none"
+          addingTenantMember ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={handleClose}
       />
@@ -88,7 +88,7 @@ export function AddTeamMembersPane() {
       {/* Side Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-xl p-2 z-50 transform transition-transform duration-300 ease-in-out ${
-          addingTeamMember ? "translate-x-0" : "translate-x-full"
+          addingTenantMember ? "translate-x-0" : "translate-x-full"
         }`}
         onDragOver={swallowDrop}
         onDrop={swallowDrop}
@@ -150,14 +150,14 @@ export function AddTeamMembersPane() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
-            {addingTeamMember && activeTab === "individual" && (
+            {addingTenantMember && activeTab === "individual" && (
               <IndividualAddTab
                 onClose={handleClose}
                 onRegisterFooter={setFooter}
                 onMemberAdded={handleMemberAdded}
               />
             )}
-            {addingTeamMember && activeTab === "bulk" && (
+            {addingTenantMember && activeTab === "bulk" && (
               <BulkImportTab
                 onClose={handleClose}
                 onRegisterFooter={setFooter}

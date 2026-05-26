@@ -9,7 +9,7 @@ import type {
   Dashboard,
   DashboardUserGrant,
 } from "../../../../types/dashboard";
-import type { TeamMember } from "../../../../services/teamService";
+import type { TenantMember } from "../../../../services/tenantMembersService";
 import type { User } from "../../../../services";
 import type {
   DashboardScopeV2,
@@ -31,7 +31,7 @@ interface UseDashboardShareV2Args {
    * transition cleanly.
    */
   onShareV2?: (payload: ShareDashboardV2Request) => Promise<void>;
-  teamMembers: TeamMember[] | undefined;
+  tenantMembers: TenantMember[] | undefined;
   currentUserId: string | undefined;
   /**
    * Full current-user record from `useUser`. Used to resolve the
@@ -45,7 +45,7 @@ interface UseDashboardShareV2Args {
 export function useDashboardShareV2({
   dashboard,
   onShareV2,
-  teamMembers,
+  tenantMembers,
   currentUserId,
   currentUser,
 }: UseDashboardShareV2Args) {
@@ -108,14 +108,14 @@ export function useDashboardShareV2({
   // `cannot_grant_to_owner`) and inactive members.
   const directory = useMemo<DirectoryPersonV2[]>(
     () =>
-      (teamMembers ?? [])
+      (tenantMembers ?? [])
         .filter((m) => m.isActive && m.id !== ownerUserId)
         .map((m) => ({
           userId: m.id,
           name: `${m.firstName} ${m.lastName}`.trim() || m.email,
           email: m.email,
         })),
-    [teamMembers, ownerUserId],
+    [tenantMembers, ownerUserId],
   );
 
   // People list shown in the dialog body — synthesises an owner row
@@ -128,13 +128,13 @@ export function useDashboardShareV2({
   const grants = useMemo<ShareDialogPersonV2[]>(() => {
     // Three paths to a display name for a given userId, in order:
     //   1. If it's the current viewer — read straight from the user
-    //      record we already hold. No teamMembers query needed, so
+    //      record we already hold. No tenantMembers query needed, so
     //      the caller's own row never flashes the raw id.
-    //   2. If teamMembers is still loading (`undefined`) — return
+    //   2. If tenantMembers is still loading (`undefined`) — return
     //      empty strings so the row renders as "avatar skeleton +
     //      empty name" until the query resolves. The Avatar pulses
     //      to signal the loading state.
-    //   3. Otherwise teamMembers has resolved. Look up the grant's
+    //   3. Otherwise tenantMembers has resolved. Look up the grant's
     //      user — if it's missing (deleted teammate, cross-tenant
     //      external user, stale grant), surface "Unknown user" so
     //      the row reads as a stable resolved state rather than a
@@ -150,8 +150,8 @@ export function useDashboardShareV2({
           email: currentUser.email,
         };
       }
-      if (!teamMembers) return { name: "", email: "" };
-      const member = teamMembers.find((m) => m.id === userId);
+      if (!tenantMembers) return { name: "", email: "" };
+      const member = tenantMembers.find((m) => m.id === userId);
       if (!member) return { name: "Unknown user", email: "" };
       return {
         name: `${member.firstName} ${member.lastName}`.trim() || member.email,
@@ -178,7 +178,13 @@ export function useDashboardShareV2({
       }));
 
     return ownerRow ? [ownerRow, ...explicitRows] : explicitRows;
-  }, [currentUserGrants, teamMembers, currentUserId, currentUser, ownerUserId]);
+  }, [
+    currentUserGrants,
+    tenantMembers,
+    currentUserId,
+    currentUser,
+    ownerUserId,
+  ]);
 
   const payloadFrom = useCallback(
     (overrides: Partial<ShareDashboardV2Request>): ShareDashboardV2Request =>

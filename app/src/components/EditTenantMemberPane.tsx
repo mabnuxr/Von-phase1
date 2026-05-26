@@ -1,23 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
 import usePreferencesStore from "../store/preferencesStore";
 import { Input, Banner, SingleSelect } from "@vonlabs/design-components";
-import { useTeamMembers, useRoles, useUpdateMember } from "../hooks/useTeam";
+import {
+  useTenantMembers,
+  useRoles,
+  useUpdateTenantMember,
+} from "../hooks/useTenantMembers";
 import { useUser } from "../hooks/useUser";
 import { report } from "../lib/analytics/tracker";
 
-export function EditTeamMemberPane() {
-  const { editingTeamMemberId, setEditingTeamMemberId } = usePreferencesStore();
+export function EditTenantMemberPane() {
+  const { editingTenantMemberId, setEditingTenantMemberId } =
+    usePreferencesStore();
   const { user } = useUser();
   const activeTenant = user?.tenantId as string | undefined;
 
-  // Fetch team members to get the member being edited
-  const { data: teamMembers } = useTeamMembers(activeTenant);
+  // Fetch tenant members to get the member being edited
+  const { data: tenantMembers } = useTenantMembers(activeTenant);
   const { data: roles, isLoading: rolesLoading } = useRoles(activeTenant);
-  const updateMutation = useUpdateMember(activeTenant);
+  const updateMutation = useUpdateTenantMember(activeTenant);
 
   const member = useMemo(
-    () => teamMembers?.find((m) => m.id === editingTeamMemberId) ?? null,
-    [teamMembers, editingTeamMemberId],
+    () => tenantMembers?.find((m) => m.id === editingTenantMemberId) ?? null,
+    [tenantMembers, editingTenantMemberId],
   );
 
   // Form state
@@ -67,10 +72,10 @@ export function EditTeamMemberPane() {
   // Disable role editing when viewing your own profile
   const isEditingSelf = member?.email === user?.email;
 
-  const isOpen = editingTeamMemberId !== null;
+  const isOpen = editingTenantMemberId !== null;
 
   const handleClose = () => {
-    setEditingTeamMemberId(null);
+    setEditingTenantMemberId(null);
     setValidationErrors([]);
   };
 
@@ -138,7 +143,7 @@ export function EditTeamMemberPane() {
       });
       handleClose();
     } catch (error: unknown) {
-      console.error("[EditTeamMemberPane] Save error:", error);
+      console.error("[EditTenantMemberPane] Save error:", error);
 
       if (error && typeof error === "object") {
         const response =

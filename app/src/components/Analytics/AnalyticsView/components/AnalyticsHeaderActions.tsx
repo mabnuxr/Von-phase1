@@ -6,7 +6,7 @@ import { DataSourcesSlot } from "../DataSourcesSlot";
 import { CreatorChip } from "./CreatorChip";
 import { EditLockBadge } from "../EditLockBadge";
 import type { Dashboard, DataSourceGroup } from "../../../../types/dashboard";
-import type { TeamMember } from "../../../../services/teamService";
+import type { TenantMember } from "../../../../services/tenantMembersService";
 
 interface AnalyticsHeaderActionsProps {
   hideCreatorChip: boolean | undefined;
@@ -31,7 +31,7 @@ interface AnalyticsHeaderActionsProps {
   lastEditedBy: Dashboard["lastEditedBy"];
   lastEditedAt: Dashboard["lastEditedAt"];
   currentUserId: string | undefined;
-  teamMembers: TeamMember[] | undefined;
+  tenantMembers: TenantMember[] | undefined;
   onOpenVersionHistory?: () => void;
 }
 
@@ -53,7 +53,7 @@ export function AnalyticsHeaderActions({
   lastEditedBy,
   lastEditedAt,
   currentUserId,
-  teamMembers,
+  tenantMembers,
   onOpenVersionHistory,
 }: AnalyticsHeaderActionsProps) {
   // While in edit mode, the EditLockBadge replaces the "Created by"
@@ -70,7 +70,7 @@ export function AnalyticsHeaderActions({
         <EditLockBadge
           editLock={editLock}
           currentUserId={currentUserId}
-          teamMembers={teamMembers}
+          tenantMembers={tenantMembers}
           lastEditedBy={lastEditedBy}
           lastEditedAt={lastEditedAt}
           onClick={onOpenVersionHistory}

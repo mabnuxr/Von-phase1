@@ -55,7 +55,7 @@ import { useCurrentConversation } from "../../hooks/useCurrentConversation";
 import { useInfiniteScroll } from "../../hooks/useInfiniteScroll";
 
 import { useDashboardPane } from "../../hooks/useDashboardPane";
-import { useTeamMembers } from "../../hooks/useTeam";
+import { useTenantMembers } from "../../hooks/useTenantMembers";
 import { useIntegrations } from "../../hooks/useIntegrations";
 import { AuthenticationStatus } from "../../services/integrationsService";
 
@@ -396,11 +396,11 @@ function ExistingChatInner(
   } = useChatMentions();
 
   // ── Scheduled commands ────────────────────────────────────────────
-  const { data: teamMembersData } = useTeamMembers(
+  const { data: tenantMembersData } = useTenantMembers(
     base.features.isScheduledCommandsEnabled ? base.user?.tenantId : undefined,
   );
   const teamMembersForSchedule = base.features.isScheduledCommandsEnabled
-    ? (teamMembersData ?? []).map((m) => ({
+    ? (tenantMembersData ?? []).map((m) => ({
         id: m.id,
         email: m.email,
         firstName: m.firstName,

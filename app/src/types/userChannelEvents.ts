@@ -97,8 +97,8 @@ export interface NotificationEvent {
 }
 
 /**
- * Per-row outcome from a bulk team-member import.
- * Mirrors the backend BulkImportRowResult schema.
+ * Per-row outcome from a bulk tenant-member import.
+ * Mirrors the backend BulkImportTenantMemberRowResult schema.
  */
 export interface BulkImportRowInput {
   firstName: string;
@@ -107,7 +107,7 @@ export interface BulkImportRowInput {
   role: string;
 }
 
-export interface BulkImportRowResult {
+export interface BulkImportTenantMemberRowResult {
   row: number;
   input: BulkImportRowInput;
   status: "created" | "skipped" | "error";
@@ -125,14 +125,14 @@ export interface BulkImportRowResult {
 }
 
 /**
- * Sent on the user channel as each row of a bulk team-member import finishes.
+ * Sent on the user channel as each row of a bulk tenant-member import finishes.
  * The HTTP response is the canonical source of truth — these events drive the
  * live progress bar and per-row table; if any are dropped, the response still
  * has every row classified.
  */
-export interface BulkImportProgressEvent {
+export interface BulkImportTenantMemberProgressEvent {
   jobId: string;
   completed: number;
   total: number;
-  result: BulkImportRowResult;
+  result: BulkImportTenantMemberRowResult;
 }

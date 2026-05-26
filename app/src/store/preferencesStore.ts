@@ -2067,11 +2067,11 @@ interface PreferencesState {
   editingIntegrationData: IntegrationConfig | null;
   setEditingIntegrationData: (data: IntegrationConfig | null) => void;
 
-  // Team management UI state
-  addingTeamMember: boolean;
-  setAddingTeamMember: (adding: boolean) => void;
-  editingTeamMemberId: string | null;
-  setEditingTeamMemberId: (id: string | null) => void;
+  // Tenant member management UI state
+  addingTenantMember: boolean;
+  setAddingTenantMember: (adding: boolean) => void;
+  editingTenantMemberId: string | null;
+  setEditingTenantMemberId: (id: string | null) => void;
 }
 
 const usePreferencesStoreBase = create<PreferencesState>((set) => ({
@@ -2296,11 +2296,11 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   editingIntegrationData: null,
   setEditingIntegrationData: (data) => set({ editingIntegrationData: data }),
 
-  // Team management UI state
-  addingTeamMember: false,
-  setAddingTeamMember: (adding) => set({ addingTeamMember: adding }),
-  editingTeamMemberId: null,
-  setEditingTeamMemberId: (id) => set({ editingTeamMemberId: id }),
+  // Tenant member management UI state
+  addingTenantMember: false,
+  setAddingTenantMember: (adding) => set({ addingTenantMember: adding }),
+  editingTenantMemberId: null,
+  setEditingTenantMemberId: (id) => set({ editingTenantMemberId: id }),
 }));
 
 const usePreferencesStore = createSelectors(usePreferencesStoreBase);

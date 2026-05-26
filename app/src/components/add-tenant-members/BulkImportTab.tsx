@@ -11,11 +11,11 @@ import { Banner } from "@vonlabs/design-components";
 
 import { config } from "../../config";
 import { useUser } from "../../hooks/useUser";
-import { useBulkImportTeamMembers } from "../../hooks/useTeam";
+import { useBulkImportTenantMembers } from "../../hooks/useTenantMembers";
 import { useBulkImportProgress } from "../../hooks/useBulkImportProgress";
 import { useUserPusherChannel } from "../../hooks/useUserPusherChannel";
-import type { BulkImportResponse } from "../../services/teamService";
-import type { BulkImportRowResult } from "../../types/userChannelEvents";
+import type { BulkImportTenantMemberResponse } from "../../services/tenantMembersService";
+import type { BulkImportTenantMemberRowResult } from "../../types/userChannelEvents";
 import type { TabContentProps } from "./types";
 
 /** Quote a CSV cell value: wrap in double quotes and escape internal quotes. */
@@ -23,7 +23,9 @@ function csvEscape(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-function buildErrorReportCsv(errorRows: BulkImportRowResult[]): string {
+function buildErrorReportCsv(
+  errorRows: BulkImportTenantMemberRowResult[],
+): string {
   const lines = ["First Name,Last Name,Email,Role,Error"];
   for (const r of errorRows) {
     lines.push(
@@ -62,7 +64,8 @@ export function BulkImportTab({
 
   const [file, setFile] = useState<File | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
-  const [response, setResponse] = useState<BulkImportResponse | null>(null);
+  const [response, setResponse] =
+    useState<BulkImportTenantMemberResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +83,7 @@ export function BulkImportTab({
     jobId,
   });
 
-  const importMutation = useBulkImportTeamMembers(
+  const importMutation = useBulkImportTenantMembers(
     user?.tenantId as string | undefined,
   );
 
@@ -153,7 +156,7 @@ export function BulkImportTab({
 
   // Source of truth: HTTP response if present (canonical); otherwise the
   // accumulated Pusher events for the in-flight progress UI.
-  const liveResults = useMemo<BulkImportRowResult[]>(() => {
+  const liveResults = useMemo<BulkImportTenantMemberRowResult[]>(() => {
     if (response) return response.results;
     return Array.from(rowResults.values()).sort((a, b) => a.row - b.row);
   }, [response, rowResults]);
@@ -362,7 +365,7 @@ export function BulkImportTab({
   );
 }
 
-function ResultsTable({ rows }: { rows: BulkImportRowResult[] }) {
+function ResultsTable({ rows }: { rows: BulkImportTenantMemberRowResult[] }) {
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       <table className="min-w-full divide-y divide-gray-200 text-xs">
@@ -401,7 +404,11 @@ function ResultsTable({ rows }: { rows: BulkImportRowResult[] }) {
   );
 }
 
-function StatusPill({ status }: { status: BulkImportRowResult["status"] }) {
+function StatusPill({
+  status,
+}: {
+  status: BulkImportTenantMemberRowResult["status"];
+}) {
   if (status === "created") {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 font-medium">

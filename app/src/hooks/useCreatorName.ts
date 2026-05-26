@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { useUser } from "./useUser";
-import { useTeamMembers } from "./useTeam";
+import { useTenantMembers } from "./useTenantMembers";
 
 /**
  * Resolves the display name of a dashboard's creator by looking up
- * the creator ID in the organisation's team members.
+ * the creator ID in the organisation's tenant members.
  */
 export function useCreatorName({
   isOwner,
@@ -18,22 +18,22 @@ export function useCreatorName({
   const needsLookup = !isOwner && !createdByName;
   const { user, loading: userLoading } = useUser();
   const {
-    data: teamMembers,
+    data: tenantMembers,
     isLoading: membersLoading,
     isError,
-  } = useTeamMembers(needsLookup ? user?.tenantId : undefined);
+  } = useTenantMembers(needsLookup ? user?.tenantId : undefined);
 
   const isLoading = needsLookup && (userLoading || membersLoading);
 
   const memberNameById = useMemo(
     () =>
       new Map(
-        teamMembers?.map((m) => [
+        tenantMembers?.map((m) => [
           m.id,
           `${m.firstName || ""} ${m.lastName || ""}`.trim(),
         ]),
       ),
-    [teamMembers],
+    [tenantMembers],
   );
 
   const name = useMemo(() => {

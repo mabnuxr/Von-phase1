@@ -8,7 +8,7 @@ import { useUser } from "../hooks/useUser";
 import { useSidebarState } from "../hooks/useSidebarState";
 import { useNewChat } from "../hooks/useNewChat";
 import { useLogout } from "../hooks/useLogout";
-import { useTeamMembers } from "../hooks/useTeam";
+import { useTenantMembers } from "../hooks/useTenantMembers";
 import { getUserContext } from "../lib/auth";
 import { ChatSidebarContainer } from "./ChatSidebarContainer";
 import { AppShellContext } from "../contexts/AppShellContext";
@@ -92,7 +92,7 @@ export function AppShell() {
   // cleared so behaviour stays correct in degraded conditions.
   const bootstrappedTenantId =
     getUserContext()?.tenant_id ?? user?.tenantId ?? undefined;
-  const { data: teamMembersData } = useTeamMembers(bootstrappedTenantId);
+  const { data: tenantMembersData } = useTenantMembers(bootstrappedTenantId);
 
   // --- Connection Error Banner ---
   const [showConnectionBanner, setShowConnectionBanner] = useState(false);
@@ -201,7 +201,7 @@ export function AppShell() {
               conversationsService.deactivateShareLink(id)
             }
             onGetTeamMembers={async () => {
-              const members = teamMembersData ?? [];
+              const members = tenantMembersData ?? [];
               return members.map((m) => ({
                 id: m.id,
                 email: m.email,

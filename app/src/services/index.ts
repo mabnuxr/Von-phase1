@@ -35,15 +35,15 @@ export { foldersService } from "./foldersService";
 export { preferencesService } from "./preferencesService";
 export type { PreferencesData } from "./preferencesService";
 
-// Team Service
-export { teamService } from "./teamService";
+// Tenant Members Service
+export { tenantMembersService } from "./tenantMembersService";
 export type {
-  TeamMember,
+  TenantMember,
   Role,
-  AddTeamMemberRequest,
+  AddTenantMemberRequest,
   UpdateMemberPermissionsRequest,
   UpdateMemberPermissionsResponse,
-} from "./teamService";
+} from "./tenantMembersService";
 
 // Permissions Service
 export { permissionsService, Resource } from "./permissionsService";
