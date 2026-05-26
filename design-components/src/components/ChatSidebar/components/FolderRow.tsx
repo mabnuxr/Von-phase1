@@ -37,10 +37,11 @@ export const FolderRow: React.FC<FolderRowProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [editValue, setEditValue] = useState(folder.label);
   const inputRef = useRef<HTMLInputElement>(null);
-  // System folders are read-only — rename / delete / pin are all suppressed.
-  const hasActions = !folder.isSystem && !!(onContextMenu || onPinFolder);
-  const showButton = hasActions && (isHovered || isMenuOpen) && !isEditing;
-  const showPinButton = hasActions && (folder.isPinned || isHovered) && !isEditing;
+  // System folders allow pin/unpin but no rename or delete — show the pin
+  // affordance, hide the kebab.
+  const hasActions = !!onPinFolder || (!folder.isSystem && !!onContextMenu);
+  const showButton = !folder.isSystem && !!onContextMenu && (isHovered || isMenuOpen) && !isEditing;
+  const showPinButton = !!onPinFolder && (folder.isPinned || isHovered) && !isEditing;
 
   // Focus input when entering edit mode
   useEffect(() => {
