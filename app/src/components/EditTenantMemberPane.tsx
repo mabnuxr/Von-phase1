@@ -365,10 +365,7 @@ export function EditTenantMemberPane() {
                         You cannot change your own role
                       </p>
                     )}
-                    {!isEditingSelf &&
-                      roles &&
-                      formData.role &&
-                      canEditCoreFields && (
+                    {!isEditingSelf && roles && formData.role && (
                         <p className="mt-2 text-xs text-gray-500">
                           {
                             roles.find((r) => r.name === formData.role)
