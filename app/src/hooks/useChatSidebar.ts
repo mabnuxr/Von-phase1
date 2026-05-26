@@ -65,12 +65,16 @@ function conversationRowToSidebarItem(
   conv: FolderConversationRow,
   folderId: string | null,
 ): SidebarItem {
+  // System-managed = anything not user-initiated. `source` is omitted on
+  // legacy rows (treated as user_chat) until the backfill migration runs.
+  const isSystemManaged = !!conv.source && conv.source !== "user_chat";
   return {
     id: conv.conversation_id,
     label: conv.title,
     type: "chat",
     href: `/chat/${conv.conversation_id}`,
     folderId,
+    isSystemManaged: isSystemManaged || undefined,
     approvalState:
       conv.approval_state === "pending" || conv.approval_state === "expired"
         ? conv.approval_state
@@ -119,6 +123,7 @@ function apiFolderToUiFolder(folder: ApiFolder, isExpanded: boolean): UiFolder {
     isExpanded,
     isPinned: folder.displayOrder === 0,
     displayOrder: folder.displayOrder,
+    isSystem: folder.systemFolderType != null,
   };
 }
 

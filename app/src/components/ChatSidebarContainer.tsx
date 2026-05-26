@@ -599,12 +599,12 @@ export function ChatSidebarContainer({
         }
         contextMenuShareInfo={contextMenuShareInfo}
         onDeleteItem={handleDeleteItem}
-        onDeleteFolder={handleDeleteFolder}
         onDeleteFolderClick={handleDeleteFolderClick}
         onDeleteFolderCancelled={handleDeleteFolderCancelled}
+        onFolderToggle={handleFolderToggle}
+        onDeleteFolder={handleDeleteFolder}
         onRenameFolder={handleRenameFolder}
         onPinFolder={handlePinFolder}
-        onFolderToggle={handleFolderToggle}
         onRemoveItemFromFolder={handleRemoveItemFromFolder}
         onManageItemFolders={handleManageItemFolders}
         sectionShowMore={sectionShowMore}

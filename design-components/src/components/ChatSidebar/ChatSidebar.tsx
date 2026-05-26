@@ -58,6 +58,9 @@ export interface SidebarItem {
   /** Whether the current user owns this item — gates rename/delete in the
    *  context menu. Always true for chats; reflects API truth for dashboards. */
   isOwner?: boolean;
+  /** True when this row is server-managed (e.g. a scheduled command run).
+   *  The context menu uses this to disable Manage Folders and Delete. */
+  isSystemManaged?: boolean;
 }
 
 // ============================================================================
@@ -88,6 +91,7 @@ export interface Folder {
   isPinned?: boolean;
   /** Display order for sorting (0 = pinned, 100 = default) */
   displayOrder?: number;
+  isSystem?: boolean;
 }
 
 /**
@@ -969,6 +973,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           itemType: contextMenu.item?.type,
           isOwner: contextMenu.item?.isOwner,
           isInFolder: !!contextMenu.item?.folderId,
+          isSystemManaged: !!contextMenu.item?.isSystemManaged,
           enableShare: !!onShareItem,
           shareInfo: contextMenuShareInfo,
         })}

@@ -193,14 +193,9 @@ export function useChatSidebarState({
     );
   }, [folders, folderItems, items]);
 
-  // Sorted folders: pinned first, then alphabetical by label
-  const sortedFolders = useMemo(() => {
-    return [...folders].sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      return a.label.localeCompare(b.label);
-    });
-  }, [folders]);
+  // Server controls folder ordering (display_order, updated_at, name).
+  // Don't re-sort here — the BE order is the source of truth.
+  const sortedFolders = folders;
 
   // Available folders for move (excludes current folder)
   const getAvailableFoldersForMove = useCallback(() => {
