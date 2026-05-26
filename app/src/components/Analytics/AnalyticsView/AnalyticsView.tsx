@@ -383,14 +383,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { isDashboardOwner, canEditDashboard, creatorName, isCreatorLoading } =
     useDashboardRoles(dashboard);
 
-  const { copy } = useCopyToClipboard();
-  const handleCopyLink = useCallback(
-    () =>
-      copy(window.location.href).then(() => {
-        onLinkCopied?.();
-      }),
-    [copy, onLinkCopied],
-  );
+  const { copy } = useCopyToClipboard(2000, onLinkCopied);
+  const handleCopyLink = useCallback(() => copy(window.location.href), [copy]);
 
   const { shareState, shareActions } = useDashboardShareV2({
     dashboard,
