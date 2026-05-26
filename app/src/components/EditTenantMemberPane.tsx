@@ -366,13 +366,13 @@ export function EditTenantMemberPane() {
                       </p>
                     )}
                     {!isEditingSelf && roles && formData.role && (
-                        <p className="mt-2 text-xs text-gray-500">
-                          {
-                            roles.find((r) => r.name === formData.role)
-                              ?.description
-                          }
-                        </p>
-                      )}
+                      <p className="mt-2 text-xs text-gray-500">
+                        {
+                          roles.find((r) => r.name === formData.role)
+                            ?.description
+                        }
+                      </p>
+                    )}
                   </>
                 )}
               </div>
