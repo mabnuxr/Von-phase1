@@ -3,12 +3,7 @@ name: Build and Push to ECR
 on:
   push:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'design-components/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/deploy-ecr.yml'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -18,6 +13,9 @@ env:
   AWS_REGION: us-west-2
   ECR_REGISTRY: 814314855241.dkr.ecr.us-west-2.amazonaws.com
   ECR_REPOSITORY: revenue-os-frontend
+  ECR_HELM_NAMESPACE: helm-charts
+  CHART_NAME: revenue-os-frontend
+  CHART_PATH: charts/revenue-os-frontend
   IAM_ROLE_ARN: arn:aws:iam::814314855241:role/vonlabs-prod-github-actions-backend
 
 jobs:
@@ -69,7 +67,7 @@ jobs:
             --build-arg VITE_SCALEKIT_AUTH_TOKEN_PATH=/oauth/token \
             --build-arg VITE_SCALEKIT_AUTH_LOGOUT_PATH= \
             --build-arg VITE_SCALEKIT_REDIRECT_URI=https://app.vonlabs.ai/callback \
-            --build-arg VITE_API_BASE_URL=https://apiv2.vonlabs.ai \
+            --build-arg VITE_API_BASE_URL=https://api-v3.vonlabs.ai \
             --build-arg VITE_THESYS_API_KEY=${{ env.VITE_THESYS_API_KEY }} \
             --build-arg VITE_DD_APPLICATION_ID=${{ env.VITE_DD_APPLICATION_ID }} \
             --build-arg VITE_DD_CLIENT_TOKEN=${{ env.VITE_DD_CLIENT_TOKEN }} \
@@ -89,3 +87,68 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Repository:** ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** ${{ github.sha }}, production" >> $GITHUB_STEP_SUMMARY
+
+  publish-helm:
+    name: Package and push Helm chart
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.18.4
+
+      - name: Lint chart
+        run: helm lint "${CHART_PATH}"
+
+      - name: Resolve chart version
+        id: version
+        run: |
+          CHART_BASE=$(grep -E '^version:' "${CHART_PATH}/Chart.yaml" | awk '{print $2}' | tr -d '"')
+          VERSION="${CHART_BASE}-${{ github.sha }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Chart version: ${VERSION}"
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.IAM_ROLE_ARN }}
+          role-session-name: github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login Helm to ECR
+        run: |
+          aws ecr get-login-password --region "${AWS_REGION}" \
+            | helm registry login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+      - name: Package chart
+        run: |
+          helm package "${CHART_PATH}" \
+            --version "${{ steps.version.outputs.version }}" \
+            --app-version "${{ github.sha }}" \
+            --destination dist/
+          ls -la dist/
+
+      - name: Push chart
+        run: |
+          helm push "dist/${CHART_NAME}-${{ steps.version.outputs.version }}.tgz" \
+            "oci://${ECR_REGISTRY}/${ECR_HELM_NAMESPACE}"
+
+      - name: Summary
+        run: |
+          echo "## Helm chart published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry:** \`oci://${ECR_REGISTRY}/${ECR_HELM_NAMESPACE}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Chart:** \`${CHART_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** \`${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy-argocd:
+    name: Deploy via ArgoCD
+    needs: [build-and-push, publish-helm]
+    uses: ./.github/workflows/argocd-deploy.yml
+    with:
+      commit_sha: ${{ github.sha }}
+    secrets: inherit
