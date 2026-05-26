@@ -30,12 +30,22 @@ export function EditTenantMemberPane() {
     firstName: "",
     lastName: "",
     role: "",
+    timezone: "America/Los_Angeles",
   });
 
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Role options - admins see all, members only see Member
   const isAdmin = user?.roles?.includes("Admin") ?? false;
+
+  const timezoneOptions = useMemo(
+    () =>
+      Intl.supportedValuesOf("timeZone").map((tz) => ({
+        value: tz,
+        label: tz.replace(/_/g, " "),
+      })),
+    [],
+  );
 
   const roleOptions = useMemo(
     () =>
@@ -64,6 +74,7 @@ export function EditTenantMemberPane() {
         firstName: member.firstName,
         lastName: member.lastName,
         role: memberRoleName,
+        timezone: member.timezone ?? "America/Los_Angeles",
       });
       setValidationErrors([]);
     }
@@ -84,18 +95,19 @@ export function EditTenantMemberPane() {
     handleClose();
   };
 
+  // Members can only update their own timezone
+  const canEditCoreFields = isAdmin;
+  const canEditTimezone = isAdmin || isEditingSelf;
+
   const handleSave = async () => {
     if (!member) return;
 
     const errors: string[] = [];
-    if (!formData.firstName.trim()) {
-      errors.push("First Name is required");
-    }
-    if (!formData.lastName.trim()) {
-      errors.push("Last Name is required");
-    }
-    if (!formData.role) {
-      errors.push("Role is required");
+
+    if (canEditCoreFields) {
+      if (!formData.firstName.trim()) errors.push("First Name is required");
+      if (!formData.lastName.trim()) errors.push("Last Name is required");
+      if (!formData.role) errors.push("Role is required");
     }
 
     if (errors.length > 0) {
@@ -110,17 +122,22 @@ export function EditTenantMemberPane() {
       return;
     }
 
-    // Build update payload - only include changed fields
+    // Build update payload - only include fields the user is allowed to send
     const updates: Record<string, string> = {};
-    if (formData.firstName.trim() !== member.firstName) {
-      updates.firstName = formData.firstName.trim();
-    }
-    if (formData.lastName.trim() !== member.lastName) {
-      updates.lastName = formData.lastName.trim();
+
+    if (canEditCoreFields) {
+      if (formData.firstName.trim() !== member.firstName)
+        updates.firstName = formData.firstName.trim();
+      if (formData.lastName.trim() !== member.lastName)
+        updates.lastName = formData.lastName.trim();
+      if (formData.role !== memberRoleName) updates.role = formData.role;
     }
 
-    if (formData.role !== memberRoleName) {
-      updates.role = formData.role;
+    if (
+      canEditTimezone &&
+      formData.timezone !== (member.timezone ?? "America/Los_Angeles")
+    ) {
+      updates.timezone = formData.timezone;
     }
 
     if (Object.keys(updates).length === 0) {
@@ -280,6 +297,7 @@ export function EditTenantMemberPane() {
                   onChange={(e) => handleChange("firstName", e.target.value)}
                   placeholder="John"
                   fullWidth
+                  disabled={!canEditCoreFields}
                 />
               </div>
 
@@ -297,6 +315,7 @@ export function EditTenantMemberPane() {
                   onChange={(e) => handleChange("lastName", e.target.value)}
                   placeholder="Doe"
                   fullWidth
+                  disabled={!canEditCoreFields}
                 />
               </div>
 
@@ -339,22 +358,49 @@ export function EditTenantMemberPane() {
                       placeholder="Select a role"
                       fullWidth
                       showSearch={false}
-                      disabled={isEditingSelf}
+                      disabled={isEditingSelf || !canEditCoreFields}
                     />
                     {isEditingSelf && (
                       <p className="mt-1.5 text-xs text-gray-400">
                         You cannot change your own role
                       </p>
                     )}
-                    {!isEditingSelf && roles && formData.role && (
-                      <p className="mt-2 text-xs text-gray-500">
-                        {
-                          roles.find((r) => r.name === formData.role)
-                            ?.description
-                        }
-                      </p>
-                    )}
+                    {!isEditingSelf &&
+                      roles &&
+                      formData.role &&
+                      canEditCoreFields && (
+                        <p className="mt-2 text-xs text-gray-500">
+                          {
+                            roles.find((r) => r.name === formData.role)
+                              ?.description
+                          }
+                        </p>
+                      )}
                   </>
+                )}
+              </div>
+
+              {/* Timezone */}
+              <div>
+                <label
+                  htmlFor="editTimezone"
+                  className="block text-sm font-medium text-gray-700 mb-1.5"
+                >
+                  Timezone
+                </label>
+                <SingleSelect
+                  options={timezoneOptions}
+                  value={formData.timezone}
+                  onChange={(value: string) => handleChange("timezone", value)}
+                  placeholder="Select a timezone"
+                  fullWidth
+                  showSearch
+                  disabled={!canEditTimezone}
+                />
+                {!canEditTimezone && (
+                  <p className="mt-1.5 text-xs text-gray-400">
+                    You can only update your own timezone
+                  </p>
                 )}
               </div>
             </div>

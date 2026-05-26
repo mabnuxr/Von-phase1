@@ -21,6 +21,7 @@ export interface TenantMember {
   firstName: string;
   lastName: string;
   role: string;
+  timezone?: string;
   joinedDate: string | null;
   isActive: boolean;
   usage: TenantMemberUsage;
@@ -201,6 +202,7 @@ export interface UpdateTenantMemberRequest {
   firstName?: string;
   lastName?: string;
   role?: string;
+  timezone?: string;
 }
 
 export interface UpdateTenantMemberResponse {
@@ -208,6 +210,7 @@ export interface UpdateTenantMemberResponse {
   firstName: string;
   lastName: string;
   role: string;
+  timezone?: string;
   message: string;
 }
 
