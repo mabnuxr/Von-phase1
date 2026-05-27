@@ -1,5 +1,6 @@
 import { config } from "../config";
 import { clearAllAuth } from "../lib/auth";
+import { isBrowserNetworkError } from "../lib/networkErrors";
 
 /**
  * API Error class for handling API-specific errors
@@ -7,13 +8,41 @@ import { clearAllAuth } from "../lib/auth";
 export class ApiError extends Error {
   statusCode: number;
   response?: unknown;
+  /**
+   * True when the request failed at the network layer — fetch() rejected
+   * before any HTTP response arrived (statusCode is 0). Lets callers branch
+   * on "couldn't reach the server" vs. a real server-side error.
+   */
+  isNetworkError: boolean;
 
-  constructor(message: string, statusCode: number, response?: unknown) {
+  constructor(
+    message: string,
+    statusCode: number,
+    response?: unknown,
+    isNetworkError = false,
+  ) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
     this.response = response;
+    this.isNetworkError = isNetworkError;
   }
+}
+
+/**
+ * Build a friendly, actionable message for network-layer fetch failures —
+ * cases where fetch() rejects before any HTTP response (the browser throws a
+ * TypeError like "Failed to fetch (api-v3.vonlabs.ai)"). These are almost
+ * always client-side: the user is offline, or a browser extension (ad blocker
+ * / privacy tool), VPN, or firewall is blocking requests to the API host. The
+ * raw browser message is meaningless to users, so we replace it with guidance
+ * they can act on.
+ */
+function networkErrorMessage(): string {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return "You appear to be offline. Check your internet connection and try again.";
+  }
+  return "Couldn't reach the server — a browser extension (ad blocker or privacy tool), VPN, or network firewall may be blocking requests. Try disabling extensions for this site or switching networks, then try again.";
 }
 
 /**
@@ -225,7 +254,26 @@ export class ApiClient {
         throw error;
       }
 
-      // Network errors or other fetch errors
+      // A browser network-layer failure — fetch() rejected before any HTTP
+      // response because the request never reached the server (offline, DNS,
+      // CORS, or an extension / VPN / firewall block). Surface actionable
+      // guidance; keep the raw browser message (which may name the failing
+      // host) in `response`, and log it in dev for diagnosis.
+      if (isBrowserNetworkError(error)) {
+        if (import.meta.env.DEV) {
+          console.warn(`[API] network failure for ${url}: ${error.message}`);
+        }
+        throw new ApiError(
+          networkErrorMessage(),
+          0,
+          { rawMessage: error.message },
+          true,
+        );
+      }
+
+      // Any other unexpected error (a different TypeError from a bad request
+      // option, or a SyntaxError from malformed JSON in an OK response) — keep
+      // its real message so the actual bug isn't masked as a network failure.
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
       throw new ApiError(message, 0);
@@ -309,6 +357,18 @@ export class ApiClient {
         credentials: "include",
       });
     } catch (error) {
+      // Browser network-layer failure before any response (see request()).
+      if (isBrowserNetworkError(error)) {
+        if (import.meta.env.DEV) {
+          console.warn(`[API] network failure for ${url}: ${error.message}`);
+        }
+        throw new ApiError(
+          networkErrorMessage(),
+          0,
+          { rawMessage: error.message },
+          true,
+        );
+      }
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
       throw new ApiError(message, 0);
