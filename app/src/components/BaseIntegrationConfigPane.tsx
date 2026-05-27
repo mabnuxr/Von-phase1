@@ -104,6 +104,12 @@ export function BaseIntegrationConfigPane({
   const [salesloftApiKey, setSalesloftApiKey] = useState("");
   // Jiminny API key configuration state
   const [jiminnyApiKey, setJiminnyApiKey] = useState("");
+  // Gainsight API key + per-tenant domain configuration state
+  const [gainsightApiKey, setGainsightApiKey] = useState("");
+  const [gainsightDomain, setGainsightDomain] = useState(
+    editData?.instanceUrl || "",
+  );
+  const [gainsightDomainError, setGainsightDomainError] = useState("");
 
   // Chorus username/password configuration state
   const [chorusUsername, setChorusUsername] = useState("");
@@ -233,6 +239,32 @@ export function BaseIntegrationConfigPane({
       }
     }
 
+    if (integrationId === "gainsight") {
+      // Domain required on every save — Scalekit URL template substitutes {{domain}}.
+      setGainsightDomainError("");
+      if (!gainsightDomain) {
+        errors.push("Gainsight Domain is required");
+        setGainsightDomainError("Gainsight Domain is required");
+      } else if (/^https?:\/\//i.test(gainsightDomain)) {
+        errors.push("Domain should not include http:// or https://");
+        setGainsightDomainError(
+          "Domain should not include http:// or https://",
+        );
+      } else if (!/\.gainsightcloud\.com$/i.test(gainsightDomain)) {
+        errors.push(
+          "Enter the full Gainsight host (e.g. yourcompany.gainsightcloud.com)",
+        );
+        setGainsightDomainError(
+          "Enter the full Gainsight host (e.g. yourcompany.gainsightcloud.com)",
+        );
+      }
+      if (!hasExistingCredentials) {
+        if (!gainsightApiKey) {
+          errors.push("API Key is required");
+        }
+      }
+    }
+
     if (integrationId === "chorus") {
       if (!hasExistingCredentials) {
         if (!chorusUsername) {
@@ -357,6 +389,10 @@ export function BaseIntegrationConfigPane({
         config.instance_url = zendeskSubdomain;
       }
 
+      if (integrationId === "gainsight") {
+        config.instance_url = gainsightDomain;
+      }
+
       if (integrationId === "databricks" && databricksWarehouseId) {
         config.warehouse_id = databricksWarehouseId;
       }
@@ -404,6 +440,10 @@ export function BaseIntegrationConfigPane({
         } else if (integrationId === "jiminny") {
           if (jiminnyApiKey) {
             (updateData as Record<string, unknown>).apiKey = jiminnyApiKey;
+          }
+        } else if (integrationId === "gainsight") {
+          if (gainsightApiKey) {
+            (updateData as Record<string, unknown>).apiKey = gainsightApiKey;
           }
         } else if (integrationId === "chorus") {
           if (chorusUsername) {
@@ -521,13 +561,15 @@ export function BaseIntegrationConfigPane({
                   ? salesloftApiKey
                   : integrationId === "jiminny"
                     ? jiminnyApiKey
-                    : integrationId === "claricopilot"
-                      ? clariUsername
-                      : integrationId === "snowflake"
-                        ? snowflakeAccountId
-                        : integrationId === "databricks"
-                          ? databricksWorkspaceUrl
-                          : undefined,
+                    : integrationId === "gainsight"
+                      ? gainsightApiKey
+                      : integrationId === "claricopilot"
+                        ? clariUsername
+                        : integrationId === "snowflake"
+                          ? snowflakeAccountId
+                          : integrationId === "databricks"
+                            ? databricksWorkspaceUrl
+                            : undefined,
           // BigQuery service account JSON
           serviceAccountJson:
             integrationId === "bigquery"
@@ -565,6 +607,9 @@ export function BaseIntegrationConfigPane({
         }
         if (integrationId === "jiminny") {
           setJiminnyApiKey("");
+        }
+        if (integrationId === "gainsight") {
+          setGainsightApiKey("");
         }
         if (integrationId === "chorus") {
           setChorusUsername("");
@@ -1056,6 +1101,58 @@ export function BaseIntegrationConfigPane({
 
                   <style>{`
                       .jiminny-input-wrapper input::placeholder {
+                        font-size: 13px;
+                        color: #9ca3af;
+                      }
+                    `}</style>
+                </>
+              )}
+
+              {/* Gainsight-specific fields */}
+              {integrationId === "gainsight" && (
+                <>
+                  {/* Per-tenant Gainsight host — substituted into Scalekit's {{domain}} URL template */}
+                  <div className="gainsight-input-wrapper">
+                    <Input
+                      type="text"
+                      label="Gainsight Domain"
+                      value={gainsightDomain}
+                      onChange={(e) => {
+                        setGainsightDomain(e.target.value);
+                        if (gainsightDomainError) setGainsightDomainError("");
+                      }}
+                      placeholder="yourcompany.gainsightcloud.com"
+                      helperText="Full Gainsight host (without https://). Each tenant has their own subdomain."
+                      required
+                      fullWidth
+                      error={!!gainsightDomainError}
+                      errorMessage={gainsightDomainError}
+                    />
+                  </div>
+
+                  <div className="gainsight-input-wrapper">
+                    <Input
+                      type="password"
+                      label="API Access Key"
+                      value={gainsightApiKey}
+                      onChange={(e) => setGainsightApiKey(e.target.value)}
+                      placeholder={
+                        hasExistingCredentials
+                          ? "••••••••"
+                          : "Enter your Gainsight API access key"
+                      }
+                      helperText={
+                        hasExistingCredentials
+                          ? "Leave empty to keep existing API key"
+                          : "Your Gainsight API access key"
+                      }
+                      required={!hasExistingCredentials}
+                      fullWidth
+                    />
+                  </div>
+
+                  <style>{`
+                      .gainsight-input-wrapper input::placeholder {
                         font-size: 13px;
                         color: #9ca3af;
                       }
@@ -1596,6 +1693,7 @@ export function BaseIntegrationConfigPane({
           {(integrationId === "gong" ||
             integrationId === "fathom" ||
             integrationId === "jiminny" ||
+            integrationId === "gainsight" ||
             integrationId === "zendesk" ||
             integrationId === "snowflake" ||
             integrationId === "databricks" ||
@@ -1609,17 +1707,19 @@ export function BaseIntegrationConfigPane({
                       ? "https://help.gong.io/docs/receive-access-to-the-api"
                       : integrationId === "jiminny"
                         ? "https://help.jiminny.com/en/articles/9527212-what-is-the-jiminny-api"
-                        : integrationId === "zendesk"
-                          ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
-                          : integrationId === "snowflake"
-                            ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
-                            : integrationId === "databricks"
-                              ? "https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html"
-                              : integrationId === "bigquery"
-                                ? "https://cloud.google.com/iam/docs/keys-create-delete"
-                                : integrationId === "salesloft_engagement"
-                                  ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
-                                  : "https://developers.fathom.ai/quickstart"
+                        : integrationId === "gainsight"
+                          ? "https://support.gainsight.com/gainsight_nxt/Connectors/API_Integrations/Generate_REST_API_Access_Key"
+                          : integrationId === "zendesk"
+                            ? "https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API"
+                            : integrationId === "snowflake"
+                              ? "https://docs.snowflake.com/en/user-guide/key-pair-auth"
+                              : integrationId === "databricks"
+                                ? "https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html"
+                                : integrationId === "bigquery"
+                                  ? "https://cloud.google.com/iam/docs/keys-create-delete"
+                                  : integrationId === "salesloft_engagement"
+                                    ? "https://developers.salesloft.com/docs/platform/api-basics/api-key-authentication"
+                                    : "https://developers.fathom.ai/quickstart"
                   }
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1636,17 +1736,19 @@ export function BaseIntegrationConfigPane({
                     ? "How to generate API credentials"
                     : integrationId === "jiminny"
                       ? "How to generate API credentials"
-                      : integrationId === "zendesk"
-                        ? "Generating a new API token"
-                        : integrationId === "snowflake"
-                          ? "How to generate a key pair"
-                          : integrationId === "databricks"
-                            ? "How to set up OAuth M2M"
-                            : integrationId === "bigquery"
-                              ? "How to create a service account key"
-                              : integrationId === "salesloft_engagement"
-                                ? "How to generate an API key"
-                                : "How to generate an API key"}
+                      : integrationId === "gainsight"
+                        ? "How to generate an API access key"
+                        : integrationId === "zendesk"
+                          ? "Generating a new API token"
+                          : integrationId === "snowflake"
+                            ? "How to generate a key pair"
+                            : integrationId === "databricks"
+                              ? "How to set up OAuth M2M"
+                              : integrationId === "bigquery"
+                                ? "How to create a service account key"
+                                : integrationId === "salesloft_engagement"
+                                  ? "How to generate an API key"
+                                  : "How to generate an API key"}
                 </a>
                 <div className="flex items-center gap-1.5">
                   <svg
@@ -1670,7 +1772,7 @@ export function BaseIntegrationConfigPane({
 
           {/* Footer Actions */}
           <div
-            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "databricks" || integrationId === "bigquery" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
+            className={`px-6 py-4 border-t border-gray-200 shrink-0 ${integrationId === "gong" || integrationId === "fathom" || integrationId === "jiminny" || integrationId === "gainsight" || integrationId === "zendesk" || integrationId === "snowflake" || integrationId === "databricks" || integrationId === "bigquery" || integrationId === "salesloft_engagement" ? "border-t-0 pt-0" : ""}`}
           >
             <div className="flex items-center justify-end gap-3">
               <button

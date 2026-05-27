@@ -26,6 +26,7 @@ export interface IntegrationMetadata {
     | "Knowledge base"
     | "Data Warehouse"
     | "Customer Support"
+    | "Customer Success"
     | "Calendar"
     | "Note Takers"
     | "Communication";
@@ -284,6 +285,16 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
     category: "Note Takers",
   },
+  // Customer Success integrations
+  gainsight: {
+    id: "gainsight",
+    name: "Gainsight",
+    description:
+      "Query Customer Success data, manage CTAs and tasks, log Timeline activities, and update success plans.",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/gainsight.svg",
+    category: "Customer Success",
+  },
 } as const;
 
 /**
@@ -331,6 +342,7 @@ export function getIntegrationLogoPath(type: string): string {
     GMAIL: "gmail",
     GRANOLA: "granola",
     NOTION: "notion",
+    GAINSIGHT: "gainsight",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -381,6 +393,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     notion: "NOTION",
     slack_workspace: "SLACK_WORKSPACE",
     slack_personal: "SLACK_PERSONAL",
+    gainsight: "GAINSIGHT",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -425,6 +438,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     NOTION: "notion",
     SLACK_WORKSPACE: "slack_workspace",
     SLACK_PERSONAL: "slack_personal",
+    GAINSIGHT: "gainsight",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
