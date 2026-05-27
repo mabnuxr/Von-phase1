@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import type { LayoutItem } from "@vonlabs/design-components";
-import { dashboardService } from "../services/dashboardService";
+import {
+  dashboardService,
+  type DashboardMetadataApiResponse,
+} from "../services/dashboardService";
+import { ApiError } from "../services/apiClient";
 import { dashboardKeys } from "./useDashboardQuery";
+import { writeDashboardEditState } from "./useDashboardMetadata";
 import { useToast } from "./useToast";
 
 const AUTOSAVE_DEBOUNCE_MS = 500;
@@ -41,6 +50,45 @@ function layoutsEqual(a: PanelLayouts, b: PanelLayouts): boolean {
 }
 
 /**
+ * Apply a `PATCH /dashboards/{id}` response to the query cache.
+ *
+ * The endpoint returns the flat `DashboardMetadataResponse` (the service
+ * mistypes it as the wrapped envelope — cast here; the runtime payload is
+ * flat). When a layout edit *created* the first draft (BE draft-on-first-edit),
+ * `editable_version` now points at that draft and `is_editable` is true, so we
+ * forward the four edit-state fields to the shared `writeDashboardEditState`
+ * (patch metadata cache + refetch render) rather than discarding the response.
+ */
+function applyMetadataResponseToCache(
+  queryClient: QueryClient,
+  dashboardId: string,
+  response: unknown,
+): void {
+  // `updateDashboard` is declared as the wrapped envelope but returns the flat
+  // payload (tech debt), so the cast below is unverified. Validate the runtime
+  // shape first — otherwise an unexpected response would spread `undefined`
+  // over the cached edit-state and silently drop the user out of edit mode.
+  // Fall back to a full refetch instead.
+  if (
+    !response ||
+    typeof response !== "object" ||
+    !("dashboard_id" in response)
+  ) {
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.detail(dashboardId),
+    });
+    return;
+  }
+  const meta = response as DashboardMetadataApiResponse;
+  writeDashboardEditState(queryClient, dashboardId, {
+    is_editable: meta.is_editable,
+    editable_version: meta.editable_version,
+    latest_published_version: meta.latest_published_version,
+    edit_lock: meta.edit_lock,
+  });
+}
+
+/**
  * Persists drag/resize changes to `ui_config.panel_layouts` via PATCH.
  * Debounces consecutive changes so a single drag gesture fires one PATCH.
  *
@@ -56,6 +104,13 @@ export function useLayoutAutoSave(
   const { showToast } = useToast();
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pendingRef = useRef<PanelLayouts | null>(null);
+
+  // The layout the server most recently rejected. `flushNow` refuses to
+  // re-fire an identical layout (circuit-breaker) so a persistent rejection —
+  // e.g. `APP_DASHBOARD_NOT_EDITABLE` while auto-fit keeps re-reporting the
+  // same height delta — can't storm the PATCH endpoint (the customer-reported
+  // "Failed to save layout" toast flood). Cleared on the next successful save.
+  const lastFailedRef = useRef<PanelLayouts | null>(null);
 
   // Seed the saved baseline once from the layout the hook was first called
   // with. Without this, entering edit mode triggers RGL's
@@ -91,25 +146,57 @@ export function useLayoutAutoSave(
     layoutPropRef.current = layout;
   }, [layout]);
 
+  // Mirror the live `isEditMode` into a ref so the actual PATCH call sites can
+  // hard-gate on the *current* edit state, not a stale closure. `flushNow`
+  // runs from a debounce `setTimeout` and the teardown cleanup runs detached
+  // from render — neither observes the latest `isEditMode` prop, and a
+  // Pusher-driven refetch can flip `dashboard.isEditable` (→ `isEditMode`)
+  // false while a save is queued. The layout PATCH requires the edit lock, so
+  // firing it outside edit mode 409s → "Failed to save layout." toast.
+  // Declared before the leave-effect below so the ref is already fresh when
+  // that effect runs on the edit-mode transition.
+  const isEditModeRef = useRef(isEditMode);
+  useEffect(() => {
+    isEditModeRef.current = isEditMode;
+  }, [isEditMode]);
+
   const mutation = useMutation({
-    mutationFn: async (panelLayouts: PanelLayouts) => {
-      await dashboardService.updateDashboard(dashboardId, {
+    mutationFn: (panelLayouts: PanelLayouts) =>
+      dashboardService.updateDashboard(dashboardId, {
         ui_config: { panel_layouts: panelLayouts },
-      });
-    },
-    onSuccess: (_, panelLayouts) => {
+      }),
+    onSuccess: (response, panelLayouts) => {
       lastSavedRef.current = panelLayouts;
-      queryClient.invalidateQueries({
-        queryKey: dashboardKeys.detail(dashboardId),
-      });
+      // A success means the dashboard is genuinely editable again — let a
+      // later identical layout retry if it ever fails.
+      lastFailedRef.current = null;
+      applyMetadataResponseToCache(queryClient, dashboardId, response);
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, panelLayouts: PanelLayouts) => {
       console.error("[useLayoutAutoSave] PATCH failed:", error);
       showToast({
         message: "Failed to save layout. Please try again.",
         variant: "error",
       });
-      // Reset lastSaved so a subsequent identical layout still retries.
+      const status = error instanceof ApiError ? error.statusCode : undefined;
+      if (status !== undefined && status >= 400 && status < 500) {
+        // A 4xx won't succeed on an identical retry (not in edit mode, invalid
+        // payload, forbidden, or gone). Circuit-break this exact layout so
+        // auto-fit can't re-fire it into a storm; keep `lastSavedRef` intact so
+        // the dedupe guard still holds.
+        lastFailedRef.current = panelLayouts;
+        if (status === 409) {
+          // Not in edit mode (`APP_DASHBOARD_NOT_EDITABLE`). Refetch so a fresh
+          // `is_editable: false` disables auto-fit and ends the loop at the
+          // source, rather than only suppressing this one layout.
+          queryClient.invalidateQueries({
+            queryKey: dashboardKeys.detail(dashboardId),
+          });
+        }
+        return;
+      }
+      // Transient failure (5xx / network / unknown): clear the saved baseline
+      // so a subsequent identical layout still retries.
       lastSavedRef.current = null;
     },
   });
@@ -122,6 +209,11 @@ export function useLayoutAutoSave(
     const next = pendingRef.current;
     if (!next) return;
     pendingRef.current = null;
+    // Hard gate: never PATCH the layout outside edit mode. The write needs
+    // the edit lock, which only exists in edit mode; a debounce timer armed
+    // mid-edit can fire after a Pusher refetch dropped the lock. Drop the
+    // pending change rather than 409 → "Failed to save layout." toast.
+    if (!isEditModeRef.current) return;
     // No-op when pending matches the last server-confirmed save.
     if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, next)) {
       return;
@@ -134,6 +226,13 @@ export function useLayoutAutoSave(
     // it would either fail the BE lock check or stomp the displayed
     // layout — neither is what the user asked for.
     if (layoutsEqual(toPanelLayouts(layoutPropRef.current), next)) {
+      return;
+    }
+    // Circuit-breaker: don't re-fire a layout the server already rejected.
+    // Without this, auto-fit re-reporting the same height delta against a
+    // dashboard the BE won't accept produces an unbounded ~1/sec PATCH+toast
+    // loop. Cleared by `mutation.onSuccess`.
+    if (lastFailedRef.current && layoutsEqual(lastFailedRef.current, next)) {
       return;
     }
     mutation.mutate(next);
@@ -158,11 +257,23 @@ export function useLayoutAutoSave(
     [flushNow, isEditMode],
   );
 
-  // Flush any pending change when leaving edit mode or unmounting, so the
-  // server always ends up in sync with the last user gesture.
+  // Leaving edit mode: discard any un-flushed drag instead of saving it. The
+  // layout PATCH needs the edit lock, which is already gone once we're out of
+  // edit mode (explicit save/discard, or a Pusher refetch that reassigned or
+  // expired the lock). Cancel the debounce and clear pending so the armed
+  // timer can't fire a doomed PATCH. `flushNow`'s edit-mode gate is the
+  // race-proof backstop; this is the prompt cleanup. Also reset the
+  // circuit-breaker so the next edit session starts clean — a layout that was
+  // rejected in a prior session shouldn't stay suppressed after re-entering.
   useEffect(() => {
-    if (!isEditMode) flushNow();
-  }, [isEditMode, flushNow]);
+    if (isEditMode) return;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    }
+    pendingRef.current = null;
+    lastFailedRef.current = null;
+  }, [isEditMode]);
 
   useEffect(
     () => () => {
@@ -173,21 +284,26 @@ export function useLayoutAutoSave(
       // into the new one's mutation.
       pendingRef.current = null;
       if (!pending) return;
+      // Hard gate: only persist on teardown while we still hold edit mode (and
+      // thus the lock). Reading the ref (not a closure) keeps this correct for
+      // the `dashboardId`-change re-run, which fires before the next render
+      // syncs the ref — so it reflects the edit state of the dashboard being
+      // torn down.
+      if (!isEditModeRef.current) return;
       if (lastSavedRef.current && layoutsEqual(lastSavedRef.current, pending)) {
         return;
       }
       // Fire-and-forget on unmount. Errors will only appear in the console —
       // users won't see a toast for a tab they just closed. `queryClient`
-      // outlives the component, so invalidating here keeps the cache fresh
-      // even though we bypass the mutation observer's onSuccess.
+      // outlives the component, so applying the response here (same as
+      // `onSuccess`) keeps the metadata/render cache in sync even though we
+      // bypass the mutation observer's `onSuccess`.
       dashboardService
         .updateDashboard(dashboardId, {
           ui_config: { panel_layouts: pending },
         })
-        .then(() => {
-          queryClient.invalidateQueries({
-            queryKey: dashboardKeys.detail(dashboardId),
-          });
+        .then((response) => {
+          applyMetadataResponseToCache(queryClient, dashboardId, response);
         })
         .catch((error) => {
           console.error("[useLayoutAutoSave] unmount PATCH failed:", error);
