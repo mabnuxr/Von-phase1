@@ -205,8 +205,8 @@ export function AIFieldPlayground({
   // useV2EventProcessor, so we trigger re-seeding by comparing array
   // reference identity — not IDs, because the backend re-sends the same
   // opportunity IDs when only the prompt changed, and ID-based comparison
-  // would skip re-seeding in that case. setDraftAiField clears
-  // playgroundOpps in the store, so we just need to repopulate.
+  // would skip re-seeding in that case. upsertDraftAiField clears
+  // playgroundOpps when the open field is re-emitted, so we just repopulate.
   const lastSeededRef = useRef<SampleOpportunity[] | null>(null);
   useEffect(() => {
     if (!sampleOpportunities?.length) return;
