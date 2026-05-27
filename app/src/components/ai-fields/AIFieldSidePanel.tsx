@@ -160,17 +160,17 @@ export function AIFieldSidePanel({
   const { user } = useUser();
 
   const {
-    draftAiField,
-    setDraftAiField,
+    draftAiFields,
+    removeDraftAiField,
     openChatPanel,
     activatingFieldId,
     setActivatingFieldId,
   } = useAiFieldsStore();
 
-  // Draft mode: fieldId matches draftAiField.workflowId (or is "draft" sentinel)
-  const isDraft =
-    !!draftAiField &&
-    (fieldId === "draft" || fieldId === draftAiField.workflowId);
+  // The panel's fieldId is the draftKey, so a hit in the keyed store means
+  // this is an uncreated draft; a miss means a real field to fetch by id.
+  const draftAiField = draftAiFields[fieldId] ?? null;
+  const isDraft = !!draftAiField;
 
   // Refresh flash: when a new AI_FIELD_READY replaces the draft *while the
   // panel is already showing one*, the content swap is otherwise
@@ -292,7 +292,7 @@ export function AIFieldSidePanel({
         aiFieldKeys.detail(response.field.fieldId),
         response.field,
       );
-      setDraftAiField(null);
+      removeDraftAiField(fieldId);
       openChatPanel(response.field.fieldId);
       setActivatingFieldId(null);
     } catch {

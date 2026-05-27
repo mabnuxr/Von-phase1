@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { AiFieldDraft, PlaygroundResultEvent } from "../types/vonAiFields";
+import { draftKey } from "../lib/aiFieldDraft";
 
 // ─── Playground Opportunity ──────────────────────────────────
 export interface PlaygroundOpp {
@@ -24,9 +25,14 @@ interface AiFieldsState {
   deletingFieldId: string | null;
   setDeletingFieldId: (id: string | null) => void;
 
-  // Draft AI field (from AI_FIELD_READY event, before creation)
-  draftAiField: AiFieldDraft | null;
-  setDraftAiField: (draft: AiFieldDraft | null) => void;
+  // Draft AI fields (from AI_FIELD_READY events, before creation), keyed by
+  // draftKey(). A single turn can emit several drafts and they survive route
+  // changes, so they live as a map rather than one overwritten slot.
+  draftAiFields: Record<string, AiFieldDraft>;
+  upsertDraftAiField: (draft: AiFieldDraft) => void;
+  setDraftAiFields: (drafts: AiFieldDraft[]) => void;
+  removeDraftAiField: (key: string) => void;
+  clearDraftAiFields: () => void;
 
   // Chat panel
   chatPanelFieldId: string | null;
@@ -69,16 +75,42 @@ const useAiFieldsStore = create<AiFieldsState>((set) => ({
   deletingFieldId: null,
   setDeletingFieldId: (id) => set({ deletingFieldId: id }),
 
-  // ─── Draft AI field ────────────────────────────────────────
-  draftAiField: null,
-  // A new draft invalidates any prior playground execution — results were
-  // computed against the previous prompt/columns/sources and would be stale.
-  setDraftAiField: (draft) =>
-    set({
-      draftAiField: draft,
-      playgroundOpps: [],
-      playgroundExecutionId: null,
+  // ─── Draft AI fields ───────────────────────────────────────
+  draftAiFields: {},
+
+  // Re-emitting the field that's currently open in the panel invalidates its
+  // playground run (the prompt/columns/sources it was computed against just
+  // changed). Drafts for other fields leave the playground untouched.
+  upsertDraftAiField: (draft) =>
+    set((state) => {
+      const key = draftKey(draft);
+      const next = { ...state.draftAiFields, [key]: draft };
+      return state.chatPanelFieldId === key
+        ? {
+            draftAiFields: next,
+            playgroundOpps: [],
+            playgroundExecutionId: null,
+          }
+        : { draftAiFields: next };
     }),
+
+  // Bulk reconstruction from persisted events (page refresh / re-entry).
+  setDraftAiFields: (drafts) =>
+    set((state) => {
+      const map = { ...state.draftAiFields };
+      for (const d of drafts) map[draftKey(d)] = d;
+      return { draftAiFields: map };
+    }),
+
+  removeDraftAiField: (key) =>
+    set((state) => {
+      const next = { ...state.draftAiFields };
+      delete next[key];
+      return { draftAiFields: next };
+    }),
+
+  clearDraftAiFields: () =>
+    set({ draftAiFields: {}, playgroundOpps: [], playgroundExecutionId: null }),
 
   // ─── Chat panel ───────────────────────────────────────────
   chatPanelFieldId: null,

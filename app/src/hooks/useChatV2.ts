@@ -44,6 +44,8 @@ import {
 import { useArtifactCreatedEvent } from "./useArtifactCreatedEvent";
 import { useAiFieldCreatedEvent } from "./useAiFieldCreatedEvent";
 import useAiFieldsStore from "../store/vonAiFieldsStore";
+import type { AiFieldDraft } from "../types/vonAiFields";
+import { aiFieldToDraft, draftKey } from "../lib/aiFieldDraft";
 import { aiFieldKeys } from "./useVonAiFields";
 import { useWriteBlockedEvent } from "./useWriteBlockedEvent";
 import {
@@ -521,62 +523,56 @@ export function useChatV2(props: UseChatV2Props) {
 
       if (msg.type !== "assistant") return msg;
 
-      // Check live stream — inject on the last assistant message
-      if (liveAiField && idx === lastAssistantIdx) {
-        if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
-          return msg;
-        return {
-          ...msg,
-          artifacts: [
-            ...(msg.artifacts ?? []),
-            {
-              fileId: liveAiField.fieldId,
-              fileName: liveAiField.name,
-              artifactType: "ai_field",
-              mimeType: "application/json",
-            } satisfies FileArtifact,
-          ],
-        };
-      }
+      // Collect every AI field this message produced. A single turn can emit
+      // several (one per field built) and the same field can be re-emitted as
+      // the user iterates — dedupe by draftKey so each field shows one card.
+      const cards = new Map<string, FileArtifact>();
 
-      // Check persisted events (page refresh)
       const rawMsg = conversationMessages.find((m) => m.id === msg.id);
-      if (rawMsg?.events) {
-        const aiFieldEvent = rawMsg.events.find(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (e: any) => e.event?.type === "AI_FIELD_READY",
-        );
+      for (const e of rawMsg?.events ?? []) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const aiField = (aiFieldEvent as any)?.event?.ai_field;
-        if (aiField) {
-          const id =
-            aiField.field_id ??
-            aiField.fieldId ??
-            aiField.workflowId ??
-            aiField.workflow_id ??
-            "draft";
-          if (msg.artifacts?.some((a) => a.artifactType === "ai_field"))
-            return msg;
-          return {
-            ...msg,
-            artifacts: [
-              ...(msg.artifacts ?? []),
-              {
-                fileId: id,
-                fileName:
-                  aiField.displayName ??
-                  aiField.display_name ??
-                  aiField.name ??
-                  "AI Field",
-                artifactType: "ai_field",
-                mimeType: "application/json",
-              } satisfies FileArtifact,
-            ],
-          };
-        }
+        if ((e as any)?.event?.type !== "AI_FIELD_READY") continue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const af = (e as any).event.ai_field;
+        if (!af) continue;
+        const draft = aiFieldToDraft(af);
+        const id = draftKey(draft);
+        cards.set(id, {
+          fileId: id,
+          fileName: draft.displayName ?? draft.name ?? "AI Field",
+          artifactType: "ai_field",
+          mimeType: "application/json",
+        } satisfies FileArtifact);
       }
 
-      return msg;
+      // The in-flight run's events may not be persisted into
+      // conversationMessages yet, so supplement the last assistant message
+      // with the live event to show its card without waiting for the refetch.
+      if (
+        liveAiField &&
+        idx === lastAssistantIdx &&
+        !cards.has(liveAiField.fieldId)
+      ) {
+        cards.set(liveAiField.fieldId, {
+          fileId: liveAiField.fieldId,
+          fileName: liveAiField.name,
+          artifactType: "ai_field",
+          mimeType: "application/json",
+        } satisfies FileArtifact);
+      }
+
+      if (cards.size === 0) return msg;
+
+      // Don't re-add ai_field cards already attached to the message.
+      const existing = msg.artifacts ?? [];
+      const present = new Set(
+        existing
+          .filter((a) => a.artifactType === "ai_field")
+          .map((a) => a.fileId),
+      );
+      const toAdd = [...cards.values()].filter((a) => !present.has(a.fileId));
+      if (toAdd.length === 0) return msg;
+      return { ...msg, artifacts: [...existing, ...toAdd] };
     });
   }, [
     transformedMessages,
@@ -585,66 +581,43 @@ export function useChatV2(props: UseChatV2Props) {
     queryClient,
   ]);
 
-  // Clear AI field panel on mount and when switching conversations
-  const prevConversationId = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevConversationId.current !== conversationId) {
-      useAiFieldsStore.getState().closeChatPanel();
-      useAiFieldsStore.getState().setDraftAiField(null);
-    }
-    prevConversationId.current = conversationId;
-  }, [conversationId]);
-
-  // Restore draftAiField from persisted events on page refresh / when
-  // re-entering a conversation. The same workflow can emit multiple
-  // AI_FIELD_READY events as the user iterates ("create field for X" →
-  // "change prompt to Y"); only the most recent one reflects the current
-  // state, so we walk every message/event and keep the *last* match.
-  // Picking the first one (the previous behavior) left users seeing a
-  // stale version of their own iterations when navigating away and back.
+  // Drop AI field drafts only when the carried-over ones belong to a
+  // different conversation. The draft store is a module singleton that
+  // survives route changes (e.g. toggling between the dashboard view and the
+  // chat view), so clearing on every (re)mount would wipe drafts the user is
+  // still working with — the original bug. Same-conversation remounts keep
+  // their drafts; a genuine conversation switch clears, and the restore effect
+  // below repopulates for the conversation now in view.
   useEffect(() => {
     const store = useAiFieldsStore.getState();
-    if (store.draftAiField) return; // already have draft data
+    const stale = Object.values(store.draftAiFields).some(
+      (d) => d.conversationId && d.conversationId !== conversationId,
+    );
+    if (stale) {
+      store.closeChatPanel();
+      store.clearDraftAiFields();
+    }
+  }, [conversationId]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let latest: any = null;
+  // Rebuild the draft store from persisted AI_FIELD_READY events when entering
+  // a conversation with an empty store (page refresh / fresh mount). A turn
+  // can emit several drafts and a field can be re-emitted as the user iterates;
+  // keying by draftKey (in setDraftAiFields) keeps the last occurrence of each.
+  useEffect(() => {
+    const store = useAiFieldsStore.getState();
+    if (Object.keys(store.draftAiFields).length > 0) return; // already populated
+
+    const drafts: AiFieldDraft[] = [];
     for (const rawMsg of conversationMessages) {
-      if (!rawMsg.events) continue;
-      for (const e of rawMsg.events) {
+      for (const e of rawMsg.events ?? []) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((e as any)?.event?.type === "AI_FIELD_READY") {
-          latest = e;
-        }
+        if ((e as any)?.event?.type !== "AI_FIELD_READY") continue;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const af = (e as any).event.ai_field;
+        if (af) drafts.push(aiFieldToDraft(af));
       }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const af = (latest as any)?.event?.ai_field;
-    if (!af) return;
-
-    store.setDraftAiField({
-      fieldId: af.fieldId ?? af.field_id ?? null,
-      workflowId: af.workflowId ?? af.workflow_id ?? "",
-      name: af.name ?? "",
-      displayName: af.displayName ?? af.display_name,
-      description: af.description ?? "",
-      objectType: (af.objectType ?? af.object_type ?? "opportunity") as
-        | "opportunity"
-        | "account",
-      columnsToGenerate:
-        af.columnsToGenerate ??
-        af.columns_to_generate ??
-        (af.columnsGenerated ?? af.columns_generated ?? []).map(
-          (name: string) => ({ name, description: "", type: "string" }),
-        ),
-      columnsGenerated: af.columnsGenerated ?? af.columns_generated ?? [],
-      sources: af.sources ?? [],
-      opportunityFilter: af.opportunityFilter ?? af.opportunity_filter ?? null,
-      displayFilter: af.displayFilter ?? af.display_filter,
-      matchCount: af.matchCount ?? af.match_count ?? null,
-      totalRecords: af.totalRecords ?? af.total_records ?? null,
-      sampleOpportunities: af.sampleOpportunities ?? af.sample_opportunities,
-      conversationId: af.conversationId ?? af.conversation_id ?? null,
-    });
+    if (drafts.length) store.setDraftAiFields(drafts);
   }, [conversationMessages]);
 
   // Message filtering state

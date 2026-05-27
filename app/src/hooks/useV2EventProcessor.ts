@@ -36,8 +36,8 @@ type RunFinishedEventExtended = Omit<RunFinishedEvent, "result"> & {
   };
 };
 import type { DashboardMetadata } from "../types/conversation";
-import type { AiFieldDraft, AiFieldObjectType } from "../types/vonAiFields";
 import useAiFieldsStore from "../store/vonAiFieldsStore";
+import { aiFieldToDraft, draftKey } from "../lib/aiFieldDraft";
 
 import {
   transformAguiToTimelineSteps,
@@ -581,50 +581,13 @@ export function useV2EventProcessor(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const aiField = (wrapper.event as any)?.ai_field;
             if (aiField) {
-              const draft: AiFieldDraft = {
-                fieldId: aiField.fieldId ?? aiField.field_id ?? null,
-                workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
-                name: aiField.name ?? "",
-                displayName: aiField.displayName ?? aiField.display_name,
-                description: aiField.description ?? "",
-                objectType: (aiField.objectType ??
-                  aiField.object_type ??
-                  "opportunity") as AiFieldObjectType,
-                columnsToGenerate:
-                  aiField.columnsToGenerate ??
-                  aiField.columns_to_generate ??
-                  (
-                    aiField.columnsGenerated ??
-                    aiField.columns_generated ??
-                    []
-                  ).map((name: string) => ({
-                    name,
-                    description: "",
-                    type: "string",
-                  })),
-                columnsGenerated:
-                  aiField.columnsGenerated ?? aiField.columns_generated ?? [],
-                sources: aiField.sources ?? [],
-                opportunityFilter:
-                  aiField.opportunityFilter ??
-                  aiField.opportunity_filter ??
-                  null,
-                displayFilter: aiField.displayFilter ?? aiField.display_filter,
-                matchCount: aiField.matchCount ?? aiField.match_count ?? null,
-                totalRecords:
-                  aiField.totalRecords ?? aiField.total_records ?? null,
-                sampleOpportunities:
-                  aiField.sampleOpportunities ?? aiField.sample_opportunities,
-                conversationId:
-                  aiField.conversationId ?? aiField.conversation_id ?? null,
-              };
-              useAiFieldsStore.getState().setDraftAiField(draft);
-              useAiFieldsStore
-                .getState()
-                .openChatPanel(draft.workflowId || "draft");
+              const draft = aiFieldToDraft(aiField);
+              const key = draftKey(draft);
+              useAiFieldsStore.getState().upsertDraftAiField(draft);
+              useAiFieldsStore.getState().openChatPanel(key);
               setAiFieldReady({
                 runId: run_id,
-                fieldId: draft.workflowId || "draft",
+                fieldId: key,
                 name: draft.displayName ?? draft.name,
               });
             }
@@ -712,50 +675,15 @@ export function useV2EventProcessor(
             }
 
             // Store draft data in Zustand store
-            const draft: AiFieldDraft = {
-              fieldId: aiField.fieldId ?? aiField.field_id ?? null,
-              workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
-              name: aiField.name ?? "",
-              displayName: aiField.displayName ?? aiField.display_name,
-              description: aiField.description ?? "",
-              objectType: (aiField.objectType ??
-                aiField.object_type ??
-                "opportunity") as AiFieldObjectType,
-              columnsToGenerate:
-                aiField.columnsToGenerate ??
-                aiField.columns_to_generate ??
-                (
-                  aiField.columnsGenerated ??
-                  aiField.columns_generated ??
-                  []
-                ).map((name: string) => ({
-                  name,
-                  description: "",
-                  type: "string",
-                })),
-              columnsGenerated:
-                aiField.columnsGenerated ?? aiField.columns_generated ?? [],
-              sources: aiField.sources ?? [],
-              opportunityFilter:
-                aiField.opportunityFilter ?? aiField.opportunity_filter ?? null,
-              displayFilter: aiField.displayFilter ?? aiField.display_filter,
-              matchCount: aiField.matchCount ?? aiField.match_count ?? null,
-              totalRecords:
-                aiField.totalRecords ?? aiField.total_records ?? null,
-              sampleOpportunities:
-                aiField.sampleOpportunities ?? aiField.sample_opportunities,
-              conversationId:
-                aiField.conversationId ?? aiField.conversation_id ?? null,
-            };
+            const draft = aiFieldToDraft(aiField);
+            const key = draftKey(draft);
 
-            useAiFieldsStore.getState().setDraftAiField(draft);
-            useAiFieldsStore
-              .getState()
-              .openChatPanel(draft.workflowId || "draft");
+            useAiFieldsStore.getState().upsertDraftAiField(draft);
+            useAiFieldsStore.getState().openChatPanel(key);
 
             setAiFieldReady({
               runId: run_id,
-              fieldId: draft.workflowId || "draft",
+              fieldId: key,
               name: draft.displayName ?? draft.name,
             });
           }
@@ -946,49 +874,24 @@ export function useV2EventProcessor(
           ?.is_dashboard_builder_mode ?? false)
       : false;
 
-    // Extract AI_FIELD_READY from seeded events (for live stream seeding)
-    const seededAiFieldEvent = mergedEvents.find(
-      (e) => (e.event?.type as string) === "AI_FIELD_READY",
-    );
-    if (seededAiFieldEvent) {
+    // Seed every AI_FIELD_READY from this run (a turn can build several
+    // fields). Upsert each into the keyed store; the live-injection supplement
+    // (aiFieldReady) tracks the latest so its card shows before the persisted
+    // events arrive in conversationMessages.
+    const seededAiFields = mergedEvents
+      .filter((e) => (e.event?.type as string) === "AI_FIELD_READY")
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const aiField = (seededAiFieldEvent.event as any)?.ai_field;
-      if (aiField) {
-        const draft: AiFieldDraft = {
-          fieldId: aiField.fieldId ?? aiField.field_id ?? null,
-          workflowId: aiField.workflowId ?? aiField.workflow_id ?? "",
-          name: aiField.name ?? "",
-          displayName: aiField.displayName ?? aiField.display_name,
-          description: aiField.description ?? "",
-          objectType: (aiField.objectType ??
-            aiField.object_type ??
-            "opportunity") as AiFieldObjectType,
-          columnsToGenerate:
-            aiField.columnsToGenerate ??
-            aiField.columns_to_generate ??
-            (aiField.columnsGenerated ?? aiField.columns_generated ?? []).map(
-              (name: string) => ({ name, description: "", type: "string" }),
-            ),
-          columnsGenerated:
-            aiField.columnsGenerated ?? aiField.columns_generated ?? [],
-          sources: aiField.sources ?? [],
-          opportunityFilter:
-            aiField.opportunityFilter ?? aiField.opportunity_filter ?? null,
-          displayFilter: aiField.displayFilter ?? aiField.display_filter,
-          matchCount: aiField.matchCount ?? aiField.match_count ?? null,
-          totalRecords: aiField.totalRecords ?? aiField.total_records ?? null,
-          sampleOpportunities:
-            aiField.sampleOpportunities ?? aiField.sample_opportunities,
-          conversationId:
-            aiField.conversationId ?? aiField.conversation_id ?? null,
-        };
-        useAiFieldsStore.getState().setDraftAiField(draft);
-        setAiFieldReady({
-          runId,
-          fieldId: draft.workflowId || "draft",
-          name: draft.displayName ?? draft.name,
-        });
-      }
+      .map((e) => (e.event as any)?.ai_field)
+      .filter(Boolean);
+    if (seededAiFields.length) {
+      const drafts = seededAiFields.map(aiFieldToDraft);
+      useAiFieldsStore.getState().setDraftAiFields(drafts);
+      const latest = drafts[drafts.length - 1];
+      setAiFieldReady({
+        runId,
+        fieldId: draftKey(latest),
+        name: latest.displayName ?? latest.name,
+      });
     }
 
     eventsRef.current.set(runId, mergedEvents);

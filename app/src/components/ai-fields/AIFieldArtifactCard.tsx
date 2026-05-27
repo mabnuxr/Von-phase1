@@ -19,11 +19,9 @@ export function AIFieldArtifactCard({
   fieldId,
   name,
 }: AIFieldArtifactCardProps) {
-  const { draftAiField } = useAiFieldsStore();
-  // Skip API call if this is a draft (fieldId matches workflowId or is "draft")
-  const isDraft =
-    !!draftAiField &&
-    (fieldId === "draft" || fieldId === draftAiField.workflowId);
+  // A hit in the keyed draft store means this card is an uncreated draft —
+  // skip the backend fetch (the field isn't persisted yet).
+  const isDraft = useAiFieldsStore((s) => !!s.draftAiFields[fieldId]);
   const { data: field } = useAiField(isDraft ? null : fieldId);
   const { openChatPanel } = useAiFieldsStore();
 
