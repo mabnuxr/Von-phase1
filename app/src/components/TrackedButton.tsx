@@ -18,22 +18,6 @@ type AsAnchor = React.ComponentPropsWithoutRef<"a"> & {
 
 type TrackedButtonProps = AsButton | AsAnchor;
 
-/**
- * Polymorphic tracked element that fires a PostHog event on every click.
- * Renders as <a> when href is provided, <button> otherwise.
- * Restricted to events that carry no extra properties beyond super-props
- * (user_id, company, etc. are attached automatically).
- * For events that require extra properties, call report.* directly.
- *
- * @example — button
- * <TrackedButton posthogEventName="Chat - New Chat Clicked">New Chat</TrackedButton>
- *
- * @example — link
- * <TrackedButton href={url} target="_blank" rel="noopener noreferrer"
- *   posthogEventName="Integrations - Learn More Clicked">
- *   Documentation
- * </TrackedButton>
- */
 export function TrackedButton(props: TrackedButtonProps) {
   const { posthogEventName, onClick, children, ...rest } = props;
 
