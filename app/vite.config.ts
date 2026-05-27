@@ -1,8 +1,10 @@
 /// <reference types="vitest/config" />
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
+import fs from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,6 +33,33 @@ function s3ProxyPlugin() {
   };
 }
 
+// Pre-gzip large text assets at build time so nginx (`gzip_static on`) serves
+// them with zero per-request CPU. Without this, nginx re-gzips the ~13 MB app
+// bundle on every cache-miss, which throttled against the pod's CPU limit and
+// caused intermittent minute-long .js loads after deploys.
+function precompressAssets(): Plugin {
+  return {
+    name: "precompress-assets",
+    apply: "build",
+    writeBundle(options, bundle) {
+      const outDir = options.dir;
+      if (!outDir) return;
+      for (const fileName of Object.keys(bundle)) {
+        if (!/\.(js|css|svg|json)$/.test(fileName)) continue;
+        const filePath = path.join(outDir, fileName);
+        try {
+          const raw = fs.readFileSync(filePath);
+          if (raw.length < 1024) continue; // matches nginx gzip_min_length
+          const gz = zlib.gzipSync(raw, { level: 9 });
+          if (gz.length < raw.length) fs.writeFileSync(`${filePath}.gz`, gz);
+        } catch {
+          // emitted entry not on disk — skip
+        }
+      }
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -38,7 +67,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
 
   return {
-    plugins: [react(), tailwindcss(), s3ProxyPlugin()],
+    plugins: [react(), tailwindcss(), s3ProxyPlugin(), precompressAssets()],
     resolve: {
       // Prevent duplicate React instances from different packages
       dedupe: ["react", "react-dom"],
