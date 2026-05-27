@@ -8,7 +8,10 @@ import {
 } from "../services/dashboardService";
 import { ApiError } from "../services/apiClient";
 import { dashboardKeys } from "./useDashboardQuery";
-import { dashboardMetadataKey } from "./useDashboardMetadata";
+import {
+  dashboardMetadataKey,
+  writeDashboardEditState,
+} from "./useDashboardMetadata";
 import { folderKeys } from "./folders";
 import { useMutationPhase } from "./useMutationPhase";
 import { useToast } from "./useToast";
@@ -619,32 +622,15 @@ export function useAnalyticsTools(
       });
     },
     onSuccess: (response) => {
-      const cached = queryClient.getQueryData<DashboardMetadataApiResponse>(
-        dashboardMetadataKey(dashboardId),
-      );
-      if (cached) {
-        queryClient.setQueryData<DashboardMetadataApiResponse>(
-          dashboardMetadataKey(dashboardId),
-          {
-            ...cached,
-            is_editable: response.is_editable,
-            editable_version: response.editable_version,
-            latest_published_version: response.latest_published_version,
-            edit_lock: response.edit_lock,
-          },
-        );
-      } else {
-        queryClient.invalidateQueries({
-          queryKey: dashboardKeys.detail(dashboardId),
-        });
-      }
-      // Invalidate every render entry under this dashboard. The version
-      // we're about to render at (`latest_published_version`) may
-      // already be in the cache from the initial load — without this
-      // invalidate it'd be served stale. Forcing a refetch guarantees
-      // the user sees the dashboard state as the BE sees it post-save.
-      queryClient.invalidateQueries({
-        queryKey: [...dashboardKeys.all, dashboardId, "render"],
+      // saveDraft always releases the lock — write the post-save edit-state
+      // (is_editable:false / edit_lock:null / the version pair) into the
+      // metadata cache and refetch render at latest_published_version. Shared
+      // with the layout autosave via `writeDashboardEditState`.
+      writeDashboardEditState(queryClient, dashboardId, {
+        is_editable: response.is_editable,
+        editable_version: response.editable_version,
+        latest_published_version: response.latest_published_version,
+        edit_lock: response.edit_lock,
       });
     },
   });

@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import {
   dashboardService,
   type DashboardMetadataApiResponse,
@@ -45,4 +45,46 @@ export function useDashboardMetadata(
     refetchOnMount: forceFresh ? "always" : true,
     refetchOnWindowFocus: false,
   });
+}
+
+/**
+ * Single source of truth for "an edit-action just changed the dashboard's
+ * editable state — sync the caches."
+ *
+ * The edit-action endpoints (`acquire-lock`, `save-draft`, the `ui_config`
+ * PATCH) all return the flat `DashboardMetadataResponse`. Rather than discard
+ * it and refetch, patch those four state fields onto the cached metadata so
+ * `useDashboardQuery` re-keys to the right version (`is_editable ?
+ * editable_version : latest_published_version`), then invalidate the render
+ * entries so the canvas refetches that version — no follow-up `GET /metadata`.
+ * Falls back to a full `detail` refetch when no metadata is cached yet (initial
+ * load raced the action), which subsumes the render invalidation via prefix.
+ */
+export function writeDashboardEditState(
+  queryClient: QueryClient,
+  dashboardId: string,
+  state: Pick<
+    DashboardMetadataApiResponse,
+    | "is_editable"
+    | "editable_version"
+    | "latest_published_version"
+    | "edit_lock"
+  >,
+): void {
+  const cached = queryClient.getQueryData<DashboardMetadataApiResponse>(
+    dashboardMetadataKey(dashboardId),
+  );
+  if (cached) {
+    queryClient.setQueryData<DashboardMetadataApiResponse>(
+      dashboardMetadataKey(dashboardId),
+      { ...cached, ...state },
+    );
+    queryClient.invalidateQueries({
+      queryKey: [...dashboardKeys.all, dashboardId, "render"],
+    });
+  } else {
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.detail(dashboardId),
+    });
+  }
 }
