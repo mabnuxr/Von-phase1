@@ -55,6 +55,7 @@ const CATEGORY_ORDER: Array<
   | "Knowledge base"
   | "Data Warehouse"
   | "Customer Support"
+  | "Customer Success"
   | "Communication"
 > = [
   "CRM",
@@ -65,6 +66,7 @@ const CATEGORY_ORDER: Array<
   "Knowledge base",
   "Data Warehouse",
   "Customer Support",
+  "Customer Success",
 ];
 
 interface IntegrationsListProps {
@@ -105,6 +107,7 @@ const CATALOG_CATEGORY_MAP: Record<string, string> = {
   "Sales Engagement": "Sales Engagement",
   "Data Warehouse": "Data Warehouse",
   "Customer Support": "Customer Support",
+  "Customer Success": "Customer Success",
   Communication: "Communication",
   "Call Recorder": "Call Recorder",
   "Calls & Engagement": "Call Recorder",
