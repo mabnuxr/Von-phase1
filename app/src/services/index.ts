@@ -68,6 +68,9 @@ export type {
   PresignResponse,
 } from "./quickCommandsService";
 
+// Search Service
+export { searchService } from "./searchService";
+
 // GSuite Services
 export { exportToDrive } from "./gsuite";
 export type { ExportToDriveResponse } from "./gsuite";

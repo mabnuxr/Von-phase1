@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SidebarSimpleIcon, PlusCircleIcon, DotsThreeIcon } from '@phosphor-icons/react';
+import {
+  SidebarSimpleIcon,
+  PlusCircleIcon,
+  DotsThreeIcon,
+  MagnifyingGlassIcon,
+} from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
 import { ChatSidebarSkeleton } from './ChatSidebarSkeleton';
@@ -141,6 +146,7 @@ export interface ChatSidebarProps {
   selectedItemId?: string;
   onItemClick?: (id: string) => void;
   onNewChatClick?: () => void;
+  onSearchClick?: () => void;
   onNewChatFolderClick?: (folderName: string) => void;
   onRenameItem?: (id: string, newName: string) => void;
   onShareItem?: (id: string) => void;
@@ -531,6 +537,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedItemId,
   onItemClick,
   onNewChatClick,
+  onSearchClick,
   onNewChatFolderClick,
   onRenameItem,
   onShareItem,
@@ -802,6 +809,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                   <span className="whitespace-nowrap">New Chat</span>
                 </button>
               </div>
+
+              {/* Search Button */}
+              {onSearchClick && (
+                <div className="mb-3 pr-2">
+                  <button
+                    className="flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border border-transparent bg-white hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    onClick={onSearchClick}
+                    type="button"
+                  >
+                    <MagnifyingGlassIcon
+                      size={20}
+                      weight="regular"
+                      className="flex-shrink-0 text-gray-600"
+                    />
+                    <span className="whitespace-nowrap">Search</span>
+                    <span className="ml-auto inline-flex items-center px-1.5 min-h-[18px] text-[10.5px] font-mono text-gray-500 bg-gray-100 border border-gray-200 rounded">
+                      ⌘K
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {/* Scrollable Content */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 pr-2 settings-scrollbar">

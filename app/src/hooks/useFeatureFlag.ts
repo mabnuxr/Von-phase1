@@ -62,6 +62,12 @@ export const FEATURE_FLAGS = {
   // pick-time S3 uploads, attachment chips, bulk-import side pane). Off
   // returns the legacy single-pane memory tab.
   MEMORY_V2: "enableMemoryV2",
+  // LaunchDarkly key: `enable-von-workspace-search` (auto-camelCased to
+  // `enableVonWorkspaceSearch` for `useFlags()` access). Gates the ⌘K
+  // global search modal, the sidebar Search button, and the global
+  // keyboard shortcut. When off, the modal does not mount and ⌘K is
+  // not bound.
+  WORKSPACE_SEARCH: "enableVonWorkspaceSearch",
 } as const;
 
 /**
@@ -267,6 +273,12 @@ export function useFeatureFlag() {
      * Controls whether Hubspot integration is visible
      */
     isHubspotEnabled: true,
+
+    /**
+     * Gates the ⌘K global search modal, the sidebar Search button, and
+     * the keyboard shortcut. When off, the modal does not mount.
+     */
+    isWorkspaceSearchEnabled: flags[FEATURE_FLAGS.WORKSPACE_SEARCH] === true,
   };
 }
 

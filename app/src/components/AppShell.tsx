@@ -11,6 +11,9 @@ import { useLogout } from "../hooks/useLogout";
 import { useTenantMembers } from "../hooks/useTenantMembers";
 import { getUserContext } from "../lib/auth";
 import { ChatSidebarContainer } from "./ChatSidebarContainer";
+import { SearchModal } from "./search/SearchModal";
+import { useSearchModalKeyboardShortcut } from "../hooks/useSearchModal";
+import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
@@ -36,6 +39,10 @@ export function AppShell() {
   // --- Auth & User ---
   useAuthCheck();
   const { user, isConnectionError, refetch } = useUser();
+
+  // --- Global Cmd/Ctrl+K shortcut for Search (gated by feature flag) ---
+  const { isWorkspaceSearchEnabled } = useFeatureFlag();
+  useSearchModalKeyboardShortcut(isWorkspaceSearchEnabled);
 
   // --- Sidebar ---
   const {
@@ -214,6 +221,9 @@ export function AppShell() {
             }
           />
         )}
+
+        {/* Search Modal */}
+        {isWorkspaceSearchEnabled && <SearchModal />}
       </div>
     </AppShellContext.Provider>
   );

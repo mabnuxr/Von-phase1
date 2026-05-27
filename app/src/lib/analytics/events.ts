@@ -358,6 +358,25 @@ export type EventMap = {
     success: boolean;
     error: string | null;
   };
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  "Search - Modal Opened": { trigger: "shortcut" | "sidebar_button" };
+  "Search - Query Submitted": {
+    query_length: number;
+    deep_used: boolean;
+    result_count: number;
+    top_score: number | null;
+  };
+  "Search - Result Opened": {
+    query: string;
+    result_type: "chat" | "dashboard" | "widget" | "artifact";
+    result_position: number;
+    deep_used: boolean;
+  };
+  "Search - New Chat From Search": {
+    query: string;
+    was_zero_results: boolean;
+  };
 };
 
 export type EventName = keyof EventMap;

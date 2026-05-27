@@ -742,4 +742,27 @@ export const report = {
       success: params.success,
       error: params.error,
     }),
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  searchModalOpened: (trigger: "shortcut" | "sidebar_button") =>
+    track("Search - Modal Opened", { trigger }),
+
+  searchQuerySubmitted: (props: {
+    query_length: number;
+    deep_used: boolean;
+    result_count: number;
+    top_score: number | null;
+  }) => track("Search - Query Submitted", props),
+
+  searchResultOpened: (props: {
+    query: string;
+    result_type: "chat" | "dashboard" | "widget" | "artifact";
+    result_position: number;
+    deep_used: boolean;
+  }) => track("Search - Result Opened", props),
+
+  searchNewChatFromSearch: (props: {
+    query: string;
+    was_zero_results: boolean;
+  }) => track("Search - New Chat From Search", props),
 };

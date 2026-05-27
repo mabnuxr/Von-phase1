@@ -7,6 +7,7 @@ import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useSearchModalStore } from "../hooks/useSearchModal";
 import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebar } from "../hooks/useChatSidebar";
 import type { FolderItemsMap } from "../hooks/useChatSidebar";
@@ -99,7 +100,12 @@ export function ChatSidebarContainer({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
-  const { isChatSharingEnabled, isDeepResearchEnabled } = useFeatureFlag();
+  const openSearchModal = useSearchModalStore((s) => s.open);
+  const {
+    isChatSharingEnabled,
+    isDeepResearchEnabled,
+    isWorkspaceSearchEnabled,
+  } = useFeatureFlag();
 
   // Track which conversation's context menu is open to fetch its share status
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
@@ -591,6 +597,11 @@ export function ChatSidebarContainer({
         selectedItemId={currentConversationId || undefined}
         onItemClick={handleChatClick}
         onNewChatClick={onNewChatClick}
+        onSearchClick={
+          isWorkspaceSearchEnabled
+            ? () => openSearchModal("sidebar_button")
+            : undefined
+        }
         onNewChatFolderClick={handleNewChatFolderClick}
         onRenameItem={handleRenameItem}
         onShareItem={isChatSharingEnabled ? openShareModal : undefined}
