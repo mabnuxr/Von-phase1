@@ -31,6 +31,11 @@ export interface ConfirmResponse {
 /**
  * File metadata response from backend
  */
+export interface SendState {
+  sent_at: string;
+  result: Record<string, unknown>;
+}
+
 export interface FileMetadataResponse {
   id: string;
   fileName: string;
@@ -42,6 +47,7 @@ export interface FileMetadataResponse {
   artifactType?: string;
   runId?: string;
   isPending?: boolean;
+  sendState?: SendState | null;
 }
 
 /**

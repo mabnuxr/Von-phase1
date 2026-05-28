@@ -7,7 +7,7 @@
  * user's Scalekit-managed Slack OAuth token and calls slack_sdk.WebClient directly.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   SlackMessageComposer,
@@ -57,6 +57,7 @@ interface SlackDraftPayload {
   markdown?: string;
   channel_id?: string | null;
   canvas_id?: string | null;
+  intro?: string | null;
 }
 
 /** Pull the first `# H1` out of a canvas markdown body for use as the card
@@ -80,7 +81,7 @@ interface SendSlackMessageResult {
   canvas_id?: string;
   channel_id?: string;
   updated?: boolean;
-  is_channel_canvas?: boolean;
+  unfurl_ts?: string;
   name?: string;
 }
 
@@ -170,7 +171,7 @@ function getDraftCopy(payload: SlackDraftPayload): DraftCopy {
   const subheading = isUpdate
     ? "Replace canvas content"
     : target
-      ? `New canvas, ${target}`
+      ? `New canvas, shared as a message ${target}`
       : "New standalone canvas (lives in your Canvases sidebar)";
 
   return {
@@ -209,21 +210,28 @@ function SlackNonMessageDraftCard({
   conversationId,
   fileId,
   payload,
+  initialResult,
 }: {
   conversationId: string;
   fileId: string;
   payload: SlackDraftPayload;
+  initialResult: Record<string, unknown> | null;
 }) {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const sendingRef = useRef(false);
   const [isSending, setIsSending] = useState(false);
-  const [isSent, setIsSent] = useState(false);
-  const [permalink, setPermalink] = useState<string | null>(null);
+  const [isSent, setIsSent] = useState(!!initialResult);
+  const [permalink, setPermalink] = useState<string | null>(
+    (initialResult?.permalink as string) ?? null,
+  );
 
   const kind = payload.kind ?? "message";
   const copy = getDraftCopy(payload);
 
   const handleSend = useCallback(async () => {
+    if (sendingRef.current || isSent) return;
+    sendingRef.current = true;
     setIsSending(true);
     try {
       const result = await sendSlackArtifact(conversationId, fileId);
@@ -233,9 +241,10 @@ function SlackNonMessageDraftCard({
     } catch (e) {
       handleSendError(e, showToast, navigate);
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
-  }, [conversationId, fileId, copy.successToast, showToast, navigate]);
+  }, [conversationId, fileId, isSent, copy.successToast, showToast, navigate]);
 
   return (
     <div className="border border-gray-100 rounded-xl bg-white overflow-hidden flex flex-col shadow-xs">
@@ -256,9 +265,17 @@ function SlackNonMessageDraftCard({
         <div className="text-xs text-gray-500 mt-0.5">{copy.subheading}</div>
       </div>
 
-      {/* Body — markdown preview (canvas only) */}
+      {/* Body — intro preamble + markdown preview (canvas only) */}
       {kind === "canvas" && payload.markdown && (
-        <div className="px-3 py-3">
+        <div className="px-3 py-3 space-y-2">
+          {payload.intro && (
+            <div className="bg-blue-50/60 border border-blue-100 rounded-lg px-3 py-2 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+              <div className="text-[11px] font-medium text-blue-700 uppercase tracking-wide mb-1">
+                Message preamble
+              </div>
+              {payload.intro}
+            </div>
+          )}
           <div className="max-h-80 overflow-y-auto bg-gray-50/60 border border-gray-100 rounded-lg px-3 py-2.5 text-sm text-gray-900 leading-relaxed markdown-content settings-scrollbar">
             <Streamdown parseIncompleteMarkdown={false}>
               {payload.markdown}
@@ -313,9 +330,16 @@ export const SlackMessageDraftCardContainer: React.FC<
 > = ({ conversationId, artifact }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const sendingRef = useRef(false);
+  const initialResult =
+    (artifact.sendState as Record<string, unknown> | null) ?? null;
   const [isSending, setIsSending] = useState(false);
-  const [sentIndices, setSentIndices] = useState<number[]>([]);
-  const [permalinks, setPermalinks] = useState<Record<number, string>>({});
+  const [sentIndices, setSentIndices] = useState<number[]>(
+    initialResult ? [0] : [],
+  );
+  const [permalinks, setPermalinks] = useState<Record<number, string>>(
+    initialResult?.permalink ? { 0: initialResult.permalink as string } : {},
+  );
 
   const urlQuery = useQuery({
     queryKey: ["slack-draft-url", conversationId, artifact.fileId],
@@ -335,6 +359,8 @@ export const SlackMessageDraftCardContainer: React.FC<
   });
 
   const handleSend = useCallback(async () => {
+    if (sendingRef.current || sentIndices.includes(0)) return;
+    sendingRef.current = true;
     setIsSending(true);
     try {
       const result = await sendSlackArtifact(conversationId, artifact.fileId);
@@ -344,9 +370,10 @@ export const SlackMessageDraftCardContainer: React.FC<
     } catch (e) {
       handleSendError(e, showToast, navigate);
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
-  }, [conversationId, artifact.fileId, showToast, navigate]);
+  }, [conversationId, artifact.fileId, sentIndices, showToast, navigate]);
 
   if (artifact.isPending || urlQuery.isLoading || parsedQuery.isLoading) {
     return <ArtifactCardSkeleton />;
@@ -384,6 +411,9 @@ export const SlackMessageDraftCardContainer: React.FC<
         conversationId={conversationId}
         fileId={artifact.fileId}
         payload={parsedQuery.data}
+        initialResult={
+          (artifact.sendState as Record<string, unknown> | null) ?? null
+        }
       />
     );
   }
@@ -413,9 +443,19 @@ export const SlackMessageComposerContainer: React.FC<
 > = ({ conversationId, artifacts }) => {
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const sendingRef = useRef(false);
   const [isSending, setIsSending] = useState(false);
-  const [sentIndices, setSentIndices] = useState<number[]>([]);
-  const [permalinks, setPermalinks] = useState<Record<number, string>>({});
+  const [sentIndices, setSentIndices] = useState<number[]>(() =>
+    artifacts.flatMap((a, i) => (a.sendState ? [i] : [])),
+  );
+  const [permalinks, setPermalinks] = useState<Record<number, string>>(() => {
+    const out: Record<number, string> = {};
+    artifacts.forEach((a, i) => {
+      const link = (a.sendState as Record<string, unknown> | null)?.permalink;
+      if (typeof link === "string") out[i] = link;
+    });
+    return out;
+  });
 
   const urlQueries = useQueries({
     queries: artifacts.map((a) => ({
@@ -468,14 +508,22 @@ export const SlackMessageComposerContainer: React.FC<
 
   const messages: SlackMessageData[] = [];
   const messageToArtifactIndex: number[] = [];
-  const nonMessagePayloads: { payload: SlackDraftPayload; fileId: string }[] =
-    [];
+  const nonMessagePayloads: {
+    payload: SlackDraftPayload;
+    fileId: string;
+    initialResult: Record<string, unknown> | null;
+  }[] = [];
 
   parsedQueries.forEach((pq, i) => {
     const payload = pq.data;
     if (!payload) return;
     if (!isMessageKind(payload)) {
-      nonMessagePayloads.push({ payload, fileId: artifacts[i].fileId });
+      nonMessagePayloads.push({
+        payload,
+        fileId: artifacts[i].fileId,
+        initialResult:
+          (artifacts[i].sendState as Record<string, unknown> | null) ?? null,
+      });
       return;
     }
     messageToArtifactIndex.push(i);
@@ -494,6 +542,8 @@ export const SlackMessageComposerContainer: React.FC<
     const artifactIdx = messageToArtifactIndex[index];
     const a = artifacts[artifactIdx];
     if (!a) return;
+    if (sendingRef.current || sentIndices.includes(index)) return;
+    sendingRef.current = true;
 
     setIsSending(true);
     try {
@@ -508,6 +558,7 @@ export const SlackMessageComposerContainer: React.FC<
     } catch (e) {
       handleSendError(e, showToast, navigate);
     } finally {
+      sendingRef.current = false;
       setIsSending(false);
     }
   };
@@ -523,12 +574,13 @@ export const SlackMessageComposerContainer: React.FC<
           permalinks={permalinks}
         />
       )}
-      {nonMessagePayloads.map(({ payload, fileId }) => (
+      {nonMessagePayloads.map(({ payload, fileId, initialResult }) => (
         <SlackNonMessageDraftCard
           key={fileId}
           conversationId={conversationId}
           fileId={fileId}
           payload={payload}
+          initialResult={initialResult}
         />
       ))}
     </>
