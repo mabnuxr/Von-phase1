@@ -199,6 +199,8 @@ export interface DrilldownPanelV2Props {
    * in utils/drilldownFilters.ts for resolution rules.
    */
   currentLevelColumnVariantMap?: Record<string, string> | null;
+  /** Fired when a markdown-rendered record link inside the drilldown grid is clicked. */
+  onRecordLinkClicked?: (href: string) => void;
 }
 
 export function DrilldownPanelV2({
@@ -208,6 +210,7 @@ export function DrilldownPanelV2({
   onRowDrill,
   levelDrillableColumns,
   currentLevelColumnVariantMap,
+  onRecordLinkClicked,
 }: DrilldownPanelV2Props) {
   // Close on ESC
   useEffect(() => {
@@ -346,7 +349,11 @@ export function DrilldownPanelV2({
       // strings that render as ``<a target="_blank">``) should follow the
       // link only — never also trigger drill descent. Without this gate the
       // browser opens the link AND the drill descends in parallel.
-      if (target.closest("a")) return;
+      const clickedLink = target.closest("a") as HTMLAnchorElement | null;
+      if (clickedLink) {
+        onRecordLinkClicked?.(clickedLink.href);
+        return;
+      }
       const td = target.closest("td");
       if (!td) return;
       // Per-column gate — the same ``drillable-cell`` className the CSS
@@ -398,6 +405,7 @@ export function DrilldownPanelV2({
       drill.data,
       drill.hasNextLevel,
       onRowDrill,
+      onRecordLinkClicked,
       currentDrillableColumns,
       columns,
       currentLevelColumnVariantMap,

@@ -36,6 +36,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
     widgetAppliedFilters,
     widgetFilterSlot,
     onAddToChat,
+    onWidgetQueryViewed,
+    onWidgetSQLCopied,
     variablesByWidget,
     onLayoutChange,
   }) => {
@@ -145,6 +147,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = memo(
                         appliedFilters={widgetAppliedFilters?.[widget.id]}
                         filterSlot={widgetFilterSlot?.(widget.id)}
                         onAddToChat={onAddToChat}
+                        onWidgetQueryViewed={onWidgetQueryViewed}
+                        onWidgetSQLCopied={onWidgetSQLCopied}
                         variables={variablesByWidget?.[widget.id]}
                         isEditMode={dragDropActive}
                       />

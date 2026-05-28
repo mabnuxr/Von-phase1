@@ -104,6 +104,8 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
   appliedFilters,
   filterSlot,
   onAddToChat,
+  onQueryViewed,
+  onSQLCopied,
   isEditMode,
 }) => {
   const { value, format, prefix, suffix, comparison, target, sparkline } = config;
@@ -144,7 +146,13 @@ const CounterWidget: React.FC<CounterWidgetProps> = ({
           {filterSlot
             ? filterSlot
             : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
-          {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
+          {queryInfo && (
+            <QueryInfoPopover
+              queryInfo={queryInfo}
+              onOpen={onQueryViewed}
+              onSQLCopied={onSQLCopied}
+            />
+          )}
           {onAddToChat && <AddToChatButton onClick={onAddToChat} />}
           {onDrillDown && (
             <button

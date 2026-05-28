@@ -173,6 +173,16 @@ interface AnalyticsViewProps {
   ) => void;
   /** Callback when a widget's "add to chat" icon is clicked. Button hidden when absent. */
   onAddWidgetToChat?: (widget: WidgetAddToChatPayload) => void;
+  /** Fired when the share link is copied from the share modal. */
+  onLinkCopied?: () => void;
+  /** Fired when the query-info popover is opened on any widget. */
+  onWidgetQueryViewed?: (
+    panelId: string,
+    widgetTitle: string,
+    widgetType: string,
+  ) => void;
+  /** Fired when SQL is copied from the query-info popover on any widget. */
+  onWidgetSQLCopied?: (panelId: string, widgetTitle: string) => void;
   /** Server-side table sort handler */
   onTableSortChange?: (
     panelId: string,
@@ -308,6 +318,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   onDrillDown,
   onPointDrillDown,
   onAddWidgetToChat,
+  onLinkCopied,
+  onWidgetQueryViewed,
+  onWidgetSQLCopied,
   onTableSortChange,
   tableSortStates,
   onRename,
@@ -370,11 +383,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   const { isDashboardOwner, canEditDashboard, creatorName, isCreatorLoading } =
     useDashboardRoles(dashboard);
 
-  const { copy } = useCopyToClipboard();
-  const handleCopyLink = useCallback(
-    () => copy(window.location.href).then(() => undefined),
-    [copy],
-  );
+  const { copy } = useCopyToClipboard(2000, onLinkCopied);
+  const handleCopyLink = useCallback(async () => {
+    await copy(window.location.href);
+  }, [copy]);
 
   const { shareState, shareActions } = useDashboardShareV2({
     dashboard,
@@ -548,6 +560,8 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 // Suppress per-widget add-to-chat icons during version
                 // preview — same reasoning as the header Ask-Von button.
                 onAddToChat={isVersionPreview ? undefined : onAddWidgetToChat}
+                onWidgetQueryViewed={onWidgetQueryViewed}
+                onWidgetSQLCopied={onWidgetSQLCopied}
                 onTableSortChange={onTableSortChange}
                 tableSortStates={tableSortStates}
                 isEditMode={isEditMode}
