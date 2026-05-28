@@ -6,7 +6,7 @@ import { Banner, ShareChatPopup } from "@vonlabs/design-components";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { useUser } from "../hooks/useUser";
 import { useSidebarState } from "../hooks/useSidebarState";
-import { useNewChat } from "../hooks/useNewChat";
+import { useNewChat, useNewChatKeyboardShortcut } from "../hooks/useNewChat";
 import { useLogout } from "../hooks/useLogout";
 import { useTenantMembers } from "../hooks/useTenantMembers";
 import { getUserContext } from "../lib/auth";
@@ -58,6 +58,9 @@ export function AppShell() {
     report.chatNewChatClicked();
     handleNewChatClickBase();
   }, [handleNewChatClickBase]);
+
+  // --- Global Cmd/Ctrl+Shift+O shortcut for New Chat ---
+  useNewChatKeyboardShortcut(handleNewChatClick);
 
   // --- Logout ---
   const { handleLogout: handleLogoutBase } = useLogout();

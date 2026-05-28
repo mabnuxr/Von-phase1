@@ -36,7 +36,7 @@ export function SearchEmptyState({
               key={`search:${q}`}
               value={`search:${q}`}
               onSelect={() => onChooseSearch(q)}
-              className="flex items-center gap-3 w-full px-4 py-2.5 cursor-pointer border-l-2 border-transparent transition-colors data-[selected=true]:bg-gray-50 data-[selected=true]:border-indigo-600 hover:bg-gray-50 hover:border-indigo-600 text-left"
+              className="flex items-center gap-3 w-full px-4 py-2.5 cursor-pointer border-l-2 border-transparent transition-colors data-[selected=true]:bg-gray-50 data-[selected=true]:border-indigo-600 text-left"
             >
               <Clock size={16} className="text-gray-500 shrink-0" />
               <span className="text-sm text-gray-900 truncate">{q}</span>

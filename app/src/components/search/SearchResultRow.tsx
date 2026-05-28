@@ -25,7 +25,7 @@ export function SearchResultRow({ result, value, shimmer, onSelect }: Props) {
     <Command.Item
       value={value}
       onSelect={onSelect}
-      className="relative grid grid-cols-[28px_1fr_auto] gap-x-3 px-4 py-2.5 cursor-pointer border-l-2 border-transparent transition-colors data-[selected=true]:bg-gray-50 data-[selected=true]:border-indigo-600 hover:bg-gray-50 hover:border-indigo-600"
+      className="relative grid grid-cols-[28px_1fr_auto] gap-x-3 px-4 py-2.5 cursor-pointer border-l-2 border-transparent transition-colors data-[selected=true]:bg-gray-50 data-[selected=true]:border-indigo-600"
     >
       <div className="row-start-1 row-span-2 pt-0.5 text-gray-500">
         <ResultTypeIcon type={result.type} />
@@ -48,7 +48,7 @@ export function SearchResultRow({ result, value, shimmer, onSelect }: Props) {
       </span>
 
       {sub && (
-        <div className="col-start-2 col-span-2 text-[13px] text-gray-600 line-clamp-1">
+        <div className="col-start-2 col-span-2 text-[13px] text-gray-600 line-clamp-2">
           {sub}
         </div>
       )}
