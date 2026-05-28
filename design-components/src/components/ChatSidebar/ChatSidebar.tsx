@@ -196,6 +196,10 @@ export interface ChatSidebarProps {
   onSignOutClick?: () => void;
 
   onHelpDocsClick?: () => void;
+
+  /** When non-empty, the profile-popover Settings item is disabled and shows
+   *  this string as the tooltip (used to gate access for View Only users). */
+  settingsDisabledReason?: string;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -571,6 +575,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onSignOutClick,
   onHelpDocsClick,
+  settingsDisabledReason,
   isNewChatActive = false,
   isDashboardsEnabled = true,
   dashboards,
@@ -758,6 +763,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
           onHelpDocsClick={onHelpDocsClick}
+          settingsDisabledReason={settingsDisabledReason}
           isNewChatActive={isNewChatActive}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
@@ -794,21 +800,24 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 />
               </div>
 
-              {/* New Chat Button */}
-              <div className="mt-2 mb-3 pr-2">
-                <button
-                  className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                    isNewChatActive
-                      ? 'bg-gray-50 border-gray-200 shadow-xs'
-                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
-                  }`}
-                  onClick={onNewChatClick}
-                  type="button"
-                >
-                  <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
-                  <span className="whitespace-nowrap">New Chat</span>
-                </button>
-              </div>
+              {/* New Chat Button — hidden when no onNewChatClick is provided
+                  (e.g. View Only role can't create chats). */}
+              {onNewChatClick && (
+                <div className="mt-2 mb-3 pr-2">
+                  <button
+                    className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                      isNewChatActive
+                        ? 'bg-gray-50 border-gray-200 shadow-xs'
+                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+                    }`}
+                    onClick={onNewChatClick}
+                    type="button"
+                  >
+                    <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
+                    <span className="whitespace-nowrap">New Chat</span>
+                  </button>
+                </div>
+              )}
 
               {/* Search Button */}
               {onSearchClick && (
@@ -984,6 +993,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onSettingsClick={onSettingsClick}
                 onSignOutClick={onSignOutClick}
                 onHelpDocsClick={onHelpDocsClick}
+                settingsDisabledReason={settingsDisabledReason}
               />
             </div>
           </motion.div>

@@ -64,6 +64,21 @@ export interface MessageArtifactsResponse {
   artifacts: ArtifactSummary[];
 }
 
+/** One entry in the shared-conversations payload — a conversation visible to
+ *  the caller via a share, plus owner attribution and the share creation time. */
+export interface SharedConversationItem {
+  conversation: Conversation;
+  ownerName: string;
+  ownerEmail: string;
+  sharedAt: string;
+}
+
+/** Response shape of GET /api/v1/chat/conversations/shared. */
+export interface SharedConversationsResponse {
+  orgShared: SharedConversationItem[];
+  sharedWithMe: SharedConversationItem[];
+}
+
 /**
  * Service for managing conversations and messages
  * Uses ApiClient for consistent error handling and auth
@@ -79,6 +94,12 @@ class ConversationsService {
   ): Promise<PaginatedConversationsResponse> {
     return apiClient.get<PaginatedConversationsResponse>(
       `/api/v1/chat/conversations?page=${page}&limit=${limit}`,
+    );
+  }
+
+  async getSharedConversations(): Promise<SharedConversationsResponse> {
+    return apiClient.get<SharedConversationsResponse>(
+      `/api/v1/chat/conversations/shared`,
     );
   }
 

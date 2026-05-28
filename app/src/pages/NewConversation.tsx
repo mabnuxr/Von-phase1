@@ -22,7 +22,7 @@ import {
   Profiler,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Chat } from "@vonlabs/design-components";
+import { Chat, Banner } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
@@ -30,6 +30,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
 import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useIsViewOnly } from "../hooks/useIsViewOnly";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
@@ -43,6 +44,7 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const NewConversation = () => {
   const { user } = useAppShell();
+  const isViewOnly = useIsViewOnly();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -345,7 +347,13 @@ const NewConversation = () => {
     [],
   );
 
-  const banner = isTenantDisabled ? (
+  const banner = isViewOnly ? (
+    <Banner
+      variant="info"
+      message="You have view-only access. You can read chats shared with you, but can't start new conversations. Ask an admin to upgrade your role."
+      dismissible={false}
+    />
+  ) : isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
       shouldShakeBanner={shouldShakeSubscriptionBanner}
@@ -377,7 +385,8 @@ const NewConversation = () => {
         height="100%"
         width="100%"
         banner={banner}
-        disableSubmit={!canSubmit || isCreating}
+        disableSubmit={isViewOnly || !canSubmit || isCreating}
+        disableInput={isViewOnly}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
         thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}

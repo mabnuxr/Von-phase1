@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ChatSidebar } from "@vonlabs/design-components";
-import type { ItemType } from "@vonlabs/design-components";
+import { ChatSidebar, ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { useIsViewOnly } from "../hooks/useIsViewOnly";
+import { useSharedConversations } from "../hooks/useSharedConversations";
+import type { Folder } from "@vonlabs/design-components";
 import { useSearchModalStore } from "../hooks/useSearchModal";
 import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebar } from "../hooks/useChatSidebar";
@@ -100,6 +102,8 @@ export function ChatSidebarContainer({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
+  const isViewOnly = useIsViewOnly();
+  const { data: sharedConversations } = useSharedConversations(isViewOnly);
   const openSearchModal = useSearchModalStore((s) => s.open);
   const {
     isChatSharingEnabled,
@@ -567,6 +571,54 @@ export function ChatSidebarContainer({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
+  // View Only users see a stripped-down sidebar: no folders, no "+ New chat",
+  // and the chats list is replaced by two synthetic folders ("Shared with org",
+  // "Shared with me") backed by ConversationShare records. `isSystem: true`
+  // suppresses rename/delete/pin in the FolderRow.
+  const VIEW_ONLY_ORG_FOLDER = "view-only-shared-org";
+  const VIEW_ONLY_MINE_FOLDER = "view-only-shared-mine";
+  const viewOnlyFolders: Folder[] = useMemo(
+    () =>
+      isViewOnly
+        ? [
+            {
+              id: VIEW_ONLY_ORG_FOLDER,
+              label: "Shared with org",
+              isExpanded: true,
+              isSystem: true,
+            },
+            {
+              id: VIEW_ONLY_MINE_FOLDER,
+              label: "Shared with me",
+              isExpanded: true,
+              isSystem: true,
+            },
+          ]
+        : [],
+    [isViewOnly],
+  );
+  const viewOnlyFolderItems: FolderItemsMap = useMemo(() => {
+    if (!isViewOnly || !sharedConversations) return {};
+    const toItem = (s: {
+      conversation: { conversationId?: string; conversation_id?: string; title?: string };
+    }): SidebarItem => {
+      const id =
+        s.conversation.conversationId ?? s.conversation.conversation_id ?? "";
+      const label = s.conversation.title?.trim() || "Untitled chat";
+      return {
+        id,
+        label,
+        type: ItemType.Chat,
+        isOwner: false,
+        isSystemManaged: true,
+      };
+    };
+    return {
+      [VIEW_ONLY_ORG_FOLDER]: sharedConversations.orgShared.map(toItem),
+      [VIEW_ONLY_MINE_FOLDER]: sharedConversations.sharedWithMe.map(toItem),
+    };
+  }, [isViewOnly, sharedConversations]);
+
   // "New Chat" lights up only for a definitively-untitled chat — not just
   // "current id not in cache", since the chat could live in a collapsed
   // folder or unfetched page.
@@ -583,6 +635,31 @@ export function ChatSidebarContainer({
         (!conv.title || conv.title.trim() === ""),
     );
   }, [currentConversationId, items, folderItems, unfiledConversations]);
+
+  if (isViewOnly) {
+    return (
+      <ChatSidebar
+        items={[]}
+        folders={viewOnlyFolders}
+        folderItems={viewOnlyFolderItems}
+        isLoading={false}
+        selectedItemId={currentConversationId || undefined}
+        onItemClick={handleChatClick}
+        onFolderToggle={() => undefined}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        avatarSrc={avatarSrc}
+        avatarLabel={avatarLabel}
+        userName={displayName}
+        userEmail={user?.email}
+        onSignOutClick={onLogoutClick}
+        onSettingsClick={onSettingsClick}
+        onHelpDocsClick={onHelpDocsClick}
+        settingsDisabledReason="View-only users can't access settings."
+        isDashboardsEnabled={false}
+      />
+    );
+  }
 
   return (
     <>
