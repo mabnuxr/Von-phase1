@@ -150,6 +150,41 @@ export interface StandardChatInputProps {
   isRecording?: boolean;
 
   /**
+   * Voice dictation state. Drives the in-input UI variant:
+   *   - 'idle'         → normal editor + toolbar
+   *   - 'connecting'   → "Connecting…" placeholder, faded visualizer, cancel only
+   *   - 'listening'    → speak-naturally placeholder (or prefix + continuation
+   *                      hint if there's existing input text) + visualizer +
+   *                      cancel/confirm buttons
+   *   - 'reconnecting' → "Reconnecting…" placeholder, faded visualizer (mic is
+   *                      still capturing), cancel only — audio captured during
+   *                      the gap is buffered and sent the moment the new WS
+   *                      opens
+   *   - 'processing'   → polishing spinner + cancel button
+   * @default 'idle'
+   */
+  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+
+  /**
+   * Visualizer rendered inside the input during listening (caller-owned —
+   * design-components stays data-agnostic of the FFT/PCM stream).
+   */
+  voiceVisualizer?: ReactNode;
+
+  /** Cancel button handler — abandons the recording or polishing. */
+  onVoiceCancel?: () => void;
+
+  /** Confirm button handler — stops the recording and starts polishing. */
+  onVoiceConfirm?: () => void;
+
+  /** Voice-side error message — rendered as a dismissible banner above
+   *  the input shell. Most commonly the mic-permission denial. */
+  voiceError?: string | null;
+
+  /** Dismiss the voice error banner. */
+  onDismissVoiceError?: () => void;
+
+  /**
    * Current mode (ask or build)
    * @default 'ask'
    */

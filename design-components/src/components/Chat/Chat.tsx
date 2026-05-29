@@ -151,6 +151,15 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onThumbsDown,
       onResponseLinkClicked,
       onResponseSectionCopied,
+      // Voice input
+      onVoiceInput,
+      isRecording = false,
+      voiceStatus,
+      voiceVisualizer,
+      onVoiceCancel,
+      onVoiceConfirm,
+      voiceError,
+      onDismissVoiceError,
       children,
       compact = false,
     },
@@ -333,6 +342,16 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 dashboardMention={dashboardMention}
                 widgetMentions={widgetMentions}
                 onWidgetMentionRemoved={onWidgetMentionRemoved}
+                onVoiceInput={onVoiceInput}
+                isRecording={isRecording}
+                voiceStatus={voiceStatus}
+                voiceVisualizer={voiceVisualizer}
+                onVoiceCancel={onVoiceCancel}
+                onVoiceConfirm={onVoiceConfirm}
+                voiceError={voiceError}
+                onDismissVoiceError={onDismissVoiceError}
+                inputValue={inputValue}
+                onInputValueChange={setInputValue}
               />
             )
           ) : (
@@ -508,6 +527,14 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             dashboardMention={dashboardMention}
             widgetMentions={widgetMentions}
             onWidgetMentionRemoved={onWidgetMentionRemoved}
+            onVoiceInput={onVoiceInput}
+            isRecording={isRecording}
+            voiceStatus={voiceStatus}
+            voiceVisualizer={voiceVisualizer}
+            onVoiceCancel={onVoiceCancel}
+            onVoiceConfirm={onVoiceConfirm}
+            voiceError={voiceError}
+            onDismissVoiceError={onDismissVoiceError}
           />
         )}
       </div>
