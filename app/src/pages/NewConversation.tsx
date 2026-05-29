@@ -213,13 +213,17 @@ const NewConversation = () => {
   // cleanup pass and returns the polished combination of `existing` + raw
   // dictation; we write it to the input in one update.
   const inputPrefixRef = useRef("");
-  // Single sink for the polished string — handles user ✓ AND internal
-  // stops (2-min cap, reconnect exhaustion). The hook also returns it
-  // from stop() but we don't read that here, so we never write twice.
+  // onPolished receives ONLY the polished new dictation. We append it
+  // to whatever the user already had typed — that pre-existing text
+  // never round-trips through the LLM and can't be reworded or dropped.
+  // Fires for user ✓ AND internal stops (2-min cap, reconnect exhaustion).
   const voiceCleanupConfig = useMemo(
     () => ({
-      getExistingText: () => inputPrefixRef.current,
-      onPolished: (polished: string) => setInputValue(polished),
+      onPolished: (polishedDictation: string) => {
+        const prefix = inputPrefixRef.current;
+        const sep = prefix && polishedDictation ? " " : "";
+        setInputValue(prefix + sep + polishedDictation);
+      },
     }),
     [],
   );
@@ -248,26 +252,6 @@ const NewConversation = () => {
       }
     },
   });
-  // Five-state mapping. 'connecting' = first-time connect; 'reconnecting'
-  // = WS dropped mid-session and we're retrying. Both render a faded
-  // waveform with cancel-only. 'stopping'/'processing' both render the
-  // polishing spinner.
-  const voiceUiStatus:
-    | "idle"
-    | "connecting"
-    | "listening"
-    | "reconnecting"
-    | "processing" =
-    voice.status === "connecting"
-      ? "connecting"
-      : voice.status === "reconnecting"
-        ? "reconnecting"
-        : voice.status === "listening"
-          ? "listening"
-          : voice.status === "stopping" || voice.status === "processing"
-            ? "processing"
-            : "idle";
-
   // Keep input in sync with `defaultInputValue` (e.g. after a failed send
   // restores the user's unsent text). Matches the original ChatEmptyState
   // remount behavior, but in controlled form.
@@ -450,11 +434,11 @@ const NewConversation = () => {
         isRecording={
           voice.status === "listening" || voice.status === "connecting"
         }
-        voiceStatus={voiceUiStatus}
+        voiceStatus={voice.uiStatus}
         voiceVisualizer={
-          voiceUiStatus === "listening" ||
-          voiceUiStatus === "connecting" ||
-          voiceUiStatus === "reconnecting" ? (
+          voice.uiStatus === "listening" ||
+          voice.uiStatus === "connecting" ||
+          voice.uiStatus === "reconnecting" ? (
             <VoiceWaveformBar
               freqBins={voice.freqBins}
               active={voice.status === "listening"}

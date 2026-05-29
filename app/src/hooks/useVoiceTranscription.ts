@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { VOICE_FREQ_BINS, VOICE_SILENCE_RMS } from "../config/constants";
+import { VOICE_FREQ_BINS } from "../config/constants";
 import { voiceService } from "../services/voiceService";
 // AudioWorklet module URL — capture + resampling run on the audio thread.
 import captureWorkletUrl from "../components/Voice/voiceCaptureProcessor.js?url";
@@ -14,32 +14,50 @@ export type VoiceStatus =
   | "processing"
   | "error";
 
+// Coarser projection of VoiceStatus used by the chat input UI. The input
+// shell only cares about five visual states; stopping/processing collapse
+// to a single "processing" spinner, and idle/error fall through to the
+// normal editor. Surfaced from the hook so callers don't recompute it.
+export type VoiceUiStatus =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "reconnecting"
+  | "processing";
+
+const toUiStatus = (s: VoiceStatus): VoiceUiStatus => {
+  if (s === "connecting") return "connecting";
+  if (s === "reconnecting") return "reconnecting";
+  if (s === "listening") return "listening";
+  if (s === "stopping" || s === "processing") return "processing";
+  return "idle";
+};
+
 /**
  * Optional cleanup step. After recording stops, the hook posts the raw
- * transcript + existing input text to the backend; the LLM polishes them
- * into a combined message. The final cleaned text is returned from `stop()`
- * — the caller is responsible for writing it back into the chat input.
- *
- * Intermediate streaming tokens are intentionally hidden: the input keeps
- * showing the raw transcript until cleanup finishes, then snaps to the
- * polished version in one update.
+ * transcript to the backend; the LLM polishes the dictation in isolation
+ * and returns the cleaned text. The caller is responsible for appending
+ * that to whatever text the user had already typed — the LLM never sees
+ * or touches the existing chat-input text, so it can't accidentally
+ * rewrite it.
  */
 export interface VoiceCleanupConfig {
-  /** Latest text in the chat input (queried at cleanup-start time, not stale). */
-  getExistingText: () => string;
   /** Fired when a polish pass completes — whether the user pressed ✓, the
    *  2-min cap fired, or a reconnect exhaustion soft-stopped the session.
-   *  This is the single point where the polished text reaches the caller;
-   *  user-triggered stop() still returns the same string for convenience,
-   *  but internal stops (cap / reconnect) ONLY surface results this way. */
-  onPolished?: (polished: string) => void;
+   *  Receives the polished dictation alone (NOT combined with the existing
+   *  chat-input text — the caller appends). This is the single channel
+   *  where polished output reaches the caller; user-triggered stop() still
+   *  returns the same string for convenience. */
+  onPolished?: (polishedDictation: string) => void;
 }
 
 export interface UseVoiceTranscriptionResult {
   status: VoiceStatus;
-  transcript: string;
-  partial: string;
-  micLevel: number;
+  /** UI projection of `status` — five visual states the chat input cares
+   *  about (idle / connecting / listening / reconnecting / processing).
+   *  Use this for prop-level rendering decisions; reach for `status` only
+   *  when you need the finer distinction (e.g. stopping vs processing). */
+  uiStatus: VoiceUiStatus;
   freqBins: Uint8Array;
   error: string | null;
   start: () => Promise<void>;
@@ -85,9 +103,6 @@ export function useVoiceTranscription(options?: {
 }): UseVoiceTranscriptionResult {
   const cleanupConfig = options?.cleanup;
   const [status, setStatus] = useState<VoiceStatus>("idle");
-  const [transcript, setTranscript] = useState("");
-  const [partial, setPartial] = useState("");
-  const [micLevel, setMicLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -226,7 +241,6 @@ export function useVoiceTranscription(options?: {
     }
     sendBufferRef.current = [];
     preconnectBufferRef.current = [];
-    setMicLevel(0);
   }, [cleanupWebSocket]);
 
   useEffect(() => cleanup, [cleanup]);
@@ -275,14 +289,8 @@ export function useVoiceTranscription(options?: {
         .join(" ")
         .trim();
       partialTextRef.current = "";
-      setTranscript(finalAccumRef.current);
-      setPartial("");
     } else {
       partialTextRef.current = text;
-      setPartial(text);
-      setTranscript(
-        [finalAccumRef.current, text].filter(Boolean).join(" ").trim(),
-      );
     }
   }, []);
 
@@ -405,15 +413,12 @@ export function useVoiceTranscription(options?: {
     }
     cleanup();
     setError(null);
-    setTranscript("");
-    setPartial("");
     finalAccumRef.current = "";
     partialTextRef.current = "";
     sendBufferRef.current = [];
     preconnectBufferRef.current = [];
     lastFlushRef.current = 0;
     freqBinsRef.current.fill(0);
-    setMicLevel(0);
     setStatus("connecting");
 
     try {
@@ -557,19 +562,12 @@ export function useVoiceTranscription(options?: {
         handleWsDropRef.current?.();
       };
 
-      // Visualizer tick — only reads mic level. The visualizer component
-      // decides whether to *display* it based on the `active` prop.
+      // Visualizer tick — refresh the FFT bins each frame so the canvas
+      // visualizer (which reads freqBinsRef directly) has fresh data.
       const tick = () => {
         const a = analyserRef.current;
         if (!a) return;
         a.getByteFrequencyData(freqBinsRef.current);
-        let sum = 0;
-        for (let i = 0; i < freqBinsRef.current.length; i++) {
-          const v = freqBinsRef.current[i] / 255;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / freqBinsRef.current.length);
-        setMicLevel(rms < VOICE_SILENCE_RMS ? 0 : rms);
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -648,23 +646,10 @@ export function useVoiceTranscription(options?: {
         .trim();
       cleanup();
 
-      // If a cleanup config is provided, run the LLM polish pass. On the
-      // happy path the polished string already incorporates the prefix (the
-      // backend prompt combines `existing` + dictation). Every failure path
-      // must reconstruct that combination here — returning just rawTranscript
-      // would wipe the user's pre-existing chat-input text when the caller
-      // writes the result back.
-      const existingPrefix = cleanupConfig?.getExistingText().trim() ?? "";
-      const fallbackCombined = existingPrefix
-        ? `${existingPrefix} ${rawTranscript}`.trim()
-        : rawTranscript;
-
-      // Push the final polished text to the caller via the config callback.
-      // Internal stops (2-min cap, reconnect exhaustion) discard stop()'s
-      // return value, so the callback is the ONLY way the polished text
-      // reaches the chat input on those paths. User-triggered stops use
-      // both — caller can await + write, or rely on the callback. Either
-      // works; they receive the same string.
+      // Hook emits ONLY the polished dictation. Concatenation with the
+      // user's existing chat-input text is the caller's job — that way the
+      // LLM never sees or rewrites pre-existing text. Failure paths emit
+      // the raw transcript so the caller can still append it.
       const emitPolished = (text: string) => {
         cleanupConfig?.onPolished?.(text);
       };
@@ -674,18 +659,15 @@ export function useVoiceTranscription(options?: {
         const controller = new AbortController();
         cleanupAbortRef.current = controller;
         try {
-          // The cleanup service streams tokens, but we deliberately discard
-          // the partial deltas — the input shell shows only a spinner during
-          // processing, and the *final* polished text lands once when this
-          // promise resolves. Cleaner UX than a typewriter mid-flight.
+          // No onProgress — the input shell shows the existing text + a
+          // spinner during processing; the polished dictation lands in one
+          // update once this promise resolves.
           const polished = await voiceService.streamCleanup({
-            existing: existingPrefix,
             newDictation: rawTranscript,
-            onProgress: () => undefined,
             signal: controller.signal,
           });
           cleanupAbortRef.current = null;
-          const finalText = polished || fallbackCombined;
+          const finalText = polished || rawTranscript;
           emitPolished(finalText);
           setStatus("idle");
           return finalText;
@@ -695,21 +677,20 @@ export function useVoiceTranscription(options?: {
           // start() has already (or will shortly) re-set it to "connecting".
           // Skip emit too; the new session will produce its own polished text.
           if (e instanceof DOMException && e.name === "AbortError") {
-            return fallbackCombined;
+            return rawTranscript;
           }
-          // Any other failure: surface the combined text so the user keeps
-          // BOTH their pre-existing input and the new dictation. The chat
-          // input takes over from there.
+          // Any other failure: surface the raw transcript so the user
+          // doesn't lose what they said. The caller appends it to existing.
           console.error("[useVoiceTranscription] cleanup failed:", e);
-          emitPolished(fallbackCombined);
+          emitPolished(rawTranscript);
           setStatus("idle");
-          return fallbackCombined;
+          return rawTranscript;
         }
       }
 
-      emitPolished(fallbackCombined);
+      emitPolished(rawTranscript);
       setStatus("idle");
-      return fallbackCombined;
+      return rawTranscript;
     } finally {
       isStoppingRef.current = false;
     }
@@ -729,8 +710,6 @@ export function useVoiceTranscription(options?: {
     }
     finalAccumRef.current = "";
     partialTextRef.current = "";
-    setTranscript("");
-    setPartial("");
     cleanup();
     setStatus("idle");
   }, [cleanup]);
@@ -741,9 +720,7 @@ export function useVoiceTranscription(options?: {
 
   return {
     status,
-    transcript,
-    partial,
-    micLevel,
+    uiStatus: toUiStatus(status),
     freqBins: freqBinsRef.current,
     error,
     start,
