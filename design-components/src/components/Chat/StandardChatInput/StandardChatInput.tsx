@@ -118,6 +118,13 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
  * - White background with subtle gradient border
  */
 
+// Mac vs the rest, for labelling the push-to-talk hotkey. Browsers fire the
+// same `AltLeft` / `AltRight` keycodes regardless of platform — only the
+// human-readable key name differs (⌥ Option on macOS, Alt elsewhere).
+const isMacPlatform = (): boolean =>
+  typeof navigator !== 'undefined' &&
+  /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
 // Ghost text that appears at the caret position after "/" — no DOM manipulation needed.
 const GhostCommandText: React.FC<{ text: string; offset: { left: number; top: number } }> = ({
   text,
@@ -761,29 +768,44 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
                           {/* Right side - Voice and Send buttons */}
                           <div className="flex items-center gap-1.5">
-                            {/* Voice input button — swaps to a stop icon while recording */}
+                            {/* Voice input button — swaps to a stop icon while recording. */}
                             {onVoiceInput && (
-                              <SecondaryIconButton
-                                icon={
+                              <Tooltip
+                                content={
                                   isRecording ? (
-                                    <StopIcon />
+                                    'Stop recording'
                                   ) : (
-                                    <MicrophoneIcon
-                                      size={16}
-                                      weight="bold"
-                                      className="text-gray-800"
-                                    />
+                                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                                      Press and hold to record
+                                      <span className="px-1.5 py-0.5 rounded border border-white/20 bg-white/10 text-white text-[11px] leading-none">
+                                        {isMacPlatform() ? '⌥ Option' : 'Alt'}
+                                      </span>
+                                    </span>
                                   )
                                 }
-                                onClick={onVoiceInput}
-                                disabled={disabled && !isStreaming}
-                                title={isRecording ? 'Stop recording' : 'Start voice input'}
-                                className={
-                                  isRecording
-                                    ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 w-7.5! h-7.5! rounded-full! p-0!'
-                                    : 'w-7.5! h-7.5! rounded-full! p-0!'
-                                }
-                              />
+                              >
+                                <SecondaryIconButton
+                                  icon={
+                                    isRecording ? (
+                                      <StopIcon />
+                                    ) : (
+                                      <MicrophoneIcon
+                                        size={16}
+                                        weight="bold"
+                                        className="text-gray-800"
+                                      />
+                                    )
+                                  }
+                                  onClick={onVoiceInput}
+                                  disabled={disabled && !isStreaming}
+                                  title=""
+                                  className={
+                                    isRecording
+                                      ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 w-7.5! h-7.5! rounded-full! p-0!'
+                                      : 'w-7.5! h-7.5! rounded-full! p-0!'
+                                  }
+                                />
+                              </Tooltip>
                             )}
 
                             {/* Send/Stop button */}
@@ -876,14 +898,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                 "Listening — speak naturally, we'll polish it after"
               ) : voiceStatus === 'processing' ? (
                 'Polishing your speech into clean text…'
-              ) : onVoiceInput ? (
-                <>
-                  Click the mic, or hold{' '}
-                  <kbd className="px-1 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700 font-sf text-[11px]">
-                    ⌥ Option
-                  </kbd>{' '}
-                  to talk · release to polish
-                </>
               ) : (
                 'Von AI may make mistakes. Please recheck all important information.'
               )}
