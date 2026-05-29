@@ -143,6 +143,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onSend,
       onStop,
       disabled = false,
+      autoFocus = false,
       disabledTooltip,
       isStreaming = false,
       disableSubmit = false,
@@ -207,6 +208,17 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
     const editorRef = useRef<Editor | null>(null);
     const editorContainerRef = useRef<HTMLDivElement>(null);
+
+    // Focus the editor on mount when autoFocus is set. Effects run bottom-up
+    // in React, so TiptapEditor's effect that populates editorRef.current
+    // has already run by the time this fires. A 0ms timeout still hedges
+    // against frameworks (framer-motion enter animations etc.) that delay
+    // first paint by a tick.
+    useEffect(() => {
+      if (!autoFocus) return;
+      const t = setTimeout(() => editorRef.current?.commands.focus(), 0);
+      return () => clearTimeout(t);
+    }, [autoFocus]);
 
     // When the commands list is open, consume the Escape event so it doesn't
     // bubble up to useEscapeToStopStreaming and stop an in-flight message.

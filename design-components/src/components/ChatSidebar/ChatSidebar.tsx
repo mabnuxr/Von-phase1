@@ -757,6 +757,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
           onNewChatClick={onNewChatClick}
+          onSearchClick={onSearchClick}
           onItemClick={onItemClick}
           onFolderToggle={onFolderToggle}
           isChatsHovered={isChatsHovered}

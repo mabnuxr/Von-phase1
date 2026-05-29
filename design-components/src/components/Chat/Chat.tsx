@@ -461,6 +461,7 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
         {!hideInput && (messages.length > 0 || hasCustomEmptyState) && (
           <ChatInputSelector
             ref={inputSelectorRef}
+            autoFocus
             useStandardInput={useStandardInput}
             enableCommands={enableCommands}
             commands={commands}

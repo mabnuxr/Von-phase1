@@ -437,6 +437,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     if (useStandardInput) {
       const sharedStandardProps = {
         ...baseCommonProps,
+        autoFocus,
         onDisabledInput,
         hideDisclaimer,
         onFileError,

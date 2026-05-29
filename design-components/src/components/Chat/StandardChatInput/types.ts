@@ -96,6 +96,13 @@ export interface StandardChatInputProps {
   disabled?: boolean;
 
   /**
+   * When true, the editor takes focus on mount so the user can start
+   * typing without clicking. Set by the empty-state wrapper on /chat/new.
+   * @default false
+   */
+  autoFocus?: boolean;
+
+  /**
    * Tooltip surfaced on hover when the input is disabled. Lets the
    * caller explain *why* the input is unavailable (e.g. "Close the
    * dashboard version history to chat") instead of repurposing the
