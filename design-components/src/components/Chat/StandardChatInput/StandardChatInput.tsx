@@ -122,8 +122,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
 // same `AltLeft` / `AltRight` keycodes regardless of platform — only the
 // human-readable key name differs (⌥ Option on macOS, Alt elsewhere).
 const isMacPlatform = (): boolean =>
-  typeof navigator !== 'undefined' &&
-  /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
 // Ghost text that appears at the caret position after "/" — no DOM manipulation needed.
 const GhostCommandText: React.FC<{ text: string; offset: { left: number; top: number } }> = ({
@@ -890,17 +889,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
           {!hideDisclaimer && (
             <TruncateWithText className="w-full text-xs leading-normal text-gray-500 text-center font-sf mt-1">
-              {voiceStatus === 'connecting' ? (
-                'Connecting to voice service…'
-              ) : voiceStatus === 'reconnecting' ? (
-                "Reconnecting — we'll send what you're saying once we're back online"
-              ) : voiceStatus === 'listening' ? (
-                "Listening — speak naturally, we'll polish it after"
-              ) : voiceStatus === 'processing' ? (
-                'Polishing your speech into clean text…'
-              ) : (
-                'Von AI may make mistakes. Please recheck all important information.'
-              )}
+              {voiceStatus === 'connecting'
+                ? 'Connecting to voice service…'
+                : voiceStatus === 'reconnecting'
+                  ? "Reconnecting — we'll send what you're saying once we're back online"
+                  : voiceStatus === 'listening'
+                    ? "Listening — speak naturally, we'll polish it after"
+                    : voiceStatus === 'processing'
+                      ? 'Polishing your speech into clean text…'
+                      : 'Von AI may make mistakes. Please recheck all important information.'}
             </TruncateWithText>
           )}
         </div>
