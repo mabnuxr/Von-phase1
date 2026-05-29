@@ -800,10 +800,9 @@ function ExistingChatInner(
   }, [props.onBoxClick]);
 
   // ── Voice (Deepgram + LLM cleanup) ─────────────────────────────────
-  // Snapshot of whatever was already in the input when voice started.
-  // The live effect below writes `prefix + transcript` during recording so
-  // dictation appends to existing text. After stop, the cleanup pass replaces
-  // that raw text with the LLM-polished combination of prefix + dictation.
+  // Captured at beginVoice() — the chat-input text at the moment voice
+  // started. The LLM never sees this; onPolished prepends it to the
+  // polished dictation when writing back so existing text stays intact.
   const inputPrefixRef = useRef("");
   const setAutoPopulatedInput = chatV2.setAutoPopulatedInput;
   // onPolished receives ONLY the polished new dictation (not combined).
@@ -842,7 +841,7 @@ function ExistingChatInner(
     }
   }, [beginVoice, endVoice, voice]);
 
-  // Hold ⌘+Shift+Space to dictate — release ends the session.
+  // Hold ⌥ Option (Alt on Windows/Linux) to dictate — release ends the session.
   usePushToTalkHotkey({
     onPress: () => {
       if (voice.status === "idle" || voice.status === "error") {
@@ -855,28 +854,6 @@ function ExistingChatInner(
       }
     },
   });
-
-  // Surface the hook's status to the input's five-state visual contract.
-  // 'connecting' = first-time connect; 'reconnecting' = WS dropped mid-
-  // session and we're retrying (audio keeps capturing into the preconnect
-  // buffer in the meantime). Both render a faded waveform with cancel-only
-  // so the user can't false-start a confirm. 'stopping'/'processing' both
-  // render the polishing spinner. Idle/error fall through to normal input.
-  const voiceUiStatus:
-    | "idle"
-    | "connecting"
-    | "listening"
-    | "reconnecting"
-    | "processing" =
-    voice.status === "connecting"
-      ? "connecting"
-      : voice.status === "reconnecting"
-        ? "reconnecting"
-        : voice.status === "listening"
-          ? "listening"
-          : voice.status === "stopping" || voice.status === "processing"
-            ? "processing"
-            : "idle";
 
   // ── Loading ───────────────────────────────────────────────────────
   if (!base.user || (isLoadingMessages && conversationMessages.length === 0)) {
@@ -900,11 +877,11 @@ function ExistingChatInner(
       isRecording={
         voice.status === "listening" || voice.status === "connecting"
       }
-      voiceStatus={voiceUiStatus}
+      voiceStatus={voice.uiStatus}
       voiceVisualizer={
-        voiceUiStatus === "listening" ||
-        voiceUiStatus === "connecting" ||
-        voiceUiStatus === "reconnecting" ? (
+        voice.uiStatus === "listening" ||
+        voice.uiStatus === "connecting" ||
+        voice.uiStatus === "reconnecting" ? (
           <VoiceWaveformBar
             freqBins={voice.freqBins}
             active={voice.status === "listening"}

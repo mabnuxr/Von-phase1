@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { VOICE_FREQ_BINS, VOICE_SILENCE_RMS } from "../config/constants";
+import { VOICE_FREQ_BINS } from "../config/constants";
 import { voiceService } from "../services/voiceService";
 // AudioWorklet module URL — capture + resampling run on the audio thread.
 import captureWorkletUrl from "../components/Voice/voiceCaptureProcessor.js?url";
@@ -13,6 +13,25 @@ export type VoiceStatus =
   | "stopping"
   | "processing"
   | "error";
+
+// Coarser projection of VoiceStatus used by the chat input UI. The input
+// shell only cares about five visual states; stopping/processing collapse
+// to a single "processing" spinner, and idle/error fall through to the
+// normal editor. Surfaced from the hook so callers don't recompute it.
+export type VoiceUiStatus =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "reconnecting"
+  | "processing";
+
+const toUiStatus = (s: VoiceStatus): VoiceUiStatus => {
+  if (s === "connecting") return "connecting";
+  if (s === "reconnecting") return "reconnecting";
+  if (s === "listening") return "listening";
+  if (s === "stopping" || s === "processing") return "processing";
+  return "idle";
+};
 
 /**
  * Optional cleanup step. After recording stops, the hook posts the raw
@@ -34,9 +53,11 @@ export interface VoiceCleanupConfig {
 
 export interface UseVoiceTranscriptionResult {
   status: VoiceStatus;
-  transcript: string;
-  partial: string;
-  micLevel: number;
+  /** UI projection of `status` — five visual states the chat input cares
+   *  about (idle / connecting / listening / reconnecting / processing).
+   *  Use this for prop-level rendering decisions; reach for `status` only
+   *  when you need the finer distinction (e.g. stopping vs processing). */
+  uiStatus: VoiceUiStatus;
   freqBins: Uint8Array;
   error: string | null;
   start: () => Promise<void>;
@@ -82,9 +103,6 @@ export function useVoiceTranscription(options?: {
 }): UseVoiceTranscriptionResult {
   const cleanupConfig = options?.cleanup;
   const [status, setStatus] = useState<VoiceStatus>("idle");
-  const [transcript, setTranscript] = useState("");
-  const [partial, setPartial] = useState("");
-  const [micLevel, setMicLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -223,7 +241,6 @@ export function useVoiceTranscription(options?: {
     }
     sendBufferRef.current = [];
     preconnectBufferRef.current = [];
-    setMicLevel(0);
   }, [cleanupWebSocket]);
 
   useEffect(() => cleanup, [cleanup]);
@@ -272,14 +289,8 @@ export function useVoiceTranscription(options?: {
         .join(" ")
         .trim();
       partialTextRef.current = "";
-      setTranscript(finalAccumRef.current);
-      setPartial("");
     } else {
       partialTextRef.current = text;
-      setPartial(text);
-      setTranscript(
-        [finalAccumRef.current, text].filter(Boolean).join(" ").trim(),
-      );
     }
   }, []);
 
@@ -402,15 +413,12 @@ export function useVoiceTranscription(options?: {
     }
     cleanup();
     setError(null);
-    setTranscript("");
-    setPartial("");
     finalAccumRef.current = "";
     partialTextRef.current = "";
     sendBufferRef.current = [];
     preconnectBufferRef.current = [];
     lastFlushRef.current = 0;
     freqBinsRef.current.fill(0);
-    setMicLevel(0);
     setStatus("connecting");
 
     try {
@@ -554,19 +562,12 @@ export function useVoiceTranscription(options?: {
         handleWsDropRef.current?.();
       };
 
-      // Visualizer tick — only reads mic level. The visualizer component
-      // decides whether to *display* it based on the `active` prop.
+      // Visualizer tick — refresh the FFT bins each frame so the canvas
+      // visualizer (which reads freqBinsRef directly) has fresh data.
       const tick = () => {
         const a = analyserRef.current;
         if (!a) return;
         a.getByteFrequencyData(freqBinsRef.current);
-        let sum = 0;
-        for (let i = 0; i < freqBinsRef.current.length; i++) {
-          const v = freqBinsRef.current[i] / 255;
-          sum += v * v;
-        }
-        const rms = Math.sqrt(sum / freqBinsRef.current.length);
-        setMicLevel(rms < VOICE_SILENCE_RMS ? 0 : rms);
         rafRef.current = requestAnimationFrame(tick);
       };
       rafRef.current = requestAnimationFrame(tick);
@@ -658,12 +659,11 @@ export function useVoiceTranscription(options?: {
         const controller = new AbortController();
         cleanupAbortRef.current = controller;
         try {
-          // Discard streaming deltas — the input shell shows the existing
-          // text + a spinner during processing, and the polished dictation
-          // lands in one update once the promise resolves.
+          // No onProgress — the input shell shows the existing text + a
+          // spinner during processing; the polished dictation lands in one
+          // update once this promise resolves.
           const polished = await voiceService.streamCleanup({
             newDictation: rawTranscript,
-            onProgress: () => undefined,
             signal: controller.signal,
           });
           cleanupAbortRef.current = null;
@@ -710,8 +710,6 @@ export function useVoiceTranscription(options?: {
     }
     finalAccumRef.current = "";
     partialTextRef.current = "";
-    setTranscript("");
-    setPartial("");
     cleanup();
     setStatus("idle");
   }, [cleanup]);
@@ -722,9 +720,7 @@ export function useVoiceTranscription(options?: {
 
   return {
     status,
-    transcript,
-    partial,
-    micLevel,
+    uiStatus: toUiStatus(status),
     freqBins: freqBinsRef.current,
     error,
     start,

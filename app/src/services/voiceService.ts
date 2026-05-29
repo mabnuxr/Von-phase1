@@ -8,10 +8,10 @@ export interface DeepgramKeyResponse {
 
 export interface VoiceCleanupArgs {
   newDictation: string;
-  /** Called every time the cleaned text grows. Receives the cumulative
-   *  *polished dictation* — concatenation with anything the user had
-   *  already typed in the input is the caller's responsibility. */
-  onProgress: (cumulative: string) => void;
+  /** Optional: called as the polished dictation streams in. Most callers
+   *  only care about the final string (returned by the promise) and
+   *  ignore the deltas — omit this to skip the per-chunk callback. */
+  onProgress?: (cumulative: string) => void;
   /** Caller-owned signal for cancellation when the user re-starts dictation. */
   signal: AbortSignal;
 }
@@ -69,7 +69,7 @@ export const voiceService = {
             const parsed = JSON.parse(dataLines.join("\n"));
             if (parsed.delta) {
               cumulative += parsed.delta;
-              onProgress(cumulative);
+              onProgress?.(cumulative);
             }
             // The trailing `done` event is acknowledged by exiting the loop
             // when the underlying stream closes — no special handling needed.

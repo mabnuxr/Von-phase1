@@ -252,26 +252,6 @@ const NewConversation = () => {
       }
     },
   });
-  // Five-state mapping. 'connecting' = first-time connect; 'reconnecting'
-  // = WS dropped mid-session and we're retrying. Both render a faded
-  // waveform with cancel-only. 'stopping'/'processing' both render the
-  // polishing spinner.
-  const voiceUiStatus:
-    | "idle"
-    | "connecting"
-    | "listening"
-    | "reconnecting"
-    | "processing" =
-    voice.status === "connecting"
-      ? "connecting"
-      : voice.status === "reconnecting"
-        ? "reconnecting"
-        : voice.status === "listening"
-          ? "listening"
-          : voice.status === "stopping" || voice.status === "processing"
-            ? "processing"
-            : "idle";
-
   // Keep input in sync with `defaultInputValue` (e.g. after a failed send
   // restores the user's unsent text). Matches the original ChatEmptyState
   // remount behavior, but in controlled form.
@@ -454,11 +434,11 @@ const NewConversation = () => {
         isRecording={
           voice.status === "listening" || voice.status === "connecting"
         }
-        voiceStatus={voiceUiStatus}
+        voiceStatus={voice.uiStatus}
         voiceVisualizer={
-          voiceUiStatus === "listening" ||
-          voiceUiStatus === "connecting" ||
-          voiceUiStatus === "reconnecting" ? (
+          voice.uiStatus === "listening" ||
+          voice.uiStatus === "connecting" ||
+          voice.uiStatus === "reconnecting" ? (
             <VoiceWaveformBar
               freqBins={voice.freqBins}
               active={voice.status === "listening"}
