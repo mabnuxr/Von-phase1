@@ -46,7 +46,7 @@ export function SearchEmptyState({
       )}
 
       {recentItems.length > 0 && (
-        <Command.Group heading="Recent" className={HEADING_CLASSES}>
+        <Command.Group heading="Recents" className={HEADING_CLASSES}>
           {recentItems.slice(0, 5).map((r, i) => (
             <SearchResultRow
               key={`${r.type}:${r.id}`}
