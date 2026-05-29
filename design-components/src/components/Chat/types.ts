@@ -1133,6 +1133,42 @@ export interface ChatProps {
   onStopStreaming?: (conversationId: string) => void;
 
   /**
+   * Toggles the mic button inside the chat input on. When provided,
+   * `StandardChatInput` renders the microphone icon next to the send button
+   * and invokes this on click. The host app drives the actual capture flow.
+   */
+  onVoiceInput?: () => void;
+
+  /**
+   * Whether a voice capture session is currently active. Drives the
+   * "recording" red-fill state on the mic button.
+   */
+  isRecording?: boolean;
+
+  /**
+   * Voice dictation state — drives the in-input dictation UI (listening
+   * placeholder + visualizer, or polishing transcript + spinner).
+   * @default 'idle'
+   */
+  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+
+  /** Visualizer slot rendered inside the input during listening. */
+  voiceVisualizer?: React.ReactNode;
+
+  /** Cancel button handler — abandons the recording or polishing. */
+  onVoiceCancel?: () => void;
+
+  /** Confirm button handler — stops the recording and starts polishing. */
+  onVoiceConfirm?: () => void;
+
+  /** Voice-side error message rendered as a dismissible banner above
+   *  the input (mic-permission blocked, etc.). */
+  voiceError?: string | null;
+
+  /** Dismiss the voice error banner. */
+  onDismissVoiceError?: () => void;
+
+  /**
    * External control for input value (for auto-populate on error)
    */
   inputValue?: string;

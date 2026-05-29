@@ -13,6 +13,10 @@ import {
   MicrophoneIcon,
   UploadSimpleIcon,
   LineVerticalIcon,
+  XIcon,
+  CheckIcon,
+  CircleNotchIcon,
+  WarningCircleIcon,
 } from '@phosphor-icons/react';
 import { SendIcon, StopIcon } from '../icons';
 import { Tooltip } from '../../Tooltip';
@@ -67,7 +71,7 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
         onClick={onOpen}
         disabled={disabled}
         title=""
-        className="!w-7.5 !h-7.5 !rounded-full !p-0"
+        className="w-7.5! h-7.5! rounded-full! p-0!"
       />
 
       <AnimatePresence>
@@ -152,6 +156,12 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       onChange,
       onVoiceInput,
       isRecording = false,
+      voiceStatus = 'idle',
+      voiceVisualizer,
+      onVoiceCancel,
+      onVoiceConfirm,
+      voiceError,
+      onDismissVoiceError,
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       mode: _mode = 'ask',
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -445,6 +455,11 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const isInputDisabled = disabled && !isStreaming;
+    const isVoiceActive =
+      voiceStatus === 'connecting' ||
+      voiceStatus === 'listening' ||
+      voiceStatus === 'reconnecting' ||
+      voiceStatus === 'processing';
 
     const inputShellClassName = `rounded-[17px] p-px transition-all duration-200 ${
       disabled
@@ -487,6 +502,36 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
               message={fileErrorMessage || ''}
               onDismiss={onDismissFileError || (() => {})}
             />
+
+            {/* Voice-side error banner — mic permission blocked, etc.
+                Renders above the input shell; dismissible by the user. */}
+            <AnimatePresence>
+              {voiceError && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="w-full"
+                >
+                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-red-200 bg-red-50">
+                    <WarningCircleIcon size={16} weight="fill" className="text-red-500 shrink-0" />
+                    <span className="text-[13px] font-medium text-red-700 truncate min-w-0 flex-1">
+                      {voiceError}
+                    </span>
+                    {onDismissVoiceError && (
+                      <button
+                        onClick={onDismissVoiceError}
+                        className="text-red-300 hover:text-red-500 transition-colors cursor-pointer shrink-0 p-0.5 rounded-md hover:bg-red-100"
+                        aria-label="Dismiss"
+                      >
+                        <XIcon size={12} weight="bold" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Command chip - shown above the input when a command is selected */}
             {contextBar && !activePopover && (
@@ -558,7 +603,62 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                       aria-hidden="true"
                     />
 
-                    {showPlusMenu ? (
+                    {isVoiceActive ? (
+                      <>
+                        <div className="px-3 py-2 min-h-10">
+                          {voiceStatus === 'connecting' ? (
+                            <div className="text-sm text-gray-400 leading-relaxed">Connecting…</div>
+                          ) : voiceStatus === 'reconnecting' ? (
+                            <div className="text-sm text-gray-400 leading-relaxed">
+                              Reconnecting…
+                            </div>
+                          ) : voiceStatus === 'processing' ? (
+                            <div className="text-sm text-gray-400 leading-relaxed">
+                              Polishing your words…
+                            </div>
+                          ) : message.trim() ? (
+                            <div className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
+                              <span className="text-gray-900">{message}</span>{' '}
+                              <span className="italic text-gray-400">
+                                keep speaking — we&apos;ll polish &amp; add it here
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-sm text-gray-400 leading-relaxed">
+                              Speak naturally — we&apos;ll polish it after.
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between gap-2 px-3 pb-3">
+                          <div className="flex-1 min-w-0 flex items-center">
+                            {voiceStatus === 'processing' ? (
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                                Polishing
+                              </div>
+                            ) : (
+                              voiceVisualizer
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <SecondaryIconButton
+                              icon={<XIcon size={16} weight="bold" className="text-gray-800" />}
+                              onClick={onVoiceCancel}
+                              title="Cancel"
+                              className="w-7.5! h-7.5! rounded-full! p-0!"
+                            />
+                            {voiceStatus === 'listening' && (
+                              <SecondaryIconButton
+                                icon={<CheckIcon size={16} weight="bold" />}
+                                onClick={onVoiceConfirm}
+                                title="Confirm"
+                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : showPlusMenu ? (
                       <>
                         {/* Text input area - Tiptap Editor */}
                         <div className="px-3 py-2">
@@ -633,7 +733,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 }}
                                 disabled={(disabled && !isStreaming) || message.trim().length > 0}
                                 title="Commands"
-                                className="!w-7.5 !h-7.5 !rounded-full !p-0 border border-gray-200/80"
+                                className="w-7.5! h-7.5! rounded-full! p-0! border border-gray-200/80"
                               />
                             )}
 
@@ -661,23 +761,27 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
                           {/* Right side - Voice and Send buttons */}
                           <div className="flex items-center gap-1.5">
-                            {/* Voice input button */}
+                            {/* Voice input button — swaps to a stop icon while recording */}
                             {onVoiceInput && (
                               <SecondaryIconButton
                                 icon={
-                                  <MicrophoneIcon
-                                    size={16}
-                                    weight={isRecording ? 'fill' : 'bold'}
-                                    className={isRecording ? 'text-red-500' : 'text-gray-800'}
-                                  />
+                                  isRecording ? (
+                                    <StopIcon />
+                                  ) : (
+                                    <MicrophoneIcon
+                                      size={16}
+                                      weight="bold"
+                                      className="text-gray-800"
+                                    />
+                                  )
                                 }
                                 onClick={onVoiceInput}
                                 disabled={disabled && !isStreaming}
                                 title={isRecording ? 'Stop recording' : 'Start voice input'}
                                 className={
                                   isRecording
-                                    ? 'bg-red-50 border-red-200 !w-7.5 !h-7.5 !rounded-full !p-0'
-                                    : '!w-7.5 !h-7.5 !rounded-full !p-0'
+                                    ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 w-7.5! h-7.5! rounded-full! p-0!'
+                                    : 'w-7.5! h-7.5! rounded-full! p-0!'
                                 }
                               />
                             )}
@@ -688,7 +792,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 icon={<StopIcon />}
                                 onClick={onStop}
                                 title="Stop generating"
-                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0"
+                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!"
                               />
                             ) : (
                               <SecondaryIconButton
@@ -698,8 +802,8 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                                 title="Send message"
                                 className={
                                   canSend
-                                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
-                                    : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!'
+                                    : 'opacity-80 w-7.5! h-7.5! rounded-full! p-0!'
                                 }
                               />
                             )}
@@ -739,7 +843,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             icon={<StopIcon />}
                             onClick={onStop}
                             title="Stop generating"
-                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0 flex-shrink-0"
+                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0! shrink-0"
                           />
                         ) : (
                           <SecondaryIconButton
@@ -747,10 +851,10 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                             onClick={handleSend}
                             disabled={!canSend}
                             title="Send message"
-                            className={`flex-shrink-0 ${
+                            className={`shrink-0 ${
                               canSend
-                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 !w-7.5 !h-7.5 !rounded-full !p-0'
-                                : 'opacity-80 !w-7.5 !h-7.5 !rounded-full !p-0'
+                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!'
+                                : 'opacity-80 w-7.5! h-7.5! rounded-full! p-0!'
                             }`}
                           />
                         )}
@@ -764,7 +868,25 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
           {!hideDisclaimer && (
             <TruncateWithText className="w-full text-xs leading-normal text-gray-500 text-center font-sf mt-1">
-              Von AI may make mistakes. Please recheck all important information.
+              {voiceStatus === 'connecting' ? (
+                'Connecting to voice service…'
+              ) : voiceStatus === 'reconnecting' ? (
+                "Reconnecting — we'll send what you're saying once we're back online"
+              ) : voiceStatus === 'listening' ? (
+                "Listening — speak naturally, we'll polish it after"
+              ) : voiceStatus === 'processing' ? (
+                'Polishing your speech into clean text…'
+              ) : onVoiceInput ? (
+                <>
+                  Click the mic, or hold{' '}
+                  <kbd className="px-1 py-0.5 rounded border border-gray-200 bg-gray-50 text-gray-700 font-sf text-[11px]">
+                    ⌥ Option
+                  </kbd>{' '}
+                  to talk · release to polish
+                </>
+              ) : (
+                'Von AI may make mistakes. Please recheck all important information.'
+              )}
             </TruncateWithText>
           )}
         </div>

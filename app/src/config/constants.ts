@@ -250,6 +250,22 @@ export const ERROR_MESSAGE_TRUNCATE_LENGTH = 100 as const;
 export const ARTIFACT_PANE_WIDTH = "480px" as const;
 
 // ============================================================================
+// Voice-to-Text (LiveKit + Deepgram)
+// ============================================================================
+
+/**
+ * FFT bins fed to the radial bar visualizer.
+ * AnalyserNode.fftSize is set to 2x this value (frequency bins = fftSize / 2).
+ */
+export const VOICE_FREQ_BINS = 128 as const;
+
+/**
+ * RMS amplitude below this is treated as silence — keeps the visualizer
+ * from twitching when the room is quiet.
+ */
+export const VOICE_SILENCE_RMS = 0.005 as const;
+
+// ============================================================================
 // Asset URLs
 // ============================================================================
 

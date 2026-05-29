@@ -189,6 +189,29 @@ export interface ChatEmptyStateProps {
   widgetMentions?: MentionItem[];
   /** Called when a widget chip is removed via its X button */
   onWidgetMentionRemoved?: (args: { id: string }) => void;
+
+  /** Click handler for the mic button in the empty-state input. */
+  onVoiceInput?: () => void;
+  /** Red-fill / stop-icon state when a voice session is active. */
+  isRecording?: boolean;
+  /** Voice dictation state — drives the in-input UI. */
+  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+  /** Visualizer rendered inside the input during listening. */
+  voiceVisualizer?: React.ReactNode;
+  /** Cancel handler for the X button on the voice input. */
+  onVoiceCancel?: () => void;
+  /** Confirm handler for the ✓ button on the voice input. */
+  onVoiceConfirm?: () => void;
+  /** Voice-side error banner shown above the input. */
+  voiceError?: string | null;
+  /** Dismiss handler for the voice error banner. */
+  onDismissVoiceError?: () => void;
+
+  /** Controlled input value — when provided, overrides internal state.
+   *  Voice transcription streams interim transcripts via this prop. */
+  inputValue?: string;
+  /** Fires on any input change (user typing or external set). */
+  onInputValueChange?: (value: string) => void;
 }
 
 /**
@@ -260,12 +283,32 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   dashboardMention,
   widgetMentions,
   onWidgetMentionRemoved,
+  onVoiceInput,
+  isRecording,
+  voiceStatus,
+  voiceVisualizer,
+  onVoiceCancel,
+  onVoiceConfirm,
+  voiceError,
+  onDismissVoiceError,
+  inputValue: controlledInputValue,
+  onInputValueChange,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
 
-  // Track input value for template filling
-  const [inputValue, setInputValue] = useState(defaultValue);
+  // Track input value for template filling. When `inputValue` is supplied
+  // by the parent (e.g. voice transcription), the controlled value wins.
+  const [internalInputValue, setInternalInputValue] = useState(defaultValue);
+  const isInputControlled = controlledInputValue !== undefined;
+  const inputValue = isInputControlled ? controlledInputValue : internalInputValue;
+  const setInputValue = useCallback(
+    (next: string) => {
+      if (!isInputControlled) setInternalInputValue(next);
+      onInputValueChange?.(next);
+    },
+    [isInputControlled, onInputValueChange]
+  );
 
   // Template state
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Popular');
@@ -496,6 +539,14 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           dashboardMention={dashboardMention}
           widgetMentions={widgetMentions}
           onWidgetMentionRemoved={onWidgetMentionRemoved}
+          onVoiceInput={onVoiceInput}
+          isRecording={isRecording}
+          voiceStatus={voiceStatus}
+          voiceVisualizer={voiceVisualizer}
+          onVoiceCancel={onVoiceCancel}
+          onVoiceConfirm={onVoiceConfirm}
+          voiceError={voiceError}
+          onDismissVoiceError={onDismissVoiceError}
         />
       </motion.div>
 
@@ -556,7 +607,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                 key={template.id}
                 onClick={() => handleTemplateClick(template, index + 1)}
                 className={`
-                  flex-shrink-0 w-48 px-4 py-2.5
+                  shrink-0 w-48 px-4 py-2.5
                   rounded-xl bg-white border border-gray-100
                   text-left transition-all flex flex-col justify-start
                   ${
