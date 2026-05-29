@@ -16,23 +16,20 @@ export type VoiceStatus =
 
 /**
  * Optional cleanup step. After recording stops, the hook posts the raw
- * transcript + existing input text to the backend; the LLM polishes them
- * into a combined message. The final cleaned text is returned from `stop()`
- * — the caller is responsible for writing it back into the chat input.
- *
- * Intermediate streaming tokens are intentionally hidden: the input keeps
- * showing the raw transcript until cleanup finishes, then snaps to the
- * polished version in one update.
+ * transcript to the backend; the LLM polishes the dictation in isolation
+ * and returns the cleaned text. The caller is responsible for appending
+ * that to whatever text the user had already typed — the LLM never sees
+ * or touches the existing chat-input text, so it can't accidentally
+ * rewrite it.
  */
 export interface VoiceCleanupConfig {
-  /** Latest text in the chat input (queried at cleanup-start time, not stale). */
-  getExistingText: () => string;
   /** Fired when a polish pass completes — whether the user pressed ✓, the
    *  2-min cap fired, or a reconnect exhaustion soft-stopped the session.
-   *  This is the single point where the polished text reaches the caller;
-   *  user-triggered stop() still returns the same string for convenience,
-   *  but internal stops (cap / reconnect) ONLY surface results this way. */
-  onPolished?: (polished: string) => void;
+   *  Receives the polished dictation alone (NOT combined with the existing
+   *  chat-input text — the caller appends). This is the single channel
+   *  where polished output reaches the caller; user-triggered stop() still
+   *  returns the same string for convenience. */
+  onPolished?: (polishedDictation: string) => void;
 }
 
 export interface UseVoiceTranscriptionResult {
@@ -648,23 +645,10 @@ export function useVoiceTranscription(options?: {
         .trim();
       cleanup();
 
-      // If a cleanup config is provided, run the LLM polish pass. On the
-      // happy path the polished string already incorporates the prefix (the
-      // backend prompt combines `existing` + dictation). Every failure path
-      // must reconstruct that combination here — returning just rawTranscript
-      // would wipe the user's pre-existing chat-input text when the caller
-      // writes the result back.
-      const existingPrefix = cleanupConfig?.getExistingText().trim() ?? "";
-      const fallbackCombined = existingPrefix
-        ? `${existingPrefix} ${rawTranscript}`.trim()
-        : rawTranscript;
-
-      // Push the final polished text to the caller via the config callback.
-      // Internal stops (2-min cap, reconnect exhaustion) discard stop()'s
-      // return value, so the callback is the ONLY way the polished text
-      // reaches the chat input on those paths. User-triggered stops use
-      // both — caller can await + write, or rely on the callback. Either
-      // works; they receive the same string.
+      // Hook emits ONLY the polished dictation. Concatenation with the
+      // user's existing chat-input text is the caller's job — that way the
+      // LLM never sees or rewrites pre-existing text. Failure paths emit
+      // the raw transcript so the caller can still append it.
       const emitPolished = (text: string) => {
         cleanupConfig?.onPolished?.(text);
       };
@@ -674,18 +658,16 @@ export function useVoiceTranscription(options?: {
         const controller = new AbortController();
         cleanupAbortRef.current = controller;
         try {
-          // The cleanup service streams tokens, but we deliberately discard
-          // the partial deltas — the input shell shows only a spinner during
-          // processing, and the *final* polished text lands once when this
-          // promise resolves. Cleaner UX than a typewriter mid-flight.
+          // Discard streaming deltas — the input shell shows the existing
+          // text + a spinner during processing, and the polished dictation
+          // lands in one update once the promise resolves.
           const polished = await voiceService.streamCleanup({
-            existing: existingPrefix,
             newDictation: rawTranscript,
             onProgress: () => undefined,
             signal: controller.signal,
           });
           cleanupAbortRef.current = null;
-          const finalText = polished || fallbackCombined;
+          const finalText = polished || rawTranscript;
           emitPolished(finalText);
           setStatus("idle");
           return finalText;
@@ -695,21 +677,20 @@ export function useVoiceTranscription(options?: {
           // start() has already (or will shortly) re-set it to "connecting".
           // Skip emit too; the new session will produce its own polished text.
           if (e instanceof DOMException && e.name === "AbortError") {
-            return fallbackCombined;
+            return rawTranscript;
           }
-          // Any other failure: surface the combined text so the user keeps
-          // BOTH their pre-existing input and the new dictation. The chat
-          // input takes over from there.
+          // Any other failure: surface the raw transcript so the user
+          // doesn't lose what they said. The caller appends it to existing.
           console.error("[useVoiceTranscription] cleanup failed:", e);
-          emitPolished(fallbackCombined);
+          emitPolished(rawTranscript);
           setStatus("idle");
-          return fallbackCombined;
+          return rawTranscript;
         }
       }
 
-      emitPolished(fallbackCombined);
+      emitPolished(rawTranscript);
       setStatus("idle");
-      return fallbackCombined;
+      return rawTranscript;
     } finally {
       isStoppingRef.current = false;
     }

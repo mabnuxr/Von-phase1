@@ -611,27 +611,34 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
                     {isVoiceActive ? (
                       <>
-                        <div className="px-3 py-2 min-h-10">
-                          {voiceStatus === 'connecting' ? (
-                            <div className="text-sm text-gray-400 leading-relaxed">Connecting…</div>
-                          ) : voiceStatus === 'reconnecting' ? (
-                            <div className="text-sm text-gray-400 leading-relaxed">
-                              Reconnecting…
-                            </div>
-                          ) : voiceStatus === 'processing' ? (
-                            <div className="text-sm text-gray-400 leading-relaxed">
-                              Polishing your words…
-                            </div>
-                          ) : message.trim() ? (
-                            <div className="text-sm leading-relaxed whitespace-pre-wrap wrap-break-word">
-                              <span className="text-gray-900">{message}</span>{' '}
-                              <span className="italic text-gray-400">
-                                keep speaking — we&apos;ll polish &amp; add it here
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="text-sm text-gray-400 leading-relaxed">
-                              Speak naturally — we&apos;ll polish it after.
+                        {/* Editor stays mounted during voice (disabled). The
+                            existing text's DOM is preserved, so when the
+                            polished dictation lands the user sees it grow at
+                            the end rather than the whole input being redrawn. */}
+                        <div className="px-3 py-2">
+                          <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
+                            <TiptapEditor
+                              content={message}
+                              onChange={handleChange}
+                              onSubmit={handleSend}
+                              placeholder={
+                                voiceStatus === 'connecting'
+                                  ? 'Connecting…'
+                                  : voiceStatus === 'reconnecting'
+                                    ? 'Reconnecting…'
+                                    : voiceStatus === 'listening'
+                                      ? "Speak naturally — we'll polish it after."
+                                      : placeholder
+                              }
+                              disabled
+                              editorRef={editorRef}
+                              onEscape={handleEscape}
+                              additionalExtensions={additionalExtensions}
+                            />
+                          </div>
+                          {voiceStatus === 'listening' && message.trim() && (
+                            <div className="text-xs italic text-gray-400 mt-1">
+                              keep speaking — we&apos;ll polish &amp; add it here
                             </div>
                           )}
                         </div>

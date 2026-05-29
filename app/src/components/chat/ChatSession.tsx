@@ -806,14 +806,18 @@ function ExistingChatInner(
   // that raw text with the LLM-polished combination of prefix + dictation.
   const inputPrefixRef = useRef("");
   const setAutoPopulatedInput = chatV2.setAutoPopulatedInput;
-  // onPolished is the single sink for the polished string — fires for
-  // user ✓ AND for internal stops (2-min cap, reconnect exhaustion). The
-  // hook also returns it from stop() but we don't use that here, so we
-  // never write twice.
+  // onPolished receives ONLY the polished new dictation (not combined).
+  // We append it to the text the user already had — that pre-existing
+  // text never round-trips through the LLM, so it can't be reworded or
+  // dropped. Fires for user ✓ AND internal stops (2-min cap, reconnect
+  // exhaustion).
   const voiceCleanupConfig = useMemo(
     () => ({
-      getExistingText: () => inputPrefixRef.current,
-      onPolished: (polished: string) => setAutoPopulatedInput(polished),
+      onPolished: (polishedDictation: string) => {
+        const prefix = inputPrefixRef.current;
+        const sep = prefix && polishedDictation ? " " : "";
+        setAutoPopulatedInput(prefix + sep + polishedDictation);
+      },
     }),
     [setAutoPopulatedInput],
   );

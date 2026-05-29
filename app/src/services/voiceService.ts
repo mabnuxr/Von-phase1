@@ -7,10 +7,10 @@ export interface DeepgramKeyResponse {
 }
 
 export interface VoiceCleanupArgs {
-  existing: string;
   newDictation: string;
   /** Called every time the cleaned text grows. Receives the cumulative
-   *  output so the chat input can be set directly to this value. */
+   *  *polished dictation* — concatenation with anything the user had
+   *  already typed in the input is the caller's responsibility. */
   onProgress: (cumulative: string) => void;
   /** Caller-owned signal for cancellation when the user re-starts dictation. */
   signal: AbortSignal;
@@ -23,9 +23,8 @@ export const voiceService = {
   },
 
   /** Open an SSE stream that polishes raw dictation via an LLM. Resolves
-   *  to the final cleaned text once the server emits `done`. */
+   *  to the final cleaned dictation once the server emits `done`. */
   async streamCleanup({
-    existing,
     newDictation,
     onProgress,
     signal,
@@ -34,7 +33,7 @@ export const voiceService = {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ existing, new_dictation: newDictation }),
+      body: JSON.stringify({ new_dictation: newDictation }),
       signal,
     });
     if (!response.ok || !response.body) {
