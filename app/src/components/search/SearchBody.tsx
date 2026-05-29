@@ -70,9 +70,6 @@ export function SearchBody(props: Props) {
           <div className="text-sm font-medium text-gray-900">
             No matches for &ldquo;{trimmed}&rdquo;
           </div>
-          <div className="mt-1 text-[13px] text-gray-500">
-            Start a new chat — Von can pick up from scratch.
-          </div>
         </div>
       </Command.Empty>
     );

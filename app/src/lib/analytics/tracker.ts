@@ -982,9 +982,4 @@ export const report = {
     result_position: number;
     deep_used: boolean;
   }) => track("Search - Result Opened", props),
-
-  searchNewChatFromSearch: (props: {
-    query: string;
-    was_zero_results: boolean;
-  }) => track("Search - New Chat From Search", props),
 };

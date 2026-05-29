@@ -481,10 +481,6 @@ export type EventMap = {
     result_position: number;
     deep_used: boolean;
   };
-  "Search - New Chat From Search": {
-    query: string;
-    was_zero_results: boolean;
-  };
 };
 
 export type EventName = keyof EventMap;

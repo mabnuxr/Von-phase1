@@ -11,7 +11,6 @@ import { report } from "../../lib/analytics/tracker";
 import type { SearchResult } from "../../types/search";
 import { SearchInputRow } from "./SearchInputRow";
 import { SearchBody } from "./SearchBody";
-import { SearchFallbackRow } from "./SearchFallbackRow";
 import { pathForResult } from "./searchUtils";
 
 export function SearchModal() {
@@ -20,10 +19,6 @@ export function SearchModal() {
 
   const [query, setQuery] = useState("");
 
-  // Plain useNavigate (not the guarded variant) — react-router's `state` arg
-  // is required to seed /chat/new with a prompt, and the guard wrapper only
-  // accepts `(to, onNavigate?)`. Trade-off: unsaved-changes guards on the
-  // page underneath the modal are bypassed when opening a search result.
   const navigate = useNavigate();
 
   const search = useSearch(query, isOpen);
@@ -106,51 +101,16 @@ export function SearchModal() {
     ],
   );
 
-  const fireFallback = useCallback(() => {
-    if (trimmed) pushRecentSearch(trimmed);
-    report.searchNewChatFromSearch({
-      query: trimmed,
-      was_zero_results: search.isDeepDone && search.results.length === 0,
-    });
-    // Seed the new chat with a natural-language ask so the agent searches
-    // across the user's existing chats and dashboards for the query. Use
-    // `initialInput` (not `prompt`) so NewConversation doesn't wrap it in
-    // the shared-chat "Ask a follow-up" preamble.
-    const seed = trimmed
-      ? `What have my past chats and dashboards mentioned about "${trimmed}"?`
-      : "";
-    navigate("/chat/new", seed ? { state: { initialInput: seed } } : undefined);
-    close();
-  }, [
-    trimmed,
-    pushRecentSearch,
-    navigate,
-    close,
-    search.isDeepDone,
-    search.results,
-  ]);
-
-  // cmdk owns ↑↓ + Enter on the focused item. We still intercept:
-  // - Esc → close modal
-  // - Cmd/Ctrl+Enter → always fire the fallback (overrides cmdk's selection)
+  // cmdk owns ↑↓ + Enter on the focused item. We intercept Esc to close.
   const onKeyDownCapture = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         close();
-        return;
-      }
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && trimmed) {
-        e.preventDefault();
-        e.stopPropagation();
-        fireFallback();
       }
     },
-    [close, trimmed, fireFallback],
+    [close],
   );
-
-  const showFallback = trimmed.length > 0;
-  const promoted = search.isDeepDone && search.results.length === 0;
 
   return (
     <AnimatePresence>
@@ -203,14 +163,6 @@ export function SearchModal() {
                   onOpen={(r) => openResult(r)}
                 />
               </Command.List>
-
-              {showFallback && (
-                <SearchFallbackRow
-                  query={trimmed}
-                  promoted={promoted}
-                  onClick={fireFallback}
-                />
-              )}
             </Command>
           </motion.div>
         </>

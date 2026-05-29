@@ -65,10 +65,21 @@ export function useSearch(query: string, enabled: boolean) {
       return;
     }
 
-    // Clear stale meta/isDeepDone synchronously so telemetry consumers
-    // don't observe a stable state with the prior query's meta during
-    // the 60ms debounce window.
-    setState((s) => ({ ...s, meta: null, isDeepDone: false }));
+    // Clear stale loading flags + meta synchronously. Both Quick and Deep
+    // fetches that were in-flight have just been aborted by cancelAll(),
+    // and their catch blocks early-return on `controller.signal.aborted`
+    // without touching state — so without this reset, the previous
+    // query's `isDeepRunning` / `isQuickLoading` flags leak across the
+    // keystroke and the UI keeps showing "Doing a deeper search…" (or
+    // "Searching…") long after any actual call is gone. The flags get
+    // re-set to true again when the next Quick / Deep actually fires.
+    setState((s) => ({
+      ...s,
+      meta: null,
+      isDeepDone: false,
+      isDeepRunning: false,
+      isQuickLoading: false,
+    }));
 
     const mySeq = ++seqRef.current;
 
