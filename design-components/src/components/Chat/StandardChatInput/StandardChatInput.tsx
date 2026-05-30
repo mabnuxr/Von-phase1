@@ -30,7 +30,7 @@ import { getAcceptString } from '../FileAttachment/types';
 import { Toggle as _Toggle } from '../../forms/toggle';
 import { SecondaryIconButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
-import type { StandardChatInputProps, StandardChatInputRef } from './types';
+import type { StandardChatInputProps, StandardChatInputRef, VoiceStatus } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
@@ -105,6 +105,134 @@ const PlusButtonMenu: React.FC<PlusButtonMenuProps> = ({
     </div>
   );
 };
+
+/**
+ * Layout variant. Computed once per render from `voiceStatus` and the
+ * presence of plus-menu controls; used to gate per-mode chrome.
+ */
+type ChatInputMode = 'voice' | 'plus-menu' | 'inline';
+
+/**
+ * Per-status voice copy. Co-locates placeholder + disclaimer so adding a new
+ * status surfaces both call sites in one place. `placeholder` is optional —
+ * statuses like `processing` rely on the caller-supplied default.
+ */
+interface VoiceCopy {
+  placeholder?: string;
+  disclaimer: string;
+}
+
+const VOICE_COPY: Partial<Record<VoiceStatus, VoiceCopy>> = {
+  connecting: {
+    placeholder: 'Connecting…',
+    disclaimer: 'Connecting to voice service…',
+  },
+  reconnecting: {
+    placeholder: 'Reconnecting…',
+    disclaimer: "Reconnecting — we'll send what you're saying once we're back online",
+  },
+  listening: {
+    placeholder: "Speak naturally — we'll polish it after.",
+    disclaimer: "Listening — speak naturally, we'll polish it after",
+  },
+  processing: {
+    disclaimer: 'Polishing your speech into clean text…',
+  },
+};
+
+const DEFAULT_DISCLAIMER = 'Von AI may make mistakes. Please recheck all important information.';
+
+/**
+ * SendOrStopButton — single send/stop control reused inside the inline editor
+ * row and the plus-menu bottom bar. `inline` toggles `shrink-0` so the button
+ * doesn't collapse when sharing a flex row with the editor.
+ */
+interface SendOrStopButtonProps {
+  isStreaming: boolean;
+  canSend: boolean;
+  onSend: () => void;
+  onStop?: () => void;
+  inline?: boolean;
+}
+
+const SendOrStopButton: React.FC<SendOrStopButtonProps> = ({
+  isStreaming,
+  canSend,
+  onSend,
+  onStop,
+  inline = false,
+}) => {
+  const shrink = inline ? ' shrink-0' : '';
+  if (isStreaming) {
+    return (
+      <SecondaryIconButton
+        icon={<StopIcon />}
+        onClick={onStop}
+        title="Stop generating"
+        className={`bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!${shrink}`}
+      />
+    );
+  }
+  return (
+    <SecondaryIconButton
+      icon={<SendIcon size={16} />}
+      onClick={onSend}
+      disabled={!canSend}
+      title="Send message"
+      className={`${
+        canSend
+          ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!'
+          : 'opacity-80 w-7.5! h-7.5! rounded-full! p-0!'
+      }${shrink}`}
+    />
+  );
+};
+
+/**
+ * VoiceInputButton — mic / stop toggle wrapped in a tooltip that surfaces the
+ * push-to-talk hotkey. Lifted out of the plus-menu bar so the bar itself
+ * reads as a list of controls, not a tree of inline JSX.
+ */
+interface VoiceInputButtonProps {
+  onClick: () => void;
+  isRecording: boolean;
+  disabled: boolean;
+}
+
+const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onClick, isRecording, disabled }) => (
+  <Tooltip
+    content={
+      isRecording ? (
+        'Stop recording'
+      ) : (
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          Press and hold to record
+          <span className="px-1.5 py-0.5 rounded border border-white/20 bg-white/10 text-white text-[11px] leading-none">
+            {isMacPlatform() ? '⌥ Option' : 'Alt'}
+          </span>
+        </span>
+      )
+    }
+  >
+    <SecondaryIconButton
+      icon={
+        isRecording ? (
+          <StopIcon />
+        ) : (
+          <MicrophoneIcon size={16} weight="bold" className="text-gray-800" />
+        )
+      }
+      onClick={onClick}
+      disabled={disabled}
+      title=""
+      className={
+        isRecording
+          ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 w-7.5! h-7.5! rounded-full! p-0!'
+          : 'w-7.5! h-7.5! rounded-full! p-0!'
+      }
+    />
+  </Tooltip>
+);
 
 /**
  * StandardChatInput - A standardized chat input component
@@ -461,11 +589,12 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     );
 
     const isInputDisabled = disabled && !isStreaming;
-    const isVoiceActive =
-      voiceStatus === 'connecting' ||
-      voiceStatus === 'listening' ||
-      voiceStatus === 'reconnecting' ||
-      voiceStatus === 'processing';
+    const isVoiceActive = voiceStatus !== 'idle';
+    const mode: ChatInputMode = isVoiceActive ? 'voice' : showPlusMenu ? 'plus-menu' : 'inline';
+
+    const voiceCopy = VOICE_COPY[voiceStatus];
+    const placeholderText = voiceCopy?.placeholder ?? placeholder;
+    const disclaimerText = voiceCopy?.disclaimer ?? DEFAULT_DISCLAIMER;
 
     const inputShellClassName = `rounded-[17px] p-px transition-all duration-200 ${
       disabled
@@ -609,283 +738,161 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                       aria-hidden="true"
                     />
 
-                    {isVoiceActive ? (
-                      <>
-                        {/* Editor stays mounted during voice (disabled). The
-                            existing text's DOM is preserved, so when the
-                            polished dictation lands the user sees it grow at
-                            the end rather than the whole input being redrawn. */}
-                        <div className="px-3 py-2">
-                          <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
-                            <TiptapEditor
-                              content={message}
-                              onChange={handleChange}
-                              onSubmit={handleSend}
-                              placeholder={
-                                voiceStatus === 'connecting'
-                                  ? 'Connecting…'
-                                  : voiceStatus === 'reconnecting'
-                                    ? 'Reconnecting…'
-                                    : voiceStatus === 'listening'
-                                      ? "Speak naturally — we'll polish it after."
-                                      : placeholder
-                              }
-                              disabled
-                              editorRef={editorRef}
-                              onEscape={handleEscape}
-                              additionalExtensions={additionalExtensions}
-                            />
-                          </div>
-                          {voiceStatus === 'listening' && message.trim() && (
-                            <div className="text-xs italic text-gray-400 mt-1">
-                              keep speaking — we&apos;ll polish &amp; add it here
+                    {/* Single editor instance across all modes. Keeps the
+                        ProseMirror editor (and its undo history) mounted when
+                        voiceStatus flips, so Cmd+Z reverts the polished
+                        dictation back to the prior content. */}
+                    <div
+                      className={
+                        mode === 'inline' ? 'flex items-center gap-2 px-4 py-3' : 'px-3 py-2'
+                      }
+                    >
+                      <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
+                        <TiptapEditor
+                          content={message}
+                          onChange={handleChange}
+                          onSubmit={handleSend}
+                          placeholder={placeholderText}
+                          disabled={mode === 'voice' || isInputDisabled}
+                          editorRef={editorRef}
+                          onEscape={handleEscape}
+                          onPasteFiles={(files) => {
+                            if (isAttachmentsControlled) {
+                              onFilesSelected?.(files);
+                            } else {
+                              addFiles(files);
+                            }
+                          }}
+                          additionalExtensions={additionalExtensions}
+                        />
+                        {mode !== 'voice' && caretOffset && ghostCommandName && (
+                          <GhostCommandText text={ghostCommandName} offset={caretOffset} />
+                        )}
+                      </div>
+                      {mode === 'inline' && (
+                        <SendOrStopButton
+                          isStreaming={isStreaming}
+                          canSend={!!canSend}
+                          onSend={handleSend}
+                          onStop={onStop}
+                          inline
+                        />
+                      )}
+                    </div>
+
+                    {mode === 'voice' && voiceStatus === 'listening' && message.trim() && (
+                      <div className="px-3 -mt-1 pb-1 text-xs italic text-gray-400">
+                        keep speaking — we&apos;ll polish &amp; add it here
+                      </div>
+                    )}
+
+                    {mode === 'plus-menu' && showFormattingToolbar && editorRef.current && (
+                      <EditorToolbar editor={editorRef.current} />
+                    )}
+
+                    {mode === 'voice' && (
+                      <div className="flex items-center justify-between gap-2 px-3 pb-3">
+                        <div className="flex-1 min-w-0 flex items-center">
+                          {voiceStatus === 'processing' ? (
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
+                              Polishing
                             </div>
+                          ) : (
+                            voiceVisualizer
                           )}
                         </div>
-                        <div className="flex items-center justify-between gap-2 px-3 pb-3">
-                          <div className="flex-1 min-w-0 flex items-center">
-                            {voiceStatus === 'processing' ? (
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
-                                Polishing
-                              </div>
-                            ) : (
-                              voiceVisualizer
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <SecondaryIconButton
+                            icon={<XIcon size={16} weight="bold" className="text-gray-800" />}
+                            onClick={onVoiceCancel}
+                            title="Cancel"
+                            className="w-7.5! h-7.5! rounded-full! p-0!"
+                          />
+                          {voiceStatus === 'listening' && (
                             <SecondaryIconButton
-                              icon={<XIcon size={16} weight="bold" className="text-gray-800" />}
-                              onClick={onVoiceCancel}
-                              title="Cancel"
-                              className="w-7.5! h-7.5! rounded-full! p-0!"
+                              icon={<CheckIcon size={16} weight="bold" />}
+                              onClick={onVoiceConfirm}
+                              title="Confirm"
+                              className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!"
                             />
-                            {voiceStatus === 'listening' && (
-                              <SecondaryIconButton
-                                icon={<CheckIcon size={16} weight="bold" />}
-                                onClick={onVoiceConfirm}
-                                title="Confirm"
-                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!"
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    ) : showPlusMenu ? (
-                      <>
-                        {/* Text input area - Tiptap Editor */}
-                        <div className="px-3 py-2">
-                          <div className="flex items-start gap-2">
-                            <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
-                              <TiptapEditor
-                                content={message}
-                                onChange={handleChange}
-                                onSubmit={handleSend}
-                                placeholder={placeholder}
-                                disabled={disabled && !isStreaming}
-                                editorRef={editorRef}
-                                onEscape={handleEscape}
-                                onPasteFiles={(files) => {
-                                  if (isAttachmentsControlled) {
-                                    onFilesSelected?.(files);
-                                  } else {
-                                    addFiles(files);
-                                  }
-                                }}
-                                additionalExtensions={additionalExtensions}
-                              />
-                              {caretOffset && ghostCommandName && (
-                                <GhostCommandText text={ghostCommandName} offset={caretOffset} />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Formatting toolbar - Slack-style */}
-                        {showFormattingToolbar && editorRef.current && (
-                          <EditorToolbar editor={editorRef.current} />
-                        )}
-
-                        {/* Bottom toolbar with plus menu */}
-                        <div className="flex items-center justify-between px-3 pb-3">
-                          {/* Left side - Plus button, slash, and mode pill */}
-                          <div className="flex items-center gap-1.5">
-                            {/* Plus button - upload only */}
-                            {showPlusButton && (
-                              <PlusButtonMenu
-                                isOpen={isPlusMenuOpen}
-                                onClose={() => setIsPlusMenuOpen(false)}
-                                onOpen={handlePlusButtonClick}
-                                onUploadClick={() => {
-                                  onFileUploadClick?.();
-                                  fileInputRef.current?.click();
-                                }}
-                                disabled={disabled && !isStreaming}
-                                enableFileUpload={enableFileUpload}
-                              />
-                            )}
-
-                            {/* Slash commands button */}
-                            {enableCommands && (
-                              <SecondaryIconButton
-                                icon={
-                                  <span
-                                    className="inline-flex"
-                                    style={{ transform: 'rotate(30deg)' }}
-                                  >
-                                    <LineVerticalIcon
-                                      size={16}
-                                      weight="bold"
-                                      className="text-gray-800"
-                                    />
-                                  </span>
-                                }
-                                onClick={() => {
-                                  editorRef.current?.commands.insertContent('/');
-                                  editorRef.current?.commands.focus('end');
-                                }}
-                                disabled={(disabled && !isStreaming) || message.trim().length > 0}
-                                title="Commands"
-                                className="w-7.5! h-7.5! rounded-full! p-0! border border-gray-200/80"
-                              />
-                            )}
-
-                            {/* Mode selector pill - always visible when multiple modes available */}
-                            {hasAgentModes && (
-                              <ModeSelectorPill
-                                selectedMode={selectedConversationMode}
-                                onModeChange={handleConversationModeChange}
-                                availableModes={availableAgentModes}
-                                disabled={disabled && !isStreaming}
-                                isAgentLocked={isAgentLocked}
-                                onBuildDashboard={onBuildDashboard}
-                              />
-                            )}
-
-                            {/* Mode selector - Auto edits: off/on/Plan Mode */}
-                            {showModeSelector && onAutoEditModeChange && (
-                              <ModeSelector
-                                mode={autoEditMode}
-                                onModeChange={onAutoEditModeChange}
-                                disabled={disabled && !isStreaming}
-                              />
-                            )}
-                          </div>
-
-                          {/* Right side - Voice and Send buttons */}
-                          <div className="flex items-center gap-1.5">
-                            {/* Voice input button — swaps to a stop icon while recording. */}
-                            {onVoiceInput && (
-                              <Tooltip
-                                content={
-                                  isRecording ? (
-                                    'Stop recording'
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                                      Press and hold to record
-                                      <span className="px-1.5 py-0.5 rounded border border-white/20 bg-white/10 text-white text-[11px] leading-none">
-                                        {isMacPlatform() ? '⌥ Option' : 'Alt'}
-                                      </span>
-                                    </span>
-                                  )
-                                }
-                              >
-                                <SecondaryIconButton
-                                  icon={
-                                    isRecording ? (
-                                      <StopIcon />
-                                    ) : (
-                                      <MicrophoneIcon
-                                        size={16}
-                                        weight="bold"
-                                        className="text-gray-800"
-                                      />
-                                    )
-                                  }
-                                  onClick={onVoiceInput}
-                                  disabled={disabled && !isStreaming}
-                                  title=""
-                                  className={
-                                    isRecording
-                                      ? 'bg-red-500 text-white border-red-500 hover:bg-red-600 w-7.5! h-7.5! rounded-full! p-0!'
-                                      : 'w-7.5! h-7.5! rounded-full! p-0!'
-                                  }
-                                />
-                              </Tooltip>
-                            )}
-
-                            {/* Send/Stop button */}
-                            {isStreaming ? (
-                              <SecondaryIconButton
-                                icon={<StopIcon />}
-                                onClick={onStop}
-                                title="Stop generating"
-                                className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!"
-                              />
-                            ) : (
-                              <SecondaryIconButton
-                                icon={<SendIcon size={16} />}
-                                onClick={handleSend}
-                                disabled={!canSend}
-                                title="Send message"
-                                className={
-                                  canSend
-                                    ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!'
-                                    : 'opacity-80 w-7.5! h-7.5! rounded-full! p-0!'
-                                }
-                              />
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      /* Inline layout - text input with send button on same row */
-                      <div className="flex items-center gap-2 px-4 py-3">
-                        {/* Text input area - Tiptap Editor (flex-1 to take remaining space) */}
-                        <div ref={editorContainerRef} className="flex-1 min-w-0 relative">
-                          <TiptapEditor
-                            content={message}
-                            onChange={handleChange}
-                            onSubmit={handleSend}
-                            placeholder={placeholder}
-                            disabled={disabled && !isStreaming}
-                            editorRef={editorRef}
-                            onEscape={handleEscape}
-                            onPasteFiles={(files) => {
-                              if (isAttachmentsControlled) {
-                                onFilesSelected?.(files);
-                              } else {
-                                addFiles(files);
-                              }
-                            }}
-                            additionalExtensions={additionalExtensions}
-                          />
-                          {caretOffset && ghostCommandName && (
-                            <GhostCommandText text={ghostCommandName} offset={caretOffset} />
                           )}
                         </div>
+                      </div>
+                    )}
 
-                        {/* Send/Stop button inline */}
-                        {isStreaming ? (
-                          <SecondaryIconButton
-                            icon={<StopIcon />}
-                            onClick={onStop}
-                            title="Stop generating"
-                            className="bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0! shrink-0"
+                    {mode === 'plus-menu' && (
+                      <div className="flex items-center justify-between px-3 pb-3">
+                        <div className="flex items-center gap-1.5">
+                          {showPlusButton && (
+                            <PlusButtonMenu
+                              isOpen={isPlusMenuOpen}
+                              onClose={() => setIsPlusMenuOpen(false)}
+                              onOpen={handlePlusButtonClick}
+                              onUploadClick={() => {
+                                onFileUploadClick?.();
+                                fileInputRef.current?.click();
+                              }}
+                              disabled={isInputDisabled}
+                              enableFileUpload={enableFileUpload}
+                            />
+                          )}
+                          {enableCommands && (
+                            <SecondaryIconButton
+                              icon={
+                                <span
+                                  className="inline-flex"
+                                  style={{ transform: 'rotate(30deg)' }}
+                                >
+                                  <LineVerticalIcon
+                                    size={16}
+                                    weight="bold"
+                                    className="text-gray-800"
+                                  />
+                                </span>
+                              }
+                              onClick={() => {
+                                editorRef.current?.commands.insertContent('/');
+                                editorRef.current?.commands.focus('end');
+                              }}
+                              disabled={isInputDisabled || message.trim().length > 0}
+                              title="Commands"
+                              className="w-7.5! h-7.5! rounded-full! p-0! border border-gray-200/80"
+                            />
+                          )}
+                          {hasAgentModes && (
+                            <ModeSelectorPill
+                              selectedMode={selectedConversationMode}
+                              onModeChange={handleConversationModeChange}
+                              availableModes={availableAgentModes}
+                              disabled={isInputDisabled}
+                              isAgentLocked={isAgentLocked}
+                              onBuildDashboard={onBuildDashboard}
+                            />
+                          )}
+                          {showModeSelector && onAutoEditModeChange && (
+                            <ModeSelector
+                              mode={autoEditMode}
+                              onModeChange={onAutoEditModeChange}
+                              disabled={isInputDisabled}
+                            />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {onVoiceInput && (
+                            <VoiceInputButton
+                              onClick={onVoiceInput}
+                              isRecording={isRecording}
+                              disabled={isInputDisabled}
+                            />
+                          )}
+                          <SendOrStopButton
+                            isStreaming={isStreaming}
+                            canSend={!!canSend}
+                            onSend={handleSend}
+                            onStop={onStop}
                           />
-                        ) : (
-                          <SecondaryIconButton
-                            icon={<SendIcon size={16} />}
-                            onClick={handleSend}
-                            disabled={!canSend}
-                            title="Send message"
-                            className={`shrink-0 ${
-                              canSend
-                                ? 'bg-gray-900 text-white border-gray-900 hover:bg-gray-800 w-7.5! h-7.5! rounded-full! p-0!'
-                                : 'opacity-80 w-7.5! h-7.5! rounded-full! p-0!'
-                            }`}
-                          />
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -896,15 +903,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
 
           {!hideDisclaimer && (
             <TruncateWithText className="w-full text-xs leading-normal text-gray-500 text-center font-sf mt-1">
-              {voiceStatus === 'connecting'
-                ? 'Connecting to voice service…'
-                : voiceStatus === 'reconnecting'
-                  ? "Reconnecting — we'll send what you're saying once we're back online"
-                  : voiceStatus === 'listening'
-                    ? "Listening — speak naturally, we'll polish it after"
-                    : voiceStatus === 'processing'
-                      ? 'Polishing your speech into clean text…'
-                      : 'Von AI may make mistakes. Please recheck all important information.'}
+              {disclaimerText}
             </TruncateWithText>
           )}
         </div>
