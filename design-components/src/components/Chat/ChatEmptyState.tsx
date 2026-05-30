@@ -427,12 +427,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        <img
-          src={LOGO_MARK_URL}
-          alt="Von"
-          width={44}
-          height={44}
-        />
+        <img src={LOGO_MARK_URL} alt="Von" width={44} height={44} />
       </motion.div>
 
       {/* Personalized Greeting */}
