@@ -13,7 +13,7 @@
  */
 
 export const VON_LOGO_URL =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/v2/von_combination_mark.svg';
 
 export interface DeepResearchEmailProps {
   querySummary: string;

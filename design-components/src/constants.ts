@@ -42,6 +42,13 @@ export const SCROLL_LOCK_DURATION_MS = 1000 as const;
 export const LOGO_URL =
   'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/vonlabs-logo.gif' as const;
 
+/**
+ * Von Labs static logo mark (v2 PNG) hosted on S3.
+ * Used for the brand badge/avatar across chat and icon surfaces.
+ */
+export const LOGO_MARK_URL =
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/v2/vonlabs-logo.png' as const;
+
 // ============================================================================
 // External API URLs
 // ============================================================================

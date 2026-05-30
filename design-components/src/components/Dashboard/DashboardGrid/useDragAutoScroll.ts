@@ -90,7 +90,7 @@ export function useDragAutoScroll(containerRef: RefObject<HTMLElement | null>) {
   }, [stopLoop]);
 
   const start = useCallback(
-    (event: Event, element?: HTMLElement) => {
+    (event: Event, element?: HTMLElement | null) => {
       const origin = element ?? containerRef.current;
       const scroller = findScrollableAncestor(origin ?? null);
       if (!scroller) return;
@@ -129,7 +129,7 @@ export function useDragAutoScroll(containerRef: RefObject<HTMLElement | null>) {
       _newItem: unknown,
       _placeholder: unknown,
       event: Event,
-      element?: HTMLElement
+      element?: HTMLElement | null
     ) => {
       start(event, element);
     },
