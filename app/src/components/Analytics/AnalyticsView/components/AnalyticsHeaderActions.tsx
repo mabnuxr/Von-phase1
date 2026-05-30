@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowsOutSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { Tooltip } from "@vonlabs/design-components";
-import vonFilledLogo from "../../../../assets/von-filled-logo.svg";
 import { DataSourcesSlot } from "../DataSourcesSlot";
 import { CreatorChip } from "./CreatorChip";
 import { EditLockBadge } from "../EditLockBadge";
+import { LOGO_MARK_URL } from "../../../../config/constants";
 import type { Dashboard, DataSourceGroup } from "../../../../types/dashboard";
 import type { TenantMember } from "../../../../services/tenantMembersService";
 
@@ -124,7 +124,7 @@ export function AnalyticsHeaderActions({
           className="flex items-center gap-1.5 h-[34px] px-2.5 bg-white text-gray-900 text-sm rounded-xl border border-gray-200/70 hover:bg-gray-50 transition-colors cursor-pointer whitespace-nowrap"
         >
           <img
-            src={vonFilledLogo}
+            src={LOGO_MARK_URL}
             alt="Von"
             width={15}
             height={15}

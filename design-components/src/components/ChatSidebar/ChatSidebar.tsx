@@ -32,7 +32,7 @@ const SEARCH_SHORTCUT_LABEL = IS_MAC ? '⌘K' : 'Ctrl K';
 const NEW_CHAT_SHORTCUT_LABEL = IS_MAC ? '⌘⇧O' : 'Ctrl Shift O';
 
 const VON_COMBINATION_MARK_URL =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/v2/von_combination_mark.svg';
 
 // ============================================================================
 // Types
