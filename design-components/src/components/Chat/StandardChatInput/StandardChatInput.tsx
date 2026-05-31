@@ -32,6 +32,7 @@ import { SecondaryIconButton, TransparentButton } from '../../forms/buttons';
 // ContextMenu removed - using custom menu with submenu support
 import type { StandardChatInputProps, StandardChatInputRef, VoiceStatus } from './types';
 import { TiptapEditor, EditorToolbar } from '../../TiptapEditor';
+import { TextShimmer } from '../../TimelineThinkingProcess/components/TextShimmer';
 import type { Editor } from '@tiptap/react';
 import { ModeSelector } from './ModeSelector';
 import { ModeSelectorPill } from './ModeSelectorPill';
@@ -794,9 +795,15 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                       <div className="flex items-center justify-between gap-2 px-3 pb-3">
                         <div className="flex-1 min-w-0 flex items-center">
                           {voiceStatus === 'processing' ? (
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <CircleNotchIcon size={14} weight="bold" className="animate-spin" />
-                              Polishing
+                            <div className="flex items-center gap-2">
+                              <CircleNotchIcon
+                                size={14}
+                                weight="bold"
+                                className="animate-spin text-gray-500"
+                              />
+                              <TextShimmer className="text-sm" duration={2}>
+                                Polishing your speech…
+                              </TextShimmer>
                             </div>
                           ) : (
                             voiceVisualizer
