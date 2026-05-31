@@ -26,6 +26,12 @@ export interface ReferenceContext {
 export type AutoEditMode = 'off' | 'on' | 'plan';
 
 /**
+ * Voice dictation state. See the `voiceStatus` prop docs below for the
+ * per-state UI variant; copy mappings live in StandardChatInput.
+ */
+export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+
+/**
  * Popover intent types for different chat input states
  */
 export type PopoverIntent = 'plan' | 'edit' | 'add-widget' | 'delete-widget';
@@ -163,7 +169,7 @@ export interface StandardChatInputProps {
    *   - 'processing'   → polishing spinner + cancel button
    * @default 'idle'
    */
-  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+  voiceStatus?: VoiceStatus;
 
   /**
    * Visualizer rendered inside the input during listening (caller-owned —
