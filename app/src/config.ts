@@ -22,6 +22,12 @@ export const config = {
   scalekitLogoutPath: import.meta.env.VITE_SCALEKIT_AUTH_LOGOUT_PATH as string,
   scalekitRedirectUri: `${location.origin}/callback`,
 
+  // Knock in-app Guides configuration
+  // NOTE: both values are non-secret / client-safe and intentionally shipped in
+  // the client bundle. Public-key-only mode — no userToken, no server.
+  knockPublicApiKey: import.meta.env.VITE_KNOCK_PUBLIC_API_KEY as string,
+  knockGuideChannelId: import.meta.env.VITE_KNOCK_GUIDE_CHANNEL_ID as string,
+
   // Datadog RUM configuration
   datadogApplicationId: import.meta.env.VITE_DD_APPLICATION_ID as string,
   datadogClientToken: import.meta.env.VITE_DD_CLIENT_TOKEN as string,

@@ -138,7 +138,9 @@ export default defineConfig(({ mode }) => {
       allowedHosts: ["app.vonlabs.ai"],
     },
     optimizeDeps: {
-      include: ["@thesysai/genui-sdk", "@crayonai/react-ui"],
+      // Pre-bundle these in the same pass as the app's React so they share a
+      // single React instance (otherwise their hooks hit a null dispatcher).
+      include: ["@thesysai/genui-sdk", "@crayonai/react-ui", "@knocklabs/react"],
     },
     test: {
       environment: "node",
