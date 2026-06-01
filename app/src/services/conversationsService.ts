@@ -5,6 +5,7 @@ import type {
   MessageFileAttachment,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
+  PaginationMeta,
   CreateConversationResponse,
   CreateMessageResponse,
   MessageCommand,
@@ -65,18 +66,21 @@ export interface MessageArtifactsResponse {
 }
 
 /** One entry in the shared-conversations payload — a conversation visible to
- *  the caller via a share, plus owner attribution and the share creation time. */
+ *  the caller via a share. `shareId` is the navigation target (the read-only
+ *  viewer lives at /shared/{shareId}, NOT /chat/{conversationId}). */
 export interface SharedConversationItem {
+  shareId: string;
   conversation: Conversation;
   ownerName: string;
   ownerEmail: string;
   sharedAt: string;
 }
 
-/** Response shape of GET /api/v1/chat/conversations/shared. */
+/** Response shape of GET /api/v1/chat/conversations/shared.
+ *  Items arrive sorted by sharedAt desc — newest shares first. */
 export interface SharedConversationsResponse {
-  orgShared: SharedConversationItem[];
-  sharedWithMe: SharedConversationItem[];
+  items: SharedConversationItem[];
+  pagination: PaginationMeta;
 }
 
 /**
@@ -97,9 +101,12 @@ class ConversationsService {
     );
   }
 
-  async getSharedConversations(): Promise<SharedConversationsResponse> {
+  async getSharedConversations(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<SharedConversationsResponse> {
     return apiClient.get<SharedConversationsResponse>(
-      `/api/v1/chat/conversations/shared`,
+      `/api/v1/chat/conversations/shared?page=${page}&limit=${limit}`,
     );
   }
 

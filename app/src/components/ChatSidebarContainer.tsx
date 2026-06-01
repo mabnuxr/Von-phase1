@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { ChatSidebar, ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
@@ -8,7 +8,6 @@ import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useIsViewOnly } from "../hooks/useIsViewOnly";
 import { useSharedConversations } from "../hooks/useSharedConversations";
-import type { Folder } from "@vonlabs/design-components";
 import { useSearchModalStore } from "../hooks/useSearchModal";
 import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebar } from "../hooks/useChatSidebar";
@@ -103,7 +102,12 @@ export function ChatSidebarContainer({
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
   const isViewOnly = useIsViewOnly();
-  const { data: sharedConversations } = useSharedConversations(isViewOnly);
+  const {
+    data: sharedConversationsPages,
+    fetchNextPage: fetchNextSharedPage,
+    hasNextPage: hasNextSharedPage,
+    isFetchingNextPage: isFetchingNextSharedPage,
+  } = useSharedConversations(isViewOnly);
   const openSearchModal = useSearchModalStore((s) => s.open);
   const {
     isChatSharingEnabled,
@@ -571,53 +575,44 @@ export function ChatSidebarContainer({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  // View Only users see a stripped-down sidebar: no folders, no "+ New chat",
-  // and the chats list is replaced by two synthetic folders ("Shared with org",
-  // "Shared with me") backed by ConversationShare records. `isSystem: true`
-  // suppresses rename/delete/pin in the FolderRow.
-  const VIEW_ONLY_ORG_FOLDER = "view-only-shared-org";
-  const VIEW_ONLY_MINE_FOLDER = "view-only-shared-mine";
-  const viewOnlyFolders: Folder[] = useMemo(
-    () =>
-      isViewOnly
-        ? [
-            {
-              id: VIEW_ONLY_ORG_FOLDER,
-              label: "Shared with org",
-              isExpanded: true,
-              isSystem: true,
-            },
-            {
-              id: VIEW_ONLY_MINE_FOLDER,
-              label: "Shared with me",
-              isExpanded: true,
-              isSystem: true,
-            },
-          ]
-        : [],
-    [isViewOnly],
-  );
-  const viewOnlyFolderItems: FolderItemsMap = useMemo(() => {
-    if (!isViewOnly || !sharedConversations) return {};
-    const toItem = (s: {
-      conversation: { conversationId?: string; conversation_id?: string; title?: string };
-    }): SidebarItem => {
-      const id =
-        s.conversation.conversationId ?? s.conversation.conversation_id ?? "";
-      const label = s.conversation.title?.trim() || "Untitled chat";
-      return {
-        id,
-        label,
+  // View Only users see a single flat "Shared Chats" list (newest first) in
+  // place of the regular Chats section — no folders, no "+ New chat". Each
+  // SidebarItem.id is the ConversationShare.share_id so a click maps directly
+  // to /shared/{shareId} (the read-only viewer route). Paginated server-side;
+  // pages are flattened here in shared_at-desc order.
+  const viewOnlyItems = useMemo<SidebarItem[]>(() => {
+    if (!isViewOnly || !sharedConversationsPages) return [];
+    return sharedConversationsPages.pages.flatMap((page) =>
+      page.items.map((s) => ({
+        id: s.shareId,
+        label: s.conversation.title?.trim() || "Untitled chat",
         type: ItemType.Chat,
         isOwner: false,
         isSystemManaged: true,
-      };
-    };
-    return {
-      [VIEW_ONLY_ORG_FOLDER]: sharedConversations.orgShared.map(toItem),
-      [VIEW_ONLY_MINE_FOLDER]: sharedConversations.sharedWithMe.map(toItem),
-    };
-  }, [isViewOnly, sharedConversations]);
+      })),
+    );
+  }, [isViewOnly, sharedConversationsPages]);
+
+  // Auto-load next page when the sentinel at the bottom of the list enters
+  // the viewport. Reuses the same hook the regular chats list uses.
+  const sharedLoadMoreRef = useInfiniteScroll({
+    onLoadMore: fetchNextSharedPage,
+    hasMore: !!hasNextSharedPage,
+    isLoading: isFetchingNextSharedPage,
+  });
+
+  // Highlight the active item when on /shared/:shareId.
+  const location = useLocation();
+  const activeShareId = location.pathname.startsWith("/shared/")
+    ? location.pathname.slice("/shared/".length).split("/")[0]
+    : undefined;
+
+  const handleSharedChatClick = useCallback(
+    (shareId: string) => {
+      navigate(`/shared/${shareId}`);
+    },
+    [navigate],
+  );
 
   // "New Chat" lights up only for a definitively-untitled chat — not just
   // "current id not in cache", since the chat could live in a collapsed
@@ -639,15 +634,19 @@ export function ChatSidebarContainer({
   if (isViewOnly) {
     return (
       <ChatSidebar
-        items={[]}
-        folders={viewOnlyFolders}
-        folderItems={viewOnlyFolderItems}
+        items={viewOnlyItems}
+        folders={[]}
+        folderItems={{}}
         isLoading={false}
-        selectedItemId={currentConversationId || undefined}
-        onItemClick={handleChatClick}
+        selectedItemId={activeShareId}
+        onItemClick={handleSharedChatClick}
         onFolderToggle={() => undefined}
         isCollapsed={isCollapsed}
         onToggleCollapse={onToggleCollapse}
+        loadMoreRef={sharedLoadMoreRef}
+        isFetchingMore={isFetchingNextSharedPage}
+        hasMoreChats={!!hasNextSharedPage}
+        onLoadMoreChats={fetchNextSharedPage}
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         userName={displayName}
@@ -657,6 +656,8 @@ export function ChatSidebarContainer({
         onHelpDocsClick={onHelpDocsClick}
         settingsDisabledReason="View-only users can't access settings."
         isDashboardsEnabled={false}
+        chatsSectionLabel="Shared Chats"
+        chatsEmptyMessage="No chats have been shared with you yet."
       />
     );
   }

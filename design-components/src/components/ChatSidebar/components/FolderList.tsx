@@ -113,8 +113,10 @@ export const FolderList: React.FC<FolderListProps> = ({
 }) => {
   return (
     <>
-      {/* "New Folder" button — full mode only */}
-      {!minimal && (
+      {/* "New Folder" button — full mode only, and only when the host wired
+          up a creation handler. The View Only role omits the handler so the
+          row disappears entirely (mirrors the "+ New Chat" gate). */}
+      {!minimal && onStartFolderCreation && (
         <div
           className="flex items-center gap-1.5 px-2 h-8 rounded-xl text-sm text-gray-900 border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer"
           onClick={onStartFolderCreation}

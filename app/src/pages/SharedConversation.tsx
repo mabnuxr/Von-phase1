@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
+import { useIsViewOnly } from "../hooks/useIsViewOnly";
 import { useMessages } from "../hooks/useMessages";
 import useChatStore from "../store/chatStore";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
@@ -12,7 +13,7 @@ import {
 } from "../services/conversationsService";
 import { setShareId } from "../services/apiClient";
 import { useToast } from "../hooks/useToast";
-import { SpinnerGapIcon } from "@phosphor-icons/react";
+import { LockIcon, SpinnerGapIcon } from "@phosphor-icons/react";
 import { TextShimmer } from "@vonlabs/design-components";
 
 /**
@@ -39,6 +40,7 @@ export default function SharedConversation() {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const isViewOnly = useIsViewOnly();
 
   const [validation, setValidation] =
     useState<SharedConversationValidationResponse | null>(null);
@@ -216,14 +218,32 @@ export default function SharedConversation() {
         )}
       </div>
 
-      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one */}
+      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one.
+          View-only users can read shared chats but can't start new ones, so
+          the button is disabled with a lock + tooltip (mirroring the Settings
+          gate in the sidebar). */}
       <button
         type="button"
         onClick={handleStartWithContext}
-        disabled={isSummarizing || !conversationId}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed transition-colors cursor-pointer z-10"
+        disabled={isViewOnly || isSummarizing || !conversationId}
+        title={
+          isViewOnly
+            ? "View-only users can't start new conversations."
+            : undefined
+        }
+        aria-disabled={isViewOnly || undefined}
+        className={`absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg transition-colors z-10 ${
+          isViewOnly
+            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+            : "bg-gray-900 text-white hover:bg-gray-800 disabled:cursor-not-allowed cursor-pointer"
+        }`}
       >
-        {isSummarizing ? (
+        {isViewOnly ? (
+          <>
+            <LockIcon size={13} weight="regular" />
+            Continue conversation
+          </>
+        ) : isSummarizing ? (
           <>
             <SpinnerGapIcon size={13} className="animate-spin" />
             <TextShimmer variant="dark">Summarizing…</TextShimmer>

@@ -186,6 +186,11 @@ export interface ChatSidebarProps {
   hasMoreChats?: boolean;
   /** Callback invoked when the user clicks "Show 5 more" under Chats. */
   onLoadMoreChats?: () => void;
+  /** Override the top-level chats section header (default "Chats").
+   *  Used by the View Only role to display "Shared Chats" instead. */
+  chatsSectionLabel?: string;
+  /** Override the empty-state message under the chats section. */
+  chatsEmptyMessage?: string;
   onLogoClick?: () => void;
   userName?: string;
   userEmail?: string;
@@ -567,6 +572,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isFetchingMore = false,
   hasMoreChats,
   onLoadMoreChats,
+  chatsSectionLabel = 'Chats',
+  chatsEmptyMessage = 'No conversations yet. Start a new chat to get going.',
   onLogoClick,
   userName,
   userEmail,
@@ -845,8 +852,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {/* Loading Skeleton */}
                 {isLoading && <ChatSidebarSkeleton />}
 
-                {/* Folders Section */}
-                {!isLoading && (
+                {/* Folders Section — hidden entirely when there are no folders
+                    AND no folder-creation handler (e.g. View Only role). */}
+                {!isLoading &&
+                  (visibleFolders.length > 0 || !!onNewChatFolderClick) && (
                   <div className="mb-3">
                     <SectionHeader label="Folders" />
                     <div>
@@ -862,7 +871,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         newFolderName={newFolderName}
                         onNewFolderNameChange={setNewFolderName}
                         newFolderInputRef={newFolderInputRef}
-                        onStartFolderCreation={handleStartFolderCreation}
+                        onStartFolderCreation={
+                          onNewChatFolderClick
+                            ? handleStartFolderCreation
+                            : undefined
+                        }
                         onConfirmFolderCreation={handleConfirmFolderCreation}
                         onCancelFolderCreation={handleCancelFolderCreation}
                         editingFolderId={editingFolderId}
@@ -926,7 +939,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {/* Chats Section (root items not in folders) */}
                 {!isLoading && (
                   <div className="mb-2">
-                    <SectionHeader label="Chats" />
+                    <SectionHeader label={chatsSectionLabel} />
                     {rootItems.length > 0 ? (
                       <div>
                         {rootItems.map((item) => (
@@ -954,7 +967,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         ) : null}
                       </div>
                     ) : (
-                      <SectionEmptyState message="No conversations yet. Start a new chat to get going." />
+                      <SectionEmptyState message={chatsEmptyMessage} />
                     )}
                   </div>
                 )}
