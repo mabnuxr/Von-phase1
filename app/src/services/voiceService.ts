@@ -17,7 +17,7 @@ export interface VoiceCleanupArgs {
 }
 
 export const voiceService = {
-  /** Mint a short-lived Deepgram key for a single voice session. */
+  /** Mint a short-lived Deepgram token for a single voice session. */
   getDeepgramKey(): Promise<DeepgramKeyResponse> {
     return apiClient.post<DeepgramKeyResponse>("/api/v1/deepgram/key");
   },
