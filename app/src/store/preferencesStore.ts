@@ -2063,6 +2063,12 @@ interface PreferencesState {
   loadingIntegrationId: string | null;
   setLoadingIntegrationId: (id: string | null) => void;
 
+  // Tracks an integration that is mid-delete. Separate from loadingIntegrationId
+  // (which is for auth flows) so the two lifecycles don't interfere — auth clears
+  // on AUTHENTICATED, delete clears only when the integration is gone from the list.
+  deletingIntegrationId: string | null;
+  setDeletingIntegrationId: (id: string | null) => void;
+
   // Edit mode integration data (passed when editing existing integrations)
   editingIntegrationData: IntegrationConfig | null;
   setEditingIntegrationData: (data: IntegrationConfig | null) => void;
@@ -2291,6 +2297,9 @@ const usePreferencesStoreBase = create<PreferencesState>((set) => ({
   // Loading state for OAuth authorization
   loadingIntegrationId: null,
   setLoadingIntegrationId: (id) => set({ loadingIntegrationId: id }),
+
+  deletingIntegrationId: null,
+  setDeletingIntegrationId: (id) => set({ deletingIntegrationId: id }),
 
   // Edit mode integration data
   editingIntegrationData: null,

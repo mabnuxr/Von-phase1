@@ -85,6 +85,7 @@ interface IntegrationsListProps {
       }
     | undefined;
   loadingIntegrationId: string | null;
+  deletingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
   onDelete: (
@@ -298,6 +299,7 @@ interface IntegrationItemProps {
   allIntegrations: Integration[];
   integrationsData: IntegrationsListProps["integrationsData"];
   loadingIntegrationId: string | null;
+  deletingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
   onDelete: (
@@ -506,6 +508,7 @@ function IntegrationItem({
   item,
   integrationsData,
   loadingIntegrationId,
+  deletingIntegrationId,
   timedOutIntegrations,
   onConnect,
   onDelete,
@@ -690,6 +693,7 @@ function IntegrationItem({
         }
         disabled={!!isLoading}
         loadingText={isLoading ? "Authenticating" : undefined}
+        deleteDisabled={deletingIntegrationId === personal.id}
         deleteTooltip={deleteTooltip}
         actionSlot={
           canEditScope && !isLoading ? (
@@ -785,6 +789,7 @@ function IntegrationItem({
           }
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? "Authenticating" : undefined}
+          deleteDisabled={deletingIntegrationId === workspace.id}
           deleteTooltip={
             isOwner && canConnectPersonal
               ? "Removes both workspace and personal connections"
@@ -854,6 +859,7 @@ function IntegrationItem({
         canDelete={personalPerms?.delete ?? false}
         disabled={!!personalIsLoading}
         loadingText={personalIsLoading ? "Authenticating" : undefined}
+        deleteDisabled={deletingIntegrationId === personal.id}
         deleteTooltip="Removes personal connection"
       />
     );
@@ -870,6 +876,7 @@ export function IntegrationsList({
   integrations,
   integrationsData,
   loadingIntegrationId,
+  deletingIntegrationId,
   timedOutIntegrations,
   onConnect,
   onDelete,
@@ -1121,6 +1128,7 @@ export function IntegrationsList({
                     allIntegrations={integrations}
                     integrationsData={integrationsData}
                     loadingIntegrationId={loadingIntegrationId}
+                    deletingIntegrationId={deletingIntegrationId}
                     timedOutIntegrations={timedOutIntegrations}
                     onConnect={onConnect}
                     onDelete={onDelete}
@@ -1143,6 +1151,7 @@ export function IntegrationsList({
                     allIntegrations={integrations}
                     integrationsData={integrationsData}
                     loadingIntegrationId={loadingIntegrationId}
+                    deletingIntegrationId={deletingIntegrationId}
                     timedOutIntegrations={timedOutIntegrations}
                     onConnect={onConnect}
                     onDelete={onDelete}
