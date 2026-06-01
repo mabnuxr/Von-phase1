@@ -48,6 +48,8 @@ jobs:
           echo "VITE_STIGG_CLIENT_KEY=$(aws ssm get-parameter --name /revenue-os/prod/stigg/client-key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_POSTHOG_API_KEY=$(aws ssm get-parameter --name /revenue-os/prod/posthog/api-key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
           echo "VITE_POSTHOG_HOST=$(aws ssm get-parameter --name /revenue-os/prod/posthog/host --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_KNOCK_PUBLIC_API_KEY=$(aws ssm get-parameter --name /revenue-os/prod/knock/public_key --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
+          echo "VITE_KNOCK_GUIDE_CHANNEL_ID=$(aws ssm get-parameter --name /revenue-os/prod/knock/guide-channel-id --with-decryption --query Parameter.Value --output text)" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -74,6 +76,8 @@ jobs:
             --build-arg VITE_STIGG_CLIENT_KEY=${{ env.VITE_STIGG_CLIENT_KEY }} \
             --build-arg VITE_POSTHOG_API_KEY=${{ env.VITE_POSTHOG_API_KEY }} \
             --build-arg VITE_POSTHOG_HOST=${{ env.VITE_POSTHOG_HOST }} \
+            --build-arg VITE_KNOCK_PUBLIC_API_KEY=${{ env.VITE_KNOCK_PUBLIC_API_KEY }} \
+            --build-arg VITE_KNOCK_GUIDE_CHANNEL_ID=${{ env.VITE_KNOCK_GUIDE_CHANNEL_ID }} \
             --build-arg VITE_DD_SITE=us5.datadoghq.com \
             -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
             -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:production \

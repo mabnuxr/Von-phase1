@@ -18,6 +18,7 @@
   "dependencies": {
     "@crayonai/react-ui": "^0.9.5",
     "@datadog/browser-rum": "^6.27.0",
+    "@knocklabs/react": "^0.11.22",
     "@launchdarkly/observability": "^0.4.9",
     "@launchdarkly/session-replay": "^0.4.9",
     "@phosphor-icons/react": "^2.1.10",
