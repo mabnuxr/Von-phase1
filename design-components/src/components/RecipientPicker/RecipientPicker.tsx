@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MagnifyingGlass, X } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,7 +18,7 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
-  /** Tenant role name (compared against `conflictRole` on the picker). */
+  /** Tenant role name (compared against `disabledRole` on the picker). */
   role?: string;
 }
 
@@ -28,10 +29,10 @@ export interface RecipientPickerProps {
   readOnly?: boolean;
   label?: string;
   placeholder?: string;
-  /** Recipients whose `role` matches this value render as a red chip. */
-  conflictRole?: string;
-  /** Helper text shown under the input when any flagged recipient is selected. */
-  conflictHelperText?: string;
+  /** Suggestion rows whose `role` matches this value can't be selected. */
+  disabledRole?: string;
+  /** Tooltip shown when hovering a disabled suggestion row. */
+  disabledTooltip?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -50,24 +51,15 @@ const InitialsCircle: React.FC<{ firstName: string; lastName: string }> = ({
 
 const RecipientChip: React.FC<{
   recipient: Recipient;
-  hasConflict: boolean;
   onRemove?: () => void;
-}> = ({ recipient, hasConflict, onRemove }) => (
-  <span
-    className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${
-      hasConflict
-        ? 'bg-red-50 border-red-300 text-red-700'
-        : 'bg-gray-100 border-transparent text-gray-900'
-    }`}
-  >
+}> = ({ recipient, onRemove }) => (
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-900">
     {recipient.firstName} {recipient.lastName}
     {onRemove && (
       <button
         type="button"
         onClick={onRemove}
-        className={`cursor-pointer ${
-          hasConflict ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600'
-        }`}
+        className="cursor-pointer text-gray-400 hover:text-gray-600"
       >
         <X size={10} />
       </button>
@@ -86,10 +78,10 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   readOnly = false,
   label = 'Recipients',
   placeholder = 'Search team members...',
-  conflictRole,
-  conflictHelperText,
+  disabledRole,
+  disabledTooltip,
 }) => {
-  const isConflict = (r: Recipient) => conflictRole !== undefined && r.role === conflictRole;
+  const isDisabled = (r: Recipient) => disabledRole !== undefined && r.role === disabledRole;
 
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -198,7 +190,6 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
             <RecipientChip
               key={r.id}
               recipient={r}
-              hasConflict={isConflict(r)}
               onRemove={readOnly ? undefined : () => removeRecipient(r.id)}
             />
           ))}
@@ -217,10 +208,6 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
           )}
         </div>
 
-        {conflictHelperText && recipients.some(isConflict) && (
-          <p className="mt-1 text-[11px] text-red-600">{conflictHelperText}</p>
-        )}
-
         {/* Dropdown — portalled to escape overflow containers */}
         {!readOnly &&
           showDropdown &&
@@ -237,22 +224,37 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
                 width: dropdownPos.width,
               }}
             >
-              {filteredMembers.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => addRecipient(member)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <InitialsCircle firstName={member.firstName} lastName={member.lastName} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-gray-900 truncate">
-                      {member.firstName} {member.lastName}
+              {filteredMembers.map((member) => {
+                const disabled = isDisabled(member);
+                const row = (
+                  <button
+                    type="button"
+                    onClick={disabled ? undefined : () => addRecipient(member)}
+                    disabled={disabled}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors ${
+                      disabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-gray-50 cursor-pointer'
+                    }`}
+                  >
+                    <InitialsCircle firstName={member.firstName} lastName={member.lastName} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-gray-900 truncate">
+                        {member.firstName} {member.lastName}
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
                     </div>
-                    <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+                return (
+                  <Tooltip
+                    key={member.id}
+                    content={disabledTooltip}
+                    enabled={disabled && !!disabledTooltip}
+                    wrapperClassName="block"
+                  >
+                    {row}
+                  </Tooltip>
+                );
+              })}
             </div>,
             document.body
           )}

@@ -661,7 +661,6 @@ export function ChatSidebarContainer({
         onLoadMoreDashboards={fetchNextDashboardPage}
         isLoadingMoreDashboards={isFetchingNextDashboardPage}
         onDashboardClick={handleDashboardClick}
-        enableFolders={false}
         chatsSectionLabel="Shared Chats"
         chatsEmptyMessage="No chats have been shared with you yet."
       />
@@ -718,7 +717,7 @@ export function ChatSidebarContainer({
         }
         hasMoreChats={isSharedMode ? !!hasNextSharedPage : hasNextPage}
         onLoadMoreChats={isSharedMode ? fetchNextSharedPage : fetchNextPage}
-        chatsSectionLabel="Chats"
+        chatsSectionLabel={isSharedMode ? "Shared Chats" : "Chats"}
         chatsEmptyMessage={
           isSharedMode ? "No chats have been shared with you yet." : undefined
         }

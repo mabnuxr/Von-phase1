@@ -400,8 +400,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   onChange={(next) => setForm((v) => ({ ...v, sharedUsers: next }))}
                   availableRecipients={tenantMembers?.filter((m) => m.id !== currentUser?.id) ?? []}
                   readOnly={readOnly}
-                  conflictRole="View Only"
-                  conflictHelperText="Highlighted users are View Only users and won't be able to run commands."
+                  disabledRole="View Only"
+                  disabledTooltip="View Only users can't run commands."
                 />
               </div>
             )}

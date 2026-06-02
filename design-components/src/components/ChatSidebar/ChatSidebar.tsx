@@ -231,8 +231,6 @@ export interface ChatSidebarProps {
   /** When false, hides the top-level Dashboards section AND the per-folder
    *  Dashboards subsection. Defaults to true. */
   isDashboardsEnabled?: boolean;
-  /** Hides the Folders icon in the collapsed sidebar when false. Defaults to true. */
-  enableFolders?: boolean;
   /** Dashboard items to show in a "Dashboards" section. */
   dashboards?: DashboardSidebarItem[];
   /** Currently selected dashboard ID */
@@ -665,7 +663,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   settingsDisabledReason,
   isNewChatActive = false,
   isDashboardsEnabled = true,
-  enableFolders = true,
   dashboards,
   selectedDashboardId,
   onDashboardClick,
@@ -872,7 +869,6 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onHelpDocsClick={onHelpDocsClick}
           settingsDisabledReason={settingsDisabledReason}
           isNewChatActive={isNewChatActive}
-          enableFolders={enableFolders}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
           summaryApprovalState={summaryApprovalState}

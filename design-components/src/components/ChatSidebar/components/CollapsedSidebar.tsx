@@ -77,8 +77,6 @@ export interface CollapsedSidebarProps {
   settingsDisabledReason?: string;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
-  /** Hides the Folders icon + hover dropdown when false. Defaults to true. */
-  enableFolders?: boolean;
 
   // Folder data (derived, for the FolderList)
   sortedFolders: Folder[];
@@ -140,7 +138,6 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onHelpDocsClick,
   settingsDisabledReason,
   isNewChatActive = false,
-  enableFolders = true,
   sortedFolders,
   itemsByFolder,
   summaryApprovalState,
@@ -186,8 +183,8 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
             </button>
           )}
 
-          {/* Folders icon + hover dropdown (gated by `enableFolders`). */}
-          {enableFolders && (
+          {/* Folders icon + hover dropdown — hidden when there are no folders. */}
+          {sortedFolders.length > 0 && (
             <div
               className="relative"
               onMouseEnter={() => onFoldersHover(true)}
