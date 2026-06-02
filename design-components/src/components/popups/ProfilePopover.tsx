@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GearIcon, SignOutIcon, ArrowUpRight, LockIcon } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
 
 export interface ProfilePopoverProps {
   /**
@@ -82,17 +83,17 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
   if (disabled) {
     return (
-      <button
-        type="button"
-        disabled
-        title={disabledTooltip}
-        aria-disabled
-        className={classes}
+      <Tooltip
+        content={disabledTooltip}
+        enabled={Boolean(disabledTooltip)}
+        wrapperClassName="block"
       >
-        {icon}
-        <span className="flex-1">{label}</span>
-        <LockIcon size={14} weight="regular" className="text-gray-400" />
-      </button>
+        <button type="button" disabled aria-disabled className={classes}>
+          {icon}
+          <span className="flex-1">{label}</span>
+          <LockIcon size={14} weight="regular" className="text-gray-400" />
+        </button>
+      </Tooltip>
     );
   }
 

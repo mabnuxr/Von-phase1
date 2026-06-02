@@ -722,9 +722,7 @@ export function ChatSidebarContainer({
         onLoadMoreChats={isSharedMode ? fetchNextSharedPage : fetchNextPage}
         chatsSectionLabel="Chats"
         chatsEmptyMessage={
-          isSharedMode
-            ? "No chats have been shared with you yet."
-            : undefined
+          isSharedMode ? "No chats have been shared with you yet." : undefined
         }
         chatsSectionModes={[
           { id: "my", label: "Recents" },

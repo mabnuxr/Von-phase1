@@ -47,10 +47,10 @@ import { reportRenderTiming } from "../lib/datadog";
 
 const ViewOnlyBanner = () => (
   <div className="w-full">
-    <div className="p-2 mt-2 flex flex-row bg-blue-50 border border-blue-200 rounded-xl">
-      <p className="pl-2 text-sm text-blue-800">
-        You have view-only access. You can read chats shared with you, but
-        can't start new conversations. Ask an admin to upgrade your role.
+    <div className="p-2 mt-2 flex flex-row bg-amber-50 border border-amber-200 rounded-xl">
+      <p className="pl-2 text-sm text-amber-800">
+        You have view-only access. You can read chats shared with you, but can't
+        start new conversations. Ask an admin to upgrade your role.
       </p>
     </div>
   </div>

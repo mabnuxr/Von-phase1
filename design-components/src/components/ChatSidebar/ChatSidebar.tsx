@@ -591,9 +591,7 @@ const ChatsSectionDropdownHeader: React.FC<{
                 className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
               >
                 <span className="flex-1">{mode.label}</span>
-                {isActive && (
-                  <CheckIcon size={14} weight="bold" className="text-blue-500" />
-                )}
+                {isActive && <CheckIcon size={14} weight="bold" className="text-blue-500" />}
               </button>
             );
           })}
@@ -602,7 +600,6 @@ const ChatsSectionDropdownHeader: React.FC<{
     </div>
   );
 };
-
 
 /**
  * ChatSidebar - Left sidebar for chats
@@ -905,28 +902,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 />
               </div>
 
-              {/* New Chat Button */}
-              <div className="mt-2 pr-2">
-                <button
-                  className={`group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                    isNewChatActive
-                      ? 'bg-gray-50 border-gray-200 shadow-xs'
-                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
-                  }`}
-                  onClick={onNewChatClick}
-                  type="button"
-                >
-                  <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
-                  <span className="whitespace-nowrap">New Chat</span>
-                  <span
-                    className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
-                      isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              {/* New Chat Button — hidden when no handler is provided (e.g. View Only role). */}
+              {onNewChatClick && (
+                <div className="mt-2 pr-2">
+                  <button
+                    className={`group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                      isNewChatActive
+                        ? 'bg-gray-50 border-gray-200 shadow-xs'
+                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
                     }`}
+                    onClick={onNewChatClick}
+                    type="button"
                   >
-                    {NEW_CHAT_SHORTCUT_LABEL}
-                  </span>
-                </button>
-              </div>
+                    <PlusCircleIcon
+                      size={20}
+                      weight="fill"
+                      className="flex-shrink-0 text-gray-600"
+                    />
+                    <span className="whitespace-nowrap">New Chat</span>
+                    <span
+                      className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
+                        isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    >
+                      {NEW_CHAT_SHORTCUT_LABEL}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {/* Search Button */}
               {onSearchClick && (

@@ -14,7 +14,7 @@ import {
 import { setShareId } from "../services/apiClient";
 import { useToast } from "../hooks/useToast";
 import { LockIcon, SpinnerGapIcon } from "@phosphor-icons/react";
-import { TextShimmer } from "@vonlabs/design-components";
+import { TextShimmer, Tooltip } from "@vonlabs/design-components";
 
 /**
  * Read-only view of a shared conversation.
@@ -220,38 +220,37 @@ export default function SharedConversation() {
 
       {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one.
           View-only users can read shared chats but can't start new ones, so
-          the button is disabled with a lock + tooltip (mirroring the Settings
-          gate in the sidebar). */}
-      <button
-        type="button"
-        onClick={handleStartWithContext}
-        disabled={isViewOnly || isSummarizing || !conversationId}
-        title={
-          isViewOnly
-            ? "View-only users can't start new conversations."
-            : undefined
-        }
-        aria-disabled={isViewOnly || undefined}
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg transition-colors z-10 ${
-          isViewOnly
-            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : "bg-gray-900 text-white hover:bg-gray-800 disabled:cursor-not-allowed cursor-pointer"
-        }`}
+          the button is disabled and wrapped in a Tooltip explaining why. */}
+      <Tooltip
+        content="View-only users can't start new conversations."
+        enabled={isViewOnly}
+        wrapperClassName="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
       >
-        {isViewOnly ? (
-          <>
-            <LockIcon size={13} weight="regular" />
-            Continue conversation
-          </>
-        ) : isSummarizing ? (
-          <>
-            <SpinnerGapIcon size={13} className="animate-spin" />
-            <TextShimmer variant="dark">Summarizing…</TextShimmer>
-          </>
-        ) : (
-          "Continue conversation"
-        )}
-      </button>
+        <button
+          type="button"
+          onClick={handleStartWithContext}
+          disabled={isViewOnly || isSummarizing || !conversationId}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg transition-colors ${
+            isViewOnly
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-gray-900 text-white hover:bg-gray-800 disabled:cursor-not-allowed cursor-pointer"
+          }`}
+        >
+          {isViewOnly ? (
+            <>
+              <LockIcon size={13} weight="regular" />
+              Continue conversation
+            </>
+          ) : isSummarizing ? (
+            <>
+              <SpinnerGapIcon size={13} className="animate-spin" />
+              <TextShimmer variant="dark">Summarizing…</TextShimmer>
+            </>
+          ) : (
+            "Continue conversation"
+          )}
+        </button>
+      </Tooltip>
     </div>
   );
 }
