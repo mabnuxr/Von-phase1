@@ -11,6 +11,7 @@ import { DiscardChangesModal } from "./DiscardChangesModal";
 import { EditModeBanner } from "../EditModeBanner";
 import { DashboardStatus } from "../../../types/dashboard";
 import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
+import { useIsViewOnly } from "../../../hooks/useIsViewOnly";
 import { useUser } from "../../../hooks/useUser";
 import { useTenantMembers } from "../../../hooks/useTenantMembers";
 import { getUserContext } from "../../../lib/auth";
@@ -345,6 +346,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // (filters, rename, save) stays available regardless.
   const { isDashboardDragDropEnabled } = useFeatureFlag();
   const { user } = useUser();
+  const isViewOnly = useIsViewOnly();
   // Bootstrap the tenant-members fetch from the synchronously-available
   // stored auth context so it doesn't wait on this component's own
   // `useUser` /me round-trip. AppShell does the same — both paths now
@@ -478,6 +480,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 currentUserId={user?.id}
                 tenantMembers={tenantMembers}
                 onOpenVersionHistory={onOpenVersionHistory}
+                isViewOnly={isViewOnly}
               />
             </DashboardLayout.HeaderRow.Right>
           </DashboardLayout.HeaderRow>
@@ -559,7 +562,9 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onPointDrillDown={onPointDrillDown}
                 // Suppress per-widget add-to-chat icons during version
                 // preview — same reasoning as the header Ask-Von button.
-                onAddToChat={isVersionPreview ? undefined : onAddWidgetToChat}
+                onAddToChat={
+                  isVersionPreview || isViewOnly ? undefined : onAddWidgetToChat
+                }
                 onWidgetQueryViewed={onWidgetQueryViewed}
                 onWidgetSQLCopied={onWidgetSQLCopied}
                 onTableSortChange={onTableSortChange}

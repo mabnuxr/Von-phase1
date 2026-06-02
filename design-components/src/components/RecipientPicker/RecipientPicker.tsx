@@ -17,10 +17,10 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
-  /** Tenant role name (e.g. "Admin", "Member", "View Only"). When set to
-   *  "View Only" the picker renders a badge so the sharer can see the
-   *  recipient won't be able to act on the shared item. */
-  role?: string;
+  /** When true, the chip is highlighted to signal the recipient can only
+   *  read what's shared. The semantic of "view only" is owned by the
+   *  consuming app — the picker just renders the flag. */
+  isViewOnly?: boolean;
 }
 
 export interface RecipientPickerProps {
@@ -56,7 +56,7 @@ const RecipientChip: React.FC<{
   recipient: Recipient;
   onRemove?: () => void;
 }> = ({ recipient, onRemove }) => {
-  const isViewOnly = recipient.role === 'View Only';
+  const isViewOnly = recipient.isViewOnly === true;
   return (
     <span
       title={
@@ -225,7 +225,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
           )}
         </div>
 
-        {recipients.some((r) => r.role === 'View Only') && (
+        {recipients.some((r) => r.isViewOnly) && (
           <p className="mt-1 text-[11px] text-red-600">
             Highlighted users are View Only users.
           </p>

@@ -33,6 +33,7 @@ interface AnalyticsHeaderActionsProps {
   currentUserId: string | undefined;
   tenantMembers: TenantMember[] | undefined;
   onOpenVersionHistory?: () => void;
+  isViewOnly?: boolean;
 }
 
 export function AnalyticsHeaderActions({
@@ -55,6 +56,7 @@ export function AnalyticsHeaderActions({
   currentUserId,
   tenantMembers,
   onOpenVersionHistory,
+  isViewOnly = false,
 }: AnalyticsHeaderActionsProps) {
   // While in edit mode, the EditLockBadge replaces the "Created by"
   // chip — the lock holder + last-edit time is more informative than
@@ -112,7 +114,7 @@ export function AnalyticsHeaderActions({
           alongside the dashboard, and users asked for the chat entry point
           to stay reachable while browsing versions. Chat still binds to the
           live dashboard regardless of which version is currently previewed. */}
-      {onChatClick && !isChatOpen && (
+      {onChatClick && !isChatOpen && !isViewOnly && (
         <motion.button
           key="ask-von"
           initial={{ opacity: 0, scale: 0.8 }}

@@ -6,6 +6,7 @@ import {
   ScopeDataByOwnership,
 } from "./components";
 import { ROLE_LABEL } from "./constants";
+import { ROLES } from "../../../../constants/roles";
 import type {
   DataScopeOptionV2,
   DirectoryPersonV2,
@@ -188,7 +189,9 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
                 seed={c.userId}
                 color={c.colorHex}
                 onRemove={() => handleRemoveChip(c.userId)}
-                isViewOnly={c.tenantRole === "View Only"}
+                isViewOnly={
+                  batchRole === "editor" && c.tenantRole === ROLES.VIEW_ONLY
+                }
               />
             ))}
             <input
@@ -262,11 +265,12 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
           </div>
         </div>
 
-        {chips.some((c) => c.tenantRole === "View Only") && (
-          <p className="mt-1 text-[11px] text-red-600">
-            Highlighted users are View Only users.
-          </p>
-        )}
+        {batchRole === "editor" &&
+          chips.some((c) => c.tenantRole === ROLES.VIEW_ONLY) && (
+            <p className="mt-1 text-[11px] text-red-600">
+              Highlighted users are View Only users.
+            </p>
+          )}
 
         {/* Suggestions dropdown */}
         {showSuggestions && (
