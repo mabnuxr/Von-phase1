@@ -102,12 +102,17 @@ export function ChatSidebarContainer({
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
   const isViewOnly = useIsViewOnly();
+  // Admin/Member sidebar can flip between "my" (default) and "shared" via a
+  // dropdown on the Chats section header. View Only is always-shared and
+  // bypasses this state.
+  const [chatsMode, setChatsMode] = useState<"my" | "shared">("my");
+  const fetchSharedEnabled = isViewOnly || chatsMode === "shared";
   const {
     data: sharedConversationsPages,
     fetchNextPage: fetchNextSharedPage,
     hasNextPage: hasNextSharedPage,
     isFetchingNextPage: isFetchingNextSharedPage,
-  } = useSharedConversations(isViewOnly);
+  } = useSharedConversations(fetchSharedEnabled);
   const openSearchModal = useSearchModalStore((s) => s.open);
   const {
     isChatSharingEnabled,
@@ -580,8 +585,8 @@ export function ChatSidebarContainer({
   // SidebarItem.id is the ConversationShare.share_id so a click maps directly
   // to /shared/{shareId} (the read-only viewer route). Paginated server-side;
   // pages are flattened here in shared_at-desc order.
-  const viewOnlyItems = useMemo<SidebarItem[]>(() => {
-    if (!isViewOnly || !sharedConversationsPages) return [];
+  const sharedItems = useMemo<SidebarItem[]>(() => {
+    if (!fetchSharedEnabled || !sharedConversationsPages) return [];
     return sharedConversationsPages.pages.flatMap((page) =>
       page.items.map((s) => ({
         id: s.shareId,
@@ -591,7 +596,7 @@ export function ChatSidebarContainer({
         isSystemManaged: true,
       })),
     );
-  }, [isViewOnly, sharedConversationsPages]);
+  }, [fetchSharedEnabled, sharedConversationsPages]);
 
   // Auto-load next page when the sentinel at the bottom of the list enters
   // the viewport. Reuses the same hook the regular chats list uses.
@@ -634,7 +639,7 @@ export function ChatSidebarContainer({
   if (isViewOnly) {
     return (
       <ChatSidebar
-        items={viewOnlyItems}
+        items={sharedItems}
         folders={[]}
         folderItems={{}}
         isLoading={false}
@@ -662,18 +667,26 @@ export function ChatSidebarContainer({
     );
   }
 
+  // Admin/Member chats-section mode. "my" → owner's normal chats (default);
+  // "shared" → chats shared org-wide or directly with this user. Toggled via
+  // a dropdown on the section header. Folders + "+ New chat" + dashboards
+  // stay visible in both modes.
+  const isSharedMode = chatsMode === "shared";
+
   return (
     <>
       <ChatSidebar
-        items={decoratedItems}
+        items={isSharedMode ? sharedItems : decoratedItems}
         folders={folders}
         folderItems={decoratedFolderItems}
         folderDashboards={folderDashboards}
         folderSectionTotals={folderSectionTotals}
         folderLoadingMap={folderLoadingMap}
         isLoading={isLoading}
-        selectedItemId={currentConversationId || undefined}
-        onItemClick={handleChatClick}
+        selectedItemId={
+          isSharedMode ? activeShareId : currentConversationId || undefined
+        }
+        onItemClick={isSharedMode ? handleSharedChatClick : handleChatClick}
         onNewChatClick={onNewChatClick}
         onSearchClick={
           isWorkspaceSearchEnabled
@@ -701,10 +714,24 @@ export function ChatSidebarContainer({
         onCollapseSection={collapseSection}
         isCollapsed={isCollapsed}
         onToggleCollapse={onToggleCollapse}
-        loadMoreRef={loadMoreRef}
-        isFetchingMore={isFetchingNextPage}
-        hasMoreChats={hasNextPage}
-        onLoadMoreChats={fetchNextPage}
+        loadMoreRef={isSharedMode ? sharedLoadMoreRef : loadMoreRef}
+        isFetchingMore={
+          isSharedMode ? isFetchingNextSharedPage : isFetchingNextPage
+        }
+        hasMoreChats={isSharedMode ? !!hasNextSharedPage : hasNextPage}
+        onLoadMoreChats={isSharedMode ? fetchNextSharedPage : fetchNextPage}
+        chatsSectionLabel="Chats"
+        chatsEmptyMessage={
+          isSharedMode
+            ? "No chats have been shared with you yet."
+            : undefined
+        }
+        chatsSectionModes={[
+          { id: "my", label: "Recents" },
+          { id: "shared", label: "Shared" },
+        ]}
+        activeChatsModeId={chatsMode}
+        onChatsModeChange={(id) => setChatsMode(id as "my" | "shared")}
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         userName={displayName}

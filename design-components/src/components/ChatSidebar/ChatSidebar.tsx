@@ -5,6 +5,8 @@ import {
   PlusCircleIcon,
   DotsThreeIcon,
   MagnifyingGlassIcon,
+  CheckIcon,
+  FunnelSimpleIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
@@ -201,6 +203,13 @@ export interface ChatSidebarProps {
   chatsSectionLabel?: string;
   /** Override the empty-state message under the chats section. */
   chatsEmptyMessage?: string;
+  /** When provided, the chats section header renders as a clickable dropdown
+   *  with these mode options. Used by Admin/Member to flip between their own
+   *  chats and chats shared with them. The container is responsible for
+   *  swapping `items` / `chatsSectionLabel` based on the active mode. */
+  chatsSectionModes?: Array<{ id: string; label: string }>;
+  activeChatsModeId?: string;
+  onChatsModeChange?: (modeId: string) => void;
   onLogoClick?: () => void;
   userName?: string;
   userEmail?: string;
@@ -538,6 +547,63 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
 // Main Component
 // ============================================================================
 
+const ChatsSectionDropdownHeader: React.FC<{
+  label: string;
+  modes: Array<{ id: string; label: string }>;
+  activeModeId?: string;
+  onModeChange?: (modeId: string) => void;
+}> = ({ label, modes, activeModeId, onModeChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative flex items-center justify-between px-2 py-1.5">
+      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Filter chats"
+        className="flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+      >
+        <FunnelSimpleIcon size={14} weight="bold" />
+      </button>
+      {open && (
+        <div className="absolute right-2 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-gray-100 bg-white shadow-lg py-1.5">
+          {modes.map((mode) => {
+            const isActive = mode.id === activeModeId;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => {
+                  onModeChange?.(mode.id);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
+              >
+                <span className="flex-1">{mode.label}</span>
+                {isActive && (
+                  <CheckIcon size={14} weight="bold" className="text-blue-500" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 /**
  * ChatSidebar - Left sidebar for chats
  *
@@ -584,6 +650,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onLoadMoreChats,
   chatsSectionLabel = 'Chats',
   chatsEmptyMessage = 'No conversations yet. Start a new chat to get going.',
+  chatsSectionModes,
+  activeChatsModeId,
+  onChatsModeChange,
   onLogoClick,
   userName,
   userEmail,
@@ -973,7 +1042,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {/* Chats Section (root items not in folders) */}
                 {!isLoading && (
                   <div className="mb-2">
-                    <SectionHeader label={chatsSectionLabel} />
+                    {chatsSectionModes && chatsSectionModes.length > 0 ? (
+                      <ChatsSectionDropdownHeader
+                        label={chatsSectionLabel}
+                        modes={chatsSectionModes}
+                        activeModeId={activeChatsModeId}
+                        onModeChange={onChatsModeChange}
+                      />
+                    ) : (
+                      <SectionHeader label={chatsSectionLabel} />
+                    )}
                     {rootItems.length > 0 ? (
                       <div>
                         {rootItems.map((item) => (
