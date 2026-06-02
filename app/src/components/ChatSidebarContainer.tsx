@@ -609,7 +609,7 @@ export function ChatSidebarContainer({
   // Highlight the active item when on /shared/:shareId.
   const location = useLocation();
   const activeShareId = location.pathname.startsWith("/shared/")
-    ? location.pathname.slice("/shared/".length).split("/")[0]
+    ? location.pathname.slice("/shared/".length).split("/")[0] || undefined
     : undefined;
 
   const handleSharedChatClick = useCallback(
