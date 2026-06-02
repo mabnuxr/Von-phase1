@@ -21,8 +21,18 @@ import { FOLDER_SECTION_LIMIT } from './components/FolderContents';
 import { useChatSidebarState } from './hooks';
 import { getContextMenuItems, getFolderContextMenuItems } from './utils';
 
+// Platform-aware shortcut labels. Mac uses ⌘ / ⇧ glyphs; Windows/Linux uses
+// "Ctrl" / "Shift" text. `navigator.platform` is deprecated but still the
+// most reliable cross-browser signal — falls back to userAgent for browsers
+// that may have dropped it. Computed once at module load.
+const IS_MAC =
+  typeof navigator !== 'undefined' &&
+  /Mac|iPhone|iPod|iPad/i.test(navigator.platform || navigator.userAgent || '');
+const SEARCH_SHORTCUT_LABEL = IS_MAC ? '⌘K' : 'Ctrl K';
+const NEW_CHAT_SHORTCUT_LABEL = IS_MAC ? '⌘⇧O' : 'Ctrl Shift O';
+
 const VON_COMBINATION_MARK_URL =
-  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/von_combination_mark.svg';
+  'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/v2/von_combination_mark.svg';
 
 // ============================================================================
 // Types
@@ -596,6 +606,24 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
 }) => {
+  // Reveal shortcut chips on the New Chat / Search buttons while the
+  // platform's mod key (⌘ on Mac, Ctrl elsewhere) is held — even without
+  // hover. Mirrors the Linear / Notion / Raycast UX. Reset on blur so the
+  // chips don't get stuck visible after alt-tabbing away while held.
+  const [isModKeyHeld, setIsModKeyHeld] = useState(false);
+  useEffect(() => {
+    const update = (e: KeyboardEvent) => setIsModKeyHeld(e.metaKey || e.ctrlKey);
+    const reset = () => setIsModKeyHeld(false);
+    window.addEventListener('keydown', update);
+    window.addEventListener('keyup', update);
+    window.addEventListener('blur', reset);
+    return () => {
+      window.removeEventListener('keydown', update);
+      window.removeEventListener('keyup', update);
+      window.removeEventListener('blur', reset);
+    };
+  }, []);
+
   // Use the sidebar state hook
   const {
     // State
@@ -741,6 +769,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           isCollapsed={isCollapsed}
           onToggleCollapse={onToggleCollapse}
           onNewChatClick={onNewChatClick}
+          onSearchClick={onSearchClick}
           onItemClick={onItemClick}
           onFolderToggle={onFolderToggle}
           isChatsHovered={isChatsHovered}
@@ -807,30 +836,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 />
               </div>
 
-              {/* New Chat Button — hidden when no onNewChatClick is provided
-                  (e.g. View Only role can't create chats). */}
-              {onNewChatClick && (
-                <div className="mt-2 mb-3 pr-2">
-                  <button
-                    className={`flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                      isNewChatActive
-                        ? 'bg-gray-50 border-gray-200 shadow-xs'
-                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+              {/* New Chat Button */}
+              <div className="mt-2 pr-2">
+                <button
+                  className={`group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    isNewChatActive
+                      ? 'bg-gray-50 border-gray-200 shadow-xs'
+                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+                  }`}
+                  onClick={onNewChatClick}
+                  type="button"
+                >
+                  <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
+                  <span className="whitespace-nowrap">New Chat</span>
+                  <span
+                    className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
+                      isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                     }`}
-                    onClick={onNewChatClick}
-                    type="button"
                   >
-                    <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
-                    <span className="whitespace-nowrap">New Chat</span>
-                  </button>
-                </div>
-              )}
+                    {NEW_CHAT_SHORTCUT_LABEL}
+                  </span>
+                </button>
+              </div>
 
               {/* Search Button */}
               {onSearchClick && (
                 <div className="mb-3 pr-2">
                   <button
-                    className="flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border border-transparent bg-white hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border border-transparent bg-white hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     onClick={onSearchClick}
                     type="button"
                   >
@@ -840,8 +873,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       className="flex-shrink-0 text-gray-600"
                     />
                     <span className="whitespace-nowrap">Search</span>
-                    <span className="ml-auto inline-flex items-center px-1.5 min-h-[18px] text-[10.5px] font-mono text-gray-500 bg-gray-100 border border-gray-200 rounded">
-                      ⌘K
+                    <span
+                      className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
+                        isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    >
+                      {SEARCH_SHORTCUT_LABEL}
                     </span>
                   </button>
                 </div>
@@ -854,8 +891,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
                 {/* Folders Section — hidden entirely when there are no folders
                     AND no folder-creation handler (e.g. View Only role). */}
-                {!isLoading &&
-                  (visibleFolders.length > 0 || !!onNewChatFolderClick) && (
+                {!isLoading && (visibleFolders.length > 0 || !!onNewChatFolderClick) && (
                   <div className="mb-3">
                     <SectionHeader label="Folders" />
                     <div>
@@ -872,9 +908,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         onNewFolderNameChange={setNewFolderName}
                         newFolderInputRef={newFolderInputRef}
                         onStartFolderCreation={
-                          onNewChatFolderClick
-                            ? handleStartFolderCreation
-                            : undefined
+                          onNewChatFolderClick ? handleStartFolderCreation : undefined
                         }
                         onConfirmFolderCreation={handleConfirmFolderCreation}
                         onCancelFolderCreation={handleCancelFolderCreation}

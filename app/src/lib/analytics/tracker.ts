@@ -211,9 +211,228 @@ export const report = {
   manageTeamLearnMoreClicked: () =>
     track("Manage Team - Learn More Clicked", {}),
 
-  // ── Dashboard ──────────────────────────────────────────────────────────────
+  // ── Dashboards (list) ─────────────────────────────────────────────────────
   dashboardOpened: (dashboardName: string) =>
     track("Dashboards - Dashboard Clicked", { dashboard_name: dashboardName }),
+
+  // ── Dashboard (single view) ────────────────────────────────────────────────
+  dashboardPageViewed: (params: {
+    dashboardId: string;
+    dashboardName: string;
+    viewType: "sidebar" | "fullscreen";
+    mode: "published" | "draft";
+    owner: "me" | "shared";
+    dashboardWidgetCount: number;
+    chatId: string | null;
+    sessionId: string;
+  }) =>
+    track("Dashboard - Page Viewed", {
+      dashboard_id: params.dashboardId,
+      dashboard_name: params.dashboardName,
+      view_type: params.viewType,
+      mode: params.mode,
+      owner: params.owner,
+      dashboard_widget_count: params.dashboardWidgetCount,
+      chat_id: params.chatId,
+      session_id: params.sessionId,
+    }),
+
+  dashboardShareModalOpened: (
+    dashboardId: string,
+    existingCollaboratorCount: number,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Share Modal Opened", {
+      dashboard_id: dashboardId,
+      existing_collaborator_count: existingCollaboratorCount,
+      session_id: sessionId,
+    }),
+
+  dashboardShareLinkCopied: (dashboardId: string, sessionId: string) =>
+    track("Dashboard - Share Link Copied", {
+      dashboard_id: dashboardId,
+      session_id: sessionId,
+    }),
+
+  dashboardVersionHistoryOpened: (
+    dashboardId: string,
+    trigger: "overflow_menu" | "timestamp_click",
+    sessionId: string,
+  ) =>
+    track("Dashboard - Version History Opened", {
+      dashboard_id: dashboardId,
+      trigger,
+      session_id: sessionId,
+    }),
+
+  dashboardVersionHistoryEntryPreviewed: (
+    dashboardId: string,
+    versionId: string,
+    versionDate: string,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Version History Entry Previewed", {
+      dashboard_id: dashboardId,
+      version_id: versionId,
+      version_date: versionDate,
+      session_id: sessionId,
+    }),
+
+  dashboardClosed: (
+    dashboardId: string,
+    timeSpentMs: number,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Closed", {
+      dashboard_id: dashboardId,
+      time_spent_ms: timeSpentMs,
+      session_id: sessionId,
+    }),
+
+  dashboardViewInDashboardsClicked: (dashboardId: string, sessionId: string) =>
+    track("Dashboard - View in Dashboards Clicked", {
+      dashboard_id: dashboardId,
+      session_id: sessionId,
+    }),
+
+  dashboardAskVonClicked: (
+    dashboardId: string,
+    source: string,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Ask Von Clicked", {
+      dashboard_id: dashboardId,
+      source,
+      session_id: sessionId,
+    }),
+
+  dashboardDrilldownRecordClicked: (params: {
+    dashboardId: string;
+    widgetName: string;
+    recordId: string;
+    objectType: string;
+    sessionId: string;
+  }) =>
+    track("Dashboard - Drilldown Record Clicked", {
+      dashboard_id: params.dashboardId,
+      widget_name: params.widgetName,
+      record_id: params.recordId,
+      object_type: params.objectType,
+      session_id: params.sessionId,
+    }),
+
+  dashboardWidgetQueryViewed: (
+    dashboardId: string,
+    widgetId: string,
+    widgetName: string,
+    widgetType: string,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Widget Query Viewed", {
+      dashboard_id: dashboardId,
+      widget_id: widgetId,
+      widget_name: widgetName,
+      widget_type: widgetType,
+      session_id: sessionId,
+    }),
+
+  dashboardWidgetSQLCopied: (
+    dashboardId: string,
+    widgetName: string,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Widget SQL Copied", {
+      dashboard_id: dashboardId,
+      widget_name: widgetName,
+      session_id: sessionId,
+    }),
+
+  dashboardWidgetAddedToChat: (
+    dashboardId: string,
+    widgetName: string,
+    widgetType: string,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Widget Added to Chat", {
+      dashboard_id: dashboardId,
+      widget_name: widgetName,
+      widget_type: widgetType,
+      session_id: sessionId,
+    }),
+
+  dashboardEditEntered: (params: {
+    dashboardId: string;
+    trigger: "edit_button" | "new_dashboard";
+    dashboardStatus: "published" | "draft";
+    sessionId: string;
+  }) =>
+    track("Dashboard - Edit Entered", {
+      dashboard_id: params.dashboardId,
+      trigger: params.trigger,
+      dashboard_status: params.dashboardStatus,
+      session_id: params.sessionId,
+    }),
+
+  dashboardDiscardClicked: (params: {
+    dashboardId: string;
+    hadUnsavedChanges: boolean;
+    timeInEditMs: number;
+    sessionId: string;
+  }) =>
+    track("Dashboard - Discard Clicked", {
+      dashboard_id: params.dashboardId,
+      had_unsaved_changes: params.hadUnsavedChanges,
+      time_in_edit_ms: params.timeInEditMs,
+      session_id: params.sessionId,
+    }),
+
+  dashboardChatMessageSent: (params: {
+    dashboardId: string;
+    chatId: string | null;
+    contextPills: string[];
+    pillCount: number;
+    messageLength: number;
+    mode: "edit" | "published";
+    dashboardWidgetCount: number;
+    sessionId: string;
+  }) =>
+    track("Dashboard - Chat Message Sent", {
+      dashboard_id: params.dashboardId,
+      chat_id: params.chatId,
+      source: "dashboard",
+      context_pills: params.contextPills,
+      pill_count: params.pillCount,
+      message_length: params.messageLength,
+      mode: params.mode,
+      dashboard_widget_count: params.dashboardWidgetCount,
+      session_id: params.sessionId,
+    }),
+
+  dashboardChatResponseFeedback: (params: {
+    dashboardId: string;
+    chatId: string | null;
+    feedback: "thumbs_up" | "thumbs_down";
+    sessionId: string;
+  }) =>
+    track("Dashboard - Chat Response Feedback", {
+      dashboard_id: params.dashboardId,
+      chat_id: params.chatId,
+      source: "dashboard",
+      feedback: params.feedback,
+      session_id: params.sessionId,
+    }),
+
+  dashboardChatSourcesViewed: (
+    dashboardId: string,
+    chatId: string | null,
+    sessionId: string,
+  ) =>
+    track("Dashboard - Chat Sources Viewed", {
+      dashboard_id: dashboardId,
+      chat_id: chatId,
+      source: "dashboard",
+      session_id: sessionId,
+    }),
 
   // ── Chat (sidebar & input) ─────────────────────────────────────────────────
   chatNewChatClicked: () => track("Chat - New Chat Clicked", {}),
@@ -436,6 +655,9 @@ export const report = {
       integration_category: integrationCategory,
       connection_type: connectionType,
     }),
+
+  integrationsLearnMoreClicked: () =>
+    track("Integrations - Learn More Clicked", {}),
 
   integrationsAPICredentialsLinkClicked: (
     integrationName: string,
@@ -760,9 +982,4 @@ export const report = {
     result_position: number;
     deep_used: boolean;
   }) => track("Search - Result Opened", props),
-
-  searchNewChatFromSearch: (props: {
-    query: string;
-    was_zero_results: boolean;
-  }) => track("Search - New Chat From Search", props),
 };

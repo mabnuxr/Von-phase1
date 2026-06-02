@@ -20,6 +20,8 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
   appliedFilters,
   filterSlot,
   onAddToChat,
+  onQueryViewed,
+  onSQLCopied,
   isEditMode,
 }) => {
   return (
@@ -35,7 +37,13 @@ const WidgetShell: React.FC<WidgetShellProps> = ({
           {filterSlot
             ? filterSlot
             : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
-          {queryInfo && <QueryInfoPopover queryInfo={queryInfo} />}
+          {queryInfo && (
+            <QueryInfoPopover
+              queryInfo={queryInfo}
+              onOpen={onQueryViewed}
+              onSQLCopied={onSQLCopied}
+            />
+          )}
           {onDrillDown && (
             <button
               onClick={(e) => {

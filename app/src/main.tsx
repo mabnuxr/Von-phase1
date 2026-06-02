@@ -8,6 +8,7 @@ import App from "./App";
 import "./index.css";
 import { QueryProvider } from "./providers/QueryProvider";
 import { LaunchDarklyProvider } from "./providers/LaunchDarklyProvider";
+import { KnockGuidesProvider } from "./providers/KnockGuidesProvider";
 import { ToastProvider } from "./contexts/ToastContext";
 import { initSentry } from "./lib/sentry";
 import { initDatadog } from "./lib/datadog";
@@ -26,7 +27,9 @@ const AppWithProviders = (
     <LaunchDarklyProvider>
       <QueryProvider>
         <ToastProvider>
-          <App />
+          <KnockGuidesProvider>
+            <App />
+          </KnockGuidesProvider>
         </ToastProvider>
       </QueryProvider>
     </LaunchDarklyProvider>

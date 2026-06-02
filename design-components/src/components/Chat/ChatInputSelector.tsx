@@ -169,6 +169,27 @@ export interface ChatInputSelectorProps {
   widgetMentions?: MentionItem[];
   /** Called when a widget chip is removed via its X button */
   onWidgetMentionRemoved?: (args: { id: string }) => void;
+
+  // -------------------------------------------------------------------------
+  // Voice input
+  // -------------------------------------------------------------------------
+
+  /** Click handler for the mic button in StandardChatInput. */
+  onVoiceInput?: () => void;
+  /** Red-fill the mic button while a voice session is active. */
+  isRecording?: boolean;
+  /** Voice dictation state — drives the in-input UI. */
+  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+  /** Visualizer rendered inside the input during listening. */
+  voiceVisualizer?: React.ReactNode;
+  /** Cancel handler for the X button on the voice input. */
+  onVoiceCancel?: () => void;
+  /** Confirm handler for the ✓ button on the voice input. */
+  onVoiceConfirm?: () => void;
+  /** Voice-side error message rendered as a banner above the input. */
+  voiceError?: string | null;
+  /** Dismiss handler for the voice error banner. */
+  onDismissVoiceError?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -238,6 +259,15 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       dashboardMention,
       widgetMentions,
       onWidgetMentionRemoved,
+      // Voice
+      onVoiceInput,
+      isRecording,
+      voiceStatus,
+      voiceVisualizer,
+      onVoiceCancel,
+      onVoiceConfirm,
+      voiceError,
+      onDismissVoiceError,
     },
     ref
   ) => {
@@ -437,6 +467,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     if (useStandardInput) {
       const sharedStandardProps = {
         ...baseCommonProps,
+        autoFocus,
         onDisabledInput,
         hideDisclaimer,
         onFileError,
@@ -503,6 +534,14 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           additionalExtensions={additionalExtensions}
           selectedMentions={selectedMentions}
           onRemoveMention={removeSelectedMention}
+          onVoiceInput={onVoiceInput}
+          isRecording={isRecording}
+          voiceStatus={voiceStatus}
+          voiceVisualizer={voiceVisualizer}
+          onVoiceCancel={onVoiceCancel}
+          onVoiceConfirm={onVoiceConfirm}
+          voiceError={voiceError}
+          onDismissVoiceError={onDismissVoiceError}
         />
       );
     }

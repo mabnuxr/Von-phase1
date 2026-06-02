@@ -23,7 +23,12 @@ export function pathForResult(r: SearchResult): string {
 
 /** Compact relative time like "2h", "Yesterday", "3d", "2w". */
 export function formatRelativeTime(iso: string): string {
-  const then = new Date(iso).getTime();
+  // Treat unzoned ISO strings as UTC. The backend emits UTC timestamps
+  // without a `Z` suffix, and JS's Date parser would otherwise interpret
+  // them as local time — shifting recent timestamps into the future on
+  // west-of-UTC clients and rendering them as "Just now".
+  const hasTz = /[zZ]|[+-]\d{2}:?\d{2}$/.test(iso);
+  const then = new Date(hasTz ? iso : `${iso}Z`).getTime();
   if (Number.isNaN(then)) return "";
   const diffMin = Math.max(0, Math.round((Date.now() - then) / 60_000));
   if (diffMin < 1) return "Just now";

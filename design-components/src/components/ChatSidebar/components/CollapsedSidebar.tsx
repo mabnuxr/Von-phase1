@@ -6,6 +6,7 @@ import {
   PlusCircleIcon,
   FolderSimpleIcon,
   ChartBarIcon,
+  MagnifyingGlassIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton } from '../../forms/buttons';
 import { ProfilePopover } from '../../popups';
@@ -31,6 +32,7 @@ export interface CollapsedSidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onNewChatClick?: () => void;
+  onSearchClick?: () => void;
   onItemClick?: (id: string) => void;
   onFolderToggle?: (folderId: string, isExpanded: boolean) => void;
 
@@ -104,6 +106,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   isCollapsed,
   onToggleCollapse,
   onNewChatClick,
+  onSearchClick,
   onItemClick,
   onFolderToggle,
   isChatsHovered,
@@ -166,6 +169,17 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
               title="New Chat"
             >
               <PlusCircleIcon size={20} weight="fill" className="text-gray-600" />
+            </button>
+          )}
+
+          {/* Search Button */}
+          {onSearchClick && (
+            <button
+              className="flex items-center justify-center w-8 h-8 rounded-lg border border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs cursor-pointer transition-all duration-150 text-gray-600 hover:text-gray-900"
+              onClick={onSearchClick}
+              title="Search"
+            >
+              <MagnifyingGlassIcon size={18} weight="regular" />
             </button>
           )}
 

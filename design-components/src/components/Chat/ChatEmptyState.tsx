@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback, useRef, useLayoutEffect } from '
 import { motion } from 'framer-motion';
 import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { ChatInputSelector } from './ChatInputSelector';
+import { LOGO_MARK_URL } from '../../constants';
 import type { SendMessageOptions } from './types';
 import {
   DEFAULT_TEMPLATES,
@@ -189,6 +190,29 @@ export interface ChatEmptyStateProps {
   widgetMentions?: MentionItem[];
   /** Called when a widget chip is removed via its X button */
   onWidgetMentionRemoved?: (args: { id: string }) => void;
+
+  /** Click handler for the mic button in the empty-state input. */
+  onVoiceInput?: () => void;
+  /** Red-fill / stop-icon state when a voice session is active. */
+  isRecording?: boolean;
+  /** Voice dictation state — drives the in-input UI. */
+  voiceStatus?: 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+  /** Visualizer rendered inside the input during listening. */
+  voiceVisualizer?: React.ReactNode;
+  /** Cancel handler for the X button on the voice input. */
+  onVoiceCancel?: () => void;
+  /** Confirm handler for the ✓ button on the voice input. */
+  onVoiceConfirm?: () => void;
+  /** Voice-side error banner shown above the input. */
+  voiceError?: string | null;
+  /** Dismiss handler for the voice error banner. */
+  onDismissVoiceError?: () => void;
+
+  /** Controlled input value — when provided, overrides internal state.
+   *  Voice transcription streams interim transcripts via this prop. */
+  inputValue?: string;
+  /** Fires on any input change (user typing or external set). */
+  onInputValueChange?: (value: string) => void;
 }
 
 /**
@@ -260,12 +284,32 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   dashboardMention,
   widgetMentions,
   onWidgetMentionRemoved,
+  onVoiceInput,
+  isRecording,
+  voiceStatus,
+  voiceVisualizer,
+  onVoiceCancel,
+  onVoiceConfirm,
+  voiceError,
+  onDismissVoiceError,
+  inputValue: controlledInputValue,
+  onInputValueChange,
 }) => {
   const greeting = useMemo(() => getTimeBasedGreeting(), []);
   const displayName = userName || 'there';
 
-  // Track input value for template filling
-  const [inputValue, setInputValue] = useState(defaultValue);
+  // Track input value for template filling. When `inputValue` is supplied
+  // by the parent (e.g. voice transcription), the controlled value wins.
+  const [internalInputValue, setInternalInputValue] = useState(defaultValue);
+  const isInputControlled = controlledInputValue !== undefined;
+  const inputValue = isInputControlled ? controlledInputValue : internalInputValue;
+  const setInputValue = useCallback(
+    (next: string) => {
+      if (!isInputControlled) setInternalInputValue(next);
+      onInputValueChange?.(next);
+    },
+    [isInputControlled, onInputValueChange]
+  );
 
   // Template state
   const [activeCategory, setActiveCategory] = useState<TemplateCategory>('Popular');
@@ -383,38 +427,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        <svg
-          width="44"
-          height="44"
-          viewBox="0 0 28 28"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M0 8C0 3.58172 3.58172 0 8 0H20C24.4183 0 28 3.58172 28 8V20C28 24.4183 24.4183 28 20 28H8C3.58172 28 0 24.4183 0 20V8Z"
-            fill="url(#paint0_radial_empty_state)"
-          />
-          <path
-            d="M15.937 11.1501C17.7702 12.4452 19.151 13.9556 19.9152 15.3235C20.7057 16.7385 20.7316 17.7813 20.3233 18.3594C19.9149 18.9375 18.9234 19.2616 17.3256 18.9894C15.7809 18.7262 13.8959 17.9296 12.0627 16.6345C10.2294 15.3394 8.84791 13.8285 8.08365 12.4605C7.29337 11.0458 7.26805 10.0032 7.67638 9.42519C8.08475 8.84721 9.07582 8.52262 10.6733 8.7947C12.2181 9.05788 14.1037 9.855 15.937 11.1501Z"
-            stroke="white"
-            strokeWidth="1.33"
-          />
-          <circle cx="13.9932" cy="14" r="7.835" stroke="white" strokeWidth="1.33" />
-          <defs>
-            <radialGradient
-              id="paint0_radial_empty_state"
-              cx="0"
-              cy="0"
-              r="1"
-              gradientUnits="userSpaceOnUse"
-              gradientTransform="translate(21.875 1.75) rotate(120.964) scale(30.6125)"
-            >
-              <stop stopColor="#FFF3EB" />
-              <stop offset="0.26" stopColor="#FF9042" />
-              <stop offset="1" stopColor="#854FFF" />
-            </radialGradient>
-          </defs>
-        </svg>
+        <img src={LOGO_MARK_URL} alt="Von" width={44} height={44} />
       </motion.div>
 
       {/* Personalized Greeting */}
@@ -496,6 +509,14 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
           dashboardMention={dashboardMention}
           widgetMentions={widgetMentions}
           onWidgetMentionRemoved={onWidgetMentionRemoved}
+          onVoiceInput={onVoiceInput}
+          isRecording={isRecording}
+          voiceStatus={voiceStatus}
+          voiceVisualizer={voiceVisualizer}
+          onVoiceCancel={onVoiceCancel}
+          onVoiceConfirm={onVoiceConfirm}
+          voiceError={voiceError}
+          onDismissVoiceError={onDismissVoiceError}
         />
       </motion.div>
 
@@ -556,7 +577,7 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
                 key={template.id}
                 onClick={() => handleTemplateClick(template, index + 1)}
                 className={`
-                  flex-shrink-0 w-48 px-4 py-2.5
+                  shrink-0 w-48 px-4 py-2.5
                   rounded-xl bg-white border border-gray-100
                   text-left transition-all flex flex-col justify-start
                   ${

@@ -34,6 +34,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     appliedFilters,
     filterSlot,
     onAddToChat,
+    onWidgetQueryViewed,
+    onWidgetSQLCopied,
     variables,
     isEditMode,
   }) => {
@@ -97,6 +99,14 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
     }, [onAddToChat, widget.id, widget.title, widget.type]);
 
     const addToChatHandler = onAddToChat ? handleAddToChat : undefined;
+
+    const handleQueryViewed = useCallback(() => {
+      onWidgetQueryViewed?.(widget.id, widget.title, widget.type);
+    }, [onWidgetQueryViewed, widget.id, widget.title, widget.type]);
+
+    const handleSQLCopied = useCallback(() => {
+      onWidgetSQLCopied?.(widget.id, widget.title);
+    }, [onWidgetSQLCopied, widget.id, widget.title]);
 
     // Resolve the explicit drillable-columns whitelist for this panel widget.
     // ``panel.drilldown_v2.drillable_columns`` lists the column ids in the
@@ -237,6 +247,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            onQueryViewed={onWidgetQueryViewed ? handleQueryViewed : undefined}
+            onSQLCopied={onWidgetSQLCopied ? handleSQLCopied : undefined}
             isEditMode={isEditMode}
           >
             <ChartWidget
@@ -264,7 +276,13 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
                   {filterSlot
                     ? filterSlot
                     : appliedFilters && <WidgetFiltersPopover filters={appliedFilters} />}
-                  {widget.queryInfo && <QueryInfoPopover queryInfo={widget.queryInfo} />}
+                  {widget.queryInfo && (
+                    <QueryInfoPopover
+                      queryInfo={widget.queryInfo}
+                      onOpen={onWidgetQueryViewed ? handleQueryViewed : undefined}
+                      onSQLCopied={onWidgetSQLCopied ? handleSQLCopied : undefined}
+                    />
+                  )}
                   {addToChatHandler && <AddToChatButton onClick={addToChatHandler} />}
                 </div>
               )}
@@ -287,6 +305,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            onQueryViewed={onWidgetQueryViewed ? handleQueryViewed : undefined}
+            onSQLCopied={onWidgetSQLCopied ? handleSQLCopied : undefined}
             isEditMode={isEditMode}
           />
         );
@@ -312,6 +332,8 @@ const WidgetRenderer: React.FC<WidgetRendererProps> = memo(
             appliedFilters={appliedFilters}
             filterSlot={filterSlot}
             onAddToChat={addToChatHandler}
+            onQueryViewed={onWidgetQueryViewed ? handleQueryViewed : undefined}
+            onSQLCopied={onWidgetSQLCopied ? handleSQLCopied : undefined}
             isEditMode={isEditMode}
           >
             <TableWidget

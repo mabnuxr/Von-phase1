@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { TrackedButton } from "../TrackedButton";
 import {
   MagnifyingGlassIcon,
   XIcon,
@@ -835,15 +836,16 @@ function NativeDetailView({
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
                     More Info
                   </p>
-                  <a
+                  <TrackedButton
                     href={entry.docs_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                    posthogEventName="Integrations - Learn More Clicked"
                   >
                     Documentation{" "}
                     <ArrowSquareOutIcon size={12} className="text-gray-400" />
-                  </a>
+                  </TrackedButton>
                 </div>
               )}
             </div>
@@ -1303,15 +1305,16 @@ function MCPDetailView({
                   <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">
                     More Info
                   </p>
-                  <a
+                  <TrackedButton
                     href={entry.docs_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-sm text-gray-700 hover:text-gray-900"
+                    posthogEventName="Integrations - Learn More Clicked"
                   >
                     Documentation{" "}
                     <ArrowSquareOutIcon size={12} className="text-gray-400" />
-                  </a>
+                  </TrackedButton>
                 </div>
               )}
             </div>

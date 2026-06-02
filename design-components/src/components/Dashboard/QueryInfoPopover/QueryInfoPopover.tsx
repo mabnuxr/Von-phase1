@@ -8,9 +8,11 @@ const POPOVER_WIDTH = 360;
 
 interface QueryInfoPopoverProps {
   queryInfo: QueryInfo;
+  onOpen?: () => void;
+  onSQLCopied?: () => void;
 }
 
-const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
+const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo, onOpen, onSQLCopied }) => {
   const { open, hide, toggleVisibility, triggerRef, popoverRef, position } = usePortalPopover({
     popoverWidth: POPOVER_WIDTH,
   });
@@ -22,6 +24,7 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
         ref={triggerRef}
         onClick={(e) => {
           e.stopPropagation();
+          if (!open) onOpen?.();
           toggleVisibility();
         }}
         className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer shrink-0"
@@ -48,7 +51,10 @@ const QueryInfoPopover: React.FC<QueryInfoPopoverProps> = ({ queryInfo }) => {
               <span className="text-xs font-medium text-gray-700">Query</span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => copy(queryInfo.sql)}
+                  onClick={() => {
+                    copy(queryInfo.sql);
+                    onSQLCopied?.();
+                  }}
                   className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-700 cursor-pointer transition-colors"
                   title="Copy SQL"
                 >

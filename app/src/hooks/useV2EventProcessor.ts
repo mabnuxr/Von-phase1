@@ -195,7 +195,9 @@ export function useV2EventProcessor(
   const [stoppedByUser, setStoppedByUser] = useState(false);
   const [runErrorMessage, setRunErrorMessage] = useState("");
   const [dashboards, setDashboards] = useState<DashboardMetadata[]>([]);
-  /** Key used to trigger auto-open. Set by live Pusher events, reconciliation, and gap-fill (not seeding). */
+  /** Key used to trigger auto-open. Set by live Pusher events, reconciliation,
+   *  gap-fill, and seeding (the latter so reopening a chat with an existing
+   *  dashboard re-opens the pane the same way live runs do). */
   const [liveDashboardKey, setLiveDashboardKey] = useState<string | null>(null);
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [isDashboardBuilderMode, setIsDashboardBuilderMode] = useState(false);
@@ -255,9 +257,12 @@ export function useV2EventProcessor(
         if (options?.dashboards !== undefined) {
           setDashboards(options.dashboards);
           if (options.triggerAutoOpen && options.dashboards.length > 0) {
-            const first = options.dashboards[0];
+            // Dashboards are appended in chronological order, so the last
+            // entry is the most recent — that's the one the user expects
+            // to see when reopening a chat that built multiple dashboards.
+            const latest = options.dashboards[options.dashboards.length - 1];
             setLiveDashboardKey(
-              `${first.dashboard_id}:${first.dashboard_version}`,
+              `${latest.dashboard_id}:${latest.dashboard_version}`,
             );
           }
         }
@@ -943,6 +948,17 @@ export function useV2EventProcessor(
         setDashboards(seededDashboards);
         setExecutionId(seededExecutionId);
         setIsDashboardBuilderMode(seededIsDashboardBuilderMode);
+        // Auto-open the latest dashboard when opening a chat whose last
+        // run produced one — matches the live behavior. Guarded by the
+        // same `hasAutoOpenedDashboardRef` flag so the pane doesn't
+        // re-open after the user closes it within the same mount.
+        if (seededDashboards.length > 0 && !hasAutoOpenedDashboardRef.current) {
+          hasAutoOpenedDashboardRef.current = true;
+          const latest = seededDashboards[seededDashboards.length - 1];
+          setLiveDashboardKey(
+            `${latest.dashboard_id}:${latest.dashboard_version}`,
+          );
+        }
       });
     } else {
       // Active run, not yet tracked by Pusher (page refresh recovery).

@@ -26,6 +26,12 @@ export interface ReferenceContext {
 export type AutoEditMode = 'off' | 'on' | 'plan';
 
 /**
+ * Voice dictation state. See the `voiceStatus` prop docs below for the
+ * per-state UI variant; copy mappings live in StandardChatInput.
+ */
+export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'reconnecting' | 'processing';
+
+/**
  * Popover intent types for different chat input states
  */
 export type PopoverIntent = 'plan' | 'edit' | 'add-widget' | 'delete-widget';
@@ -96,6 +102,13 @@ export interface StandardChatInputProps {
   disabled?: boolean;
 
   /**
+   * When true, the editor takes focus on mount so the user can start
+   * typing without clicking. Set by the empty-state wrapper on /chat/new.
+   * @default false
+   */
+  autoFocus?: boolean;
+
+  /**
    * Tooltip surfaced on hover when the input is disabled. Lets the
    * caller explain *why* the input is unavailable (e.g. "Close the
    * dashboard version history to chat") instead of repurposing the
@@ -141,6 +154,41 @@ export interface StandardChatInputProps {
    * @default false
    */
   isRecording?: boolean;
+
+  /**
+   * Voice dictation state. Drives the in-input UI variant:
+   *   - 'idle'         → normal editor + toolbar
+   *   - 'connecting'   → "Connecting…" placeholder, faded visualizer, cancel only
+   *   - 'listening'    → speak-naturally placeholder (or prefix + continuation
+   *                      hint if there's existing input text) + visualizer +
+   *                      cancel/confirm buttons
+   *   - 'reconnecting' → "Reconnecting…" placeholder, faded visualizer (mic is
+   *                      still capturing), cancel only — audio captured during
+   *                      the gap is buffered and sent the moment the new WS
+   *                      opens
+   *   - 'processing'   → polishing spinner + cancel button
+   * @default 'idle'
+   */
+  voiceStatus?: VoiceStatus;
+
+  /**
+   * Visualizer rendered inside the input during listening (caller-owned —
+   * design-components stays data-agnostic of the FFT/PCM stream).
+   */
+  voiceVisualizer?: ReactNode;
+
+  /** Cancel button handler — abandons the recording or polishing. */
+  onVoiceCancel?: () => void;
+
+  /** Confirm button handler — stops the recording and starts polishing. */
+  onVoiceConfirm?: () => void;
+
+  /** Voice-side error message — rendered as a dismissible banner above
+   *  the input shell. Most commonly the mic-permission denial. */
+  voiceError?: string | null;
+
+  /** Dismiss the voice error banner. */
+  onDismissVoiceError?: () => void;
 
   /**
    * Current mode (ask or build)

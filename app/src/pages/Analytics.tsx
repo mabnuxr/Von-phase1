@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { report } from "../lib/analytics/tracker";
 import { ArrowLineRightIcon, PlusIcon } from "@phosphor-icons/react";
 import { dashboardKeys, useDashboardQuery } from "../hooks/useDashboardQuery";
 import { useDashboardFilters } from "../hooks/useDashboardFilters";
@@ -54,6 +55,7 @@ import {
 
 interface DashboardCanvasProps {
   dashboardId: string;
+  sessionId: string;
   onChatClick: () => void;
   isChatOpen: boolean;
   /** Open the version-history docked panel. The panel docks between
@@ -72,6 +74,30 @@ interface DashboardCanvasProps {
   previewVersion: number | null;
 }
 
+// Salesforce Lightning: /lightning/r/ObjectType/RecordId/view
+// Salesforce Classic:   /001... (3-char key prefix identifies object type)
+const SF_PREFIX_MAP: Record<string, string> = {
+  "001": "Account",
+  "003": "Contact",
+  "006": "Opportunity",
+  "00q": "Lead",
+  "00t": "Task",
+  "00u": "User",
+  "500": "Case",
+  a0: "Custom", // custom object prefix starts with 'a'
+};
+
+function extractObjectType(href: string): string {
+  const lightningMatch = href.match(/\/lightning\/r\/([^/]+)\//);
+  if (lightningMatch) return lightningMatch[1];
+  const idMatch = href.match(/\/([A-Za-z0-9]{15,18})(?:\/|$|\?|#)/);
+  if (idMatch) {
+    const prefix = idMatch[1].substring(0, 3).toLowerCase();
+    if (SF_PREFIX_MAP[prefix]) return SF_PREFIX_MAP[prefix];
+  }
+  return "unknown";
+}
+
 /**
  * All dashboard-specific state and rendering. Receives key={dashboardId} so it
  * fully resets on navigation — but lives inside Analytics so the chat panel
@@ -79,6 +105,7 @@ interface DashboardCanvasProps {
  */
 function DashboardCanvas({
   dashboardId,
+  sessionId,
   onChatClick,
   isChatOpen,
   onOpenVersionHistory,
@@ -89,17 +116,19 @@ function DashboardCanvas({
     useDashboardQuery(dashboardId, previewVersion);
   const isVersionPreview = previewVersion !== null;
 
+  const editModeEnteredAtRef = useRef<number | null>(null);
+
   const {
     handleSave,
     savePhase,
     showSaveToast,
     saveToastKind,
     isFirstSave,
-    handleShareV2,
+    handleShareV2: baseHandleShareV2,
     shareV2Phase,
-    handleAcquireLock,
+    handleAcquireLock: baseHandleAcquireLock,
     acquireLockPhase,
-    handleDiscardDraft,
+    handleDiscardDraft: baseHandleDiscardDraft,
     discardDraftPhase,
     handleSaveDraft,
     saveDraftPhase,
@@ -107,6 +136,63 @@ function DashboardCanvas({
   } = useAnalyticsTools(dashboardId, {
     dashboardVersion: data?.dashboard?.dashboardVersion,
   });
+
+  const handleShareV2 = useCallback(
+    (...args: Parameters<typeof baseHandleShareV2>) => {
+      const collaboratorCount = data?.dashboard?.userGrants?.length ?? 0;
+      report.dashboardShareModalOpened(
+        dashboardId,
+        collaboratorCount,
+        sessionId,
+      );
+      return baseHandleShareV2(...args);
+    },
+    [
+      baseHandleShareV2,
+      dashboardId,
+      sessionId,
+      data?.dashboard?.userGrants?.length,
+    ],
+  );
+
+  const handleAcquireLock = useCallback(
+    (...args: Parameters<typeof baseHandleAcquireLock>) => {
+      editModeEnteredAtRef.current = Date.now();
+      const dashStatus =
+        (data?.dashboard?.isEditable ?? false) ? "draft" : "published";
+      report.dashboardEditEntered({
+        dashboardId,
+        trigger: "edit_button",
+        dashboardStatus: dashStatus,
+        sessionId,
+      });
+      return baseHandleAcquireLock(...args);
+    },
+    [
+      baseHandleAcquireLock,
+      data?.dashboard?.isEditable,
+      dashboardId,
+      sessionId,
+    ],
+  );
+
+  const handleDiscardDraft = useCallback(
+    (...args: Parameters<typeof baseHandleDiscardDraft>) => {
+      const timeInEditMs =
+        editModeEnteredAtRef.current != null
+          ? Date.now() - editModeEnteredAtRef.current
+          : 0;
+      editModeEnteredAtRef.current = null;
+      report.dashboardDiscardClicked({
+        dashboardId,
+        hadUnsavedChanges: true,
+        timeInEditMs,
+        sessionId,
+      });
+      return baseHandleDiscardDraft(...args);
+    },
+    [baseHandleDiscardDraft, dashboardId, sessionId],
+  );
 
   const { handleUpdate } = useDashboardUpdate(dashboardId);
 
@@ -117,9 +203,50 @@ function DashboardCanvas({
     [handleUpdate],
   );
 
+  const handleShareLinkCopied = useCallback(() => {
+    report.dashboardShareLinkCopied(dashboardId, sessionId);
+  }, [dashboardId, sessionId]);
+
+  const handleWidgetQueryViewed = useCallback(
+    (panelId: string, widgetTitle: string, widgetType: string) => {
+      report.dashboardWidgetQueryViewed(
+        dashboardId,
+        panelId,
+        widgetTitle,
+        widgetType,
+        sessionId,
+      );
+    },
+    [dashboardId, sessionId],
+  );
+
+  const handleWidgetSQLCopied = useCallback(
+    (_panelId: string, widgetTitle: string) => {
+      report.dashboardWidgetSQLCopied(dashboardId, widgetTitle, sessionId);
+    },
+    [dashboardId, sessionId],
+  );
+
   const dashboard = data?.dashboard ?? null;
   const refreshInfo = data?.refreshInfo ?? null;
   const activeFilters = data?.activeFilters ?? {};
+
+  // Track Dashboard - Page Viewed once the data is loaded
+  const pageViewTrackedRef = useRef(false);
+  useEffect(() => {
+    if (!dashboard || pageViewTrackedRef.current) return;
+    pageViewTrackedRef.current = true;
+    report.dashboardPageViewed({
+      dashboardId,
+      dashboardName: dashboard.title,
+      viewType: "sidebar",
+      mode: dashboard.isEditable ? "draft" : "published",
+      owner: dashboard.accessLevel === "owner" ? "me" : "shared",
+      dashboardWidgetCount: Object.keys(dashboard.widgets ?? {}).length,
+      chatId: null,
+      sessionId,
+    });
+  }, [dashboard, dashboardId, sessionId]);
   const {
     definitions: filterDefinitions,
     filterState,
@@ -173,6 +300,22 @@ function DashboardCanvas({
   // dashboard-creation flow has ``drilldown_v2`` populated; legacy V1
   // panels have been migrated cluster-wide.
   const drillV2 = useDrilldownV2(dashboardId);
+
+  const handleRecordLinkClicked = useCallback(
+    (href: string) => {
+      const drillWidgetTitle = drillV2.panelId
+        ? (dashboard?.widgets?.[drillV2.panelId]?.title ?? "")
+        : "";
+      report.dashboardDrilldownRecordClicked({
+        dashboardId,
+        widgetName: drillWidgetTitle,
+        recordId: href,
+        objectType: extractObjectType(href),
+        sessionId,
+      });
+    },
+    [dashboardId, drillV2.panelId, dashboard?.widgets, sessionId],
+  );
 
   const handleWidgetDrillDown = useCallback(
     (panelId: string, metricValue?: unknown) => {
@@ -322,6 +465,9 @@ function DashboardCanvas({
         onDrillDown={handleWidgetDrillDown}
         onPointDrillDown={handlePointDrillDown}
         onAddWidgetToChat={onAddWidgetToChat}
+        onLinkCopied={handleShareLinkCopied}
+        onWidgetQueryViewed={handleWidgetQueryViewed}
+        onWidgetSQLCopied={handleWidgetSQLCopied}
         onTableSortChange={handleSortChange}
         tableSortStates={activeSorts}
         onRename={handleRename}
@@ -376,6 +522,7 @@ function DashboardCanvas({
           drillV2.currentVariantId,
         )}
         onRowDrill={handleV2RowDrill}
+        onRecordLinkClicked={handleRecordLinkClicked}
       />
     </>
   );
@@ -390,6 +537,10 @@ const Analytics = () => {
     dashboardId: string;
   };
   const [searchParams] = useSearchParams();
+
+  // Stable session ID for this dashboard view — resets on dashboardId change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const sessionId = useMemo(() => crypto.randomUUID(), [dashboardId]);
 
   // Read conversationId from query params (deep-link support: "View in Dashboard" CTA).
   // Validate the shape — id flows into URL paths downstream, so reject
@@ -549,6 +700,12 @@ const Analytics = () => {
     (widget: WidgetAddToChatPayload) => {
       const dashboard = data?.dashboard;
       if (!dashboard) return;
+      report.dashboardWidgetAddedToChat(
+        dashboardId,
+        widget.title,
+        widget.type,
+        sessionId,
+      );
       const mention = buildWidgetMention(widget, {
         dashboardId: dashboard.id,
         dashboardVersion: dashboard.dashboardVersion,
@@ -572,6 +729,8 @@ const Analytics = () => {
       openChatPanel,
       conversationId,
       addWidgetMentionToStore,
+      dashboardId,
+      sessionId,
     ],
   );
 
@@ -591,16 +750,50 @@ const Analytics = () => {
   // across navigations.
   const [previewVersion, setPreviewVersion] = useState<number | null>(null);
 
+  const dashboardIsEditMode =
+    (data?.dashboard?.isEditable ?? false) && previewVersion === null;
+  const dashboardWidgetCount = Object.keys(
+    data?.dashboard?.widgets ?? {},
+  ).length;
+
+  // Track Dashboard - Closed on unmount
+  const pageOpenedAtRef = useRef(Date.now());
+  const dashboardIdRef = useRef(dashboardId);
+  dashboardIdRef.current = dashboardId;
+  const sessionIdRef = useRef(sessionId);
+  sessionIdRef.current = sessionId;
+  useEffect(() => {
+    const openedAt = Date.now();
+    pageOpenedAtRef.current = openedAt;
+    return () => {
+      report.dashboardClosed(
+        dashboardIdRef.current,
+        Date.now() - pageOpenedAtRef.current,
+        sessionIdRef.current,
+      );
+    };
+  }, [dashboardId]);
+
   const handleAskVonClick = useCallback(() => {
+    report.dashboardAskVonClicked(
+      dashboardId,
+      "dashboard_fullscreen",
+      sessionId,
+    );
     if (!isChatPanelOpen) openChatPanel();
     requestAnimationFrame(() => {
       chatSessionRef.current?.focus();
     });
-  }, [isChatPanelOpen, openChatPanel]);
+  }, [isChatPanelOpen, openChatPanel, dashboardId, sessionId]);
 
   const handleOpenVersionHistory = useCallback(() => {
+    report.dashboardVersionHistoryOpened(
+      dashboardId,
+      "overflow_menu",
+      sessionId,
+    );
     setIsVersionHistoryOpen(true);
-  }, []);
+  }, [dashboardId, sessionId]);
 
   const handleCloseVersionHistory = useCallback(() => {
     setIsVersionHistoryOpen(false);
@@ -611,9 +804,18 @@ const Analytics = () => {
     setPreviewVersion(null);
   }, []);
 
-  const handleSelectVersion = useCallback((dashboardVersion: number) => {
-    setPreviewVersion(dashboardVersion);
-  }, []);
+  const handleSelectVersion = useCallback(
+    (dashboardVersion: number) => {
+      report.dashboardVersionHistoryEntryPreviewed(
+        dashboardId,
+        String(dashboardVersion),
+        new Date().toISOString(),
+        sessionId,
+      );
+      setPreviewVersion(dashboardVersion);
+    },
+    [dashboardId, sessionId],
+  );
 
   // ── Restore as draft (VON-1282) ───────────────────────────────────
   //
@@ -743,6 +945,7 @@ const Analytics = () => {
           <DashboardCanvas
             key={dashboardId}
             dashboardId={dashboardId}
+            sessionId={sessionId}
             onChatClick={handleAskVonClick}
             isChatOpen={isChatPanelOpen}
             onOpenVersionHistory={handleOpenVersionHistory}
@@ -845,6 +1048,9 @@ const Analytics = () => {
                 : undefined
             }
             dashboardId={dashboardId}
+            analyticsSessionId={sessionId}
+            dashboardMode={dashboardIsEditMode ? "edit" : "published"}
+            dashboardWidgetCount={dashboardWidgetCount}
             dashboardTitle={dashboardTitle}
             dashboardVersion={dashboardVersion}
             onCreated={handleConversationCreated}

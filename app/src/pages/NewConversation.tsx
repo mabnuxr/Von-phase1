@@ -28,6 +28,9 @@ import { MentionItemType } from "@vonlabs/design-components";
 
 import { useSearchParams } from "react-router-dom";
 import { useAppShell } from "../hooks/useAppShell";
+import { useVoiceTranscription } from "../hooks/useVoiceTranscription";
+import { usePushToTalkHotkey } from "../hooks/usePushToTalkHotkey";
+import { VoiceWaveformBar } from "../components/Voice/VoiceWaveformBar";
 import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useIsViewOnly } from "../hooks/useIsViewOnly";
@@ -205,6 +208,59 @@ const NewConversation = () => {
   // on mount), so substituting it here is enough to repopulate the input.
   const defaultInputValue = restoredInput ?? initialInputRef.current;
 
+  // Controlled input value — voice transcription needs to write into it.
+  const [inputValue, setInputValue] = useState(defaultInputValue);
+
+  // Voice (Deepgram + LLM cleanup). After recording stops, the hook runs the
+  // cleanup pass and returns the polished combination of `existing` + raw
+  // dictation; we write it to the input in one update.
+  const inputPrefixRef = useRef("");
+  // onPolished receives ONLY the polished new dictation. We append it
+  // to whatever the user already had typed — that pre-existing text
+  // never round-trips through the LLM and can't be reworded or dropped.
+  // Fires for user ✓ AND internal stops (2-min cap, reconnect exhaustion).
+  const voiceCleanupConfig = useMemo(
+    () => ({
+      onPolished: (polishedDictation: string) => {
+        const prefix = inputPrefixRef.current;
+        const sep = prefix && polishedDictation ? " " : "";
+        setInputValue(prefix + sep + polishedDictation);
+      },
+    }),
+    [],
+  );
+  const voice = useVoiceTranscription({ cleanup: voiceCleanupConfig });
+  const beginVoice = useCallback(() => {
+    inputPrefixRef.current = inputValue;
+    void voice.start();
+  }, [inputValue, voice]);
+  const endVoice = useCallback(() => {
+    void voice.stop();
+  }, [voice]);
+  const handleVoiceToggle = useCallback(() => {
+    if (voice.status === "listening" || voice.status === "connecting") {
+      void endVoice();
+    } else {
+      beginVoice();
+    }
+  }, [beginVoice, endVoice, voice]);
+  usePushToTalkHotkey({
+    onPress: () => {
+      if (voice.status === "idle" || voice.status === "error") beginVoice();
+    },
+    onRelease: () => {
+      if (voice.status === "listening" || voice.status === "connecting") {
+        void endVoice();
+      }
+    },
+  });
+  // Keep input in sync with `defaultInputValue` (e.g. after a failed send
+  // restores the user's unsent text). Matches the original ChatEmptyState
+  // remount behavior, but in controlled form.
+  useEffect(() => {
+    setInputValue(defaultInputValue);
+  }, [defaultInputValue]);
+
   const {
     commands,
     isLoadingCommands,
@@ -381,7 +437,31 @@ const NewConversation = () => {
         messages={transformedMessages}
         onSendMessage={handleSendMessage}
         isLoading={false}
-        defaultInputValue={defaultInputValue}
+        inputValue={inputValue}
+        onInputValueChange={setInputValue}
+        onVoiceInput={handleVoiceToggle}
+        isRecording={
+          voice.status === "listening" || voice.status === "connecting"
+        }
+        voiceStatus={voice.uiStatus}
+        voiceVisualizer={
+          voice.uiStatus === "listening" ||
+          voice.uiStatus === "connecting" ||
+          voice.uiStatus === "reconnecting" ? (
+            <VoiceWaveformBar
+              freqBins={voice.freqBins}
+              active={voice.status === "listening"}
+            />
+          ) : undefined
+        }
+        onVoiceCancel={() => {
+          voice.cancel();
+        }}
+        onVoiceConfirm={() => {
+          void endVoice();
+        }}
+        voiceError={voice.error}
+        onDismissVoiceError={voice.dismissError}
         placeholder="Ask a question or start a task.."
         height="100%"
         width="100%"
