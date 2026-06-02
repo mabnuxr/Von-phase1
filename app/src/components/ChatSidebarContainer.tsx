@@ -661,6 +661,7 @@ export function ChatSidebarContainer({
         onHelpDocsClick={onHelpDocsClick}
         settingsDisabledReason="View-only users can't access settings."
         isDashboardsEnabled={false}
+        enableFolders={false}
         chatsSectionLabel="Shared Chats"
         chatsEmptyMessage="No chats have been shared with you yet."
       />
