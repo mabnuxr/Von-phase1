@@ -47,6 +47,9 @@ export interface ShareDialogPersonV2 {
   isYou?: boolean;
   /** Avatar accent — falls back to a deterministic hash of `userId`. */
   colorHex?: string;
+  /** Tenant role (e.g. "View Only") — drives the read-only badge in the
+   *  people list so the owner knows the recipient can't act on dashboards. */
+  tenantRole?: string;
 }
 
 /**
@@ -58,4 +61,7 @@ export interface DirectoryPersonV2 {
   name: string;
   email: string;
   colorHex?: string;
+  /** Tenant role (e.g. "View Only") — drives the read-only badge in the
+   *  Add-people suggestions row. */
+  tenantRole?: string;
 }

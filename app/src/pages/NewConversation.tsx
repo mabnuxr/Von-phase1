@@ -304,6 +304,7 @@ const NewConversation = () => {
         email: m.email,
         firstName: m.firstName,
         lastName: m.lastName,
+        role: m.role,
       }))
     : undefined;
   const currentUserRecipient =

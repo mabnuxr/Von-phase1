@@ -114,6 +114,7 @@ export function useDashboardShareV2({
           userId: m.id,
           name: `${m.firstName} ${m.lastName}`.trim() || m.email,
           email: m.email,
+          tenantRole: m.role,
         })),
     [tenantMembers, ownerUserId],
   );
@@ -141,7 +142,7 @@ export function useDashboardShareV2({
     //      forever-pulsing skeleton.
     const resolveDisplay = (
       userId: string,
-    ): { name: string; email: string } => {
+    ): { name: string; email: string; tenantRole?: string } => {
       if (currentUser && currentUser.id === userId) {
         const full =
           `${currentUser.firstName ?? ""} ${currentUser.lastName ?? ""}`.trim();
@@ -156,6 +157,7 @@ export function useDashboardShareV2({
       return {
         name: `${member.firstName} ${member.lastName}`.trim() || member.email,
         email: member.email,
+        tenantRole: member.role,
       };
     };
 

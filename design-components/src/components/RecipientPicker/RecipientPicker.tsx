@@ -17,6 +17,10 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
+  /** Tenant role name (e.g. "Admin", "Member", "View Only"). When set to
+   *  "View Only" the picker renders a badge so the sharer can see the
+   *  recipient won't be able to act on the shared item. */
+  role?: string;
 }
 
 export interface RecipientPickerProps {
@@ -51,20 +55,38 @@ const InitialsCircle: React.FC<{ firstName: string; lastName: string }> = ({
 const RecipientChip: React.FC<{
   recipient: Recipient;
   onRemove?: () => void;
-}> = ({ recipient, onRemove }) => (
-  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
-    {recipient.firstName} {recipient.lastName}
-    {onRemove && (
-      <button
-        type="button"
-        onClick={onRemove}
-        className="text-gray-400 hover:text-gray-600 cursor-pointer"
-      >
-        <X size={10} />
-      </button>
-    )}
-  </span>
-);
+}> = ({ recipient, onRemove }) => {
+  const isViewOnly = recipient.role === 'View Only';
+  return (
+    <span
+      title={
+        isViewOnly
+          ? "View Only — recipient can read but can't act on what's shared."
+          : undefined
+      }
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${
+        isViewOnly
+          ? 'bg-red-50 border-red-300 text-red-700'
+          : 'bg-gray-100 border-transparent text-gray-900'
+      }`}
+    >
+      {recipient.firstName} {recipient.lastName}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className={`cursor-pointer ${
+            isViewOnly
+              ? 'text-red-400 hover:text-red-600'
+              : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <X size={10} />
+        </button>
+      )}
+    </span>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Component
@@ -202,6 +224,12 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
             />
           )}
         </div>
+
+        {recipients.some((r) => r.role === 'View Only') && (
+          <p className="mt-1 text-[11px] text-red-600">
+            Highlighted users are View Only users.
+          </p>
+        )}
 
         {/* Dropdown — portalled to escape overflow containers */}
         {!readOnly &&

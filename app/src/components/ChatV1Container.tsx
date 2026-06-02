@@ -125,6 +125,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         email: m.email,
         firstName: m.firstName,
         lastName: m.lastName,
+        role: m.role,
       }))
     : undefined;
   const currentUserRecipient =

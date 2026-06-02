@@ -188,6 +188,7 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
                 seed={c.userId}
                 color={c.colorHex}
                 onRemove={() => handleRemoveChip(c.userId)}
+                isViewOnly={c.tenantRole === "View Only"}
               />
             ))}
             <input
@@ -260,6 +261,12 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
             )}
           </div>
         </div>
+
+        {chips.some((c) => c.tenantRole === "View Only") && (
+          <p className="mt-1 text-[11px] text-red-600">
+            Highlighted users are View Only users.
+          </p>
+        )}
 
         {/* Suggestions dropdown */}
         {showSuggestions && (
