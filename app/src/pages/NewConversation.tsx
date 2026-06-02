@@ -22,7 +22,7 @@ import {
   Profiler,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Chat, Banner } from "@vonlabs/design-components";
+import { Chat } from "@vonlabs/design-components";
 import type { MentionItem } from "@vonlabs/design-components";
 import { MentionItemType } from "@vonlabs/design-components";
 
@@ -44,6 +44,17 @@ import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBa
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
 import { reportRenderTiming } from "../lib/datadog";
+
+const ViewOnlyBanner = () => (
+  <div className="w-full">
+    <div className="p-2 mt-2 flex flex-row bg-blue-50 border border-blue-200 rounded-xl">
+      <p className="pl-2 text-sm text-blue-800">
+        You have view-only access. You can read chats shared with you, but
+        can't start new conversations. Ask an admin to upgrade your role.
+      </p>
+    </div>
+  </div>
+);
 
 const NewConversation = () => {
   const { user } = useAppShell();
@@ -405,11 +416,7 @@ const NewConversation = () => {
   );
 
   const banner = isViewOnly ? (
-    <Banner
-      variant="info"
-      message="You have view-only access. You can read chats shared with you, but can't start new conversations. Ask an admin to upgrade your role."
-      dismissible={false}
-    />
+    <ViewOnlyBanner />
   ) : isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
