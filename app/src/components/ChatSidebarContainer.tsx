@@ -102,9 +102,7 @@ export function ChatSidebarContainer({
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
   const isViewOnly = useIsViewOnly();
-  // Admin/Member sidebar can flip between "my" (default) and "shared" via a
-  // dropdown on the Chats section header. View Only is always-shared and
-  // bypasses this state.
+  // Admin/Member toggle for the Chats section. View Only ignores this and is always shared.
   const [chatsMode, setChatsMode] = useState<"my" | "shared">("my");
   const fetchSharedEnabled = isViewOnly || chatsMode === "shared";
   const {
@@ -580,11 +578,8 @@ export function ChatSidebarContainer({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
-  // View Only users see a single flat "Shared Chats" list (newest first) in
-  // place of the regular Chats section — no folders, no "+ New chat". Each
-  // SidebarItem.id is the ConversationShare.share_id so a click maps directly
-  // to /shared/{shareId} (the read-only viewer route). Paginated server-side;
-  // pages are flattened here in shared_at-desc order.
+  // Flat list of shares for the Chats section. id is the share_id so clicks
+  // route to /shared/{shareId} (the read-only viewer).
   const sharedItems = useMemo<SidebarItem[]>(() => {
     if (!fetchSharedEnabled || !sharedConversationsPages) return [];
     return sharedConversationsPages.pages.flatMap((page) =>
@@ -598,8 +593,6 @@ export function ChatSidebarContainer({
     );
   }, [fetchSharedEnabled, sharedConversationsPages]);
 
-  // Auto-load next page when the sentinel at the bottom of the list enters
-  // the viewport. Reuses the same hook the regular chats list uses.
   const sharedLoadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextSharedPage,
     hasMore: !!hasNextSharedPage,
@@ -660,7 +653,14 @@ export function ChatSidebarContainer({
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
         settingsDisabledReason="View-only users can't access settings."
-        isDashboardsEnabled={false}
+        // Read-only access: rename/delete handlers intentionally omitted.
+        isDashboardsEnabled={isDeepResearchEnabled}
+        dashboards={dashboards}
+        selectedDashboardId={dashboardId}
+        hasMoreDashboards={hasNextDashboardPage}
+        onLoadMoreDashboards={fetchNextDashboardPage}
+        isLoadingMoreDashboards={isFetchingNextDashboardPage}
+        onDashboardClick={handleDashboardClick}
         enableFolders={false}
         chatsSectionLabel="Shared Chats"
         chatsEmptyMessage="No chats have been shared with you yet."
@@ -668,10 +668,7 @@ export function ChatSidebarContainer({
     );
   }
 
-  // Admin/Member chats-section mode. "my" → owner's normal chats (default);
-  // "shared" → chats shared org-wide or directly with this user. Toggled via
-  // a dropdown on the section header. Folders + "+ New chat" + dashboards
-  // stay visible in both modes.
+  // Admin/Member only — toggle between own chats ("my") and chats shared with them ("shared").
   const isSharedMode = chatsMode === "shared";
 
   return (

@@ -1,6 +1,4 @@
-// Canonical tenant role names — must match the labels seeded by the
-// backend in `services/tenant_service.py::initialize_default_roles`. Any
-// drift between these and the backend silently disables role-gated UI.
+// Tenant role labels. Must match `services/tenant_service.py::initialize_default_roles`.
 export const ROLES = {
   ADMIN: "Admin",
   MEMBER: "Member",

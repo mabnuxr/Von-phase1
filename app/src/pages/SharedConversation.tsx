@@ -218,9 +218,9 @@ export default function SharedConversation() {
         )}
       </div>
 
-      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one.
-          View-only users can read shared chats but can't start new ones, so
-          the button is disabled and wrapped in a Tooltip explaining why. */}
+      {/* Floating CTA — starts a new chat seeded with this one's summary.
+          Wrapped in Tooltip so the disabled-state hover message works for
+          View Only users (native `title` is suppressed on disabled buttons). */}
       <Tooltip
         content="View-only users can't start new conversations."
         enabled={isViewOnly}

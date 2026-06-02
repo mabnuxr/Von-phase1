@@ -17,28 +17,20 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
+  /** Tenant role name (compared against `conflictRole` on the picker). */
   role?: string;
 }
 
 export interface RecipientPickerProps {
-  /** Currently selected recipients */
   recipients: Recipient[];
-  /** Called when the selection changes */
   onChange: (recipients: Recipient[]) => void;
-  /** Pool of available people to pick from */
   availableRecipients?: Recipient[];
-  /** Prevent any interaction */
   readOnly?: boolean;
-  /** Label displayed above the picker */
   label?: string;
-  /** Placeholder when no recipients are selected */
   placeholder?: string;
-  /** When set, recipients whose `role` matches this value are flagged
-   *  as a permission mismatch and rendered with a red chip. */
+  /** Recipients whose `role` matches this value render as a red chip. */
   conflictRole?: string;
-  /** When set, shown beneath the input if any flagged recipient is
-   *  present. Lets the consumer customize the warning (e.g. "won't be
-   *  able to run commands"). */
+  /** Helper text shown under the input when any flagged recipient is selected. */
   conflictHelperText?: string;
 }
 

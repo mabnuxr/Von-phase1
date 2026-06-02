@@ -633,8 +633,7 @@ interface InviteChipProps {
   seed: string;
   color?: string;
   onRemove?: () => void;
-  /** When true, the chip is red-tinted to signal a permission mismatch
-   *  (e.g. granting Editor to a View Only user). */
+  /** Renders the chip red to signal a permission mismatch. */
   hasAccessConflict?: boolean;
 }
 

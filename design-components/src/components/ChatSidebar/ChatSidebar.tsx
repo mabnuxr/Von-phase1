@@ -231,8 +231,7 @@ export interface ChatSidebarProps {
   /** When false, hides the top-level Dashboards section AND the per-folder
    *  Dashboards subsection. Defaults to true. */
   isDashboardsEnabled?: boolean;
-  /** When false, hides the Folders icon in the collapsed sidebar.
-   *  Defaults to true. */
+  /** Hides the Folders icon in the collapsed sidebar when false. Defaults to true. */
   enableFolders?: boolean;
   /** Dashboard items to show in a "Dashboards" section. */
   dashboards?: DashboardSidebarItem[];
@@ -550,6 +549,8 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
 // Main Component
 // ============================================================================
 
+// Section header with a filter-icon menu for switching between modes
+// (e.g. Recents / Shared). Falls back to a static label if no modes given.
 const ChatsSectionDropdownHeader: React.FC<{
   label: string;
   modes: Array<{ id: string; label: string }>;
