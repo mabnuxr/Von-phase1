@@ -21,7 +21,7 @@
  * - No client-side caching — every level / variant / pagination / sort change
  *   re-fetches (`staleTime: 0`, `gcTime: 0`).
  */
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { dashboardService } from "../services/dashboardService";
 import type {
@@ -170,6 +170,23 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
       ? state.chain[state.chain.length - 1]
       : null;
 
+  // Tracks which attempt the current query is on (0 = initial, 1 = first retry)
+  // so the BE can include it in the PostHog error event. Must be reset to 0
+  // whenever the logical query changes (key deps change) — the retry callback
+  // only fires on failure, so it never resets the ref on success or key change.
+  const retryCountRef = useRef(0);
+  useEffect(() => {
+    retryCountRef.current = 0;
+  }, [
+    dashboardId,
+    state?.panelId,
+    state?.page,
+    state?.sort?.orderBy,
+    state?.sort?.orderByAsc,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    state ? JSON.stringify(state.chain) : null,
+  ]);
+
   const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: [
       "drilldown_v2",
@@ -200,7 +217,18 @@ export function useDrilldownV2(dashboardId: string): UseDrilldownV2Return {
           ],
         }),
       };
-      return dashboardService.drilldownPanelV2(dashboardId, payload);
+      return dashboardService.drilldownPanelV2(
+        dashboardId,
+        payload,
+        retryCountRef.current,
+      );
+    },
+    // Keep the global retry: 1 behaviour. The callback fires between failure
+    // and the next attempt, so we advance retryCountRef here — the upcoming
+    // retry queryFn call then reads the already-incremented value.
+    retry: (failureCount) => {
+      retryCountRef.current = failureCount + 1;
+      return failureCount < 1;
     },
     enabled: !!state && !!topNode,
     // No FE cache — always fresh.
