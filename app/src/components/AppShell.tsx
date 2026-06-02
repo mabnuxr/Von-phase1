@@ -18,7 +18,6 @@ import { AppShellContext } from "../contexts/AppShellContext";
 import type { AppShellContextValue } from "../contexts/AppShellContext";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import { conversationsService } from "../services";
-import { ROLES } from "../constants/roles";
 import { useToast } from "../hooks/useToast";
 import { report } from "../lib/analytics/tracker";
 
@@ -218,7 +217,6 @@ export function AppShell() {
                 email: m.email,
                 firstName: m.firstName,
                 lastName: m.lastName,
-                isViewOnly: m.role === ROLES.VIEW_ONLY,
               }));
             }}
             onToast={(message) =>

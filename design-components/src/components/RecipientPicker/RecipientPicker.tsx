@@ -17,10 +17,7 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
-  /** When true, the chip is highlighted to signal the recipient can only
-   *  read what's shared. The semantic of "view only" is owned by the
-   *  consuming app — the picker just renders the flag. */
-  isViewOnly?: boolean;
+  role?: string;
 }
 
 export interface RecipientPickerProps {
@@ -36,6 +33,13 @@ export interface RecipientPickerProps {
   label?: string;
   /** Placeholder when no recipients are selected */
   placeholder?: string;
+  /** When set, recipients whose `role` matches this value are flagged
+   *  as a permission mismatch and rendered with a red chip. */
+  conflictRole?: string;
+  /** When set, shown beneath the input if any flagged recipient is
+   *  present. Lets the consumer customize the warning (e.g. "won't be
+   *  able to run commands"). */
+  conflictHelperText?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,39 +58,30 @@ const InitialsCircle: React.FC<{ firstName: string; lastName: string }> = ({
 
 const RecipientChip: React.FC<{
   recipient: Recipient;
+  hasConflict: boolean;
   onRemove?: () => void;
-}> = ({ recipient, onRemove }) => {
-  const isViewOnly = recipient.isViewOnly === true;
-  return (
-    <span
-      title={
-        isViewOnly
-          ? "View Only — recipient can read but can't act on what's shared."
-          : undefined
-      }
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${
-        isViewOnly
-          ? 'bg-red-50 border-red-300 text-red-700'
-          : 'bg-gray-100 border-transparent text-gray-900'
-      }`}
-    >
-      {recipient.firstName} {recipient.lastName}
-      {onRemove && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className={`cursor-pointer ${
-            isViewOnly
-              ? 'text-red-400 hover:text-red-600'
-              : 'text-gray-400 hover:text-gray-600'
-          }`}
-        >
-          <X size={10} />
-        </button>
-      )}
-    </span>
-  );
-};
+}> = ({ recipient, hasConflict, onRemove }) => (
+  <span
+    className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full border ${
+      hasConflict
+        ? 'bg-red-50 border-red-300 text-red-700'
+        : 'bg-gray-100 border-transparent text-gray-900'
+    }`}
+  >
+    {recipient.firstName} {recipient.lastName}
+    {onRemove && (
+      <button
+        type="button"
+        onClick={onRemove}
+        className={`cursor-pointer ${
+          hasConflict ? 'text-red-400 hover:text-red-600' : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        <X size={10} />
+      </button>
+    )}
+  </span>
+);
 
 // ---------------------------------------------------------------------------
 // Component
@@ -99,7 +94,11 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   readOnly = false,
   label = 'Recipients',
   placeholder = 'Search team members...',
+  conflictRole,
+  conflictHelperText,
 }) => {
+  const isConflict = (r: Recipient) => conflictRole !== undefined && r.role === conflictRole;
+
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
@@ -207,6 +206,7 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
             <RecipientChip
               key={r.id}
               recipient={r}
+              hasConflict={isConflict(r)}
               onRemove={readOnly ? undefined : () => removeRecipient(r.id)}
             />
           ))}
@@ -225,10 +225,8 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
           )}
         </div>
 
-        {recipients.some((r) => r.isViewOnly) && (
-          <p className="mt-1 text-[11px] text-red-600">
-            Highlighted users are View Only users.
-          </p>
+        {conflictHelperText && recipients.some(isConflict) && (
+          <p className="mt-1 text-[11px] text-red-600">{conflictHelperText}</p>
         )}
 
         {/* Dropdown — portalled to escape overflow containers */}

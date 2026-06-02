@@ -49,8 +49,6 @@ export interface TenantMemberOption {
   email: string;
   firstName: string;
   lastName: string;
-  /** Drives the View Only badge in the recipient picker. */
-  isViewOnly?: boolean;
 }
 
 export interface ShareChatPopupProps {
@@ -115,7 +113,6 @@ export const ShareChatPopup: React.FC<ShareChatPopupProps> = ({
         email: m.email,
         firstName: m.firstName,
         lastName: m.lastName,
-        isViewOnly: m.isViewOnly,
       })),
     [tenantMembers]
   );

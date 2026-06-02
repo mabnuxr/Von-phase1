@@ -646,11 +646,6 @@ export const InviteChip: React.FC<InviteChipProps> = ({
   hasAccessConflict = false,
 }) => (
   <span
-    title={
-      hasAccessConflict
-        ? "View Only — recipient can read but can't act on what's shared."
-        : undefined
-    }
     className={`inline-flex max-w-[200px] items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-1 text-[12.5px] border ${
       hasAccessConflict
         ? "bg-red-50 border-red-300 text-red-700"
