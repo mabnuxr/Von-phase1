@@ -7,5 +7,4 @@ ingress:
     alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:814314855241:certificate/382ff526-3e7c-42f5-877f-9a1989d9991a
   tls:
     - hosts:
-        - app-v3.vonlabs.ai
         - app.vonlabs.ai

@@ -33,10 +33,6 @@ ingress:
     alb.ingress.kubernetes.io/success-codes: "200"
     alb.ingress.kubernetes.io/group.name: revenue-os-frontend
   hosts:
-    - host: app-v3.vonlabs.ai
-      paths:
-        - path: /
-          pathType: Prefix
     - host: app.vonlabs.ai
       paths:
         - path: /
