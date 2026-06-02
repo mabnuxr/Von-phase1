@@ -67,6 +67,8 @@ export function IntegrationsPanel() {
     setConfiguringSlackChannels,
     loadingIntegrationId,
     setLoadingIntegrationId,
+    deletingIntegrationId,
+    setDeletingIntegrationId,
   } = usePreferencesStore();
 
   // Auto-open integration config pane when linked from chat via ?configure=<id>.
@@ -408,9 +410,13 @@ export function IntegrationsPanel() {
 
     if (confirmed) {
       setLoadingIntegrationId(id);
+      setDeletingIntegrationId(id);
       deleteIntegration.mutate(id, {
         onSuccess: () => {
           setLoadingIntegrationId(null);
+          // deletingIntegrationId is cleared by the effect below once the
+          // integration is gone from the refetched list, keeping the delete
+          // button disabled through the stale-cache window.
           report.integrationsIntegrationDeleted({
             integrationName: integration?.name ?? id,
             integrationCategory:
@@ -427,6 +433,7 @@ export function IntegrationsPanel() {
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
+          setDeletingIntegrationId(null);
           setOauthError(`Failed to delete integration: ${error.message}`);
           report.integrationsIntegrationDeleted({
             integrationName: integration?.name ?? id,
@@ -484,7 +491,7 @@ export function IntegrationsPanel() {
     setLoadingIntegrationId,
   ]);
 
-  // Clear loadingIntegrationId when integration is successfully authenticated
+  // Clear loadingIntegrationId when integration is successfully authenticated.
   useEffect(() => {
     if (loadingIntegrationId) {
       const integration = integrationsData?.integrations.find(
@@ -497,6 +504,21 @@ export function IntegrationsPanel() {
       }
     }
   }, [integrationsData, loadingIntegrationId, setLoadingIntegrationId]);
+
+  // Clear deletingIntegrationId once the integration is gone from the refetched
+  // list. This keeps the delete button disabled through the stale React Query
+  // cache window and across remounts (Zustand persists it), preventing a second
+  // delete from firing before the UI catches up.
+  useEffect(() => {
+    if (deletingIntegrationId) {
+      const integration = integrationsData?.integrations.find(
+        (i: { id: string }) => i.id === deletingIntegrationId,
+      );
+      if (integrationsData && !integration) {
+        setDeletingIntegrationId(null);
+      }
+    }
+  }, [integrationsData, deletingIntegrationId, setDeletingIntegrationId]);
 
   // Auto-open the Slack channel-config pane on first-time Slack workspace
   // authentication. Why: users complete OAuth and the card flips to
@@ -609,6 +631,7 @@ export function IntegrationsPanel() {
             integrations={integrations}
             integrationsData={integrationsData}
             loadingIntegrationId={loadingIntegrationId}
+            deletingIntegrationId={deletingIntegrationId}
             timedOutIntegrations={timedOutIntegrations}
             onConnect={handleConnect}
             onDelete={handleDelete}
