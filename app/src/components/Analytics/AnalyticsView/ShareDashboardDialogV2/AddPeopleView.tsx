@@ -97,6 +97,10 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
     [chips],
   );
 
+  const hasViewOnlyConflict =
+    batchRole === "editor" &&
+    chips.some((c) => c.tenantRole === ROLES.VIEW_ONLY);
+
   const trimmedQuery = query.trim().toLowerCase();
   const wouldShowSuggestions = chips.length === 0 || trimmedQuery.length > 0;
   const showSuggestions = wouldShowSuggestions && !suggestionsDismissed;
@@ -189,7 +193,7 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
                 seed={c.userId}
                 color={c.colorHex}
                 onRemove={() => handleRemoveChip(c.userId)}
-                isViewOnly={
+                hasAccessConflict={
                   batchRole === "editor" && c.tenantRole === ROLES.VIEW_ONLY
                 }
               />
@@ -265,12 +269,11 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
           </div>
         </div>
 
-        {batchRole === "editor" &&
-          chips.some((c) => c.tenantRole === ROLES.VIEW_ONLY) && (
-            <p className="mt-1 text-[11px] text-red-600">
-              Highlighted users are View Only users.
-            </p>
-          )}
+        {hasViewOnlyConflict && (
+          <p className="mt-1 text-[11px] text-red-600">
+            Editor access won't apply to highlighted View Only recipients.
+          </p>
+        )}
 
         {/* Suggestions dropdown */}
         {showSuggestions && (

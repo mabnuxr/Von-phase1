@@ -633,9 +633,9 @@ interface InviteChipProps {
   seed: string;
   color?: string;
   onRemove?: () => void;
-  /** When true, the chip is amber-tinted to signal the recipient is a
-   *  View Only user (can read but not act on what's shared). */
-  isViewOnly?: boolean;
+  /** When true, the chip is red-tinted to signal a permission mismatch
+   *  (e.g. granting Editor to a View Only user). */
+  hasAccessConflict?: boolean;
 }
 
 export const InviteChip: React.FC<InviteChipProps> = ({
@@ -643,16 +643,16 @@ export const InviteChip: React.FC<InviteChipProps> = ({
   seed,
   color,
   onRemove,
-  isViewOnly = false,
+  hasAccessConflict = false,
 }) => (
   <span
     title={
-      isViewOnly
+      hasAccessConflict
         ? "View Only — recipient can read but can't act on what's shared."
         : undefined
     }
     className={`inline-flex max-w-[200px] items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-1 text-[12.5px] border ${
-      isViewOnly
+      hasAccessConflict
         ? "bg-red-50 border-red-300 text-red-700"
         : "bg-gray-100 border-transparent text-gray-900"
     }`}
@@ -664,7 +664,7 @@ export const InviteChip: React.FC<InviteChipProps> = ({
         type="button"
         onClick={onRemove}
         className={`inline-flex h-4 w-4 items-center justify-center rounded-full bg-transparent cursor-pointer ${
-          isViewOnly
+          hasAccessConflict
             ? "text-red-400 hover:bg-red-100 hover:text-red-600"
             : "text-gray-400 hover:bg-gray-200"
         }`}
