@@ -133,8 +133,9 @@ export function useVoiceTranscription(options?: {
   // drained the moment the new socket opens.
   const reconnectAttemptRef = useRef(0);
   const reconnectTimeoutRef = useRef<number | null>(null);
-  // Cached Deepgram key — reused across reconnects if still valid (the
-  // backend issues 60s keys, so brief blips usually skip the mint round-trip).
+  // Cached Deepgram token — reused across reconnects if still valid (the
+  // backend grants 120s tokens covering the full session, so reconnects skip
+  // the grant round-trip).
   const cachedKeyRef = useRef<{ key: string; expiresAt: number } | null>(null);
   // Flips true once a WS has opened successfully. Drop handler only triggers
   // a reconnect if true — initial-connect failures stay terminal so the user
@@ -296,8 +297,8 @@ export function useVoiceTranscription(options?: {
 
   // ── Reconnect lifecycle ────────────────────────────────────────────
   //
-  // Opens a fresh WS (reusing the cached key if still valid, otherwise
-  // minting a new one) and wires the same drop-aware handlers as start().
+  // Opens a fresh WS (reusing the cached token if still valid, otherwise
+  // granting a new one) and wires the same drop-aware handlers as start().
   // The mic + worklet are still running, so PCM is accumulating in
   // preconnectBufferRef during the gap — `onopen` drains it.
   //
@@ -309,7 +310,7 @@ export function useVoiceTranscription(options?: {
   const openReconnectSocket = useCallback(async (): Promise<void> => {
     let cached = cachedKeyRef.current;
     const now = Date.now();
-    // Backend issues 60s keys; pad by 5s to avoid using one that expires
+    // Backend grants 120s tokens; pad by 5s to avoid using one that expires
     // mid-handshake.
     if (!cached || now >= cached.expiresAt - 5_000) {
       const fresh = await voiceService.getDeepgramKey();
@@ -321,7 +322,7 @@ export function useVoiceTranscription(options?: {
     }
 
     const ws = new WebSocket(`${DEEPGRAM_WS}?${DEEPGRAM_QUERY}`, [
-      "token",
+      "bearer",
       cached.key,
     ]);
     ws.binaryType = "arraybuffer";
@@ -374,7 +375,7 @@ export function useVoiceTranscription(options?: {
     reconnectTimeoutRef.current = window.setTimeout(() => {
       reconnectTimeoutRef.current = null;
       openReconnectSocket().catch(() => {
-        // Key mint or WS construction failed — try the next backoff slot.
+        // Token grant or WS construction failed — try the next backoff slot.
         scheduleReconnectRef.current?.();
       });
     }, delay);
@@ -422,9 +423,9 @@ export function useVoiceTranscription(options?: {
     setStatus("connecting");
 
     try {
-      // Kick off mic capture + key fetch in parallel. The browser shows the
+      // Kick off mic capture + token fetch in parallel. The browser shows the
       // permission prompt immediately on the user gesture, while the HTTP
-      // request to mint a Deepgram key happens concurrently.
+      // request to grant a Deepgram token happens concurrently.
       const [stream, keyResponse] = await Promise.all([
         navigator.mediaDevices.getUserMedia({
           audio: {
@@ -490,7 +491,7 @@ export function useVoiceTranscription(options?: {
       // Open the WebSocket. We don't await onopen here so audio can already
       // be buffering by the time this promise resolves.
       const ws = new WebSocket(`${DEEPGRAM_WS}?${DEEPGRAM_QUERY}`, [
-        "token",
+        "bearer",
         keyResponse.key,
       ]);
       ws.binaryType = "arraybuffer";
@@ -511,8 +512,8 @@ export function useVoiceTranscription(options?: {
           clearTimeout(connectTimeoutRef.current);
           connectTimeoutRef.current = null;
         }
-        // Cache the key so a brief WS drop can reconnect without minting
-        // a fresh one — the backend issues 60s keys.
+        // Cache the token so a brief WS drop can reconnect without granting
+        // a fresh one — the backend issues 120s tokens.
         cachedKeyRef.current = {
           key: keyResponse.key,
           expiresAt: Date.parse(keyResponse.expires_at),
