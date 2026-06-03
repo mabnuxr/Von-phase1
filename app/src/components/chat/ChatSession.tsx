@@ -49,6 +49,7 @@ import type {
 import { useBaseChatConfig } from "../../hooks/useBaseChatConfig";
 import { useChatMentions } from "../../hooks/useChatMentions";
 import { useChatV2 } from "../../hooks/useChatV2";
+import { useChatDraft, useRestoreUnsentInput } from "../../hooks/useChatDraft";
 import { useVoiceTranscription } from "../../hooks/useVoiceTranscription";
 import { usePushToTalkHotkey } from "../../hooks/usePushToTalkHotkey";
 import { VoiceWaveformBar } from "../Voice/VoiceWaveformBar";
@@ -1232,6 +1233,13 @@ function NewChatInner(
     onCreated: props.onCreated,
   });
 
+  // Composer value, persisted against the shared new-chat key. Controlled
+  // (not defaultInputValue) because StandardChatInput only emits
+  // onInputValueChange in controlled mode.
+  const [newChatInput, setNewChatInput, clearDraft] = useChatDraft(null);
+  // A failed send surfaces the unsent text via restoredInput — restore it.
+  useRestoreUnsentInput(createFlow.restoredInput, setNewChatInput);
+
   // Fire Dashboard - Chat Message Sent for the first message in a new chat
   // (chat_id is null because the conversation doesn't exist yet).
   const newChatDashboardAnalyticsActive = !!(
@@ -1256,10 +1264,13 @@ function NewChatInner(
           sessionId: props.analyticsSessionId!,
         });
       }
+      // Clear the persisted draft on send so the next new chat starts empty.
+      clearDraft();
       return createFlow.handleSendMessage(content, attachments, options);
     },
     [
       createFlow,
+      clearDraft,
       newChatDashboardAnalyticsActive,
       props.dashboardId,
       props.analyticsSessionId,
@@ -1279,8 +1290,9 @@ function NewChatInner(
       conversationId=""
       messages={createFlow.transformedMessages}
       onSendMessage={newChatHandleSendMessage}
+      inputValue={newChatInput}
+      onInputValueChange={setNewChatInput}
       isLoading={false}
-      defaultInputValue={createFlow.restoredInput ?? undefined}
       compact={props.compact}
       height="100%"
       width="100%"
