@@ -10,6 +10,7 @@ import { EditLockModal } from "./EditLockModal";
 import { DiscardChangesModal } from "./DiscardChangesModal";
 import { EditModeBanner } from "../EditModeBanner";
 import { DashboardStatus } from "../../../types/dashboard";
+import { usePermissions } from "../../../contexts/permissionsContextValue";
 import { useUser } from "../../../hooks/useUser";
 import { useTenantMembers } from "../../../hooks/useTenantMembers";
 import { getUserContext } from "../../../lib/auth";
@@ -339,7 +340,7 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // Panel-filter props accepted but unused until widget-level filter UI is re-enabled
 }) => {
   const { user } = useUser();
-  const isViewOnly = useIsViewOnly();
+  const { isViewOnly } = usePermissions();
   // Bootstrap the tenant-members fetch from the synchronously-available
   // stored auth context so it doesn't wait on this component's own
   // `useUser` /me round-trip. AppShell does the same — both paths now

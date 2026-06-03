@@ -6,7 +6,7 @@ import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { useIsViewOnly } from "../hooks/useIsViewOnly";
+import { usePermissions } from "../contexts/permissionsContextValue";
 import { useSharedConversations } from "../hooks/useSharedConversations";
 import { useSearchModalStore } from "../hooks/useSearchModal";
 import { useShareStatus } from "../hooks/useShareStatus";
@@ -101,7 +101,7 @@ export function ChatSidebarContainer({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
-  const isViewOnly = useIsViewOnly();
+  const { isViewOnly } = usePermissions();
   // Admin/Member toggle for the Chats section. View Only ignores this and is always shared.
   const [chatsMode, setChatsMode] = useState<"my" | "shared">("my");
   const fetchSharedEnabled = isViewOnly || chatsMode === "shared";
@@ -647,8 +647,7 @@ export function ChatSidebarContainer({
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
         settingsDisabledReason="View-only users can't access settings."
-        // Read-only access: rename/delete handlers intentionally omitted.
-        isDashboardsEnabled={isDeepResearchEnabled}
+        isDashboardsEnabled={true}
         dashboards={dashboards}
         selectedDashboardId={dashboardId}
         hasMoreDashboards={hasNextDashboardPage}

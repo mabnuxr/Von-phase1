@@ -3,7 +3,6 @@ import { report } from "../lib/analytics/tracker";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 import { useAuthCheck } from "../hooks/useAuthCheck";
-import { useIsViewOnly } from "../hooks/useIsViewOnly";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
@@ -61,15 +60,6 @@ const Settings = () => {
   );
   useAuthCheck();
   const { user } = useUser();
-  const isViewOnly = useIsViewOnly();
-
-  // View Only users have no settings to configure — bounce them back to /chat
-  // so URL-poking can't bypass the disabled menu item in the sidebar.
-  useEffect(() => {
-    if (isViewOnly) {
-      navigate("/chat", { replace: true });
-    }
-  }, [isViewOnly, navigate]);
 
   const { isUsageMetricsEnabled } = useFeatureFlag();
 

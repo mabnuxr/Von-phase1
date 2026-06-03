@@ -33,7 +33,7 @@ import { usePushToTalkHotkey } from "../hooks/usePushToTalkHotkey";
 import { VoiceWaveformBar } from "../components/Voice/VoiceWaveformBar";
 import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
-import { useIsViewOnly } from "../hooks/useIsViewOnly";
+import { usePermissions } from "../contexts/permissionsContextValue";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
@@ -59,7 +59,7 @@ const ViewOnlyBanner = () => (
 
 const NewConversation = () => {
   const { user } = useAppShell();
-  const isViewOnly = useIsViewOnly();
+  const { isViewOnly } = usePermissions();
 
   const location = useLocation();
   const navigate = useNavigate();

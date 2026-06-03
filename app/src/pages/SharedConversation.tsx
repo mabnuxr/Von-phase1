@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
-import { useIsViewOnly } from "../hooks/useIsViewOnly";
+import { usePermissions } from "../contexts/permissionsContextValue";
 import { useMessages } from "../hooks/useMessages";
 import useChatStore from "../store/chatStore";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
@@ -40,7 +40,7 @@ export default function SharedConversation() {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const isViewOnly = useIsViewOnly();
+  const { isViewOnly } = usePermissions();
 
   const [validation, setValidation] =
     useState<SharedConversationValidationResponse | null>(null);
