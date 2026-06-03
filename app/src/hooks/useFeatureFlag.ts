@@ -13,6 +13,7 @@ export const FEATURE_FLAGS = {
   USAGE_METRICS: "enableUsageMetrics",
   CUSTOM_MCP: "enableCustomMcp",
   WORKSPACE_SEARCH: "enableVonWorkspaceSearch",
+  SHARED_CHATS_TOGGLE: "enableSharedChatsToggle",
 } as const;
 
 /**
@@ -47,5 +48,13 @@ export function useFeatureFlag() {
      * the keyboard shortcut. When off, the modal does not mount.
      */
     isWorkspaceSearchEnabled: flags[FEATURE_FLAGS.WORKSPACE_SEARCH] === true,
+
+    /**
+     * Gates the Recents / Shared toggle on the Chats sidebar header
+     * (admin/member only). Off → no filter icon, no Shared fetch — the
+     * sidebar looks pre-rollout. View Only users are unaffected.
+     */
+    isSharedChatsToggleEnabled:
+      flags[FEATURE_FLAGS.SHARED_CHATS_TOGGLE] === true,
   };
 }

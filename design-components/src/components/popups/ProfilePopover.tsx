@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GearIcon, SignOutIcon, ArrowUpRight } from '@phosphor-icons/react';
+import { GearIcon, SignOutIcon, ArrowUpRight, LockIcon } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
 
 export interface ProfilePopoverProps {
   /**
@@ -34,6 +35,13 @@ export interface ProfilePopoverProps {
   onHelpDocsClick?: () => void;
 
   /**
+   * When non-empty, the Settings item is rendered disabled with a lock icon
+   * and this string as the tooltip. Use to gate settings access for read-only
+   * roles (e.g. View Only).
+   */
+  settingsDisabledReason?: string;
+
+  /**
    * Position of the popover
    * @default { top: 0, right: 0 }
    */
@@ -52,6 +60,8 @@ interface MenuItemProps {
   variant?: 'default' | 'danger';
   trailingIcon?: React.ReactNode;
   href?: string;
+  disabled?: boolean;
+  disabledTooltip?: string;
 }
 
 const MenuItem: React.FC<MenuItemProps> = ({
@@ -61,11 +71,31 @@ const MenuItem: React.FC<MenuItemProps> = ({
   variant = 'default',
   trailingIcon,
   href,
+  disabled = false,
+  disabledTooltip,
 }) => {
-  const classes = `
-    w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors cursor-pointer text-left rounded-lg
-    ${variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'}
-  `;
+  const baseClasses = 'w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left rounded-lg';
+  const interactiveClasses = `transition-colors cursor-pointer ${
+    variant === 'danger' ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-gray-50'
+  }`;
+  const disabledClasses = 'text-gray-400 cursor-not-allowed';
+  const classes = `${baseClasses} ${disabled ? disabledClasses : interactiveClasses}`;
+
+  if (disabled) {
+    return (
+      <Tooltip
+        content={disabledTooltip}
+        enabled={Boolean(disabledTooltip)}
+        wrapperClassName="block"
+      >
+        <button type="button" disabled aria-disabled className={classes}>
+          {icon}
+          <span className="flex-1">{label}</span>
+          <LockIcon size={14} weight="regular" className="text-gray-400" />
+        </button>
+      </Tooltip>
+    );
+  }
 
   if (href) {
     return (
@@ -104,6 +134,7 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
   onSettingsClick,
   onSignOutClick,
   onHelpDocsClick,
+  settingsDisabledReason,
   position = { top: 0, right: 0 },
   className = '',
 }) => {
@@ -179,6 +210,8 @@ export const ProfilePopover: React.FC<ProfilePopoverProps> = ({
                 onSettingsClick?.();
                 onClose();
               }}
+              disabled={Boolean(settingsDisabledReason)}
+              disabledTooltip={settingsDisabledReason}
             />
             <MenuItem
               icon={<ArrowUpRight size={16} weight="regular" />}

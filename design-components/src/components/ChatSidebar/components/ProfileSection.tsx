@@ -18,6 +18,9 @@ export interface ProfileSectionProps {
   onSignOutClick?: () => void;
 
   onHelpDocsClick?: () => void;
+
+  /** When non-empty, Settings is shown as disabled with a lock + tooltip. */
+  settingsDisabledReason?: string;
 }
 
 /**
@@ -41,6 +44,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   onSettingsClick,
   onSignOutClick,
   onHelpDocsClick,
+  settingsDisabledReason,
 }) => {
   if (!userName && !userEmail && !avatarLabel) {
     return null;
@@ -87,6 +91,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         onSettingsClick={onSettingsClick}
         onSignOutClick={onSignOutClick}
         onHelpDocsClick={onHelpDocsClick}
+        settingsDisabledReason={settingsDisabledReason}
       />
     </>
   );

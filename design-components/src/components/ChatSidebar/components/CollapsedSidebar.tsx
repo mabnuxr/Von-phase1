@@ -72,6 +72,9 @@ export interface CollapsedSidebarProps {
   onSignOutClick?: () => void;
 
   onHelpDocsClick?: () => void;
+  /** When non-empty, the profile-popover Settings item is disabled with a
+   *  lock icon and this string as the tooltip. */
+  settingsDisabledReason?: string;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -133,6 +136,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
   onSettingsClick,
   onSignOutClick,
   onHelpDocsClick,
+  settingsDisabledReason,
   isNewChatActive = false,
   sortedFolders,
   itemsByFolder,
@@ -153,18 +157,20 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
       {/* Collapsed Menu */}
       <div className="flex-1">
         <div className="flex flex-col items-start gap-2">
-          {/* New Chat Button */}
-          <button
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border cursor-pointer transition-all duration-150 ${
-              isNewChatActive
-                ? 'bg-gray-50 border-gray-200 shadow-xs'
-                : 'border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
-            }`}
-            onClick={onNewChatClick}
-            title="New Chat"
-          >
-            <PlusCircleIcon size={20} weight="fill" className="text-gray-600" />
-          </button>
+          {/* New Chat Button — hidden when no handler is provided (e.g. View Only role). */}
+          {onNewChatClick && (
+            <button
+              className={`flex items-center justify-center w-8 h-8 rounded-lg border cursor-pointer transition-all duration-150 ${
+                isNewChatActive
+                  ? 'bg-gray-50 border-gray-200 shadow-xs'
+                  : 'border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
+              }`}
+              onClick={onNewChatClick}
+              title="New Chat"
+            >
+              <PlusCircleIcon size={20} weight="fill" className="text-gray-600" />
+            </button>
+          )}
 
           {/* Search Button */}
           {onSearchClick && (
@@ -177,60 +183,62 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
             </button>
           )}
 
-          {/* Folders Icon with Hover Dropdown */}
-          <div
-            className="relative"
-            onMouseEnter={() => onFoldersHover(true)}
-            onMouseLeave={() => onFoldersHover(false)}
-          >
-            <button
-              ref={foldersButtonRef}
-              className={`
+          {/* Folders icon + hover dropdown — hidden when there are no folders. */}
+          {sortedFolders.length > 0 && (
+            <div
+              className="relative"
+              onMouseEnter={() => onFoldersHover(true)}
+              onMouseLeave={() => onFoldersHover(false)}
+            >
+              <button
+                ref={foldersButtonRef}
+                className={`
                 flex items-center justify-center w-8 h-8
                 rounded-lg border cursor-pointer
                 transition-all duration-150
                 ${isFoldersHovered ? 'bg-gray-50 border-gray-200 shadow-xs text-gray-900' : 'bg-transparent border-transparent text-gray-800 hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs hover:text-gray-900'}
               `}
-              title="Folders"
-            >
-              <FolderSimpleIcon size={18} weight="regular" />
-            </button>
+                title="Folders"
+              >
+                <FolderSimpleIcon size={18} weight="regular" />
+              </button>
 
-            {/* Folders Hover Dropdown — minimal / read-only */}
-            <AnimatePresence>
-              {isFoldersHovered && (
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.15 }}
-                  className="fixed w-56 max-h-80 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[9999]"
-                  style={{
-                    top: foldersDropdownPosition.top,
-                    left: foldersDropdownPosition.left,
-                  }}
-                >
-                  <div className="px-3 py-2 border-b border-gray-100">
-                    <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
-                      Folders
-                    </span>
-                  </div>
-                  <div className="overflow-y-auto max-h-64 py-0.5">
-                    <FolderList
-                      minimal
-                      showEmptyState
-                      sortedFolders={sortedFolders}
-                      itemsByFolder={itemsByFolder}
-                      folderLoadingMap={folderLoadingMap}
-                      selectedItemId={selectedItemId}
-                      onFolderToggle={onFolderToggle}
-                      onItemClick={onItemClick}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+              {/* Folders Hover Dropdown — minimal / read-only */}
+              <AnimatePresence>
+                {isFoldersHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed w-56 max-h-80 bg-white rounded-2xl shadow-lg border border-gray-100 p-1 z-[9999]"
+                    style={{
+                      top: foldersDropdownPosition.top,
+                      left: foldersDropdownPosition.left,
+                    }}
+                  >
+                    <div className="px-3 py-2 border-b border-gray-100">
+                      <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">
+                        Folders
+                      </span>
+                    </div>
+                    <div className="overflow-y-auto max-h-64 py-0.5">
+                      <FolderList
+                        minimal
+                        showEmptyState
+                        sortedFolders={sortedFolders}
+                        itemsByFolder={itemsByFolder}
+                        folderLoadingMap={folderLoadingMap}
+                        selectedItemId={selectedItemId}
+                        onFolderToggle={onFolderToggle}
+                        onItemClick={onItemClick}
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
 
           {/* Dashboards Icon with Hover Dropdown */}
           {dashboards && (
@@ -423,6 +431,7 @@ export const CollapsedSidebar: React.FC<CollapsedSidebarProps> = ({
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
           onHelpDocsClick={onHelpDocsClick}
+          settingsDisabledReason={settingsDisabledReason}
         />
       )}
     </div>

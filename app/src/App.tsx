@@ -21,6 +21,7 @@ import SharedConversation from "./pages/SharedConversation";
 import { AuthenticatedLayout } from "./components/AuthenticatedLayout";
 import { AppShell } from "./components/AppShell";
 import { LaunchDarklyGate } from "./components/LaunchDarkly";
+import { RequirePermission } from "./components/RequirePermission";
 import { NavigationGuardProvider } from "./providers/NavigationGuard";
 import { ConversationSkeleton } from "./components/ConversationSkeleton";
 
@@ -68,17 +69,23 @@ export default function App() {
             <Route path="/shared/:shareId" element={<SharedConversation />} />
           </Route>
 
-          {/* Settings has its own sidebar */}
+          {/* Settings has its own sidebar. View Only users are bounced
+              to /chat at render time so the page never flashes. */}
           <Route
             path="/settings"
             element={
-              <LaunchDarklyGate
-                fallback={
-                  <div className="h-screen bg-gray-100 animate-pulse" />
-                }
+              <RequirePermission
+                allow={(p) => !p.isViewOnly}
+                redirectTo="/chat/new"
               >
-                <Settings />
-              </LaunchDarklyGate>
+                <LaunchDarklyGate
+                  fallback={
+                    <div className="h-screen bg-gray-100 animate-pulse" />
+                  }
+                >
+                  <Settings />
+                </LaunchDarklyGate>
+              </RequirePermission>
             }
           />
         </Route>

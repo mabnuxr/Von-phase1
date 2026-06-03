@@ -33,6 +33,7 @@ import { usePushToTalkHotkey } from "../hooks/usePushToTalkHotkey";
 import { VoiceWaveformBar } from "../components/Voice/VoiceWaveformBar";
 import { report } from "../lib/analytics/tracker";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { usePermissions } from "../contexts/permissionsContextValue";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
@@ -45,8 +46,20 @@ import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBa
 import { config } from "../config";
 import { reportRenderTiming } from "../lib/datadog";
 
+const ViewOnlyBanner = () => (
+  <div className="w-full">
+    <div className="p-2 mt-2 flex flex-row bg-amber-50 border border-amber-200 rounded-xl">
+      <p className="pl-2 text-sm text-amber-800">
+        You have view-only access. You can read chats shared with you, but can't
+        start new conversations. Ask an admin to upgrade your role.
+      </p>
+    </div>
+  </div>
+);
+
 const NewConversation = () => {
   const { user } = useAppShell();
+  const { isViewOnly } = usePermissions();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -348,6 +361,7 @@ const NewConversation = () => {
     email: m.email,
     firstName: m.firstName,
     lastName: m.lastName,
+    role: m.role,
   }));
   const currentUserRecipient = user
     ? {
@@ -389,7 +403,9 @@ const NewConversation = () => {
     [],
   );
 
-  const banner = isTenantDisabled ? (
+  const banner = isViewOnly ? (
+    <ViewOnlyBanner />
+  ) : isTenantDisabled ? (
     <SubscriptionInactiveBanner
       isTenantDisabled={isTenantDisabled}
       shouldShakeBanner={shouldShakeSubscriptionBanner}
@@ -445,7 +461,8 @@ const NewConversation = () => {
         height="100%"
         width="100%"
         banner={banner}
-        disableSubmit={!canSubmit || isCreating}
+        disableSubmit={isViewOnly || !canSubmit || isCreating}
+        disableInput={isViewOnly}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
         thinkingProcessVersion="v2"

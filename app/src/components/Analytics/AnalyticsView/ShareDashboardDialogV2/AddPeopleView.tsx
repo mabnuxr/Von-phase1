@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Tooltip } from "@vonlabs/design-components";
 import {
   Avatar,
   InviteChip,
@@ -6,6 +7,7 @@ import {
   ScopeDataByOwnership,
 } from "./components";
 import { ROLE_LABEL } from "./constants";
+import { ROLES } from "../../../../constants/roles";
 import type {
   DataScopeOptionV2,
   DirectoryPersonV2,
@@ -96,6 +98,10 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
     [chips],
   );
 
+  const hasViewOnlyConflict =
+    batchRole === "editor" &&
+    chips.some((c) => c.tenantRole === ROLES.VIEW_ONLY);
+
   const trimmedQuery = query.trim().toLowerCase();
   const wouldShowSuggestions = chips.length === 0 || trimmedQuery.length > 0;
   const showSuggestions = wouldShowSuggestions && !suggestionsDismissed;
@@ -137,7 +143,7 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
   const scopeApplies = batchRole === "viewer" && dataScopingAvailable;
   const effectiveDataScope = scopeApplies && scopeEnabled ? scopeValue : null;
 
-  const canSubmit = chips.length > 0 && !isSubmitting;
+  const canSubmit = chips.length > 0 && !isSubmitting && !hasViewOnlyConflict;
 
   const handleAddChip = (person: DirectoryPersonV2) => {
     if (selectedIds.has(person.userId)) return;
@@ -188,6 +194,9 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
                 seed={c.userId}
                 color={c.colorHex}
                 onRemove={() => handleRemoveChip(c.userId)}
+                hasAccessConflict={
+                  batchRole === "editor" && c.tenantRole === ROLES.VIEW_ONLY
+                }
               />
             ))}
             <input
@@ -261,6 +270,12 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
           </div>
         </div>
 
+        {hasViewOnlyConflict && (
+          <p className="mt-1 text-[11px] text-red-600">
+            Editor access won't apply to highlighted View Only recipients.
+          </p>
+        )}
+
         {/* Suggestions dropdown */}
         {showSuggestions && (
           <div className="absolute left-0 right-0 top-[44px] z-10 max-h-[260px] overflow-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)]">
@@ -274,29 +289,47 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
                 No matches for “{query}”
               </div>
             )}
-            {suggestions.map((p) => (
-              <button
-                key={p.userId}
-                type="button"
-                onClick={() => handleAddChip(p)}
-                className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-gray-50 cursor-pointer"
-              >
-                <Avatar
-                  name={p.name}
-                  seed={p.userId}
-                  color={p.colorHex}
-                  size={22}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[12.5px] font-medium text-gray-900">
-                    {p.name}
+            {suggestions.map((p) => {
+              const disabled =
+                batchRole === "editor" && p.tenantRole === ROLES.VIEW_ONLY;
+              const row = (
+                <button
+                  type="button"
+                  onClick={disabled ? undefined : () => handleAddChip(p)}
+                  disabled={disabled}
+                  className={`flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left ${
+                    disabled
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  <Avatar
+                    name={p.name}
+                    seed={p.userId}
+                    color={p.colorHex}
+                    size={22}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[12.5px] font-medium text-gray-900">
+                      {p.name}
+                    </div>
+                    <div className="truncate text-[11px] text-gray-400">
+                      {p.email}
+                    </div>
                   </div>
-                  <div className="truncate text-[11px] text-gray-400">
-                    {p.email}
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+              return (
+                <Tooltip
+                  key={p.userId}
+                  content="View Only users can't be granted Editor access."
+                  enabled={disabled}
+                  wrapperClassName="block"
+                >
+                  {row}
+                </Tooltip>
+              );
+            })}
           </div>
         )}
       </div>
@@ -353,18 +386,23 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={!canSubmit}
-              className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
-                canSubmit
-                  ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
+            <Tooltip
+              content="Remove View Only recipients or switch the role to Viewer to share."
+              enabled={hasViewOnlyConflict}
             >
-              {isSubmitting ? "Sharing…" : "Share"}
-            </button>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!canSubmit}
+                className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
+                  canSubmit
+                    ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                }`}
+              >
+                {isSubmitting ? "Sharing…" : "Share"}
+              </button>
+            </Tooltip>
           </>
         )}
       </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
+import { usePermissions } from "../contexts/permissionsContextValue";
 import { useMessages } from "../hooks/useMessages";
 import useChatStore from "../store/chatStore";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
@@ -12,8 +13,8 @@ import {
 } from "../services/conversationsService";
 import { setShareId } from "../services/apiClient";
 import { useToast } from "../hooks/useToast";
-import { SpinnerGapIcon } from "@phosphor-icons/react";
-import { TextShimmer } from "@vonlabs/design-components";
+import { LockIcon, SpinnerGapIcon } from "@phosphor-icons/react";
+import { TextShimmer, Tooltip } from "@vonlabs/design-components";
 
 /**
  * Read-only view of a shared conversation.
@@ -39,6 +40,7 @@ export default function SharedConversation() {
   const { shareId } = useParams<{ shareId: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isViewOnly } = usePermissions();
 
   const [validation, setValidation] =
     useState<SharedConversationValidationResponse | null>(null);
@@ -216,22 +218,39 @@ export default function SharedConversation() {
         )}
       </div>
 
-      {/* Floating CTA: kick off a new chat pre-loaded with a summary of this one */}
-      <button
-        type="button"
-        onClick={handleStartWithContext}
-        disabled={isSummarizing || !conversationId}
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg hover:bg-gray-800 disabled:cursor-not-allowed transition-colors cursor-pointer z-10"
+      {/* Floating CTA — starts a new chat seeded with this one's summary.
+          Wrapped in Tooltip so the disabled-state hover message works for
+          View Only users (native `title` is suppressed on disabled buttons). */}
+      <Tooltip
+        content="View-only users can't start new conversations."
+        enabled={isViewOnly}
+        wrapperClassName="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
       >
-        {isSummarizing ? (
-          <>
-            <SpinnerGapIcon size={13} className="animate-spin" />
-            <TextShimmer variant="dark">Summarizing…</TextShimmer>
-          </>
-        ) : (
-          "Continue conversation"
-        )}
-      </button>
+        <button
+          type="button"
+          onClick={handleStartWithContext}
+          disabled={isViewOnly || isSummarizing || !conversationId}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium shadow-lg transition-colors ${
+            isViewOnly
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-gray-900 text-white hover:bg-gray-800 disabled:cursor-not-allowed cursor-pointer"
+          }`}
+        >
+          {isViewOnly ? (
+            <>
+              <LockIcon size={13} weight="regular" />
+              Continue conversation
+            </>
+          ) : isSummarizing ? (
+            <>
+              <SpinnerGapIcon size={13} className="animate-spin" />
+              <TextShimmer variant="dark">Summarizing…</TextShimmer>
+            </>
+          ) : (
+            "Continue conversation"
+          )}
+        </button>
+      </Tooltip>
     </div>
   );
 }

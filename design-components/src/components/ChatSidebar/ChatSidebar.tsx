@@ -5,6 +5,8 @@ import {
   PlusCircleIcon,
   DotsThreeIcon,
   MagnifyingGlassIcon,
+  CheckIcon,
+  FunnelSimpleIcon,
 } from '@phosphor-icons/react';
 import { TertiaryIconButton, PrimaryIconButton } from '../forms/buttons';
 import { ContextMenu, DeleteConfirmationPopup, MoveToFolderModal } from '../popups';
@@ -196,6 +198,18 @@ export interface ChatSidebarProps {
   hasMoreChats?: boolean;
   /** Callback invoked when the user clicks "Show 5 more" under Chats. */
   onLoadMoreChats?: () => void;
+  /** Override the top-level chats section header (default "Chats").
+   *  Used by the View Only role to display "Shared Chats" instead. */
+  chatsSectionLabel?: string;
+  /** Override the empty-state message under the chats section. */
+  chatsEmptyMessage?: string;
+  /** When provided, the chats section header renders as a clickable dropdown
+   *  with these mode options. Used by Admin/Member to flip between their own
+   *  chats and chats shared with them. The container is responsible for
+   *  swapping `items` / `chatsSectionLabel` based on the active mode. */
+  chatsSectionModes?: Array<{ id: string; label: string }>;
+  activeChatsModeId?: string;
+  onChatsModeChange?: (modeId: string) => void;
   onLogoClick?: () => void;
   userName?: string;
   userEmail?: string;
@@ -206,6 +220,10 @@ export interface ChatSidebarProps {
   onSignOutClick?: () => void;
 
   onHelpDocsClick?: () => void;
+
+  /** When non-empty, the profile-popover Settings item is disabled and shows
+   *  this string as the tooltip (used to gate access for View Only users). */
+  settingsDisabledReason?: string;
   /** Whether the "New Chat" button should appear in active/selected state */
   isNewChatActive?: boolean;
 
@@ -529,6 +547,62 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
 // Main Component
 // ============================================================================
 
+// Section header with a filter-icon menu for switching between modes
+// (e.g. Recents / Shared). Falls back to a static label if no modes given.
+const ChatsSectionDropdownHeader: React.FC<{
+  label: string;
+  modes: Array<{ id: string; label: string }>;
+  activeModeId?: string;
+  onModeChange?: (modeId: string) => void;
+}> = ({ label, modes, activeModeId, onModeChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className="relative flex items-center justify-between px-2 py-1.5">
+      <span className="text-xs font-medium text-gray-600">{label}</span>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Filter chats"
+        className="flex h-5 w-5 items-center justify-center rounded text-gray-500 hover:bg-gray-100 hover:text-gray-700 cursor-pointer"
+      >
+        <FunnelSimpleIcon size={14} weight="bold" />
+      </button>
+      {open && (
+        <div className="absolute right-2 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-gray-100 bg-white shadow-lg py-1.5">
+          {modes.map((mode) => {
+            const isActive = mode.id === activeModeId;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => {
+                  onModeChange?.(mode.id);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-gray-800 hover:bg-gray-50 cursor-pointer"
+              >
+                <span className="flex-1">{mode.label}</span>
+                {isActive && <CheckIcon size={14} weight="bold" className="text-blue-500" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /**
  * ChatSidebar - Left sidebar for chats
  *
@@ -573,6 +647,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isFetchingMore = false,
   hasMoreChats,
   onLoadMoreChats,
+  chatsSectionLabel = 'Chats',
+  chatsEmptyMessage = 'No conversations yet. Start a new chat to get going.',
+  chatsSectionModes,
+  activeChatsModeId,
+  onChatsModeChange,
   onLogoClick,
   userName,
   userEmail,
@@ -581,6 +660,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onSettingsClick,
   onSignOutClick,
   onHelpDocsClick,
+  settingsDisabledReason,
   isNewChatActive = false,
   isDashboardsEnabled = true,
   dashboards,
@@ -787,6 +867,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           onSettingsClick={onSettingsClick}
           onSignOutClick={onSignOutClick}
           onHelpDocsClick={onHelpDocsClick}
+          settingsDisabledReason={settingsDisabledReason}
           isNewChatActive={isNewChatActive}
           sortedFolders={sortedFolders}
           itemsByFolder={itemsByFolder}
@@ -823,28 +904,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 />
               </div>
 
-              {/* New Chat Button */}
-              <div className="mt-2 pr-2">
-                <button
-                  className={`group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                    isNewChatActive
-                      ? 'bg-gray-50 border-gray-200 shadow-xs'
-                      : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
-                  }`}
-                  onClick={onNewChatClick}
-                  type="button"
-                >
-                  <PlusCircleIcon size={20} weight="fill" className="flex-shrink-0 text-gray-600" />
-                  <span className="whitespace-nowrap">New Chat</span>
-                  <span
-                    className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
-                      isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              {/* New Chat Button — hidden when no handler is provided (e.g. View Only role). */}
+              {onNewChatClick && (
+                <div className="mt-2 pr-2">
+                  <button
+                    className={`group flex items-center gap-1.5 px-1.5 h-8 w-full rounded-xl text-sm text-gray-900 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                      isNewChatActive
+                        ? 'bg-gray-50 border-gray-200 shadow-xs'
+                        : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200 hover:shadow-xs'
                     }`}
+                    onClick={onNewChatClick}
+                    type="button"
                   >
-                    {NEW_CHAT_SHORTCUT_LABEL}
-                  </span>
-                </button>
-              </div>
+                    <PlusCircleIcon
+                      size={20}
+                      weight="fill"
+                      className="flex-shrink-0 text-gray-600"
+                    />
+                    <span className="whitespace-nowrap">New Chat</span>
+                    <span
+                      className={`ml-auto mr-1 text-xs text-gray-500 transition-opacity ${
+                        isModKeyHeld ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    >
+                      {NEW_CHAT_SHORTCUT_LABEL}
+                    </span>
+                  </button>
+                </div>
+              )}
 
               {/* Search Button */}
               {onSearchClick && (
@@ -876,8 +963,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {/* Loading Skeleton */}
                 {isLoading && <ChatSidebarSkeleton />}
 
-                {/* Folders Section */}
-                {!isLoading && (
+                {/* Folders Section — hidden entirely when there are no folders
+                    AND no folder-creation handler (e.g. View Only role). */}
+                {!isLoading && (visibleFolders.length > 0 || !!onNewChatFolderClick) && (
                   <div className="mb-3">
                     <SectionHeader label="Folders" />
                     <div>
@@ -893,7 +981,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         newFolderName={newFolderName}
                         onNewFolderNameChange={setNewFolderName}
                         newFolderInputRef={newFolderInputRef}
-                        onStartFolderCreation={handleStartFolderCreation}
+                        onStartFolderCreation={
+                          onNewChatFolderClick ? handleStartFolderCreation : undefined
+                        }
                         onConfirmFolderCreation={handleConfirmFolderCreation}
                         onCancelFolderCreation={handleCancelFolderCreation}
                         editingFolderId={editingFolderId}
@@ -957,7 +1047,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 {/* Chats Section (root items not in folders) */}
                 {!isLoading && (
                   <div className="mb-2">
-                    <SectionHeader label="Chats" />
+                    {chatsSectionModes && chatsSectionModes.length > 0 ? (
+                      <ChatsSectionDropdownHeader
+                        label={chatsSectionLabel}
+                        modes={chatsSectionModes}
+                        activeModeId={activeChatsModeId}
+                        onModeChange={onChatsModeChange}
+                      />
+                    ) : (
+                      <SectionHeader label={chatsSectionLabel} />
+                    )}
                     {rootItems.length > 0 ? (
                       <div>
                         {rootItems.map((item) => (
@@ -985,7 +1084,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         ) : null}
                       </div>
                     ) : (
-                      <SectionEmptyState message="No conversations yet. Start a new chat to get going." />
+                      <SectionEmptyState message={chatsEmptyMessage} />
                     )}
                   </div>
                 )}
@@ -1024,6 +1123,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 onSettingsClick={onSettingsClick}
                 onSignOutClick={onSignOutClick}
                 onHelpDocsClick={onHelpDocsClick}
+                settingsDisabledReason={settingsDisabledReason}
               />
             </div>
           </motion.div>

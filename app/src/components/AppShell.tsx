@@ -217,6 +217,7 @@ export function AppShell() {
                 email: m.email,
                 firstName: m.firstName,
                 lastName: m.lastName,
+                role: m.role,
               }));
             }}
             onToast={(message) =>

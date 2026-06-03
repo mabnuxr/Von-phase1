@@ -400,6 +400,8 @@ export const CommandDrawer: React.FC<CommandDrawerProps> = ({
                   onChange={(next) => setForm((v) => ({ ...v, sharedUsers: next }))}
                   availableRecipients={tenantMembers?.filter((m) => m.id !== currentUser?.id) ?? []}
                   readOnly={readOnly}
+                  disabledRole="View Only"
+                  disabledTooltip="View Only users can't run commands."
                 />
               </div>
             )}

@@ -7,6 +7,7 @@ import { identifyDatadogUser } from "../lib/datadog";
 import { identifyPosthogUser } from "../lib/posthog";
 import { LaunchDarklyIdentityContext } from "./LaunchDarkly";
 import { GlobalChatProvider } from "../providers/GlobalChat";
+import { PermissionsProvider } from "../contexts/PermissionsContext";
 
 /**
  * Layout wrapper for authenticated routes.
@@ -38,7 +39,9 @@ export function AuthenticatedLayout() {
   return (
     <GlobalChatProvider>
       <LaunchDarklyIdentityContext.Provider value={isIdentified}>
-        <Outlet />
+        <PermissionsProvider>
+          <Outlet />
+        </PermissionsProvider>
       </LaunchDarklyIdentityContext.Provider>
     </GlobalChatProvider>
   );

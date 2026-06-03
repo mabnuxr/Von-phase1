@@ -7,6 +7,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MagnifyingGlass, X } from '@phosphor-icons/react';
+import { Tooltip } from '../Tooltip';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -17,21 +18,21 @@ export interface Recipient {
   email: string;
   firstName: string;
   lastName: string;
+  /** Tenant role name (compared against `disabledRole` on the picker). */
+  role?: string;
 }
 
 export interface RecipientPickerProps {
-  /** Currently selected recipients */
   recipients: Recipient[];
-  /** Called when the selection changes */
   onChange: (recipients: Recipient[]) => void;
-  /** Pool of available people to pick from */
   availableRecipients?: Recipient[];
-  /** Prevent any interaction */
   readOnly?: boolean;
-  /** Label displayed above the picker */
   label?: string;
-  /** Placeholder when no recipients are selected */
   placeholder?: string;
+  /** Suggestion rows whose `role` matches this value can't be selected. */
+  disabledRole?: string;
+  /** Tooltip shown when hovering a disabled suggestion row. */
+  disabledTooltip?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,13 +53,13 @@ const RecipientChip: React.FC<{
   recipient: Recipient;
   onRemove?: () => void;
 }> = ({ recipient, onRemove }) => (
-  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-100 rounded-full">
+  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-900">
     {recipient.firstName} {recipient.lastName}
     {onRemove && (
       <button
         type="button"
         onClick={onRemove}
-        className="text-gray-400 hover:text-gray-600 cursor-pointer"
+        className="cursor-pointer text-gray-400 hover:text-gray-600"
       >
         <X size={10} />
       </button>
@@ -77,7 +78,11 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
   readOnly = false,
   label = 'Recipients',
   placeholder = 'Search team members...',
+  disabledRole,
+  disabledTooltip,
 }) => {
+  const isDisabled = (r: Recipient) => disabledRole !== undefined && r.role === disabledRole;
+
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
@@ -219,22 +224,37 @@ export const RecipientPicker: React.FC<RecipientPickerProps> = ({
                 width: dropdownPos.width,
               }}
             >
-              {filteredMembers.map((member) => (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => addRecipient(member)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <InitialsCircle firstName={member.firstName} lastName={member.lastName} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium text-gray-900 truncate">
-                      {member.firstName} {member.lastName}
+              {filteredMembers.map((member) => {
+                const disabled = isDisabled(member);
+                const row = (
+                  <button
+                    type="button"
+                    onClick={disabled ? undefined : () => addRecipient(member)}
+                    disabled={disabled}
+                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors ${
+                      disabled ? 'cursor-not-allowed opacity-60' : 'hover:bg-gray-50 cursor-pointer'
+                    }`}
+                  >
+                    <InitialsCircle firstName={member.firstName} lastName={member.lastName} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium text-gray-900 truncate">
+                        {member.firstName} {member.lastName}
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
                     </div>
-                    <div className="text-[11px] text-gray-400 truncate">{member.email}</div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+                return (
+                  <Tooltip
+                    key={member.id}
+                    content={disabledTooltip}
+                    enabled={disabled && !!disabledTooltip}
+                    wrapperClassName="block"
+                  >
+                    {row}
+                  </Tooltip>
+                );
+              })}
             </div>,
             document.body
           )}

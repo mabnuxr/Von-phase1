@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { ChatSidebar } from "@vonlabs/design-components";
-import type { ItemType } from "@vonlabs/design-components";
+import { useLocation, useParams } from "react-router-dom";
+import { ChatSidebar, ItemType } from "@vonlabs/design-components";
 import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
 import { useFeatureFlag } from "../hooks/useFeatureFlag";
+import { usePermissions } from "../contexts/permissionsContextValue";
+import { useSharedConversations } from "../hooks/useSharedConversations";
 import { useSearchModalStore } from "../hooks/useSearchModal";
 import { useShareStatus } from "../hooks/useShareStatus";
 import { useChatSidebar } from "../hooks/useChatSidebar";
@@ -100,8 +101,21 @@ export function ChatSidebarContainer({
   const navigate = useGuardedNavigate();
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
+  const { isViewOnly } = usePermissions();
+  const { isWorkspaceSearchEnabled, isSharedChatsToggleEnabled } =
+    useFeatureFlag();
+  // Admin/Member toggle for the Chats section. View Only ignores this and is always shared.
+  // When the toggle flag is off, admin/member can't switch to Shared — stays on "my".
+  const [chatsMode, setChatsMode] = useState<"my" | "shared">("my");
+  const isSharedMode = isSharedChatsToggleEnabled && chatsMode === "shared";
+  const fetchSharedEnabled = isViewOnly || isSharedMode;
+  const {
+    data: sharedConversationsPages,
+    fetchNextPage: fetchNextSharedPage,
+    hasNextPage: hasNextSharedPage,
+    isFetchingNextPage: isFetchingNextSharedPage,
+  } = useSharedConversations(fetchSharedEnabled);
   const openSearchModal = useSearchModalStore((s) => s.open);
-  const { isWorkspaceSearchEnabled } = useFeatureFlag();
 
   // Track which conversation's context menu is open to fetch its share status
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
@@ -561,6 +575,40 @@ export function ChatSidebarContainer({
     ? getDisplayName(user.name, user.firstName, user.lastName, user.email)
     : undefined;
 
+  // Flat list of shares for the Chats section. id is the share_id so clicks
+  // route to /shared/{shareId} (the read-only viewer).
+  const sharedItems = useMemo<SidebarItem[]>(() => {
+    if (!fetchSharedEnabled || !sharedConversationsPages) return [];
+    return sharedConversationsPages.pages.flatMap((page) =>
+      page.items.map((s) => ({
+        id: s.shareId,
+        label: s.conversation.title?.trim() || "Untitled chat",
+        type: ItemType.Chat,
+        isOwner: false,
+        isSystemManaged: true,
+      })),
+    );
+  }, [fetchSharedEnabled, sharedConversationsPages]);
+
+  const sharedLoadMoreRef = useInfiniteScroll({
+    onLoadMore: fetchNextSharedPage,
+    hasMore: !!hasNextSharedPage,
+    isLoading: isFetchingNextSharedPage,
+  });
+
+  // Highlight the active item when on /shared/:shareId.
+  const location = useLocation();
+  const activeShareId = location.pathname.startsWith("/shared/")
+    ? location.pathname.slice("/shared/".length).split("/")[0] || undefined
+    : undefined;
+
+  const handleSharedChatClick = useCallback(
+    (shareId: string) => {
+      navigate(`/shared/${shareId}`);
+    },
+    [navigate],
+  );
+
   // "New Chat" lights up only for a definitively-untitled chat — not just
   // "current id not in cache", since the chat could live in a collapsed
   // folder or unfetched page.
@@ -578,18 +626,57 @@ export function ChatSidebarContainer({
     );
   }, [currentConversationId, items, folderItems, unfiledConversations]);
 
+  if (isViewOnly) {
+    return (
+      <ChatSidebar
+        items={sharedItems}
+        folders={[]}
+        folderItems={{}}
+        isLoading={false}
+        selectedItemId={activeShareId}
+        onItemClick={handleSharedChatClick}
+        onFolderToggle={() => undefined}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={onToggleCollapse}
+        loadMoreRef={sharedLoadMoreRef}
+        isFetchingMore={isFetchingNextSharedPage}
+        hasMoreChats={!!hasNextSharedPage}
+        onLoadMoreChats={fetchNextSharedPage}
+        avatarSrc={avatarSrc}
+        avatarLabel={avatarLabel}
+        userName={displayName}
+        userEmail={user?.email}
+        onSignOutClick={onLogoutClick}
+        onSettingsClick={onSettingsClick}
+        onHelpDocsClick={onHelpDocsClick}
+        settingsDisabledReason="View-only users can't access settings."
+        isDashboardsEnabled={true}
+        dashboards={dashboards}
+        selectedDashboardId={dashboardId}
+        hasMoreDashboards={hasNextDashboardPage}
+        onLoadMoreDashboards={fetchNextDashboardPage}
+        isLoadingMoreDashboards={isFetchingNextDashboardPage}
+        onDashboardClick={handleDashboardClick}
+        chatsSectionLabel="Shared Chats"
+        chatsEmptyMessage="No chats have been shared with you yet."
+      />
+    );
+  }
+
   return (
     <>
       <ChatSidebar
-        items={decoratedItems}
+        items={isSharedMode ? sharedItems : decoratedItems}
         folders={folders}
         folderItems={decoratedFolderItems}
         folderDashboards={folderDashboards}
         folderSectionTotals={folderSectionTotals}
         folderLoadingMap={folderLoadingMap}
         isLoading={isLoading}
-        selectedItemId={currentConversationId || undefined}
-        onItemClick={handleChatClick}
+        selectedItemId={
+          isSharedMode ? activeShareId : currentConversationId || undefined
+        }
+        onItemClick={isSharedMode ? handleSharedChatClick : handleChatClick}
         onNewChatClick={onNewChatClick}
         onSearchClick={
           isWorkspaceSearchEnabled
@@ -615,10 +702,30 @@ export function ChatSidebarContainer({
         onCollapseSection={collapseSection}
         isCollapsed={isCollapsed}
         onToggleCollapse={onToggleCollapse}
-        loadMoreRef={loadMoreRef}
-        isFetchingMore={isFetchingNextPage}
-        hasMoreChats={hasNextPage}
-        onLoadMoreChats={fetchNextPage}
+        loadMoreRef={isSharedMode ? sharedLoadMoreRef : loadMoreRef}
+        isFetchingMore={
+          isSharedMode ? isFetchingNextSharedPage : isFetchingNextPage
+        }
+        hasMoreChats={isSharedMode ? !!hasNextSharedPage : hasNextPage}
+        onLoadMoreChats={isSharedMode ? fetchNextSharedPage : fetchNextPage}
+        chatsSectionLabel={isSharedMode ? "Shared Chats" : "Chats"}
+        chatsEmptyMessage={
+          isSharedMode ? "No chats have been shared with you yet." : undefined
+        }
+        chatsSectionModes={
+          isSharedChatsToggleEnabled
+            ? [
+                { id: "my", label: "Recents" },
+                { id: "shared", label: "Shared" },
+              ]
+            : undefined
+        }
+        activeChatsModeId={isSharedChatsToggleEnabled ? chatsMode : undefined}
+        onChatsModeChange={
+          isSharedChatsToggleEnabled
+            ? (id) => setChatsMode(id as "my" | "shared")
+            : undefined
+        }
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         userName={displayName}

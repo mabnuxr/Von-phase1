@@ -633,6 +633,8 @@ interface InviteChipProps {
   seed: string;
   color?: string;
   onRemove?: () => void;
+  /** Renders the chip red to signal a permission mismatch. */
+  hasAccessConflict?: boolean;
 }
 
 export const InviteChip: React.FC<InviteChipProps> = ({
@@ -640,15 +642,26 @@ export const InviteChip: React.FC<InviteChipProps> = ({
   seed,
   color,
   onRemove,
+  hasAccessConflict = false,
 }) => (
-  <span className="inline-flex max-w-[200px] items-center gap-1.5 rounded-full bg-gray-100 py-0.5 pl-0.5 pr-1 text-[12.5px] text-gray-900">
+  <span
+    className={`inline-flex max-w-[200px] items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-1 text-[12.5px] border ${
+      hasAccessConflict
+        ? "bg-red-50 border-red-300 text-red-700"
+        : "bg-gray-100 border-transparent text-gray-900"
+    }`}
+  >
     <Avatar name={name} seed={seed} color={color} size={20} />
     <span className="truncate">{name}</span>
     {onRemove && (
       <button
         type="button"
         onClick={onRemove}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-transparent text-gray-400 hover:bg-gray-200 cursor-pointer"
+        className={`inline-flex h-4 w-4 items-center justify-center rounded-full bg-transparent cursor-pointer ${
+          hasAccessConflict
+            ? "text-red-400 hover:bg-red-100 hover:text-red-600"
+            : "text-gray-400 hover:bg-gray-200"
+        }`}
       >
         <XIcon size={10} weight="bold" />
       </button>
