@@ -343,16 +343,15 @@ const NewConversation = () => {
     firstName: m.firstName,
     lastName: m.lastName,
   }));
-  const currentUserRecipient =
-    user
-      ? {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
-          lastName:
-            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
-        }
-      : undefined;
+  const currentUserRecipient = user
+    ? {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+        lastName:
+          user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+      }
+    : undefined;
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
