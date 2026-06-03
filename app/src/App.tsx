@@ -76,7 +76,7 @@ export default function App() {
             element={
               <RequirePermission
                 allow={(p) => !p.isViewOnly}
-                redirectTo="/chat"
+                redirectTo="/chat/new"
               >
                 <LaunchDarklyGate
                   fallback={
