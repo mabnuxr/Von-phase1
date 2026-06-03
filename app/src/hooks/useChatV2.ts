@@ -26,6 +26,7 @@ import type {
 import { buildMentionReferences } from "../lib/messageReferenceUtils";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
+import { ApiError } from "../services/apiClient";
 import useChatStore from "../store/chatStore";
 import { useChatDraft } from "./useChatDraft";
 import { usePusherChannel } from "./usePusherChannel";
@@ -254,7 +255,7 @@ export function useChatV2(props: UseChatV2Props) {
   });
 
   // Send message
-  const { mutate: sendMessage } = useSendMessage();
+  const { mutateAsync: sendMessage } = useSendMessage();
 
   // Stop streaming
   const { mutate: stopStreaming } = useStopStreaming();
@@ -811,33 +812,63 @@ export function useChatV2(props: UseChatV2Props) {
           ? [...(references ?? []), ...mentionRefs]
           : references;
 
-      sendMessage({
-        conversationId,
-        content,
-        fileAttachments,
-        references: allReferences,
-        command: options?.command
-          ? {
-              id: options.command.id,
-              name: options.command.name,
-              prompt: options.command.prompt,
-              dataSources: options.command.dataSources
-                ?.filter((ds) => ds.s3Key)
-                ?.map((ds) => ({
-                  fileId: ds.id,
-                  fileName: ds.name,
-                  fileSize: ds.size,
-                  mimeType: ds.type,
-                  extension: ds.extension,
-                  category: ds.category,
-                  s3Key: ds.s3Key!,
-                })),
-              accessLevel:
-                options.command.sharingScope === "org" ? "tenant" : "user",
-              autoApprove: options.command.autoApprove ?? false,
-            }
-          : undefined,
-      });
+      // Await the send so a transient failure can restore the user's text.
+      // StandardChatInput clears the composer (onChange("")) synchronously after
+      // calling onSend, which wipes the persisted draft; useSendMessage's onError
+      // only rolls back the optimistic messages, so without this the submitted
+      // text would be lost. On failure we re-seed the draft via
+      // setAutoPopulatedInput, mirroring the new-chat restoredInput flow.
+      try {
+        await sendMessage({
+          conversationId,
+          content,
+          fileAttachments,
+          references: allReferences,
+          command: options?.command
+            ? {
+                id: options.command.id,
+                name: options.command.name,
+                prompt: options.command.prompt,
+                dataSources: options.command.dataSources
+                  ?.filter((ds) => ds.s3Key)
+                  ?.map((ds) => ({
+                    fileId: ds.id,
+                    fileName: ds.name,
+                    fileSize: ds.size,
+                    mimeType: ds.type,
+                    extension: ds.extension,
+                    category: ds.category,
+                    s3Key: ds.s3Key!,
+                  })),
+                accessLevel:
+                  options.command.sharingScope === "org" ? "tenant" : "user",
+                autoApprove: options.command.autoApprove ?? false,
+              }
+            : undefined,
+        });
+      } catch (error) {
+        console.error("[useChatV2] Failed to send message:", error);
+        // Restore the unsent text so the user doesn't lose their message.
+        setAutoPopulatedInput(content);
+        // Surface why — without a toast the message just silently vanishes
+        // (the optimistic rows are rolled back) and only the text reappearing
+        // hints that anything went wrong. Mirrors the new-chat error flow.
+        const detail =
+          error instanceof ApiError
+            ? error.statusCode === 0
+              ? "Network error"
+              : error.message
+            : error instanceof Error && error.message
+              ? error.message
+              : null;
+        showToast({
+          message: detail
+            ? `Couldn't send your message, ${detail}. Please try again.`
+            : "Couldn't send your message. Please try again.",
+          variant: "error",
+        });
+        return false;
+      }
       clearFileAttachments();
       return true;
     },
@@ -850,6 +881,8 @@ export function useChatV2(props: UseChatV2Props) {
       clearFileAttachments,
       uploadPendingFiles,
       references,
+      setAutoPopulatedInput,
+      showToast,
     ],
   );
 
