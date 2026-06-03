@@ -437,7 +437,8 @@ export function useChatV2(props: UseChatV2Props) {
 
   // Composer input, persisted per-conversation; writing "" (e.g. when the Chat
   // component empties the input after a send) clears the draft.
-  const [autoPopulatedInput, setAutoPopulatedInput] = useChatDraft(conversationId);
+  const [autoPopulatedInput, setAutoPopulatedInput] =
+    useChatDraft(conversationId);
   const lastUserMessageRef = useRef("");
   const streamingStartedAtRef = useRef<number | null>(null);
 

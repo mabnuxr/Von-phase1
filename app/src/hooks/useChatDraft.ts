@@ -27,9 +27,13 @@ const keyFor = (chatId: string | null | undefined) =>
 export function useChatDraft(
   chatId: string | null | undefined,
 ): [string, (value: string) => void, () => void] {
-  const [stored, setStored, remove] = useLocalStorage<string>(keyFor(chatId), "", {
-    raw: true,
-  });
+  const [stored, setStored, remove] = useLocalStorage<string>(
+    keyFor(chatId),
+    "",
+    {
+      raw: true,
+    },
+  );
 
   const setDraft = useCallback(
     (value: string) => {
