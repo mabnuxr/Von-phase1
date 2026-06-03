@@ -242,15 +242,11 @@ const NewConversation = () => {
       beginVoice();
     }
   }, [beginVoice, endVoice, voice]);
+  // Hold ⌥ Option to dictate; release ends it and keeps the text. No status
+  // guards — the hook balances press/release and start/stop guard re-entry.
   usePushToTalkHotkey({
-    onPress: () => {
-      if (voice.status === "idle" || voice.status === "error") beginVoice();
-    },
-    onRelease: () => {
-      if (voice.status === "listening" || voice.status === "connecting") {
-        void endVoice();
-      }
-    },
+    onPress: beginVoice,
+    onRelease: endVoice,
   });
   // Keep input in sync with `defaultInputValue` (e.g. after a failed send
   // restores the user's unsent text). Matches the original ChatEmptyState
