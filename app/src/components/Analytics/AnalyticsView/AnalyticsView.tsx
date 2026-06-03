@@ -357,7 +357,10 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   // the edit chrome (ring, gray bg, banner, drag/drop, layout autosave) so
   // the preview always reads as read-only, no matter which version is
   // rendered.
-  const isEditMode = dashboard.isEditable && !isVersionPreview;
+  // Tenant-level View Only forces read-only chrome here too — a user with
+  // a per-dashboard editor grant who's since been demoted shouldn't get
+  // drag/resize or trigger layout autosave.
+  const isEditMode = dashboard.isEditable && !isVersionPreview && !isViewOnly;
 
   const {
     gridConfig,
