@@ -190,6 +190,10 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     const printWindow = window.open(blobUrl, '_blank');
 
     if (printWindow) {
+      // Sever the opener: the Blob doc is same-origin, so any raw HTML that
+      // slips through the markdown renderer could otherwise reach the app
+      // window via window.opener. The local reference still prints/closes it.
+      printWindow.opener = null;
       // Close the tab on afterprint, not synchronously after print(): mobile
       // print() is non-blocking, so closing immediately dismisses the share
       // sheet before it appears. Fallback timer covers afterprint never firing.
