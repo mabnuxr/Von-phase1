@@ -64,11 +64,6 @@ export interface UseChatV2Props {
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   salesforceInstanceUrl?: string;
-  isSlashCommandsEnabled: boolean;
-  isActionsEnabled: boolean;
-  isDeepLinksEnabled: boolean;
-  isSourcesEnabled: boolean;
-  isFileUploadEnabled: boolean;
   onCollapseSidebar: () => void;
   /** References (dashboard/widget context) to send with each message */
   references?: MessageReference[];

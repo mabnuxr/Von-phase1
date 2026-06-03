@@ -346,11 +346,6 @@ function ExistingChatInner(
     canSubmit: base.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction ?? (() => {}),
     salesforceInstanceUrl: props.salesforceInstanceUrl,
-    isSlashCommandsEnabled: true,
-    isActionsEnabled: base.features.isActionsEnabled,
-    isDeepLinksEnabled: true,
-    isSourcesEnabled: true,
-    isFileUploadEnabled: true,
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
   });
 

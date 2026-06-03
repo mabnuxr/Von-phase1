@@ -12,11 +12,6 @@ export const FEATURE_FLAGS = {
   DISABLED_TENANTS: "disabledTenants",
   USAGE_METRICS: "enableUsageMetrics",
   CUSTOM_MCP: "enableCustomMcp",
-  // LaunchDarkly key: `enable-von-workspace-search` (auto-camelCased to
-  // `enableVonWorkspaceSearch` for `useFlags()` access). Gates the ⌘K
-  // global search modal, the sidebar Search button, and the global
-  // keyboard shortcut. When off, the modal does not mount and ⌘K is
-  // not bound.
   WORKSPACE_SEARCH: "enableVonWorkspaceSearch",
 } as const;
 

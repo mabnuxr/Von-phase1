@@ -83,11 +83,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     onDisabledInteraction: props.onDisabledInteraction,
     isSalesforceReady: canSubmit,
     salesforceInstanceUrl: props.salesforceInstanceUrl,
-    isSlashCommandsEnabled: true,
-    isActionsEnabled: props.isActionsEnabled,
-    isDeepLinksEnabled: true,
-    isSourcesEnabled: true,
-    isFileUploadEnabled: true,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
