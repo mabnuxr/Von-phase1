@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { conversationsService } from "../services";
 import { folderKeys } from "./folders";
 import type {
@@ -6,6 +11,11 @@ import type {
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
 } from "../types/conversation";
+import type {
+  FolderConversationRow,
+  FolderContentsResponse,
+  FolderItemsResponse,
+} from "../types/chatSidebar";
 import {
   CONVERSATIONS_STALE_TIME,
   MESSAGES_STALE_TIME,
@@ -116,8 +126,12 @@ export function useCreateConversation() {
 }
 
 /**
- * Delete a conversation
- * Invalidates conversation list on success
+ * Delete a conversation.
+ *
+ * Optimistically removes the conversation from the sidebar caches (the unfiled
+ * "Chats" infinite list and every cached folder `/contents`) so it disappears
+ * immediately, then invalidates on success to reconcile with the server. The
+ * snapshot captured in `onMutate` is restored on error.
  */
 export function useDeleteConversation() {
   const queryClient = useQueryClient();
@@ -125,18 +139,87 @@ export function useDeleteConversation() {
   return useMutation({
     mutationFn: (conversationId: string) =>
       conversationsService.deleteConversation(conversationId),
+    onMutate: async (conversationId) => {
+      // Cancel in-flight fetches so they can't overwrite the optimistic state.
+      await queryClient.cancelQueries({ queryKey: folderKeys.all });
+
+      // Snapshot every touched query so onError can roll back exactly.
+      const previous = queryClient.getQueriesData({ queryKey: folderKeys.all });
+
+      // Unfiled "Chats" list — an infinite query of paginated item rows.
+      queryClient.setQueriesData<InfiniteData<
+        FolderItemsResponse<FolderConversationRow>
+      > | null>({ queryKey: folderKeys.unfiled("conversation") }, (data) =>
+        data
+          ? {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                items: page.items.filter(
+                  (item) => item.conversation_id !== conversationId,
+                ),
+              })),
+            }
+          : data,
+      );
+
+      // In-folder conversation lists from each folder's `/contents`.
+      queryClient.setQueriesData<FolderContentsResponse | undefined>(
+        { queryKey: folderKeys.all },
+        (data) => {
+          if (!data?.conversations) return data;
+          const items = data.conversations.items;
+          const filtered = items.filter(
+            (item) => item.conversation_id !== conversationId,
+          );
+          if (filtered.length === items.length) return data;
+          return {
+            ...data,
+            conversations: {
+              items: filtered,
+              total: Math.max(0, data.conversations.total - 1),
+            },
+          };
+        },
+      );
+
+      // Per-page folder `/items` caches behind the "Show more" expander.
+      // These share the `folderKeys.all` prefix but use the flat
+      // `FolderItemsResponse` shape (top-level `items`), distinct from the
+      // unfiled infinite query (`{ pages }`) and `/contents` (`{ conversations }`).
+      queryClient.setQueriesData<
+        FolderItemsResponse<FolderConversationRow> | undefined
+      >({ queryKey: folderKeys.all }, (data) => {
+        if (!data || !Array.isArray(data.items)) return data;
+        const filtered = data.items.filter(
+          (item) => item.conversation_id !== conversationId,
+        );
+        if (filtered.length === data.items.length) return data;
+        return { ...data, items: filtered };
+      });
+
+      return { previous };
+    },
+    onError: (error: Error, _conversationId, context) => {
+      console.error("[useDeleteConversation] Error:", error);
+      // Restore the pre-mutation snapshot for every query we touched.
+      context?.previous.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
     onSuccess: (_, conversationId) => {
       if (import.meta.env.DEV) {
         console.log("[useDeleteConversation] Deleted:", conversationId);
       }
-      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: folderKeys.all });
       queryClient.removeQueries({
         queryKey: conversationKeys.messages(conversationId),
       });
     },
-    onError: (error: Error) => {
-      console.error("[useDeleteConversation] Error:", error);
+    onSettled: () => {
+      // Reconcile with the server once the mutation resolves (success or
+      // rollback), regardless of which optimistic path ran.
+      queryClient.invalidateQueries({ queryKey: conversationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: folderKeys.all });
     },
   });
 }
