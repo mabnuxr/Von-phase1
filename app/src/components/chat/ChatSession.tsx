@@ -403,6 +403,7 @@ function ExistingChatInner(
     email: m.email,
     firstName: m.firstName,
     lastName: m.lastName,
+    role: m.role,
   }));
   const currentUserRecipient = base.user
     ? {
