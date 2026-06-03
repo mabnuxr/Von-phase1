@@ -47,12 +47,10 @@ export interface ArtifactViewerPanelProps {
   onClose: () => void;
   onDownload?: () => void;
   onGoogleDriveClick?: () => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   driveTooltip?: string;
   isDriveLoading?: boolean;
   onBoxClick?: () => void;
-  isBoxEnabled?: boolean;
   isBoxConnected?: boolean;
   boxTooltip?: string;
   isBoxLoading?: boolean;
@@ -120,11 +118,9 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
   onClose,
   onDownload,
   onGoogleDriveClick,
-  isDriveEnabled,
   isDriveConnected,
   isDriveLoading,
   onBoxClick,
-  isBoxEnabled,
   isBoxConnected,
   isBoxLoading,
   activeServiceId,
@@ -134,11 +130,9 @@ export const ArtifactViewerPanel: React.FC<ArtifactViewerPanelProps> = ({
 
   const storageServices = buildStorageServices({
     onGoogleDriveClick,
-    isDriveEnabled,
     isDriveConnected,
     isDriveLoading,
     onBoxClick,
-    isBoxEnabled,
     isBoxConnected,
     isBoxLoading,
   });

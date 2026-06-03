@@ -327,7 +327,6 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
       // Command chip
       contextBar,
       // Commands
-      enableCommands = false,
       onCloseCommandsList,
       ghostCommandName,
       // File error props
@@ -448,7 +447,7 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
     // Show the mode selector pill when multiple agent modes are available
     const hasAgentModes = availableAgentModes.length > 1;
     // Show the enhanced toolbar layout when plus button, commands, mode selector, or attachments are present
-    const showPlusMenu = !!(hasAttachments || enableCommands || showPlusButton || hasAgentModes);
+    const showPlusMenu = !!(hasAttachments || showPlusButton || hasAgentModes);
 
     // Handle dropped files from parent
     useEffect(() => {
@@ -844,29 +843,24 @@ export const StandardChatInput = forwardRef<StandardChatInputRef, StandardChatIn
                               enableFileUpload={enableFileUpload}
                             />
                           )}
-                          {enableCommands && (
-                            <SecondaryIconButton
-                              icon={
-                                <span
-                                  className="inline-flex"
-                                  style={{ transform: 'rotate(30deg)' }}
-                                >
-                                  <LineVerticalIcon
-                                    size={16}
-                                    weight="bold"
-                                    className="text-gray-800"
-                                  />
-                                </span>
-                              }
-                              onClick={() => {
-                                editorRef.current?.commands.insertContent('/');
-                                editorRef.current?.commands.focus('end');
-                              }}
-                              disabled={isInputDisabled || message.trim().length > 0}
-                              title="Commands"
-                              className="w-7.5! h-7.5! rounded-full! p-0! border border-gray-200/80"
-                            />
-                          )}
+                          <SecondaryIconButton
+                            icon={
+                              <span className="inline-flex" style={{ transform: 'rotate(30deg)' }}>
+                                <LineVerticalIcon
+                                  size={16}
+                                  weight="bold"
+                                  className="text-gray-800"
+                                />
+                              </span>
+                            }
+                            onClick={() => {
+                              editorRef.current?.commands.insertContent('/');
+                              editorRef.current?.commands.focus('end');
+                            }}
+                            disabled={isInputDisabled || message.trim().length > 0}
+                            title="Commands"
+                            className="w-7.5! h-7.5! rounded-full! p-0! border border-gray-200/80"
+                          />
                           {hasAgentModes && (
                             <ModeSelectorPill
                               selectedMode={selectedConversationMode}

@@ -33,12 +33,7 @@ export interface ChatV1ContainerProps {
   canSubmit: boolean;
   onDisabledInteraction: () => void;
   salesforceInstanceUrl?: string;
-  isSlashCommandsEnabled: boolean;
   isActionsEnabled: boolean;
-  isDeepLinksEnabled: boolean;
-  isSourcesEnabled: boolean;
-  isFileUploadEnabled: boolean;
-  isScheduledCommandsEnabled: boolean;
   banner: React.ReactNode;
   onCollapseSidebar: () => void;
 }
@@ -53,10 +48,7 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     canSubmit,
     onDisabledInteraction,
     salesforceInstanceUrl,
-    isSlashCommandsEnabled,
     isActionsEnabled,
-    isDeepLinksEnabled,
-    isScheduledCommandsEnabled,
     banner,
   } = props;
 
@@ -91,11 +83,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     onDisabledInteraction: props.onDisabledInteraction,
     isSalesforceReady: canSubmit,
     salesforceInstanceUrl: props.salesforceInstanceUrl,
-    isSlashCommandsEnabled: props.isSlashCommandsEnabled,
-    isActionsEnabled: props.isActionsEnabled,
-    isDeepLinksEnabled: props.isDeepLinksEnabled,
-    isSourcesEnabled: props.isSourcesEnabled,
-    isFileUploadEnabled: props.isFileUploadEnabled,
   });
 
   const loadMoreMessagesRef = useInfiniteScroll({
@@ -116,27 +103,22 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
     handleSendTest,
   } = useCommandsPanel(user?.id);
 
-  const { data: tenantMembersData } = useTenantMembers(
-    isScheduledCommandsEnabled ? user?.tenantId : undefined,
-  );
-  const tenantMembersForSchedule = isScheduledCommandsEnabled
-    ? (tenantMembersData ?? []).map((m) => ({
-        id: m.id,
-        email: m.email,
-        firstName: m.firstName,
-        lastName: m.lastName,
-      }))
+  const { data: tenantMembersData } = useTenantMembers(user?.tenantId);
+  const tenantMembersForSchedule = (tenantMembersData ?? []).map((m) => ({
+    id: m.id,
+    email: m.email,
+    firstName: m.firstName,
+    lastName: m.lastName,
+  }));
+  const currentUserRecipient = user
+    ? {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+        lastName:
+          user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+      }
     : undefined;
-  const currentUserRecipient =
-    isScheduledCommandsEnabled && user
-      ? {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
-          lastName:
-            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
-        }
-      : undefined;
 
   return (
     <Profiler id="ChatV1Container" onRender={reportRenderTiming}>
@@ -164,7 +146,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         disableSubmit={!canSubmitFinal}
         onExamplePromptDisabledClick={onDisabledInteraction}
         onInputWhileDisabled={onDisabledInteraction}
-        enableCommands={isSlashCommandsEnabled}
         commands={commands}
         isLoadingCommands={isLoadingCommands}
         onSaveCommand={handleSaveCommand}
@@ -172,13 +153,12 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         isSavingCommand={isSavingCommand}
         tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
-        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
+        onSendTest={handleSendTest}
         onToggleFavorite={handleToggleFavorite}
         onRequestFilePreviewUrl={handleRequestFilePreviewUrl}
         onUploadFile={handleUploadFile}
         enableActions={isActionsEnabled}
         salesforceInstanceUrl={salesforceInstanceUrl}
-        enableDeepLinks={isDeepLinksEnabled}
         thinkingProcessVersion="v1"
         useStandardInput={false}
         controlledAttachments={fileAttachmentState}

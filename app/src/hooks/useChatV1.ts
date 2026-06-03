@@ -33,11 +33,6 @@ export interface UseChatV1Props {
   onDisabledInteraction: () => void;
   isSalesforceReady: boolean;
   salesforceInstanceUrl?: string;
-  isSlashCommandsEnabled: boolean;
-  isActionsEnabled: boolean;
-  isDeepLinksEnabled: boolean;
-  isSourcesEnabled: boolean;
-  isFileUploadEnabled: boolean;
 }
 
 export function useChatV1(props: UseChatV1Props) {

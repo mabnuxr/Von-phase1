@@ -59,12 +59,10 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onFileArtifactClick,
       onArtifactDownload,
       onGoogleDriveClick,
-      isDriveEnabled,
       isDriveConnected,
       driveTooltip,
       driveLoadingFileId,
       onBoxClick,
-      isBoxEnabled,
       isBoxConnected,
       boxTooltip,
       boxLoadingFileId,
@@ -89,7 +87,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onRejectPlan,
       onDashboardPreview,
       onMentionClick,
-      enableCommands = false,
       commands,
       isLoadingCommands,
       onSaveCommand,
@@ -107,7 +104,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
       onTransparencyClick,
       showTransparency = true,
       salesforceInstanceUrl,
-      enableDeepLinks = false,
       // V2 Thinking Process
       thinkingProcessVersion = 'v1',
       useStandardInput = false,
@@ -309,7 +305,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                 onTemplateCategoryClick={onTemplateCategoryClick}
                 onTemplateClick={onTemplateClick}
                 onTemplateArrowClick={onTemplateArrowClick}
-                enableCommands={enableCommands}
                 commands={commands}
                 isLoadingCommands={isLoadingCommands}
                 onSaveCommand={onSaveCommand}
@@ -397,7 +392,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                     onTransparencyClick={onTransparencyClick}
                     showTransparency={showTransparency}
                     salesforceInstanceUrl={salesforceInstanceUrl}
-                    enableDeepLinks={enableDeepLinks}
                     // V2 Thinking Process props
                     thinkingProcessVersion={thinkingProcessVersion}
                     timelineSteps={message.timelineSteps}
@@ -411,12 +405,10 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
                     onFileArtifactClick={showArtifacts ? onFileArtifactClick : undefined}
                     onArtifactDownload={showArtifacts ? onArtifactDownload : undefined}
                     onGoogleDriveClick={showArtifacts ? onGoogleDriveClick : undefined}
-                    isDriveEnabled={isDriveEnabled}
                     isDriveConnected={isDriveConnected}
                     driveTooltip={driveTooltip}
                     driveLoadingFileId={driveLoadingFileId}
                     onBoxClick={showArtifacts ? onBoxClick : undefined}
-                    isBoxEnabled={isBoxEnabled}
                     isBoxConnected={isBoxConnected}
                     boxTooltip={boxTooltip}
                     boxLoadingFileId={boxLoadingFileId}
@@ -482,7 +474,6 @@ const ChatBase = forwardRef<ChatRef, ChatProps>(
             ref={inputSelectorRef}
             autoFocus
             useStandardInput={useStandardInput}
-            enableCommands={enableCommands}
             commands={commands}
             isLoadingCommands={isLoadingCommands}
             onSaveCommand={onSaveCommand}

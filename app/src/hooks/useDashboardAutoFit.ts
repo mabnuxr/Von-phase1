@@ -11,10 +11,9 @@ interface UseDashboardAutoFitOptions {
   onLayoutChange: (next: readonly LayoutItem[]) => void;
   /**
    * Auto-fit only fires when this is true. The caller folds in all the
-   * required conditions — typically `isPreview && isEditMode &&
-   * isDashboardDragDropEnabled`. When false, widget reports are dropped on
-   * the floor (no measurement, no flush, no PATCH) and the persisted
-   * layout is treated as authoritative.
+   * required conditions — typically `isPreview && isEditMode`. When false,
+   * widget reports are dropped on the floor (no measurement, no flush, no
+   * PATCH) and the persisted layout is treated as authoritative.
    */
   isEnabled: boolean;
 }

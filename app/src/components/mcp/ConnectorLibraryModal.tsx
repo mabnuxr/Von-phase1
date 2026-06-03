@@ -25,7 +25,6 @@ import type {
 } from "../../types/appCatalog";
 import { useToast } from "../../hooks/useToast";
 import { useUser } from "../../hooks/useUser";
-import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
 
 interface ConnectorLibraryModalProps {
@@ -82,8 +81,6 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
 
-  const { isSlackPersonalEnabled } = useFeatureFlag();
-
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -108,10 +105,8 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
   });
   const catalog = useMemo(() => {
     const items = catalogData?.items;
-    const safe = Array.isArray(items) ? items : [];
-    if (isSlackPersonalEnabled) return safe;
-    return safe.filter((e) => e.catalog_id !== "slack");
-  }, [catalogData, isSlackPersonalEnabled]);
+    return Array.isArray(items) ? items : [];
+  }, [catalogData]);
 
   const loadMoreRef = useInfiniteScroll({
     onLoadMore: fetchNextPage,

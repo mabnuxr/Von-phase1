@@ -165,15 +165,7 @@ const NewConversation = () => {
     pageViewCaptured.current = true;
   }, [user]);
 
-  const {
-    isAgentV2: isAgentV2Flag,
-    isTenantDisabled,
-    isSlashCommandsEnabled,
-    isFileUploadEnabled,
-    isScheduledCommandsEnabled,
-    isDeepResearchEnabled,
-    isVonAiFieldsEnabled,
-  } = useFeatureFlag();
+  const { isTenantDisabled } = useFeatureFlag();
 
   const {
     isConnected: isSalesforceConnected,
@@ -195,8 +187,8 @@ const NewConversation = () => {
     dismissFileError,
     restoredInput,
   } = useCreateAndSendMessage({
-    agentVersion: isAgentV2Flag ? "v2" : "v1",
-    isAgentV2: isAgentV2Flag,
+    agentVersion: "v2",
+    isAgentV2: true,
     title: "",
     navigateOnCreate: true,
   });
@@ -285,7 +277,7 @@ const NewConversation = () => {
     "live",
     1,
     50,
-    mentionsActivated && isVonAiFieldsEnabled,
+    mentionsActivated,
   );
 
   const mentionItems: MentionItem[] = useMemo(() => {
@@ -297,19 +289,18 @@ const NewConversation = () => {
         version: d.dashboard_version,
       })) ?? [];
 
-    const aiFields: MentionItem[] =
-      isVonAiFieldsEnabled && aiFieldsData?.data
-        ? aiFieldsData.data.map((f) => ({
-            id: f.fieldId,
-            name: f.displayName ?? f.name,
-            type: MentionItemType.AiField,
-            version: 0,
-            aiFieldContext: { aiFieldId: f.fieldId },
-          }))
-        : [];
+    const aiFields: MentionItem[] = aiFieldsData?.data
+      ? aiFieldsData.data.map((f) => ({
+          id: f.fieldId,
+          name: f.displayName ?? f.name,
+          type: MentionItemType.AiField,
+          version: 0,
+          aiFieldContext: { aiFieldId: f.fieldId },
+        }))
+      : [];
 
     return [...dashboards, ...aiFields];
-  }, [dashboardListData, aiFieldsData, isVonAiFieldsEnabled]);
+  }, [dashboardListData, aiFieldsData]);
 
   const isLoadingMentions = isLoadingDashboards || isLoadingAiFields;
 
@@ -351,27 +342,22 @@ const NewConversation = () => {
     setPreloadDismissed(true);
   }, []);
 
-  const { data: tenantMembersData } = useTenantMembers(
-    isScheduledCommandsEnabled ? user?.tenantId : undefined,
-  );
-  const tenantMembersForSchedule = isScheduledCommandsEnabled
-    ? (tenantMembersData ?? []).map((m) => ({
-        id: m.id,
-        email: m.email,
-        firstName: m.firstName,
-        lastName: m.lastName,
-      }))
+  const { data: tenantMembersData } = useTenantMembers(user?.tenantId);
+  const tenantMembersForSchedule = (tenantMembersData ?? []).map((m) => ({
+    id: m.id,
+    email: m.email,
+    firstName: m.firstName,
+    lastName: m.lastName,
+  }));
+  const currentUserRecipient = user
+    ? {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+        lastName:
+          user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+      }
     : undefined;
-  const currentUserRecipient =
-    isScheduledCommandsEnabled && user
-      ? {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
-          lastName:
-            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
-        }
-      : undefined;
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -462,15 +448,14 @@ const NewConversation = () => {
         disableSubmit={!canSubmit || isCreating}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
-        thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}
-        useStandardInput={isAgentV2Flag}
-        enableFileUpload={isFileUploadEnabled}
+        thinkingProcessVersion="v2"
+        useStandardInput={true}
+        enableFileUpload={true}
         controlledAttachments={fileAttachments}
         onFilesSelected={addFiles}
         onRemoveAttachment={removeFile}
         fileErrorMessage={fileErrorMessage}
         onDismissFileError={dismissFileError}
-        enableCommands={isSlashCommandsEnabled}
         commands={commands}
         isLoadingCommands={isLoadingCommands}
         onSaveCommand={handleSaveCommand}
@@ -482,8 +467,8 @@ const NewConversation = () => {
         availableDashboards={availableDashboards}
         tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
-        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
-        enableMentions={isDeepResearchEnabled}
+        onSendTest={handleSendTest}
+        enableMentions={true}
         mentionItems={mentionItems}
         isLoadingMentions={isLoadingMentions}
         onMentionsActivated={handleMentionsActivated}

@@ -3,7 +3,6 @@ import type { Command } from '../../Commands/types';
 import { getPlainText } from '../utils/text';
 
 export interface UseCommandInputStateOptions {
-  enableCommands: boolean;
   onChange?: (value: string) => void;
   onSlashCommandOpened?: () => void;
 }
@@ -25,7 +24,6 @@ export interface UseCommandInputStateReturn {
 }
 
 export function useCommandInputState({
-  enableCommands,
   onChange,
   onSlashCommandOpened,
 }: UseCommandInputStateOptions): UseCommandInputStateReturn {
@@ -36,8 +34,6 @@ export function useCommandInputState({
   const handleChange = useCallback(
     (newValue: string) => {
       onChange?.(newValue);
-
-      if (!enableCommands) return;
 
       const plainText = getPlainText(newValue);
       // Show the list when text is "/" optionally followed by non-space chars.
@@ -52,7 +48,7 @@ export function useCommandInputState({
         setCommandSearch('');
       }
     },
-    [onChange, enableCommands, onSlashCommandOpened]
+    [onChange, onSlashCommandOpened]
   );
 
   const handleSelectCommand = useCallback(

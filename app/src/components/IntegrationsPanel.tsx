@@ -33,7 +33,6 @@ import {
   canBeOrgLevel,
   INTEGRATION_METADATA,
 } from "../constants/integrationMetadata";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { report } from "../lib/analytics/tracker";
 
 export interface Integration {
@@ -156,13 +155,10 @@ export function IntegrationsPanel() {
     pageViewCaptured.current = true;
   }, [user]);
 
-  const { isMcpServersEnabled } = useFeatureFlag();
   const { data: tenantIntegrations } = useTenantIntegrations();
 
   // All MCP entries driven entirely by tenant-integrations (app-catalog API).
   const allMCPEntries = useMemo<CatalogEntry[]>(() => {
-    if (!isMcpServersEnabled) return [];
-
     // Group TI rows by catalog_id so workspace + personal become one card.
     const tiByApp = new Map<
       string,
@@ -268,7 +264,7 @@ export function IntegrationsPanel() {
         };
       },
     );
-  }, [isMcpServersEnabled, tenantIntegrations, integrationsData, isAdmin]);
+  }, [tenantIntegrations, integrationsData, isAdmin]);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -600,7 +596,7 @@ export function IntegrationsPanel() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {isAdmin && isMcpServersEnabled && (
+              {isAdmin && (
                 <button
                   onClick={() => setShowLibrary(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
@@ -688,10 +684,10 @@ export function IntegrationsPanel() {
       />
 
       {/* MCP modals/panes */}
-      {isMcpServersEnabled && showLibrary && (
+      {showLibrary && (
         <ConnectorLibraryModal onClose={() => setShowLibrary(false)} />
       )}
-      {isMcpServersEnabled && mcpConnectEntry && (
+      {mcpConnectEntry && (
         <MCPConnectDrawer
           entry={mcpConnectEntry}
           onClose={() => setMcpConnectEntry(null)}

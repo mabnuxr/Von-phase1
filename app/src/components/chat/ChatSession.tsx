@@ -193,14 +193,12 @@ export interface ChatSessionProps {
 
   // ── Google Drive ────────────────────────────────
   onGoogleDriveClick?: (fileId: string) => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
 
   // ── Box ────────────────────────────────────────
   onBoxClick?: (fileId: string) => void;
-  isBoxEnabled?: boolean;
   isBoxConnected?: boolean;
   boxTooltip?: string;
   boxLoadingFileId?: string | null;
@@ -348,11 +346,6 @@ function ExistingChatInner(
     canSubmit: base.canSubmit,
     onDisabledInteraction: props.onDisabledInteraction ?? (() => {}),
     salesforceInstanceUrl: props.salesforceInstanceUrl,
-    isSlashCommandsEnabled: base.features.isSlashCommandsEnabled,
-    isActionsEnabled: base.features.isActionsEnabled,
-    isDeepLinksEnabled: base.features.isDeepLinksEnabled,
-    isSourcesEnabled: base.features.isSourcesEnabled,
-    isFileUploadEnabled: base.features.isFileUploadEnabled,
     onCollapseSidebar: props.onCollapseSidebar ?? (() => {}),
   });
 
@@ -400,37 +393,28 @@ function ExistingChatInner(
   );
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const {
-    enableMentions,
-    mentionItems,
-    isLoadingMentions,
-    onMentionsActivated,
-  } = useChatMentions();
+  const { mentionItems, isLoadingMentions, onMentionsActivated } =
+    useChatMentions();
 
   // ── Scheduled commands ────────────────────────────────────────────
-  const { data: tenantMembersData } = useTenantMembers(
-    base.features.isScheduledCommandsEnabled ? base.user?.tenantId : undefined,
-  );
-  const tenantMembersForSchedule = base.features.isScheduledCommandsEnabled
-    ? (tenantMembersData ?? []).map((m) => ({
-        id: m.id,
-        email: m.email,
-        firstName: m.firstName,
-        lastName: m.lastName,
-      }))
+  const { data: tenantMembersData } = useTenantMembers(base.user?.tenantId);
+  const tenantMembersForSchedule = (tenantMembersData ?? []).map((m) => ({
+    id: m.id,
+    email: m.email,
+    firstName: m.firstName,
+    lastName: m.lastName,
+  }));
+  const currentUserRecipient = base.user
+    ? {
+        id: base.user.id,
+        email: base.user.email,
+        firstName: base.user.firstName ?? base.user.name?.split(" ")[0] ?? "",
+        lastName:
+          base.user.lastName ??
+          base.user.name?.split(" ").slice(1).join(" ") ??
+          "",
+      }
     : undefined;
-  const currentUserRecipient =
-    base.features.isScheduledCommandsEnabled && base.user
-      ? {
-          id: base.user.id,
-          email: base.user.email,
-          firstName: base.user.firstName ?? base.user.name?.split(" ")[0] ?? "",
-          lastName:
-            base.user.lastName ??
-            base.user.name?.split(" ").slice(1).join(" ") ??
-            "",
-        }
-      : undefined;
 
   // ── AI Field state ──
   const { chatPanelFieldId, closeChatPanel } = useAiFieldsStore();
@@ -912,7 +896,7 @@ function ExistingChatInner(
       onExamplePromptDisabledClick={props.onDisabledInteraction}
       onInputWhileDisabled={props.onDisabledInteraction}
       // File upload
-      enableFileUpload={base.features.isFileUploadEnabled}
+      enableFileUpload={true}
       onFileUploadClick={report.chatFileUploadClicked}
       controlledAttachments={chatV2.fileAttachmentState}
       onFilesSelected={chatV2.handleFilesSelected}
@@ -924,7 +908,6 @@ function ExistingChatInner(
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       // Commands
-      enableCommands={base.features.isSlashCommandsEnabled}
       onSlashCommandOpened={report.chatSlashCommandOpened}
       onSlashCommandSelected={report.chatSlashCommandSelected}
       onManageCommandsClicked={report.chatSlashCommandManageClicked}
@@ -940,13 +923,8 @@ function ExistingChatInner(
       availableDashboards={base.commands.availableDashboards}
       tenantMembers={tenantMembersForSchedule}
       currentUser={currentUserRecipient}
-      onSendTest={
-        base.features.isScheduledCommandsEnabled
-          ? base.commands.handleSendTest
-          : undefined
-      }
-      // Transparency
-      showTransparency={base.features.isSourcesEnabled}
+      onSendTest={base.commands.handleSendTest}
+      // Transparency (always on — matches the Chat default)
       onTransparencyClick={handleTransparencyClickWithDashboard}
       // Plus button
       onAddClick={report.chatPlusButtonClicked}
@@ -969,7 +947,7 @@ function ExistingChatInner(
       onMentionClick={handleMentionClick}
       // Artifacts
       onArtifactClick={chatV2.handleArtifactClick}
-      showArtifacts={base.features.isArtifactsEnabled}
+      showArtifacts={true}
       renderArtifactCard={renderArtifactCard}
       groupedArtifactRenderers={groupedArtifactRenderers}
       onFileArtifactClick={chatV2.handleFileArtifactClick}
@@ -978,11 +956,10 @@ function ExistingChatInner(
       isIntegrationConnected={(type) => connectedIntegrationTypes.has(type)}
       onIntegrate={handleIntegrate}
       getIntegrationMetadata={handleGetIntegrationMetadata}
-      // Salesforce / deep links
+      // Salesforce
       salesforceInstanceUrl={props.salesforceInstanceUrl}
-      enableDeepLinks={base.features.isDeepLinksEnabled}
       // Mentions
-      enableMentions={enableMentions}
+      enableMentions
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
@@ -991,13 +968,11 @@ function ExistingChatInner(
       onWidgetMentionRemoved={handleCombinedWidgetMentionRemoved}
       // Google Drive
       onGoogleDriveClick={wrappedDriveClick}
-      isDriveEnabled={props.isDriveEnabled}
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
       // Box
       onBoxClick={wrappedBoxClick}
-      isBoxEnabled={props.isBoxEnabled}
       isBoxConnected={props.isBoxConnected}
       boxTooltip={props.boxTooltip}
       boxLoadingFileId={props.boxLoadingFileId}
@@ -1067,7 +1042,6 @@ function ExistingChatInner(
           </>
         )}
         {!props.compact &&
-          base.features.isArtifactsEnabled &&
           chatV2.fileArtifactPanel.isOpen &&
           chatV2.fileArtifactPanel.fileName && (
             <ArtifactViewerPanel
@@ -1101,7 +1075,6 @@ function ExistingChatInner(
                     }
                   : undefined
               }
-              isDriveEnabled={props.isDriveEnabled}
               isDriveConnected={props.isDriveConnected}
               driveTooltip={props.driveTooltip}
               isDriveLoading={
@@ -1123,7 +1096,6 @@ function ExistingChatInner(
                     }
                   : undefined
               }
-              isBoxEnabled={props.isBoxEnabled}
               isBoxConnected={props.isBoxConnected}
               boxTooltip={props.boxTooltip}
               isBoxLoading={
@@ -1175,12 +1147,8 @@ function NewChatInner(
   const { chatRef } = props;
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const {
-    enableMentions,
-    mentionItems,
-    isLoadingMentions,
-    onMentionsActivated,
-  } = useChatMentions();
+  const { mentionItems, isLoadingMentions, onMentionsActivated } =
+    useChatMentions();
 
   // ── AI Field from URL (new chat about a field) ─────────────────────
   const [searchParams] = useSearchParams();
@@ -1305,7 +1273,7 @@ function NewChatInner(
       // Plus button
       onAddClick={report.chatPlusButtonClicked}
       // File upload
-      enableFileUpload={base.features.isFileUploadEnabled}
+      enableFileUpload={true}
       onFileUploadClick={report.chatFileUploadClicked}
       controlledAttachments={createFlow.fileAttachments}
       onFilesSelected={createFlow.addFiles}
@@ -1313,7 +1281,6 @@ function NewChatInner(
       fileErrorMessage={createFlow.fileErrorMessage}
       onDismissFileError={createFlow.dismissFileError}
       // Commands
-      enableCommands={base.features.isSlashCommandsEnabled}
       onSlashCommandOpened={report.chatSlashCommandOpened}
       onSlashCommandSelected={report.chatSlashCommandSelected}
       onManageCommandsClicked={report.chatSlashCommandManageClicked}
@@ -1328,7 +1295,7 @@ function NewChatInner(
       onUploadFile={base.commands.handleUploadFile}
       availableDashboards={base.commands.availableDashboards}
       // Mentions
-      enableMentions={enableMentions}
+      enableMentions
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}

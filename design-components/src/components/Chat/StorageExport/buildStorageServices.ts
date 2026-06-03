@@ -12,7 +12,7 @@ const boxLogo = 'https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integr
 export function buildStorageServices(props: StorageExportLegacyProps): StorageService[] {
   const services: StorageService[] = [];
 
-  if (props.isDriveEnabled && props.onGoogleDriveClick) {
+  if (props.onGoogleDriveClick) {
     services.push({
       id: 'drive',
       name: 'Google Drive',
@@ -24,7 +24,7 @@ export function buildStorageServices(props: StorageExportLegacyProps): StorageSe
     });
   }
 
-  if (props.isBoxEnabled && props.onBoxClick) {
+  if (props.onBoxClick) {
     services.push({
       id: 'box',
       name: 'Box',

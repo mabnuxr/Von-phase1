@@ -1291,13 +1291,9 @@ export interface ChatProps {
   onGoogleDriveClick?: (fileId: string) => void;
 
   /**
-   * Whether Google Drive export is enabled (feature flag is on)
-   */
-  isDriveEnabled?: boolean;
-
-  /**
    * Whether Google Drive is connected (user has authenticated).
-   * When isDriveEnabled but not isDriveConnected, clicking navigates to settings.
+   * When a Drive export handler is provided but Drive is not connected,
+   * clicking navigates to settings.
    */
   isDriveConnected?: boolean;
 
@@ -1317,13 +1313,8 @@ export interface ChatProps {
   onBoxClick?: (fileId: string) => void;
 
   /**
-   * Whether Box export is enabled (feature flag is on)
-   */
-  isBoxEnabled?: boolean;
-
-  /**
    * Whether Box is connected (user has authenticated).
-   * When isBoxEnabled but not isBoxConnected, clicking navigates to settings.
+   * When a Box export handler is provided but Box is not connected, clicking navigates to settings.
    */
   isBoxConnected?: boolean;
 
@@ -1461,13 +1452,6 @@ export interface ChatProps {
   onMentionClick?: (mention: MentionItem) => void;
 
   /**
-   * Enable slash commands feature
-   * When enabled, typing '/' in the input will show a commands popover
-   * @default false
-   */
-  enableCommands?: boolean;
-
-  /**
    * Prefetched commands list — fetch these when the chat input mounts so
    * the "/" dropdown appears instantly without a loading state.
    */
@@ -1586,13 +1570,6 @@ export interface ChatProps {
    * @default false
    */
   disableFileAttachments?: boolean;
-
-  /**
-   * Enable deep links for Salesforce URLs in artifact pane DataTable
-   * When enabled, URLs are rendered as clickable links
-   * @default false
-   */
-  enableDeepLinks?: boolean;
 
   /**
    * Version of thinking process component to use

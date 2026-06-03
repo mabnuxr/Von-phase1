@@ -39,8 +39,6 @@ import type { MentionItem } from '../Mentions';
 export interface ChatInputSelectorProps {
   /** Use StandardChatInput instead of ChatInput */
   useStandardInput: boolean;
-  /** Enable slash commands feature */
-  enableCommands: boolean;
   /** Placeholder text for the input */
   placeholder?: string;
   /**
@@ -97,7 +95,7 @@ export interface ChatInputSelectorProps {
   onDismissFileError?: () => void;
 
   // -------------------------------------------------------------------------
-  // Commands props (used when enableCommands=true)
+  // Commands props
   // -------------------------------------------------------------------------
 
   /** Prefetched commands list — should be fetched when this component mounts */
@@ -198,13 +196,12 @@ export interface ChatInputSelectorProps {
 
 /**
  * Selector component that renders the appropriate chat input based on configuration.
- * When enableCommands=true it also manages slash-command state and renders CommandsOverlay.
+ * It also manages slash-command state and renders CommandsOverlay.
  */
 export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelectorProps>(
   (
     {
       useStandardInput,
-      enableCommands,
       placeholder,
       onSend,
       onStop,
@@ -283,7 +280,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     );
 
     // -----------------------------------------------------------------------
-    // Slash-command state (only active when enableCommands=true)
+    // Slash-command state
     // -----------------------------------------------------------------------
     const {
       showCommandsList,
@@ -294,7 +291,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
       handleCloseCommandsList,
       clearSelectedCommand,
       dismissCommandsList,
-    } = useCommandInputState({ enableCommands, onChange, onSlashCommandOpened });
+    } = useCommandInputState({ onChange, onSlashCommandOpened });
 
     // Wrap handleSelectCommand to fire analytics before executing
     const handleSelectCommandWithAnalytics = useCallback(
@@ -327,7 +324,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
     // Arrow-key navigation for the commands list
     const { highlightedIndex, setHighlightedIndex, filteredCommands } = useCommandsKeyboardNav({
-      commands: enableCommands ? commands : [],
+      commands,
       commandSearch,
       showCommandsList,
       onSelectCommand: handleSelectCommandWithAnalytics,
@@ -400,14 +397,13 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     );
 
     // contextBar: only command strip (mentions are now inline chips)
-    const contextBar =
-      enableCommands && selectedCommand ? (
-        <CommandStrip
-          command={selectedCommand}
-          onRemove={clearSelectedCommand}
-          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-        />
-      ) : undefined;
+    const contextBar = selectedCommand ? (
+      <CommandStrip
+        command={selectedCommand}
+        onRemove={clearSelectedCommand}
+        onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+      />
+    ) : undefined;
 
     // -----------------------------------------------------------------------
     // Build props shared across all input variants
@@ -429,7 +425,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
     const chatInputOnSend: ((message: string, attachments?: FileAttachment[]) => void) | undefined =
       onSend
         ? (message: string, attachments?: FileAttachment[]) => {
-            if (enableCommands && selectedCommand) {
+            if (selectedCommand) {
               const plainMessage = getPlainText(message).trim();
               onSend(plainMessage, attachments, {
                 command: selectedCommand,
@@ -442,7 +438,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
               return;
             }
             onSend(message, attachments);
-            if (enableCommands) dismissCommandsList();
+            dismissCommandsList();
           }
         : undefined;
 
@@ -458,9 +454,7 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
         onDroppedFilesProcessed={onDroppedFilesProcessed}
         autoFocus={autoFocus}
         contextBar={contextBar}
-        onCloseCommandsList={
-          enableCommands && showCommandsList ? handleCloseCommandsList : undefined
-        }
+        onCloseCommandsList={showCommandsList ? handleCloseCommandsList : undefined}
       />
     );
 
@@ -523,12 +517,9 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
           {...sharedStandardProps}
           onFileUploadClick={onFileUploadClick}
           onSend={standardOnSend}
-          enableCommands={enableCommands}
           ghostCommandName={ghostCommandName}
           contextBar={contextBar}
-          onCloseCommandsList={
-            enableCommands && showCommandsList ? handleCloseCommandsList : undefined
-          }
+          onCloseCommandsList={showCommandsList ? handleCloseCommandsList : undefined}
           availableAgentModes={availableAgentModes}
           enableFileUpload={enableFileUpload}
           additionalExtensions={additionalExtensions}
@@ -548,38 +539,36 @@ export const ChatInputSelector = forwardRef<ChatInputSelectorRef, ChatInputSelec
 
     return (
       <div className="relative">
-        {enableCommands && commandNotificationFileCount !== null && (
+        {commandNotificationFileCount !== null && (
           <CommandNotificationBar
             isVisible
             fileCount={commandNotificationFileCount}
             onDismiss={() => setCommandNotificationFileCount(null)}
           />
         )}
-        {enableCommands && (
-          <CommandsOverlay
-            showCommandsList={showCommandsList}
-            commandSearch={commandSearch}
-            commands={commands}
-            isLoading={isLoadingCommands}
-            onSelectCommand={handleSelectCommandWithAnalytics}
-            onCloseCommandsList={handleCloseCommandsList}
-            onSaveCommand={onSaveCommand ?? (() => {})}
-            onDeleteCommand={handleDeleteCommand}
-            isSaving={isSavingCommand}
-            tenantMembers={tenantMembers}
-            currentUser={currentUser}
-            onToggleFavorite={onToggleFavorite}
-            onRequestFilePreviewUrl={onRequestFilePreviewUrl}
-            onUploadFile={onUploadFile}
-            onSendTest={onSendTest}
-            availableDashboards={availableDashboards}
-            onManageCommandsClicked={onManageCommandsClicked}
-            onCreateNewCommandClicked={onCreateNewCommandClicked}
-            highlightedIndex={highlightedIndex}
-            onHoverIndex={setHighlightedIndex}
-            slashRect={slashRect}
-          />
-        )}
+        <CommandsOverlay
+          showCommandsList={showCommandsList}
+          commandSearch={commandSearch}
+          commands={commands}
+          isLoading={isLoadingCommands}
+          onSelectCommand={handleSelectCommandWithAnalytics}
+          onCloseCommandsList={handleCloseCommandsList}
+          onSaveCommand={onSaveCommand ?? (() => {})}
+          onDeleteCommand={handleDeleteCommand}
+          isSaving={isSavingCommand}
+          tenantMembers={tenantMembers}
+          currentUser={currentUser}
+          onToggleFavorite={onToggleFavorite}
+          onRequestFilePreviewUrl={onRequestFilePreviewUrl}
+          onUploadFile={onUploadFile}
+          onSendTest={onSendTest}
+          availableDashboards={availableDashboards}
+          onManageCommandsClicked={onManageCommandsClicked}
+          onCreateNewCommandClicked={onCreateNewCommandClicked}
+          highlightedIndex={highlightedIndex}
+          onHoverIndex={setHighlightedIndex}
+          slashRect={slashRect}
+        />
         {enableMentions && (
           <MentionsOverlay
             showMentionsList={mentionSuggestionState.isOpen}

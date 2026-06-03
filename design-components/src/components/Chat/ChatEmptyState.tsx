@@ -72,10 +72,6 @@ export interface ChatEmptyStateProps {
    */
   placeholder?: string;
   /**
-   * Enable slash commands feature
-   */
-  enableCommands?: boolean;
-  /**
    * Optional banner to display above the input
    */
   banner?: React.ReactNode;
@@ -246,7 +242,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
   onTemplateClick,
   onTemplateArrowClick,
   placeholder = 'Ask von anything',
-  enableCommands = false,
   banner,
   topBanner,
   enableFileUpload = false,
@@ -464,7 +459,6 @@ export const ChatEmptyState: React.FC<ChatEmptyStateProps> = ({
       >
         <ChatInputSelector
           useStandardInput={useStandardInput}
-          enableCommands={enableCommands}
           commands={commands}
           isLoadingCommands={isLoadingCommands}
           onSaveCommand={onSaveCommand}

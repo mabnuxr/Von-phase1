@@ -16,7 +16,6 @@ import type { FileArtifact, EmailData } from "@vonlabs/design-components";
 import { fileUploadService } from "../services/fileUploadService";
 import { apiClient, ApiError } from "../services/apiClient";
 import { parseEmlContent } from "../lib/emailUtils";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router-dom";
 import { report } from "../lib/analytics/tracker";
@@ -74,7 +73,6 @@ function getGmailErrorCode(e: unknown): string | null {
 export const GmailDraftCardContainer: React.FC<
   GmailDraftCardContainerProps
 > = ({ conversationId, artifact }) => {
-  const { isGmailEnabled } = useFeatureFlag();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
@@ -197,13 +195,9 @@ export const GmailDraftCardContainer: React.FC<
   return (
     <EmailComposer
       emails={[emailData]}
-      onOpenInGmail={
-        isGmailEnabled
-          ? () => {
-              void handleOpenInGmail();
-            }
-          : undefined
-      }
+      onOpenInGmail={() => {
+        void handleOpenInGmail();
+      }}
       onBodyCopied={(index) =>
         report.emailDraftsBodyCopied(conversationId, index)
       }
@@ -226,7 +220,6 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   conversationId,
   artifacts,
 }) => {
-  const { isGmailEnabled } = useFeatureFlag();
   const { showToast } = useToast();
   const navigate = useNavigate();
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
@@ -369,11 +362,7 @@ export const EmailComposerContainer: React.FC<EmailComposerContainerProps> = ({
   return (
     <EmailComposer
       emails={emails}
-      onOpenInGmail={
-        isGmailEnabled
-          ? (index: number) => void handleOpenInGmail(index)
-          : undefined
-      }
+      onOpenInGmail={(index: number) => void handleOpenInGmail(index)}
       onTabChange={(index) =>
         report.emailDraftsTabClicked(conversationId, index)
       }
