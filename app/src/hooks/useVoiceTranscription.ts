@@ -148,6 +148,11 @@ export function useVoiceTranscription(options?: {
   // milliseconds of each other; without this we'd POST /voice/cleanup
   // twice and write the same polished text to the input twice.
   const isStoppingRef = useRef(false);
+  // Re-entry lock for start() — the status check is React state and so async,
+  // leaving a same-frame double trigger (mic-button double click, stray
+  // duplicate event) able to spin up two mic streams / sockets. This ref is
+  // synchronous; released in start()'s finally.
+  const isStartingRef = useRef(false);
   // Audio captured before the WebSocket opens is held here, then drained
   // in onopen — so audio spoken during "Connecting…" is never lost.
   const preconnectBufferRef = useRef<Int16Array[]>([]);
@@ -406,7 +411,9 @@ export function useVoiceTranscription(options?: {
   }, [handleWsDrop]);
 
   const start = useCallback(async () => {
+    if (isStartingRef.current) return;
     if (status === "connecting" || status === "listening") return;
+    isStartingRef.current = true;
 
     if (cleanupAbortRef.current) {
       cleanupAbortRef.current.abort();
@@ -590,6 +597,8 @@ export function useVoiceTranscription(options?: {
       );
       setStatus("error");
       cleanup();
+    } finally {
+      isStartingRef.current = false;
     }
   }, [cleanup, flushBuffer, handleMessage, status]);
 

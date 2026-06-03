@@ -841,18 +841,12 @@ function ExistingChatInner(
     }
   }, [beginVoice, endVoice, voice]);
 
-  // Hold ⌥ Option (Alt on Windows/Linux) to dictate — release ends the session.
+  // Hold ⌥ Option (Alt on Windows/Linux) to dictate; release ends it and keeps
+  // the text. No status guards — the hook balances press/release and
+  // start/stop guard their own re-entry.
   usePushToTalkHotkey({
-    onPress: () => {
-      if (voice.status === "idle" || voice.status === "error") {
-        beginVoice();
-      }
-    },
-    onRelease: () => {
-      if (voice.status === "listening" || voice.status === "connecting") {
-        void endVoice();
-      }
-    },
+    onPress: beginVoice,
+    onRelease: endVoice,
   });
 
   // ── Loading ───────────────────────────────────────────────────────

@@ -1,66 +1,91 @@
 import { useEffect, useRef } from "react";
 
 interface Options {
-  /** Fires on keydown when the chord is held. */
   onPress: () => void;
-  /** Fires on keyup of any chord key while held. */
   onRelease: () => void;
-  /** Set false to temporarily disable (e.g. during teardown). */
   enabled?: boolean;
 }
 
-// Hold-to-talk hotkey: ⌥ Option (Alt) on every platform.
-//
-// Browsers map both physical Option keys to `event.altKey === true` /
-// `event.code === "AltLeft" | "AltRight"`. We listen for the press without
-// any modifier requirement so a single hold dictates — matching the inline
-// "hold ⌥ Option to talk" hint in the chat input.
+// Hold ⌥ alone this long before dictation starts. A key pressed within the
+// window is a compound shortcut (Option+Backspace, Alt+Tab), not push-to-talk.
+// Sized to clear a deliberate Mac word-edit chord so editing wins on the first
+// press; the cost is this much of a beat before the mic opens.
+const HOLD_DELAY_MS = 400;
+
+type Hold = "idle" | "pending" | "recording" | "chord";
+
+// Push-to-talk on ⌥ Option (Alt) on every platform.
 export function usePushToTalkHotkey({
   onPress,
   onRelease,
   enabled = true,
 }: Options): void {
-  const isHeldRef = useRef(false);
+  const stateRef = useRef<Hold>("idle");
+  const timerRef = useRef<number | null>(null);
+
+  // Latest-callback refs so the listener effect can bind once on [enabled]
+  // instead of re-running every render as the caller's closures change.
+  const onPressRef = useRef(onPress);
+  const onReleaseRef = useRef(onRelease);
+  onPressRef.current = onPress;
+  onReleaseRef.current = onRelease;
 
   useEffect(() => {
     if (!enabled) return;
 
-    const isOptionKey = (e: KeyboardEvent): boolean =>
+    const isOption = (e: KeyboardEvent) =>
       e.code === "AltLeft" || e.code === "AltRight";
 
-    const handleDown = (e: KeyboardEvent) => {
-      if (!isOptionKey(e)) return;
-      if (e.repeat) return; // OS keydown auto-repeats while held
-      // Push-to-talk from anywhere, including inside text inputs — dictation
-      // landing in the chat input IS the goal.
-      e.preventDefault();
-      if (isHeldRef.current) return;
-      isHeldRef.current = true;
-      onPress();
-    };
-
-    const handleUp = (e: KeyboardEvent) => {
-      if (!isHeldRef.current) return;
-      if (!isOptionKey(e)) return;
-      isHeldRef.current = false;
-      onRelease();
-    };
-
-    const handleBlur = () => {
-      // If the window loses focus mid-press, OS may swallow the keyup.
-      if (isHeldRef.current) {
-        isHeldRef.current = false;
-        onRelease();
+    const clearTimer = () => {
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
 
-    window.addEventListener("keydown", handleDown);
-    window.addEventListener("keyup", handleUp);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("keydown", handleDown);
-      window.removeEventListener("keyup", handleUp);
-      window.removeEventListener("blur", handleBlur);
+    const end = () => {
+      clearTimer();
+      if (stateRef.current === "recording") onReleaseRef.current();
+      stateRef.current = "idle";
     };
-  }, [enabled, onPress, onRelease]);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isOption(e)) {
+        if (e.repeat || stateRef.current !== "idle") return;
+        stateRef.current = "pending";
+        e.preventDefault();
+        timerRef.current = window.setTimeout(() => {
+          timerRef.current = null;
+          if (stateRef.current !== "pending") return;
+          stateRef.current = "recording";
+          onPressRef.current();
+        }, HOLD_DELAY_MS);
+      } else if (stateRef.current === "pending") {
+        // Another key before dictation starts → compound shortcut, not talk.
+        clearTimer();
+        stateRef.current = "chord";
+      } else if (stateRef.current === "recording") {
+        // A key once recording (⌥ held long enough to start, then e.g.
+        // Backspace) ends the session — keeping what was said and re-enabling
+        // the locked input so the next keystroke edits normally.
+        stateRef.current = "chord";
+        onReleaseRef.current();
+      }
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (isOption(e)) end();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    // Blur can swallow the ⌥ keyup; end the session so it can't stick on.
+    window.addEventListener("blur", end);
+    return () => {
+      clearTimer();
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", end);
+    };
+  }, [enabled]);
 }
