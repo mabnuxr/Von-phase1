@@ -59,19 +59,7 @@ const Conversation = () => {
 
   // --- AppShell context (auth, user, sidebar, flags) ---
   const { user, collapseSidebar, openShareModal } = useAppShell();
-  const {
-    isSlashCommandsEnabled,
-    isActionsEnabled,
-    isDeepLinksEnabled,
-    isSourcesEnabled,
-    isTenantDisabled,
-    isFileUploadEnabled,
-    isArtifactsEnabled,
-    isGoogleDriveEnabled,
-    isBoxEnabled: isBoxFeatureEnabled,
-    isScheduledCommandsEnabled,
-    isChatSharingEnabled,
-  } = useFeatureFlag();
+  const { isActionsEnabled, isTenantDisabled } = useFeatureFlag();
 
   // --- Conversation ID (URL is the single source of truth) ---
   const currentConversationId = urlConversationId ?? null;
@@ -93,9 +81,7 @@ const Conversation = () => {
   );
 
   // --- Share Status (for header CTA) ---
-  const { data: shareStatus } = useShareStatus(
-    isChatSharingEnabled ? currentConversationId : null,
-  );
+  const { data: shareStatus } = useShareStatus(currentConversationId);
   const isShared = shareStatus?.isShared ?? false;
   const shareAccessType = shareStatus?.accessType;
 
@@ -116,10 +102,9 @@ const Conversation = () => {
     integration: salesforceIntegration,
   } = useSalesforceConnection();
 
-  const salesforceInstanceUrl =
-    isDeepLinksEnabled && salesforceIntegration?.config?.domain
-      ? `https://${salesforceIntegration.config.domain}`
-      : undefined;
+  const salesforceInstanceUrl = salesforceIntegration?.config?.domain
+    ? `https://${salesforceIntegration.config.domain}`
+    : undefined;
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
   const canSubmit = isSalesforceReady && !isTenantDisabled;
@@ -137,36 +122,28 @@ const Conversation = () => {
     [integrationsData],
   );
 
-  const isDriveEnabled = isGoogleDriveEnabled;
-  const driveTooltip = !isGoogleDriveEnabled
-    ? "Open in Drive (Coming Soon)"
-    : !isDriveConnected
-      ? "Connect Google Drive"
-      : "Open in Google Drive";
+  const isDriveEnabled = true;
+  const driveTooltip = !isDriveConnected
+    ? "Connect Google Drive"
+    : "Open in Google Drive";
 
   const [driveLoadingFileId, setDriveLoadingFileId] = useState<string | null>(
     null,
   );
 
-  // --- Box (gated behind feature flag) ---
+  // --- Box ---
   const isBoxConnected = useMemo(
     () =>
-      isBoxFeatureEnabled
-        ? (integrationsData?.integrations.some(
-            (i) =>
-              i.type === IntegrationType.BOX &&
-              i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
-          ) ?? false)
-        : false,
-    [integrationsData, isBoxFeatureEnabled],
+      integrationsData?.integrations.some(
+        (i) =>
+          i.type === IntegrationType.BOX &&
+          i.authenticationStatus === AuthenticationStatus.AUTHENTICATED,
+      ) ?? false,
+    [integrationsData],
   );
 
-  const isBoxEnabled = isBoxFeatureEnabled;
-  const boxTooltip = !isBoxFeatureEnabled
-    ? "Open in Box (Coming Soon)"
-    : !isBoxConnected
-      ? "Connect Box"
-      : "Open in Box";
+  const isBoxEnabled = true;
+  const boxTooltip = !isBoxConnected ? "Connect Box" : "Open in Box";
 
   const [boxLoadingFileId, setBoxLoadingFileId] = useState<string | null>(null);
 
@@ -293,13 +270,7 @@ const Conversation = () => {
     canSubmit,
     onDisabledInteraction: handleDisabledInteraction,
     salesforceInstanceUrl,
-    isSlashCommandsEnabled,
     isActionsEnabled,
-    isDeepLinksEnabled,
-    isSourcesEnabled,
-    isFileUploadEnabled,
-    isArtifactsEnabled,
-    isScheduledCommandsEnabled,
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
     onGoogleDriveClick: handleGoogleDriveClick,
@@ -307,13 +278,11 @@ const Conversation = () => {
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
-    ...(isBoxFeatureEnabled && {
-      onBoxClick: handleBoxClick,
-      isBoxEnabled,
-      isBoxConnected,
-      boxTooltip,
-      boxLoadingFileId,
-    }),
+    onBoxClick: handleBoxClick,
+    isBoxEnabled,
+    isBoxConnected,
+    boxTooltip,
+    boxLoadingFileId,
   };
 
   return (
@@ -352,34 +321,27 @@ const Conversation = () => {
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}
-              {...(isBoxFeatureEnabled && {
-                onBoxClick: handleBoxClick,
-                isBoxEnabled,
-                isBoxConnected,
-                boxTooltip,
-                boxLoadingFileId,
-              })}
-              headerAction={
-                isChatSharingEnabled
-                  ? (compact: boolean) => (
-                      <button
-                        onClick={() => openShareModal(currentConversationId)}
-                        className="absolute top-2 right-2.5 z-10 flex items-center gap-1 px-2 py-1.5 text-xs text-gray-800 bg-white border border-gray-200/60 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
-                      >
-                        {isShared ? (
-                          shareAccessType === "restricted" ? (
-                            <UsersIcon size={12} />
-                          ) : (
-                            <GlobeSimpleIcon size={12} />
-                          )
-                        ) : (
-                          <ExportIcon size={12} />
-                        )}
-                        {!compact && (isShared ? "Shared" : "Share")}
-                      </button>
+              onBoxClick={handleBoxClick}
+              isBoxConnected={isBoxConnected}
+              boxTooltip={boxTooltip}
+              boxLoadingFileId={boxLoadingFileId}
+              headerAction={(compact: boolean) => (
+                <button
+                  onClick={() => openShareModal(currentConversationId)}
+                  className="absolute top-2 right-2.5 z-10 flex items-center gap-1 px-2 py-1.5 text-xs text-gray-800 bg-white border border-gray-200/60 rounded-xl hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                >
+                  {isShared ? (
+                    shareAccessType === "restricted" ? (
+                      <UsersIcon size={12} />
+                    ) : (
+                      <GlobeSimpleIcon size={12} />
                     )
-                  : undefined
-              }
+                  ) : (
+                    <ExportIcon size={12} />
+                  )}
+                  {!compact && (isShared ? "Shared" : "Share")}
+                </button>
+              )}
             />
           </div>
         </div>

@@ -23,7 +23,6 @@ interface UseDashboardLayoutDataArgs {
   >;
   isEditMode: boolean;
   isPreview: boolean | undefined;
-  isDashboardDragDropEnabled: boolean;
 }
 
 export function useDashboardLayoutData({
@@ -33,7 +32,6 @@ export function useDashboardLayoutData({
   filterState,
   isEditMode,
   isPreview,
-  isDashboardDragDropEnabled,
 }: UseDashboardLayoutDataArgs) {
   const rawGridConfig = dashboard.gridConfig as unknown as GridConfig;
   const gridConfig = {
@@ -55,7 +53,7 @@ export function useDashboardLayoutData({
     useDashboardAutoFit({
       layout,
       onLayoutChange: saveLayoutChange,
-      isEnabled: !!isPreview && isEditMode && isDashboardDragDropEnabled,
+      isEnabled: !!isPreview && isEditMode,
     });
 
   const variablesByWidget = useMemo(

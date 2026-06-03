@@ -15,7 +15,6 @@ import {
   useUpdateTenantMemberPermissions,
 } from "../../hooks/useTenantMembers";
 import { useUser } from "../../hooks/useUser";
-import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import usePreferencesStore from "../../store/preferencesStore";
 import { Banner, Tooltip } from "@vonlabs/design-components";
@@ -39,8 +38,6 @@ export function ManageUsersTab() {
 
   // Get permissions for tenant member resource
   const { data: tenantMemberPermissions } = usePermissions(Resource.TEAM);
-
-  const { isHubspotEnabled } = useFeatureFlag();
 
   // Check if user can create/delete tenant members
   const canCreateTenantMember = tenantMemberPermissions?.create ?? false;
@@ -206,7 +203,6 @@ export function ManageUsersTab() {
 
   // Per-member permission toggles, keyed by member.id for O(1) lookup in JSX.
   // Adding another integration's permission = one entry in this array per member.
-  // HubSpot toggle is gated on the enable-hubspot FF (matches the BE gate).
   const memberPermissionToggles = useMemo(
     () =>
       Object.fromEntries(
@@ -219,21 +215,17 @@ export function ManageUsersTab() {
               value: m.permissions?.sfdc_write ?? true,
               onToggle: () => handleToggleSfdcWrite(m),
             },
-            ...(isHubspotEnabled
-              ? [
-                  {
-                    key: "hubspot_write",
-                    label: "HubSpot Updates",
-                    value: m.permissions?.hubspot_write ?? true,
-                    onToggle: () => handleToggleHubspotWrite(m),
-                  },
-                ]
-              : []),
+            {
+              key: "hubspot_write",
+              label: "HubSpot Updates",
+              value: m.permissions?.hubspot_write ?? true,
+              onToggle: () => handleToggleHubspotWrite(m),
+            },
           ],
         ]),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filteredUsers, isHubspotEnabled],
+    [filteredUsers],
   );
 
   const formatDate = (dateString: string | null) => {
