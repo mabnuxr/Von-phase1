@@ -194,7 +194,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       // print() is non-blocking, so closing immediately dismisses the share
       // sheet before it appears. Fallback timer covers afterprint never firing.
       let closed = false;
-      let fallbackCloseId: ReturnType<typeof setTimeout>;
       const closeOnce = () => {
         if (closed) return;
         closed = true;
@@ -202,7 +201,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         printWindow.close();
         URL.revokeObjectURL(blobUrl);
       };
-      fallbackCloseId = setTimeout(closeOnce, 60000);
+      const fallbackCloseId = setTimeout(closeOnce, 60000);
       printWindow.addEventListener('afterprint', closeOnce);
 
       // Print on load (not a fixed timeout) so slow mobile renders complete first.
