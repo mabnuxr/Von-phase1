@@ -10,8 +10,6 @@ import { EditLockModal } from "./EditLockModal";
 import { DiscardChangesModal } from "./DiscardChangesModal";
 import { EditModeBanner } from "../EditModeBanner";
 import { DashboardStatus } from "../../../types/dashboard";
-import { useFeatureFlag } from "../../../hooks/useFeatureFlag";
-import { useIsViewOnly } from "../../../hooks/useIsViewOnly";
 import { useUser } from "../../../hooks/useUser";
 import { useTenantMembers } from "../../../hooks/useTenantMembers";
 import { getUserContext } from "../../../lib/auth";
@@ -198,9 +196,8 @@ interface AnalyticsViewProps {
   hideCreatorChip?: boolean;
   /**
    * True when rendered inside the chat-side preview pane. Auto-fit only
-   * runs when this is true AND edit mode is on AND the drag-and-drop flag
-   * is enabled — the full dashboard page never auto-fits, regardless of
-   * mode/flag.
+   * runs when this is true AND edit mode is on — the full dashboard page
+   * never auto-fits, regardless of mode.
    */
   isPreview?: boolean;
   /** Schedule state and handlers (required when isDashboardOwner) */
@@ -341,10 +338,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   isDrilldownOpen,
   // Panel-filter props accepted but unused until widget-level filter UI is re-enabled
 }) => {
-  // Drag-and-drop / resize chrome is gated behind a LaunchDarkly flag so we
-  // can roll the manual-layout feature out per tenant. Edit mode itself
-  // (filters, rename, save) stays available regardless.
-  const { isDashboardDragDropEnabled } = useFeatureFlag();
   const { user } = useUser();
   const isViewOnly = useIsViewOnly();
   // Bootstrap the tenant-members fetch from the synchronously-available
@@ -379,7 +372,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     filterState,
     isEditMode,
     isPreview,
-    isDashboardDragDropEnabled,
   });
 
   const { isDashboardOwner, canEditDashboard, creatorName, isCreatorLoading } =
@@ -570,7 +562,6 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 onTableSortChange={onTableSortChange}
                 tableSortStates={tableSortStates}
                 isEditMode={isEditMode}
-                isDragDropEnabled={isDashboardDragDropEnabled}
                 isLoading={isRefetchingData || isRefreshing}
                 variablesByWidget={variablesByWidget}
                 onLayoutChange={handleLayoutChange}

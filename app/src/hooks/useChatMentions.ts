@@ -4,11 +4,8 @@ import { MentionItemType } from "@vonlabs/design-components";
 
 import { useDashboardList } from "./useDashboardList";
 import { useAiFields } from "./useVonAiFields";
-import { useFeatureFlag } from "./useFeatureFlag";
 
 export function useChatMentions() {
-  const { isDeepResearchEnabled, isVonAiFieldsEnabled } = useFeatureFlag();
-
   const [mentionsActivated, setMentionsActivated] = useState(false);
   const { data: dashboardListData, isLoading: isLoadingDashboards } =
     useDashboardList(mentionsActivated);
@@ -16,7 +13,7 @@ export function useChatMentions() {
     "live",
     1,
     50,
-    mentionsActivated && isVonAiFieldsEnabled,
+    mentionsActivated,
   );
 
   const mentionItems: MentionItem[] = useMemo(() => {
@@ -28,16 +25,15 @@ export function useChatMentions() {
         version: d.dashboard_version,
       })) ?? [];
 
-    const aiFields: MentionItem[] =
-      isVonAiFieldsEnabled && aiFieldsData?.data
-        ? aiFieldsData.data.map((f) => ({
-            id: f.fieldId,
-            name: f.displayName ?? f.name,
-            type: MentionItemType.AiField,
-            version: 0,
-            aiFieldContext: { aiFieldId: f.fieldId },
-          }))
-        : [];
+    const aiFields: MentionItem[] = aiFieldsData?.data
+      ? aiFieldsData.data.map((f) => ({
+          id: f.fieldId,
+          name: f.displayName ?? f.name,
+          type: MentionItemType.AiField,
+          version: 0,
+          aiFieldContext: { aiFieldId: f.fieldId },
+        }))
+      : [];
 
     if (import.meta.env.DEV) {
       console.log(
@@ -45,21 +41,16 @@ export function useChatMentions() {
         dashboards.length,
         "aiFields:",
         aiFields.length,
-        "flag:",
-        isVonAiFieldsEnabled,
         "data:",
         !!aiFieldsData,
       );
     }
     return [...dashboards, ...aiFields];
-  }, [dashboardListData, aiFieldsData, isVonAiFieldsEnabled]);
-
-  const enableMentions = isDeepResearchEnabled;
+  }, [dashboardListData, aiFieldsData]);
 
   const onMentionsActivated = useCallback(() => setMentionsActivated(true), []);
 
   return {
-    enableMentions,
     mentionItems,
     isLoadingMentions: isLoadingDashboards || isLoadingAiFields,
     onMentionsActivated,

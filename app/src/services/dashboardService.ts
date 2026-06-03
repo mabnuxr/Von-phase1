@@ -461,10 +461,12 @@ class DashboardService {
   async drilldownPanelV2(
     dashboardId: string,
     request: DrilldownV2Request,
+    retryCount = 0,
   ): Promise<DrilldownV2Response> {
     return apiClient.post<DrilldownV2Response>(
       `/api/v1/dashboards/${dashboardId}/panels/drilldown/v2`,
       request,
+      { headers: { "X-Retry-Count": String(retryCount) } },
     );
   }
 

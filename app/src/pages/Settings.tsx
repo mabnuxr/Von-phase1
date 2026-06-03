@@ -17,7 +17,6 @@ import {
 import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
 import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
-import { OrgContextTab } from "../components/tabs/OrgContextTab";
 import { OrgContextTabV2 } from "../components/tabs/OrgContextTabV2";
 import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";
@@ -72,16 +71,11 @@ const Settings = () => {
     }
   }, [isViewOnly, navigate]);
 
-  const {
-    isUsageMetricsEnabled,
-    isUserMemoryEnabled,
-    isVonAiFieldsEnabled,
-    isMemoryV2Enabled,
-  } = useFeatureFlag();
+  const { isUsageMetricsEnabled } = useFeatureFlag();
 
   const isAdmin =
     user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
-  const showVonAiFields = isVonAiFieldsEnabled && isAdmin;
+  const showVonAiFields = isAdmin;
 
   // Get initial tab from URL query parameter or default to integrations.
   // Under V2 the legacy `memory` deep-link lands on the Org Memory sub-page
@@ -92,7 +86,7 @@ const Settings = () => {
   // that's the leading sub-tab in the AI Fields nav.
   const tabFromUrl = searchParams.get("tab");
   const normalizedTab =
-    isMemoryV2Enabled && tabFromUrl === "memory"
+    tabFromUrl === "memory"
       ? "memory-org"
       : tabFromUrl === "custom-iq"
         ? "custom-iq-custom"
@@ -114,7 +108,7 @@ const Settings = () => {
   useEffect(() => {
     if (!tabFromUrl) {
       navigate(`/settings?tab=integrations`, { replace: true });
-    } else if (isMemoryV2Enabled && tabFromUrl === "memory") {
+    } else if (tabFromUrl === "memory") {
       navigate(`/settings?tab=memory-org`, { replace: true });
     } else if (tabFromUrl === "custom-iq") {
       const fieldIdFromUrl = searchParams.get("fieldId");
@@ -123,7 +117,7 @@ const Settings = () => {
         : `/settings?tab=custom-iq-custom`;
       navigate(target, { replace: true });
     }
-  }, [tabFromUrl, navigate, isMemoryV2Enabled, searchParams]);
+  }, [tabFromUrl, navigate, searchParams]);
 
   // Sync fieldId from URL (e.g., navigating from chat "View in Settings").
   // Field detail only applies to custom fields — defaults aren't clickable.
@@ -270,24 +264,16 @@ const Settings = () => {
       },
     ],
     configurations: [
-      // Memory V2 splits into Org/User children; legacy V1 is a single tab.
-      isMemoryV2Enabled
-        ? {
-            id: "memory",
-            label: "Memory",
-            icon: <BrainIcon size={20} weight="regular" />,
-            children: [
-              { id: "memory-org", label: "Org Memory" },
-              ...(isUserMemoryEnabled
-                ? [{ id: "memory-user", label: "User Memory" }]
-                : []),
-            ],
-          }
-        : {
-            id: "memory",
-            label: "Memory",
-            icon: <BrainIcon size={20} weight="regular" />,
-          },
+      // Memory splits into Org/User children.
+      {
+        id: "memory",
+        label: "Memory",
+        icon: <BrainIcon size={20} weight="regular" />,
+        children: [
+          { id: "memory-org", label: "Org Memory" },
+          { id: "memory-user", label: "User Memory" },
+        ],
+      },
       ...(showVonAiFields
         ? [
             {
@@ -328,15 +314,10 @@ const Settings = () => {
         return <IntegrationsPanel />;
       case "team":
         return <ManageUsersTab />;
-      case "memory":
-        // V1 only — V2 routes through the memory-org/memory-user children.
-        return isMemoryV2Enabled ? null : <OrgContextTab />;
       case "memory-org":
-        return isMemoryV2Enabled ? <OrgContextTabV2 view="org" /> : null;
+        return <OrgContextTabV2 view="org" />;
       case "memory-user":
-        return isMemoryV2Enabled && isUserMemoryEnabled ? (
-          <OrgContextTabV2 view="user" />
-        ) : null;
+        return <OrgContextTabV2 view="user" />;
       case "custom-iq":
         // Legacy id — useEffect above redirects URL to custom-iq-custom.
         // Until that runs, render the Custom tab to avoid a blank frame.

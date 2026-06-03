@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useFirstConversationId } from "./useFirstConversationId";
 import { useCreateConversation } from "./useConversations";
 import { generateConversationTitle } from "../lib/conversationUtils";
-import { useFeatureFlag } from "./useFeatureFlag";
 
 /**
  * Initialize conversation on Dashboard mount
@@ -20,11 +19,7 @@ import { useFeatureFlag } from "./useFeatureFlag";
 export function useConversationInit(urlConversationId?: string) {
   const navigate = useNavigate();
 
-  // Get feature flag for agent version (used when creating first conversation)
-  const { isAgentV2 } = useFeatureFlag();
-
   // Track whether we've already attempted to create the initial conversation
-  // Prevents duplicate creation when isAgentV2 flag value changes asynchronously
   const hasCreatedInitialConversationRef = useRef(false);
 
   // Lightweight fetch — only 1 conversation, version-aware endpoint.
@@ -76,7 +71,7 @@ export function useConversationInit(urlConversationId?: string) {
     }
 
     // CASE 3: No conversations — create first one
-    // Guard against duplicate creation when isAgentV2 flag changes asynchronously
+    // Guard against duplicate creation
     if (hasCreatedInitialConversationRef.current) {
       return;
     }
@@ -92,7 +87,7 @@ export function useConversationInit(urlConversationId?: string) {
 
         const response = await createConversation({
           title,
-          agentVersion: isAgentV2 ? "v2" : "v1",
+          agentVersion: "v2",
         });
         const newConversationId = response.conversation.conversationId;
 
@@ -117,7 +112,6 @@ export function useConversationInit(urlConversationId?: string) {
     urlConversationId,
     navigate,
     createConversation,
-    isAgentV2,
   ]);
 
   return {

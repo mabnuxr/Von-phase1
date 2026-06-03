@@ -5,7 +5,6 @@ import {
 } from "../hooks/useMCPServers";
 import { IntegrationCard, ConfirmationModal } from "@vonlabs/design-components";
 import { usePermissions } from "../hooks/usePermissions";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { useDeleteConnections } from "../hooks/useAppCatalog";
 import {
   useSetHubspotScope,
@@ -85,6 +84,7 @@ interface IntegrationsListProps {
       }
     | undefined;
   loadingIntegrationId: string | null;
+  deletingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
   onDelete: (
@@ -298,6 +298,7 @@ interface IntegrationItemProps {
   allIntegrations: Integration[];
   integrationsData: IntegrationsListProps["integrationsData"];
   loadingIntegrationId: string | null;
+  deletingIntegrationId: string | null;
   timedOutIntegrations: string[];
   onConnect: (appId: string, accessLevel: "tenant" | "user") => void;
   onDelete: (
@@ -506,6 +507,7 @@ function IntegrationItem({
   item,
   integrationsData,
   loadingIntegrationId,
+  deletingIntegrationId,
   timedOutIntegrations,
   onConnect,
   onDelete,
@@ -690,6 +692,7 @@ function IntegrationItem({
         }
         disabled={!!isLoading}
         loadingText={isLoading ? "Authenticating" : undefined}
+        deleteDisabled={deletingIntegrationId === personal.id}
         deleteTooltip={deleteTooltip}
         actionSlot={
           canEditScope && !isLoading ? (
@@ -785,6 +788,7 @@ function IntegrationItem({
           }
           disabled={!!workspaceIsLoading}
           loadingText={workspaceIsLoading ? "Authenticating" : undefined}
+          deleteDisabled={deletingIntegrationId === workspace.id}
           deleteTooltip={
             isOwner && canConnectPersonal
               ? "Removes both workspace and personal connections"
@@ -854,6 +858,7 @@ function IntegrationItem({
         canDelete={personalPerms?.delete ?? false}
         disabled={!!personalIsLoading}
         loadingText={personalIsLoading ? "Authenticating" : undefined}
+        deleteDisabled={deletingIntegrationId === personal.id}
         deleteTooltip="Removes personal connection"
       />
     );
@@ -870,6 +875,7 @@ export function IntegrationsList({
   integrations,
   integrationsData,
   loadingIntegrationId,
+  deletingIntegrationId,
   timedOutIntegrations,
   onConnect,
   onDelete,
@@ -878,24 +884,6 @@ export function IntegrationsList({
   tenantIntegrations,
   isAdmin = false,
 }: IntegrationsListProps) {
-  const {
-    isGoogleDriveEnabled,
-    isZendeskEnabled,
-    isSnowflakeEnabled,
-    isGmailEnabled,
-    isGranolaEnabled,
-    isNotionEnabled,
-    isHubspotEnabled,
-    isOutreachEngageEnabled,
-    isSalesloftEngagementEnabled,
-    isJiminnyEnabled,
-    isDatabricksEnabled,
-    isBoxEnabled,
-    isBigQueryEnabled,
-    isMcpServersEnabled,
-    isSlackPersonalEnabled,
-  } = useFeatureFlag();
-
   // Build a fast lookup: BACKEND_TYPE → { tenant_integrations: { workspace, personal } }
   // Aggregates per-mode TI rows into a single entry per integration type.
   const catalogMap = useMemo(() => {
@@ -948,24 +936,8 @@ export function IntegrationsList({
       ) {
         return false;
       }
-      if (app.id === "googledrive" && !isGoogleDriveEnabled) return false;
-      if (app.id === "zendesk" && !isZendeskEnabled) return false;
-      if (app.id === "snowflake" && !isSnowflakeEnabled) return false;
-      if (app.id === "gmail" && !isGmailEnabled) return false;
-      if (app.id === "granola" && !isGranolaEnabled) return false;
-      if (app.id === "notion" && !isNotionEnabled) return false;
-      if (app.id === "hubspot" && !isHubspotEnabled) return false;
-      if (app.id === "outreachengage" && !isOutreachEngageEnabled) return false;
-      if (app.id === "salesloft_engagement" && !isSalesloftEngagementEnabled)
-        return false;
-      if (app.id === "jiminny" && !isJiminnyEnabled) return false;
-      if (app.id === "databricks" && !isDatabricksEnabled) return false;
-      if (app.id === "box" && !isBoxEnabled) return false;
-      if (app.id === "bigquery" && !isBigQueryEnabled) return false;
-      if (app.id === "slack_personal" && !isSlackPersonalEnabled) return false;
-
-      // Catalog-gating only applies when MCP feature is enabled
-      if (isMcpServersEnabled && tenantIntegrations !== undefined) {
+      // Catalog-gating applies once tenant integrations have loaded
+      if (tenantIntegrations !== undefined) {
         // HubSpot, Salesforce, and Slack Workspace are always visible regardless
         // of catalog state — they're hardcoded chips that bypass AppCatalogEntry.
         if (
@@ -1003,27 +975,7 @@ export function IntegrationsList({
 
       return true;
     });
-  }, [
-    tenantIntegrations,
-    catalogMap,
-    integrations,
-    isGoogleDriveEnabled,
-    isZendeskEnabled,
-    isSnowflakeEnabled,
-    isGmailEnabled,
-    isGranolaEnabled,
-    isNotionEnabled,
-    isHubspotEnabled,
-    isOutreachEngageEnabled,
-    isSalesloftEngagementEnabled,
-    isJiminnyEnabled,
-    isDatabricksEnabled,
-    isBoxEnabled,
-    isBigQueryEnabled,
-    isMcpServersEnabled,
-    isSlackPersonalEnabled,
-    isAdmin,
-  ]);
+  }, [tenantIntegrations, catalogMap, integrations, isAdmin]);
 
   // Merge available apps with connected integrations
   const mergedData = useMemo(() => {
@@ -1121,19 +1073,19 @@ export function IntegrationsList({
                     allIntegrations={integrations}
                     integrationsData={integrationsData}
                     loadingIntegrationId={loadingIntegrationId}
+                    deletingIntegrationId={deletingIntegrationId}
                     timedOutIntegrations={timedOutIntegrations}
                     onConnect={onConnect}
                     onDelete={onDelete}
                   />
                 ))}
-              {isMcpServersEnabled &&
-                mcpItems.map((entry) => (
-                  <MCPCatalogItem
-                    key={entry.catalog_id}
-                    entry={entry}
-                    onConnect={onMCPConnect ?? (() => {})}
-                  />
-                ))}
+              {mcpItems.map((entry) => (
+                <MCPCatalogItem
+                  key={entry.catalog_id}
+                  entry={entry}
+                  onConnect={onMCPConnect ?? (() => {})}
+                />
+              ))}
               {items
                 ?.filter((i) => i.id === "slack_workspace")
                 .map((item) => (
@@ -1143,6 +1095,7 @@ export function IntegrationsList({
                     allIntegrations={integrations}
                     integrationsData={integrationsData}
                     loadingIntegrationId={loadingIntegrationId}
+                    deletingIntegrationId={deletingIntegrationId}
                     timedOutIntegrations={timedOutIntegrations}
                     onConnect={onConnect}
                     onDelete={onDelete}
@@ -1154,28 +1107,27 @@ export function IntegrationsList({
       })}
 
       {/* Extra MCP categories not in CATEGORY_ORDER */}
-      {isMcpServersEnabled &&
-        extraMCPCategories.map((category) => (
-          <div
-            key={category}
-            className="bg-white rounded-lg border border-gray-200 overflow-visible"
-          >
-            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                {category}
-              </h3>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {mcpByCategory[category].map((entry) => (
-                <MCPCatalogItem
-                  key={entry.catalog_id}
-                  entry={entry}
-                  onConnect={onMCPConnect ?? (() => {})}
-                />
-              ))}
-            </div>
+      {extraMCPCategories.map((category) => (
+        <div
+          key={category}
+          className="bg-white rounded-lg border border-gray-200 overflow-visible"
+        >
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              {category}
+            </h3>
           </div>
-        ))}
+          <div className="divide-y divide-gray-200">
+            {mcpByCategory[category].map((entry) => (
+              <MCPCatalogItem
+                key={entry.catalog_id}
+                entry={entry}
+                onConnect={onMCPConnect ?? (() => {})}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -53,7 +53,6 @@ export interface ChatMessageProps {
   onTransparencyClick?: (messageId: string) => void;
   showTransparency?: boolean;
   salesforceInstanceUrl?: string;
-  enableDeepLinks?: boolean;
   // Dashboard Builder / Plan Approval
   dashboards?: import('./types').DashboardMetadata[];
   executionId?: string | null;
@@ -81,12 +80,10 @@ export interface ChatMessageProps {
   ) => void;
   onArtifactDownload?: (fileId: string) => void;
   onGoogleDriveClick?: (fileId: string) => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
   onBoxClick?: (fileId: string) => void;
-  isBoxEnabled?: boolean;
   isBoxConnected?: boolean;
   boxTooltip?: string;
   boxLoadingFileId?: string | null;
@@ -164,12 +161,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   onFileArtifactClick,
   onArtifactDownload,
   onGoogleDriveClick,
-  isDriveEnabled,
   isDriveConnected,
   driveTooltip,
   driveLoadingFileId,
   onBoxClick,
-  isBoxEnabled,
   isBoxConnected,
   boxTooltip,
   boxLoadingFileId,
@@ -319,12 +314,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
                         onFileArtifactClick={onFileArtifactClick}
                         onArtifactDownload={onArtifactDownload}
                         onGoogleDriveClick={onGoogleDriveClick}
-                        isDriveEnabled={isDriveEnabled}
                         isDriveConnected={isDriveConnected}
                         driveTooltip={driveTooltip}
                         driveLoadingFileId={driveLoadingFileId}
                         onBoxClick={onBoxClick}
-                        isBoxEnabled={isBoxEnabled}
                         isBoxConnected={isBoxConnected}
                         boxTooltip={boxTooltip}
                         boxLoadingFileId={boxLoadingFileId}

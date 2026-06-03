@@ -37,6 +37,7 @@ import { useIsViewOnly } from "../hooks/useIsViewOnly";
 import { useAiFields, useAiField } from "../hooks/useVonAiFields";
 import { useSalesforceConnection } from "../hooks/useSalesforceConnection";
 import { useCreateAndSendMessage } from "../hooks/useCreateAndSendMessage";
+import { useChatDraft, useRestoreUnsentInput } from "../hooks/useChatDraft";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useTenantMembers } from "../hooks/useTenantMembers";
 import { useDashboardList } from "../hooks/useDashboardList";
@@ -177,15 +178,7 @@ const NewConversation = () => {
     pageViewCaptured.current = true;
   }, [user]);
 
-  const {
-    isAgentV2: isAgentV2Flag,
-    isTenantDisabled,
-    isSlashCommandsEnabled,
-    isFileUploadEnabled,
-    isScheduledCommandsEnabled,
-    isDeepResearchEnabled,
-    isVonAiFieldsEnabled,
-  } = useFeatureFlag();
+  const { isTenantDisabled } = useFeatureFlag();
 
   const {
     isConnected: isSalesforceConnected,
@@ -207,20 +200,32 @@ const NewConversation = () => {
     dismissFileError,
     restoredInput,
   } = useCreateAndSendMessage({
-    agentVersion: isAgentV2Flag ? "v2" : "v1",
-    isAgentV2: isAgentV2Flag,
+    agentVersion: "v2",
+    isAgentV2: true,
     title: "",
     navigateOnCreate: true,
   });
 
-  // When a send fails, the hook surfaces the user's unsent text via
-  // `restoredInput`. ChatEmptyState remounts whenever the message list
-  // toggles between empty and non-empty (and reads `defaultInputValue` only
-  // on mount), so substituting it here is enough to repopulate the input.
-  const defaultInputValue = restoredInput ?? initialInputRef.current;
+  // Composer value, persisted against the shared new-chat key so a draft
+  // survives navigation / refresh and is restored on return; writing "" clears
+  // it. This is the single controlled value voice transcription also writes to.
+  const [inputValue, setInputValue, clearDraft] = useChatDraft(null);
 
-  // Controlled input value — voice transcription needs to write into it.
-  const [inputValue, setInputValue] = useState(defaultInputValue);
+  // A navigation prefill (e.g. "Create AI field") outranks a stale draft.
+  useEffect(() => {
+    if (initialInputRef.current) setInputValue(initialInputRef.current);
+  }, [setInputValue]);
+
+  // A failed send surfaces the unsent text via `restoredInput` — restore it.
+  useRestoreUnsentInput(restoredInput, setInputValue);
+
+  const handleSendAndClearDraft = useCallback<typeof handleSendMessage>(
+    (...sendArgs) => {
+      clearDraft();
+      return handleSendMessage(...sendArgs);
+    },
+    [clearDraft, handleSendMessage],
+  );
 
   // Voice (Deepgram + LLM cleanup). After recording stops, the hook runs the
   // cleanup pass and returns the polished combination of `existing` + raw
@@ -238,7 +243,7 @@ const NewConversation = () => {
         setInputValue(prefix + sep + polishedDictation);
       },
     }),
-    [],
+    [setInputValue],
   );
   const voice = useVoiceTranscription({ cleanup: voiceCleanupConfig });
   const beginVoice = useCallback(() => {
@@ -255,23 +260,12 @@ const NewConversation = () => {
       beginVoice();
     }
   }, [beginVoice, endVoice, voice]);
+  // Hold ⌥ Option to dictate; release ends it and keeps the text. No status
+  // guards — the hook balances press/release and start/stop guard re-entry.
   usePushToTalkHotkey({
-    onPress: () => {
-      if (voice.status === "idle" || voice.status === "error") beginVoice();
-    },
-    onRelease: () => {
-      if (voice.status === "listening" || voice.status === "connecting") {
-        void endVoice();
-      }
-    },
+    onPress: beginVoice,
+    onRelease: endVoice,
   });
-  // Keep input in sync with `defaultInputValue` (e.g. after a failed send
-  // restores the user's unsent text). Matches the original ChatEmptyState
-  // remount behavior, but in controlled form.
-  useEffect(() => {
-    setInputValue(defaultInputValue);
-  }, [defaultInputValue]);
-
   const {
     commands,
     isLoadingCommands,
@@ -296,7 +290,7 @@ const NewConversation = () => {
     "live",
     1,
     50,
-    mentionsActivated && isVonAiFieldsEnabled,
+    mentionsActivated,
   );
 
   const mentionItems: MentionItem[] = useMemo(() => {
@@ -308,19 +302,18 @@ const NewConversation = () => {
         version: d.dashboard_version,
       })) ?? [];
 
-    const aiFields: MentionItem[] =
-      isVonAiFieldsEnabled && aiFieldsData?.data
-        ? aiFieldsData.data.map((f) => ({
-            id: f.fieldId,
-            name: f.displayName ?? f.name,
-            type: MentionItemType.AiField,
-            version: 0,
-            aiFieldContext: { aiFieldId: f.fieldId },
-          }))
-        : [];
+    const aiFields: MentionItem[] = aiFieldsData?.data
+      ? aiFieldsData.data.map((f) => ({
+          id: f.fieldId,
+          name: f.displayName ?? f.name,
+          type: MentionItemType.AiField,
+          version: 0,
+          aiFieldContext: { aiFieldId: f.fieldId },
+        }))
+      : [];
 
     return [...dashboards, ...aiFields];
-  }, [dashboardListData, aiFieldsData, isVonAiFieldsEnabled]);
+  }, [dashboardListData, aiFieldsData]);
 
   const isLoadingMentions = isLoadingDashboards || isLoadingAiFields;
 
@@ -362,28 +355,22 @@ const NewConversation = () => {
     setPreloadDismissed(true);
   }, []);
 
-  const { data: tenantMembersData } = useTenantMembers(
-    isScheduledCommandsEnabled ? user?.tenantId : undefined,
-  );
-  const tenantMembersForSchedule = isScheduledCommandsEnabled
-    ? (tenantMembersData ?? []).map((m) => ({
-        id: m.id,
-        email: m.email,
-        firstName: m.firstName,
-        lastName: m.lastName,
-        role: m.role,
-      }))
+  const { data: tenantMembersData } = useTenantMembers(user?.tenantId);
+  const tenantMembersForSchedule = (tenantMembersData ?? []).map((m) => ({
+    id: m.id,
+    email: m.email,
+    firstName: m.firstName,
+    lastName: m.lastName,
+  }));
+  const currentUserRecipient = user
+    ? {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
+        lastName:
+          user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
+      }
     : undefined;
-  const currentUserRecipient =
-    isScheduledCommandsEnabled && user
-      ? {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName ?? user.name?.split(" ")[0] ?? "",
-          lastName:
-            user.lastName ?? user.name?.split(" ").slice(1).join(" ") ?? "",
-        }
-      : undefined;
 
   const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
@@ -442,7 +429,7 @@ const NewConversation = () => {
         apiBaseUrl={config.apiBaseUrl}
         conversationId=""
         messages={transformedMessages}
-        onSendMessage={handleSendMessage}
+        onSendMessage={handleSendAndClearDraft}
         isLoading={false}
         inputValue={inputValue}
         onInputValueChange={setInputValue}
@@ -477,15 +464,14 @@ const NewConversation = () => {
         disableInput={isViewOnly}
         onExamplePromptDisabledClick={handleDisabledInteraction}
         onInputWhileDisabled={handleDisabledInteraction}
-        thinkingProcessVersion={isAgentV2Flag ? "v2" : "v1"}
-        useStandardInput={isAgentV2Flag}
-        enableFileUpload={isFileUploadEnabled}
+        thinkingProcessVersion="v2"
+        useStandardInput={true}
+        enableFileUpload={true}
         controlledAttachments={fileAttachments}
         onFilesSelected={addFiles}
         onRemoveAttachment={removeFile}
         fileErrorMessage={fileErrorMessage}
         onDismissFileError={dismissFileError}
-        enableCommands={isSlashCommandsEnabled}
         commands={commands}
         isLoadingCommands={isLoadingCommands}
         onSaveCommand={handleSaveCommand}
@@ -497,8 +483,8 @@ const NewConversation = () => {
         availableDashboards={availableDashboards}
         tenantMembers={tenantMembersForSchedule}
         currentUser={currentUserRecipient}
-        onSendTest={isScheduledCommandsEnabled ? handleSendTest : undefined}
-        enableMentions={isDeepResearchEnabled}
+        onSendTest={handleSendTest}
+        enableMentions={true}
         mentionItems={mentionItems}
         isLoadingMentions={isLoadingMentions}
         onMentionsActivated={handleMentionsActivated}

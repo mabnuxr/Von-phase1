@@ -33,7 +33,6 @@ import {
   canBeOrgLevel,
   INTEGRATION_METADATA,
 } from "../constants/integrationMetadata";
-import { useFeatureFlag } from "../hooks/useFeatureFlag";
 import { report } from "../lib/analytics/tracker";
 
 export interface Integration {
@@ -67,6 +66,8 @@ export function IntegrationsPanel() {
     setConfiguringSlackChannels,
     loadingIntegrationId,
     setLoadingIntegrationId,
+    deletingIntegrationId,
+    setDeletingIntegrationId,
   } = usePreferencesStore();
 
   // Auto-open integration config pane when linked from chat via ?configure=<id>.
@@ -154,13 +155,10 @@ export function IntegrationsPanel() {
     pageViewCaptured.current = true;
   }, [user]);
 
-  const { isMcpServersEnabled } = useFeatureFlag();
   const { data: tenantIntegrations } = useTenantIntegrations();
 
   // All MCP entries driven entirely by tenant-integrations (app-catalog API).
   const allMCPEntries = useMemo<CatalogEntry[]>(() => {
-    if (!isMcpServersEnabled) return [];
-
     // Group TI rows by catalog_id so workspace + personal become one card.
     const tiByApp = new Map<
       string,
@@ -266,7 +264,7 @@ export function IntegrationsPanel() {
         };
       },
     );
-  }, [isMcpServersEnabled, tenantIntegrations, integrationsData, isAdmin]);
+  }, [tenantIntegrations, integrationsData, isAdmin]);
 
   // Error state for OAuth operations
   const [oauthError, setOauthError] = useState<string | null>(null);
@@ -408,9 +406,13 @@ export function IntegrationsPanel() {
 
     if (confirmed) {
       setLoadingIntegrationId(id);
+      setDeletingIntegrationId(id);
       deleteIntegration.mutate(id, {
         onSuccess: () => {
           setLoadingIntegrationId(null);
+          // deletingIntegrationId is cleared by the effect below once the
+          // integration is gone from the refetched list, keeping the delete
+          // button disabled through the stale-cache window.
           report.integrationsIntegrationDeleted({
             integrationName: integration?.name ?? id,
             integrationCategory:
@@ -427,6 +429,7 @@ export function IntegrationsPanel() {
         },
         onError: (error: Error) => {
           setLoadingIntegrationId(null);
+          setDeletingIntegrationId(null);
           setOauthError(`Failed to delete integration: ${error.message}`);
           report.integrationsIntegrationDeleted({
             integrationName: integration?.name ?? id,
@@ -484,7 +487,7 @@ export function IntegrationsPanel() {
     setLoadingIntegrationId,
   ]);
 
-  // Clear loadingIntegrationId when integration is successfully authenticated
+  // Clear loadingIntegrationId when integration is successfully authenticated.
   useEffect(() => {
     if (loadingIntegrationId) {
       const integration = integrationsData?.integrations.find(
@@ -497,6 +500,21 @@ export function IntegrationsPanel() {
       }
     }
   }, [integrationsData, loadingIntegrationId, setLoadingIntegrationId]);
+
+  // Clear deletingIntegrationId once the integration is gone from the refetched
+  // list. This keeps the delete button disabled through the stale React Query
+  // cache window and across remounts (Zustand persists it), preventing a second
+  // delete from firing before the UI catches up.
+  useEffect(() => {
+    if (deletingIntegrationId) {
+      const integration = integrationsData?.integrations.find(
+        (i: { id: string }) => i.id === deletingIntegrationId,
+      );
+      if (integrationsData && !integration) {
+        setDeletingIntegrationId(null);
+      }
+    }
+  }, [integrationsData, deletingIntegrationId, setDeletingIntegrationId]);
 
   // Auto-open the Slack channel-config pane on first-time Slack workspace
   // authentication. Why: users complete OAuth and the card flips to
@@ -578,7 +596,7 @@ export function IntegrationsPanel() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {isAdmin && isMcpServersEnabled && (
+              {isAdmin && (
                 <button
                   onClick={() => setShowLibrary(true)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
@@ -609,6 +627,7 @@ export function IntegrationsPanel() {
             integrations={integrations}
             integrationsData={integrationsData}
             loadingIntegrationId={loadingIntegrationId}
+            deletingIntegrationId={deletingIntegrationId}
             timedOutIntegrations={timedOutIntegrations}
             onConnect={handleConnect}
             onDelete={handleDelete}
@@ -665,10 +684,10 @@ export function IntegrationsPanel() {
       />
 
       {/* MCP modals/panes */}
-      {isMcpServersEnabled && showLibrary && (
+      {showLibrary && (
         <ConnectorLibraryModal onClose={() => setShowLibrary(false)} />
       )}
-      {isMcpServersEnabled && mcpConnectEntry && (
+      {mcpConnectEntry && (
         <MCPConnectDrawer
           entry={mcpConnectEntry}
           onClose={() => setMcpConnectEntry(null)}

@@ -28,7 +28,6 @@ import { MemoryContextEditor } from "../MemoryContextEditor";
 import { BulkImportPane } from "../BulkImportPane";
 import type { MemoryContext } from "../../types/memoryContext";
 import { useToast } from "../../hooks/useToast";
-import { useFeatureFlag } from "../../hooks/useFeatureFlag";
 import { usePermissions, Resource } from "../../hooks/usePermissions";
 import { ApiError } from "../../services/apiClient";
 import { useCreateAndSendMessage } from "../../hooks/useCreateAndSendMessage";
@@ -119,9 +118,6 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   // Toast notifications
   const { showToast } = useToast();
 
-  // Feature flags
-  const { isUserMemoryEnabled, isAgentV2: isAgentV2Flag } = useFeatureFlag();
-
   // Bulk-import handoff: creates a new conversation seeded with the pasted
   // content + a brief directive. We DON'T navigate — the pane stays open
   // and shows an inline "Von is updating your memory" state. Once the user
@@ -132,8 +128,8 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
   // `navigateOnCreate=true` — without it the chat sidebar stays cached
   // and the new conversation only appears after a hard reload.
   const bulkImportFlow = useCreateAndSendMessage({
-    agentVersion: isAgentV2Flag ? "v2" : "v1",
-    isAgentV2: isAgentV2Flag,
+    agentVersion: "v2",
+    isAgentV2: true,
     // Empty title — let the backend auto-derive from the first message,
     // matching how the regular New Conversation flow behaves.
     title: "",
@@ -207,13 +203,13 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
     isFetchingNextPage,
   } = useInfiniteMemoryContexts("tenant", 20);
 
-  // Fetch user memory (only when viewing user memory and feature flag is enabled)
+  // Fetch user memory (only when viewing user memory)
   const {
     data: userMemoryData,
     isLoading: isUserMemoryLoading,
     refetch: refetchUserMemory,
   } = useMemoryContexts("user", 1, 1, {
-    enabled: showUser && isUserMemoryEnabled,
+    enabled: showUser,
   });
   const updateMutation = useUpdateMemoryContext();
   const deleteMutation = useDeleteMemoryContext();
@@ -228,16 +224,16 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
 
   // Extract user memory (single item or null)
   const userMemory = useMemo(
-    () => (isUserMemoryEnabled ? userMemoryData?.data?.[0] || null : null),
-    [userMemoryData?.data, isUserMemoryEnabled],
+    () => userMemoryData?.data?.[0] || null,
+    [userMemoryData?.data],
   );
 
   // Refresh user memory on mount to reflect updates made via chat
   useEffect(() => {
-    if (showUser && isUserMemoryEnabled) {
+    if (showUser) {
       refetchUserMemory();
     }
-  }, [showUser, isUserMemoryEnabled, refetchUserMemory]);
+  }, [showUser, refetchUserMemory]);
 
   // Auto-create user memory if feature is enabled but no user memory exists
   const [isCreatingUserMemory, setIsCreatingUserMemory] = useState(false);
@@ -251,7 +247,6 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
       userMemoryLoaded && (userMemoryData?.data?.length ?? 0) === 0;
 
     const shouldCreateUserMemory =
-      isUserMemoryEnabled &&
       !isUserMemoryLoading &&
       userMemoryLoaded &&
       hasNoUserMemory &&
@@ -285,7 +280,6 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
         });
     }
   }, [
-    isUserMemoryEnabled,
     isUserMemoryLoading,
     userMemoryData,
     isCreatingUserMemory,
@@ -781,7 +775,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
               : "Define context shared across all users in your organization"}
           </p>
         </div>
-        {showUser && isUserMemoryEnabled && (
+        {showUser && (
           <button
             onClick={() => setIsBulkImportOpen(true)}
             disabled={bulkImportFlow.isCreating || !userMemory}
@@ -948,7 +942,7 @@ export function OrgContextTabV2({ view }: OrgContextTabV2Props) {
               Single-card view of the per-user memory. Auto-created on first
               load; user can edit but not delete. Import button lives in the
               page header above. */}
-          {showUser && isUserMemoryEnabled && (
+          {showUser && (
             <div className="w-full">
               <div className="w-full bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
                 <div className="flex w-full h-[calc(100vh-220px)]">

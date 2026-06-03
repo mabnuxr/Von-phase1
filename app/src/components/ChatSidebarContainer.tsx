@@ -112,19 +112,13 @@ export function ChatSidebarContainer({
     isFetchingNextPage: isFetchingNextSharedPage,
   } = useSharedConversations(fetchSharedEnabled);
   const openSearchModal = useSearchModalStore((s) => s.open);
-  const {
-    isChatSharingEnabled,
-    isDeepResearchEnabled,
-    isWorkspaceSearchEnabled,
-  } = useFeatureFlag();
+  const { isWorkspaceSearchEnabled } = useFeatureFlag();
 
   // Track which conversation's context menu is open to fetch its share status
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
     null,
   );
-  const { data: contextMenuShareStatus } = useShareStatus(
-    isChatSharingEnabled ? contextMenuConvId : null,
-  );
+  const { data: contextMenuShareStatus } = useShareStatus(contextMenuConvId);
   const contextMenuShareInfo = contextMenuConvId
     ? {
         isShared: contextMenuShareStatus?.isShared ?? false,
@@ -692,10 +686,8 @@ export function ChatSidebarContainer({
         }
         onNewChatFolderClick={handleNewChatFolderClick}
         onRenameItem={handleRenameItem}
-        onShareItem={isChatSharingEnabled ? openShareModal : undefined}
-        onContextMenuOpen={
-          isChatSharingEnabled ? handleContextMenuOpen : undefined
-        }
+        onShareItem={openShareModal}
+        onContextMenuOpen={handleContextMenuOpen}
         contextMenuShareInfo={contextMenuShareInfo}
         onDeleteItem={handleDeleteItem}
         onDeleteFolderClick={handleDeleteFolderClick}
@@ -735,7 +727,6 @@ export function ChatSidebarContainer({
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
         isNewChatActive={isNewChatActive}
-        isDashboardsEnabled={isDeepResearchEnabled}
         dashboards={dashboards}
         selectedDashboardId={dashboardId}
         hasMoreDashboards={hasNextDashboardPage}

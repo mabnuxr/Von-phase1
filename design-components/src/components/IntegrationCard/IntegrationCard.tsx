@@ -116,6 +116,14 @@ export interface IntegrationCardProps {
   canDelete?: boolean;
 
   /**
+   * Disable only the delete button while keeping it visible. Use when a delete
+   * is already in flight to prevent a second submission. Distinct from `disabled`
+   * (card-level) and `isLoading` (auth flow) — those must leave the button
+   * enabled so users can cancel a stuck authenticating connection.
+   */
+  deleteDisabled?: boolean;
+
+  /**
    * Tooltip text for delete button (shown on hover)
    */
   deleteTooltip?: string;
@@ -173,6 +181,7 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
   modifiedBy,
   isAvailable = false,
   canDelete = true,
+  deleteDisabled = false,
   deleteTooltip,
   actionSlot,
   statusText,
@@ -288,7 +297,8 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = ({
               <div className="relative group">
                 <button
                   onClick={onDelete}
-                  className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600"
+                  disabled={deleteDisabled}
+                  className="p-1.5 hover:bg-red-50 rounded transition-colors cursor-pointer border-none bg-transparent text-gray-500 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
                   aria-label="Delete integration"
                 >
                   <TrashSimpleIcon size={16} />

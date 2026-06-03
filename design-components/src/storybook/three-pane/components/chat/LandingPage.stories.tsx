@@ -64,7 +64,6 @@ export const LandingPage: Story = {
         useStandardInput
         showPlusMenu
         enableFileUpload
-        enableCommands
         commands={DEFAULT_COMMANDS}
         onSendMessage={(message, attachments, options) =>
           console.log('Send:', message, attachments, options)

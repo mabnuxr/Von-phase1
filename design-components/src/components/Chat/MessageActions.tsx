@@ -149,33 +149,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   };
 
   const handleDownload = () => {
-    // Guard against empty content
     if (!messageContent || messageContent.trim() === '') {
       console.warn('Cannot generate PDF: message content is empty');
       return;
     }
 
-    // Convert markdown to HTML
     const htmlContent = marked(messageContent);
 
-    // Create a hidden iframe for printing (stays on same page)
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText =
-      'position: fixed; top: 0; left: 0; width: 0; height: 0; border: none; visibility: hidden;';
-    document.body.appendChild(iframe);
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-    if (!iframeDoc) {
-      console.error('Failed to access iframe document');
-      document.body.removeChild(iframe);
-      return;
-    }
-
-    iframeDoc.open();
-    iframeDoc.write(`
+    const printDocument = `
       <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8" /> <!-- required: Blob document won't inherit the page's encoding, else emoji/accents mangle -->
           <title>Message Export</title>
           <style>
             ${getPdfStyles()}
@@ -193,17 +178,61 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           ${htmlContent}
         </body>
       </html>
-    `);
-    iframeDoc.close();
+    `;
 
-    // Wait for content to render, then print
-    setTimeout(() => {
+    // Open a standalone top-level document and print *that*, not an iframe:
+    // iOS Safari ignores a hidden iframe's print scope and prints the whole app
+    // UI instead. Serve it as a Blob URL rather than document.write — Android
+    // Chrome fails ("There was a problem printing the page") on a synthetic
+    // about:blank document; it needs a real, navigable URL.
+    const blob = new Blob([printDocument], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    const printWindow = window.open(blobUrl, '_blank');
+
+    if (printWindow) {
+      // Sever the opener: the Blob doc is same-origin, so any raw HTML that
+      // slips through the markdown renderer could otherwise reach the app
+      // window via window.opener. The local reference still prints/closes it.
+      printWindow.opener = null;
+      // Close the tab on afterprint, not synchronously after print(): mobile
+      // print() is non-blocking, so closing immediately dismisses the share
+      // sheet before it appears. Fallback timer covers afterprint never firing.
+      let closed = false;
+      const closeOnce = () => {
+        if (closed) return;
+        closed = true;
+        clearTimeout(fallbackCloseId);
+        printWindow.close();
+        URL.revokeObjectURL(blobUrl);
+      };
+      const fallbackCloseId = setTimeout(closeOnce, 60000);
+      printWindow.addEventListener('afterprint', closeOnce);
+
+      // Print on load (not a fixed timeout) so slow mobile renders complete first.
+      printWindow.addEventListener('load', () => {
+        printWindow.focus();
+        printWindow.print();
+      });
+
+      onDownload?.();
+      return;
+    }
+
+    // Popup blocked (desktop only — mobile allows tabs from a click): print
+    // the same Blob URL in a hidden iframe instead.
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 0; height: 0; border: none; visibility: hidden;';
+    iframe.src = blobUrl;
+    iframe.onload = () => {
+      iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
-      // Clean up iframe after print dialog closes
       setTimeout(() => {
         document.body.removeChild(iframe);
+        URL.revokeObjectURL(blobUrl);
       }, 1000);
-    }, 100);
+    };
+    document.body.appendChild(iframe);
 
     onDownload?.();
   };
