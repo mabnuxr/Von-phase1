@@ -27,6 +27,7 @@ import { buildMentionReferences } from "../lib/messageReferenceUtils";
 import type { User } from "../services";
 import { fileUploadService } from "../services/fileUploadService";
 import useChatStore from "../store/chatStore";
+import { useChatDraft } from "./useChatDraft";
 import { usePusherChannel } from "./usePusherChannel";
 import { useV2EventProcessor } from "./useV2EventProcessor";
 import { useUserMessageProcessor } from "./useUserMessageProcessor";
@@ -434,8 +435,9 @@ export function useChatV2(props: UseChatV2Props) {
     isTransparencyOpen ? transparencyRunId : null,
   );
 
-  // Auto-populate input on error
-  const [autoPopulatedInput, setAutoPopulatedInput] = useState("");
+  // Composer input, persisted per-conversation; writing "" (e.g. when the Chat
+  // component empties the input after a send) clears the draft.
+  const [autoPopulatedInput, setAutoPopulatedInput] = useChatDraft(conversationId);
   const lastUserMessageRef = useRef("");
   const streamingStartedAtRef = useRef<number | null>(null);
 
