@@ -257,7 +257,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // Reset the internal-change flag so it doesn't block future external updates,
   // then sync the editor only when the prop differs from what it already shows.
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     isInternalChangeRef.current = false;
     if (content !== getMarkdown(editor)) {
       editor.commands.setContent(content);
@@ -266,7 +266,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
 
   // Update disabled state
   useEffect(() => {
-    if (editor) {
+    if (editor && !editor.isDestroyed) {
       editor.setEditable(!disabled);
     }
   }, [disabled, editor]);
@@ -277,7 +277,7 @@ export const TiptapEditor: React.FC<TiptapEditorProps> = ({
   // re-run decorations on its own — dispatch an empty transaction
   // so the placeholder text updates in-place.
   useEffect(() => {
-    if (!editor) return;
+    if (!editor || editor.isDestroyed) return;
     editor.view.dispatch(editor.state.tr);
   }, [placeholder, editor]);
 
