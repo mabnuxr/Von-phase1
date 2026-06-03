@@ -122,7 +122,6 @@ const Conversation = () => {
     [integrationsData],
   );
 
-  const isDriveEnabled = true;
   const driveTooltip = !isDriveConnected
     ? "Connect Google Drive"
     : "Open in Google Drive";
@@ -142,7 +141,6 @@ const Conversation = () => {
     [integrationsData],
   );
 
-  const isBoxEnabled = true;
   const boxTooltip = !isBoxConnected ? "Connect Box" : "Open in Box";
 
   const [boxLoadingFileId, setBoxLoadingFileId] = useState<string | null>(null);
@@ -274,12 +272,10 @@ const Conversation = () => {
     banner: chatBanner,
     onCollapseSidebar: collapseSidebar,
     onGoogleDriveClick: handleGoogleDriveClick,
-    isDriveEnabled,
     isDriveConnected,
     driveTooltip,
     driveLoadingFileId,
     onBoxClick: handleBoxClick,
-    isBoxEnabled,
     isBoxConnected,
     boxTooltip,
     boxLoadingFileId,
@@ -317,7 +313,6 @@ const Conversation = () => {
               onCollapseSidebar={collapseSidebar}
               salesforceInstanceUrl={salesforceInstanceUrl}
               onGoogleDriveClick={handleGoogleDriveClick}
-              isDriveEnabled={isDriveEnabled}
               isDriveConnected={isDriveConnected}
               driveTooltip={driveTooltip}
               driveLoadingFileId={driveLoadingFileId}

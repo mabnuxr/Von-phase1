@@ -174,32 +174,36 @@ export function ManageUsersTab() {
     setShowPermissionsSubmenu(false);
   };
 
-  const handleToggleSfdcWrite = async (
-    member: (typeof filteredUsers)[number],
-  ) => {
-    const currentValue = member.permissions?.sfdc_write ?? true;
-    try {
-      await updatePermissionsMutation.mutateAsync({
-        userId: member.id,
-        permissions: { sfdc_write: !currentValue },
-      });
-      report.manageTeamSalesforceUpdatesToggled(
-        !currentValue,
-        member.email,
-        member.role,
-      );
-    } catch {
-      // mutation already surfaces a toast on error
-    }
-  };
+  const handleToggleSfdcWrite = useCallback(
+    async (member: (typeof filteredUsers)[number]) => {
+      const currentValue = member.permissions?.sfdc_write ?? true;
+      try {
+        await updatePermissionsMutation.mutateAsync({
+          userId: member.id,
+          permissions: { sfdc_write: !currentValue },
+        });
+        report.manageTeamSalesforceUpdatesToggled(
+          !currentValue,
+          member.email,
+          member.role,
+        );
+      } catch {
+        // mutation already surfaces a toast on error
+      }
+    },
+    [updatePermissionsMutation],
+  );
 
-  const handleToggleHubspotWrite = (member: (typeof filteredUsers)[number]) => {
-    const currentValue = member.permissions?.hubspot_write ?? true;
-    updatePermissionsMutation.mutate({
-      userId: member.id,
-      permissions: { hubspot_write: !currentValue },
-    });
-  };
+  const handleToggleHubspotWrite = useCallback(
+    (member: (typeof filteredUsers)[number]) => {
+      const currentValue = member.permissions?.hubspot_write ?? true;
+      updatePermissionsMutation.mutate({
+        userId: member.id,
+        permissions: { hubspot_write: !currentValue },
+      });
+    },
+    [updatePermissionsMutation],
+  );
 
   // Per-member permission toggles, keyed by member.id for O(1) lookup in JSX.
   // Adding another integration's permission = one entry in this array per member.
@@ -224,8 +228,7 @@ export function ManageUsersTab() {
           ],
         ]),
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filteredUsers],
+    [filteredUsers, handleToggleSfdcWrite, handleToggleHubspotWrite],
   );
 
   const formatDate = (dateString: string | null) => {

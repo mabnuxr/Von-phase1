@@ -304,9 +304,6 @@ const Settings = () => {
         return <IntegrationsPanel />;
       case "team":
         return <ManageUsersTab />;
-      case "memory":
-        // Legacy id — useEffect above redirects URL to memory-org.
-        return null;
       case "memory-org":
         return <OrgContextTabV2 view="org" />;
       case "memory-user":

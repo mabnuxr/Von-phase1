@@ -450,7 +450,6 @@ const NewConversation = () => {
         onRemoveAttachment={removeFile}
         fileErrorMessage={fileErrorMessage}
         onDismissFileError={dismissFileError}
-        enableCommands={true}
         commands={commands}
         isLoadingCommands={isLoadingCommands}
         onSaveCommand={handleSaveCommand}

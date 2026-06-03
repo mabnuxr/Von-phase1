@@ -627,7 +627,6 @@ export function ChatSidebarContainer({
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
         isNewChatActive={isNewChatActive}
-        isDashboardsEnabled
         dashboards={dashboards}
         selectedDashboardId={dashboardId}
         hasMoreDashboards={hasNextDashboardPage}

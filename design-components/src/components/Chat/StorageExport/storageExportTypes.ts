@@ -26,11 +26,9 @@ export interface StorageExportButtonProps {
 
 export interface StorageExportLegacyProps {
   onGoogleDriveClick?: () => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   isDriveLoading?: boolean;
   onBoxClick?: () => void;
-  isBoxEnabled?: boolean;
   isBoxConnected?: boolean;
   isBoxLoading?: boolean;
 }

@@ -146,7 +146,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         disableSubmit={!canSubmitFinal}
         onExamplePromptDisabledClick={onDisabledInteraction}
         onInputWhileDisabled={onDisabledInteraction}
-        enableCommands={true}
         commands={commands}
         isLoadingCommands={isLoadingCommands}
         onSaveCommand={handleSaveCommand}
@@ -160,7 +159,6 @@ export function ChatV1Container(props: ChatV1ContainerProps) {
         onUploadFile={handleUploadFile}
         enableActions={isActionsEnabled}
         salesforceInstanceUrl={salesforceInstanceUrl}
-        enableDeepLinks={true}
         thinkingProcessVersion="v1"
         useStandardInput={false}
         controlledAttachments={fileAttachmentState}

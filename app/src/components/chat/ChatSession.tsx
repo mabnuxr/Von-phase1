@@ -192,7 +192,6 @@ export interface ChatSessionProps {
 
   // ── Google Drive ────────────────────────────────
   onGoogleDriveClick?: (fileId: string) => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   driveTooltip?: string;
   driveLoadingFileId?: string | null;
@@ -393,12 +392,8 @@ function ExistingChatInner(
   );
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const {
-    enableMentions,
-    mentionItems,
-    isLoadingMentions,
-    onMentionsActivated,
-  } = useChatMentions();
+  const { mentionItems, isLoadingMentions, onMentionsActivated } =
+    useChatMentions();
 
   // ── Scheduled commands ────────────────────────────────────────────
   const { data: tenantMembersData } = useTenantMembers(base.user?.tenantId);
@@ -912,7 +907,6 @@ function ExistingChatInner(
       fileErrorMessage={chatV2.fileErrorMessage}
       onDismissFileError={() => chatV2.setFileErrorMessage(null)}
       // Commands
-      enableCommands={true}
       onSlashCommandOpened={report.chatSlashCommandOpened}
       onSlashCommandSelected={report.chatSlashCommandSelected}
       onManageCommandsClicked={report.chatSlashCommandManageClicked}
@@ -929,8 +923,7 @@ function ExistingChatInner(
       tenantMembers={tenantMembersForSchedule}
       currentUser={currentUserRecipient}
       onSendTest={base.commands.handleSendTest}
-      // Transparency
-      showTransparency={true}
+      // Transparency (always on — matches the Chat default)
       onTransparencyClick={handleTransparencyClickWithDashboard}
       // Plus button
       onAddClick={report.chatPlusButtonClicked}
@@ -962,11 +955,10 @@ function ExistingChatInner(
       isIntegrationConnected={(type) => connectedIntegrationTypes.has(type)}
       onIntegrate={handleIntegrate}
       getIntegrationMetadata={handleGetIntegrationMetadata}
-      // Salesforce / deep links
+      // Salesforce
       salesforceInstanceUrl={props.salesforceInstanceUrl}
-      enableDeepLinks={true}
       // Mentions
-      enableMentions={enableMentions}
+      enableMentions
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}
@@ -975,13 +967,11 @@ function ExistingChatInner(
       onWidgetMentionRemoved={handleCombinedWidgetMentionRemoved}
       // Google Drive
       onGoogleDriveClick={wrappedDriveClick}
-      isDriveEnabled={props.isDriveEnabled}
       isDriveConnected={props.isDriveConnected}
       driveTooltip={props.driveTooltip}
       driveLoadingFileId={props.driveLoadingFileId}
       // Box
       onBoxClick={wrappedBoxClick}
-      isBoxEnabled={true}
       isBoxConnected={props.isBoxConnected}
       boxTooltip={props.boxTooltip}
       boxLoadingFileId={props.boxLoadingFileId}
@@ -1084,7 +1074,6 @@ function ExistingChatInner(
                     }
                   : undefined
               }
-              isDriveEnabled={props.isDriveEnabled}
               isDriveConnected={props.isDriveConnected}
               driveTooltip={props.driveTooltip}
               isDriveLoading={
@@ -1106,7 +1095,6 @@ function ExistingChatInner(
                     }
                   : undefined
               }
-              isBoxEnabled={true}
               isBoxConnected={props.isBoxConnected}
               boxTooltip={props.boxTooltip}
               isBoxLoading={
@@ -1158,12 +1146,8 @@ function NewChatInner(
   const { chatRef } = props;
 
   // ── Mentions ──────────────────────────────────────────────────────
-  const {
-    enableMentions,
-    mentionItems,
-    isLoadingMentions,
-    onMentionsActivated,
-  } = useChatMentions();
+  const { mentionItems, isLoadingMentions, onMentionsActivated } =
+    useChatMentions();
 
   // ── AI Field from URL (new chat about a field) ─────────────────────
   const [searchParams] = useSearchParams();
@@ -1285,7 +1269,6 @@ function NewChatInner(
       fileErrorMessage={createFlow.fileErrorMessage}
       onDismissFileError={createFlow.dismissFileError}
       // Commands
-      enableCommands={true}
       onSlashCommandOpened={report.chatSlashCommandOpened}
       onSlashCommandSelected={report.chatSlashCommandSelected}
       onManageCommandsClicked={report.chatSlashCommandManageClicked}
@@ -1300,7 +1283,7 @@ function NewChatInner(
       onUploadFile={base.commands.handleUploadFile}
       availableDashboards={base.commands.availableDashboards}
       // Mentions
-      enableMentions={enableMentions}
+      enableMentions
       mentionItems={mentionItems}
       isLoadingMentions={isLoadingMentions}
       onMentionsActivated={onMentionsActivated}

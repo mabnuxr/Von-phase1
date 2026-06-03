@@ -30,7 +30,6 @@ const meta = {
   decorators: [ChatInputDecorator],
   args: {
     useStandardInput: true,
-    enableCommands: true,
     commands: DEFAULT_COMMANDS,
   },
   parameters: {
@@ -66,7 +65,6 @@ export const Default: Story = {
       useStandardInput
       placeholder="Ask von anything"
       showPlusMenu
-      enableCommands
       commands={DEFAULT_COMMANDS}
       onSend={(message, attachments, options) =>
         console.log('Send:', message, attachments, options)
@@ -115,7 +113,6 @@ export const WithAttachments: Story = {
         useStandardInput
         placeholder="Ask about the attached files..."
         showPlusMenu
-        enableCommands
         commands={DEFAULT_COMMANDS}
         attachments={attachments}
         onRemoveAttachment={(id) => setAttachments((prev) => prev.filter((a) => a.id !== id))}
@@ -145,7 +142,6 @@ export const Streaming: Story = {
     return (
       <ChatInputSelector
         useStandardInput
-        enableCommands
         commands={DEFAULT_COMMANDS}
         placeholder="AI is generating..."
         showPlusMenu
@@ -173,7 +169,6 @@ export const Disabled: Story = {
   render: () => (
     <ChatInputSelector
       useStandardInput
-      enableCommands
       commands={DEFAULT_COMMANDS}
       placeholder="Input disabled..."
       showPlusMenu
@@ -200,7 +195,6 @@ export const LockedAgent: Story = {
       useStandardInput
       placeholder="Continue the conversation..."
       showPlusMenu
-      enableCommands
       commands={DEFAULT_COMMANDS}
       isAgentLocked
       lockedAgentMode={'deep-research' as AgentMode}
@@ -234,7 +228,6 @@ export const RichTextFormatting: Story = {
         useStandardInput
         placeholder="Try formatting your text or pasting markdown..."
         showPlusMenu
-        enableCommands
         commands={DEFAULT_COMMANDS}
         onSend={(message) => console.log('Send:', message)}
       />
@@ -267,7 +260,6 @@ export const FileError: Story = {
   render: () => (
     <ChatInputSelector
       useStandardInput
-      enableCommands
       commands={DEFAULT_COMMANDS}
       placeholder="Try uploading a file..."
       showPlusMenu
@@ -292,7 +284,6 @@ export const Minimal: Story = {
   render: () => (
     <ChatInputSelector
       useStandardInput
-      enableCommands={false}
       placeholder="Type a message..."
       onSend={(message) => console.log('Send:', message)}
     />

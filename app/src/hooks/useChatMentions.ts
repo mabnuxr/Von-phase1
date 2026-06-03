@@ -48,12 +48,9 @@ export function useChatMentions() {
     return [...dashboards, ...aiFields];
   }, [dashboardListData, aiFieldsData]);
 
-  const enableMentions = true;
-
   const onMentionsActivated = useCallback(() => setMentionsActivated(true), []);
 
   return {
-    enableMentions,
     mentionItems,
     isLoadingMentions: isLoadingDashboards || isLoadingAiFields,
     onMentionsActivated,

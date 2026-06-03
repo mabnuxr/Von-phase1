@@ -79,12 +79,10 @@ export interface FileArtifactCardProps {
   onOpen?: () => void;
   onDownload?: () => void;
   onGoogleDriveClick?: () => void;
-  isDriveEnabled?: boolean;
   isDriveConnected?: boolean;
   driveTooltip?: string;
   isDriveLoading?: boolean;
   onBoxClick?: () => void;
-  isBoxEnabled?: boolean;
   isBoxConnected?: boolean;
   boxTooltip?: string;
   isBoxLoading?: boolean;
@@ -96,11 +94,9 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
   onOpen,
   onDownload,
   onGoogleDriveClick,
-  isDriveEnabled,
   isDriveConnected,
   isDriveLoading,
   onBoxClick,
-  isBoxEnabled,
   isBoxConnected,
   isBoxLoading,
 }) => {
@@ -108,11 +104,9 @@ export const FileArtifactCard: React.FC<FileArtifactCardProps> = ({
 
   const storageServices = buildStorageServices({
     onGoogleDriveClick,
-    isDriveEnabled,
     isDriveConnected,
     isDriveLoading,
     onBoxClick,
-    isBoxEnabled,
     isBoxConnected,
     isBoxLoading,
   });

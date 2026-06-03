@@ -338,12 +338,6 @@ export interface StandardChatInputProps {
    */
   contextBar?: ReactNode;
 
-  /**
-   * When true, shows a "/" button in the toolbar that opens the commands overlay
-   * @default false
-   */
-  enableCommands?: boolean;
-
   /** Called when the user presses Escape to dismiss the commands overlay */
   onCloseCommandsList?: () => void;
 
