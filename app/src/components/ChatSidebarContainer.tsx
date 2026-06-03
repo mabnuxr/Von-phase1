@@ -102,9 +102,13 @@ export function ChatSidebarContainer({
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { openShareModal } = useAppShell();
   const { isViewOnly } = usePermissions();
+  const { isWorkspaceSearchEnabled, isSharedChatsToggleEnabled } =
+    useFeatureFlag();
   // Admin/Member toggle for the Chats section. View Only ignores this and is always shared.
+  // When the toggle flag is off, admin/member can't switch to Shared — stays on "my".
   const [chatsMode, setChatsMode] = useState<"my" | "shared">("my");
-  const fetchSharedEnabled = isViewOnly || chatsMode === "shared";
+  const isSharedMode = isSharedChatsToggleEnabled && chatsMode === "shared";
+  const fetchSharedEnabled = isViewOnly || isSharedMode;
   const {
     data: sharedConversationsPages,
     fetchNextPage: fetchNextSharedPage,
@@ -112,7 +116,6 @@ export function ChatSidebarContainer({
     isFetchingNextPage: isFetchingNextSharedPage,
   } = useSharedConversations(fetchSharedEnabled);
   const openSearchModal = useSearchModalStore((s) => s.open);
-  const { isWorkspaceSearchEnabled } = useFeatureFlag();
 
   // Track which conversation's context menu is open to fetch its share status
   const [contextMenuConvId, setContextMenuConvId] = useState<string | null>(
@@ -660,9 +663,6 @@ export function ChatSidebarContainer({
     );
   }
 
-  // Admin/Member only — toggle between own chats ("my") and chats shared with them ("shared").
-  const isSharedMode = chatsMode === "shared";
-
   return (
     <>
       <ChatSidebar
@@ -712,12 +712,20 @@ export function ChatSidebarContainer({
         chatsEmptyMessage={
           isSharedMode ? "No chats have been shared with you yet." : undefined
         }
-        chatsSectionModes={[
-          { id: "my", label: "Recents" },
-          { id: "shared", label: "Shared" },
-        ]}
-        activeChatsModeId={chatsMode}
-        onChatsModeChange={(id) => setChatsMode(id as "my" | "shared")}
+        chatsSectionModes={
+          isSharedChatsToggleEnabled
+            ? [
+                { id: "my", label: "Recents" },
+                { id: "shared", label: "Shared" },
+              ]
+            : undefined
+        }
+        activeChatsModeId={isSharedChatsToggleEnabled ? chatsMode : undefined}
+        onChatsModeChange={
+          isSharedChatsToggleEnabled
+            ? (id) => setChatsMode(id as "my" | "shared")
+            : undefined
+        }
         avatarSrc={avatarSrc}
         avatarLabel={avatarLabel}
         userName={displayName}
