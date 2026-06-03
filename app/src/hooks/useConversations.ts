@@ -149,20 +149,18 @@ export function useDeleteConversation() {
       // Unfiled "Chats" list — an infinite query of paginated item rows.
       queryClient.setQueriesData<InfiniteData<
         FolderItemsResponse<FolderConversationRow>
-      > | null>(
-        { queryKey: folderKeys.unfiled("conversation") },
-        (data) =>
-          data
-            ? {
-                ...data,
-                pages: data.pages.map((page) => ({
-                  ...page,
-                  items: page.items.filter(
-                    (item) => item.conversation_id !== conversationId,
-                  ),
-                })),
-              }
-            : data,
+      > | null>({ queryKey: folderKeys.unfiled("conversation") }, (data) =>
+        data
+          ? {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                items: page.items.filter(
+                  (item) => item.conversation_id !== conversationId,
+                ),
+              })),
+            }
+          : data,
       );
 
       // In-folder conversation lists from each folder's `/contents`.
