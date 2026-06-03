@@ -292,7 +292,7 @@ const DashboardRow: React.FC<{
   isEditing: boolean;
   isMenuOpen: boolean;
   onDashboardClick?: (id: string) => void;
-  onContextMenu: (e: React.MouseEvent) => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   onRenameDashboard?: (id: string, newName: string) => void;
   onCancelEdit: () => void;
 }> = ({
@@ -309,7 +309,7 @@ const DashboardRow: React.FC<{
   const [editValue, setEditValue] = useState(dash.label);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showDotsButton = (isHovered || isMenuOpen) && !isEditing;
+  const showDotsButton = (isHovered || isMenuOpen) && !isEditing && !!onContextMenu;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -378,7 +378,7 @@ const DashboardRow: React.FC<{
             icon={<DotsThreeIcon size={16} weight="bold" />}
             onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
-              onContextMenu(e);
+              onContextMenu?.(e);
             }}
             visible={true}
             size="small"
@@ -422,6 +422,15 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
   onLoadMoreDashboards,
   isLoadingMoreDashboards = false,
 }) => {
+  // Skip the dots menu when the host wires no dashboard actions
+  // (View Only callers pass none → no dots button).
+  const hasDashboardActions = !!(
+    onRenameDashboard ||
+    onDeleteDashboard ||
+    onMoveDashboardToFolder ||
+    onCreateFolderAndMoveDashboard ||
+    onManageItemFolders
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<DashboardContextMenuState>({
     isOpen: false,
@@ -465,7 +474,7 @@ const DashboardSection: React.FC<DashboardSectionProps> = ({
             isEditing={editingId === dash.id}
             isMenuOpen={contextMenu.isOpen && contextMenu.dashboard?.id === dash.id}
             onDashboardClick={onDashboardClick}
-            onContextMenu={(e) => handleOpenContextMenu(e, dash)}
+            onContextMenu={hasDashboardActions ? (e) => handleOpenContextMenu(e, dash) : undefined}
             onRenameDashboard={onRenameDashboard}
             onCancelEdit={() => setEditingId(null)}
           />
@@ -1065,7 +1074,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             item={item}
                             isSelected={item.id === selectedItemId}
                             onClick={() => onItemClick?.(item.id)}
-                            onContextMenu={(e) => handleContextMenu(e, item)}
+                            onContextMenu={
+                              item.isSystemManaged ? undefined : (e) => handleContextMenu(e, item)
+                            }
                             isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
                             isEditing={editingItemId === item.id && editingItemFolderId === null}
                             onSaveEdit={(newName) => handleSaveRename(item, newName)}

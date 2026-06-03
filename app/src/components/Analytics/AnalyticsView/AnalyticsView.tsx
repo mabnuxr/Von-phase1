@@ -375,8 +375,14 @@ const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     isPreview,
   });
 
-  const { isDashboardOwner, canEditDashboard, creatorName, isCreatorLoading } =
-    useDashboardRoles(dashboard);
+  const {
+    isDashboardOwner,
+    canEditDashboard: canEdit,
+    creatorName,
+    isCreatorLoading,
+  } = useDashboardRoles(dashboard);
+  // Tenant-level View Only overrides any per-dashboard editor grant.
+  const canEditDashboard = canEdit && !isViewOnly;
 
   const { copy } = useCopyToClipboard(2000, onLinkCopied);
   const handleCopyLink = useCallback(async () => {

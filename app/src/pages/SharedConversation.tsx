@@ -222,7 +222,7 @@ export default function SharedConversation() {
           Wrapped in Tooltip so the disabled-state hover message works for
           View Only users (native `title` is suppressed on disabled buttons). */}
       <Tooltip
-        content="View-only users can't start new conversations."
+        content="View Only users can view this conversation but can't continue it."
         enabled={isViewOnly}
         wrapperClassName="absolute bottom-6 left-1/2 -translate-x-1/2 z-10"
       >
