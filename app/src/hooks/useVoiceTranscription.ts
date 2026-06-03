@@ -153,6 +153,12 @@ export function useVoiceTranscription(options?: {
   // duplicate event) able to spin up two mic streams / sockets. This ref is
   // synchronous; released in start()'s finally.
   const isStartingRef = useRef(false);
+  // Set by stop()/cancel() to abort a start() that's still mid-async. A
+  // release can land in the connect window before status commits to
+  // "connecting"; without this, stop() reads a stale "idle" and no-ops while
+  // start() finishes wiring the mic/socket — leaving a session running after
+  // the key was released.
+  const abortStartRef = useRef(false);
   // Audio captured before the WebSocket opens is held here, then drained
   // in onopen — so audio spoken during "Connecting…" is never lost.
   const preconnectBufferRef = useRef<Int16Array[]>([]);
@@ -414,6 +420,7 @@ export function useVoiceTranscription(options?: {
     if (isStartingRef.current) return;
     if (status === "connecting" || status === "listening") return;
     isStartingRef.current = true;
+    abortStartRef.current = false;
 
     if (cleanupAbortRef.current) {
       cleanupAbortRef.current.abort();
@@ -494,6 +501,15 @@ export function useVoiceTranscription(options?: {
       // Connect to destination so the graph keeps pulling audio through the
       // worklet. process() writes no output, so this plays pure silence.
       workletNode.connect(ctx.destination);
+
+      // A stop()/cancel() that landed while we were awaiting above (key
+      // released inside the connect window) flips this — tear down and bail
+      // before opening the socket instead of finishing into a live session.
+      if (abortStartRef.current) {
+        cleanup();
+        setStatus("idle");
+        return;
+      }
 
       // Open the WebSocket. We don't await onopen here so audio can already
       // be buffering by the time this promise resolves.
@@ -603,6 +619,15 @@ export function useVoiceTranscription(options?: {
   }, [cleanup, flushBuffer, handleMessage, status]);
 
   const stop = useCallback(async (): Promise<string> => {
+    // If start() is still mid-async, status hasn't committed to "connecting"
+    // yet, so the guard below would read a stale "idle" and no-op. Signal the
+    // in-flight start to abort and tear down synchronously instead.
+    if (isStartingRef.current) {
+      abortStartRef.current = true;
+      cleanup();
+      setStatus("idle");
+      return finalAccumRef.current;
+    }
     if (status === "idle") return finalAccumRef.current;
     // Re-entry lock: user ✓ and the 2-min cap can both trip stop() within
     // microseconds. Without this we'd POST /voice/cleanup twice (wasteful)
@@ -714,6 +739,7 @@ export function useVoiceTranscription(options?: {
   }, [stop]);
 
   const cancelSession = useCallback(() => {
+    abortStartRef.current = true;
     if (cleanupAbortRef.current) {
       cleanupAbortRef.current.abort();
       cleanupAbortRef.current = null;
