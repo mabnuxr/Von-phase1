@@ -183,6 +183,21 @@ export function useDeleteConversation() {
         },
       );
 
+      // Per-page folder `/items` caches behind the "Show more" expander.
+      // These share the `folderKeys.all` prefix but use the flat
+      // `FolderItemsResponse` shape (top-level `items`), distinct from the
+      // unfiled infinite query (`{ pages }`) and `/contents` (`{ conversations }`).
+      queryClient.setQueriesData<
+        FolderItemsResponse<FolderConversationRow> | undefined
+      >({ queryKey: folderKeys.all }, (data) => {
+        if (!data || !Array.isArray(data.items)) return data;
+        const filtered = data.items.filter(
+          (item) => item.conversation_id !== conversationId,
+        );
+        if (filtered.length === data.items.length) return data;
+        return { ...data, items: filtered };
+      });
+
       return { previous };
     },
     onError: (error: Error, _conversationId, context) => {
