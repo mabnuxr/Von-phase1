@@ -272,7 +272,7 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
 
         {hasViewOnlyConflict && (
           <p className="mt-1 text-[11px] text-red-600">
-            Editor access won't apply to highlighted View Only recipients.
+            Please remove the highlighted users since they have View Only roles.
           </p>
         )}
 
