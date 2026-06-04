@@ -585,7 +585,6 @@ export function ChatSidebarContainer({
         label: s.conversation.title?.trim() || "Untitled chat",
         type: ItemType.Chat,
         isOwner: false,
-        isSystemManaged: true,
       })),
     );
   }, [fetchSharedEnabled, sharedConversationsPages]);

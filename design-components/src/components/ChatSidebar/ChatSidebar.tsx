@@ -1075,7 +1075,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             isSelected={item.id === selectedItemId}
                             onClick={() => onItemClick?.(item.id)}
                             onContextMenu={
-                              item.isSystemManaged ? undefined : (e) => handleContextMenu(e, item)
+                              item.isOwner === false ? undefined : (e) => handleContextMenu(e, item)
                             }
                             isMenuOpen={contextMenu.isOpen && contextMenu.item?.id === item.id}
                             isEditing={editingItemId === item.id && editingItemFolderId === null}
