@@ -62,7 +62,20 @@ export default function App() {
           >
             <Route path="/chat" element={<Navigate to="/chat/new" replace />} />
             <Route path="/chat/new" element={<NewConversation />} />
-            <Route path="/chat/:conversationId" element={<Conversation />} />
+            {/* Owned-conversation viewer is Admin/Member only — View Only
+                users have no access to someone else's chat by ID and must
+                go through /shared/:shareId for read-only access. */}
+            <Route
+              path="/chat/:conversationId"
+              element={
+                <RequirePermission
+                  allow={(p) => !p.isViewOnly}
+                  redirectTo="/chat/new"
+                >
+                  <Conversation />
+                </RequirePermission>
+              }
+            />
             <Route path="/dashboard/:dashboardId" element={<Analytics />} />
             <Route path="/redirecting" element={<Redirecting />} />
             {/* Shared chat — read-only, rendered inside AppShell (with sidebar) */}
