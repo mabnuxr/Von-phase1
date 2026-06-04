@@ -285,6 +285,15 @@ export const INTEGRATION_METADATA: Record<string, IntegrationMetadata> = {
       "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/granola.svg",
     category: "Note Takers",
   },
+  fireflies: {
+    id: "fireflies",
+    name: "Fireflies",
+    description:
+      "Ask about Fireflies call recordings and get Von's conversation insights",
+    logoPath:
+      "https://vonlabs-public-assets.s3.us-west-2.amazonaws.com/integrations/fireflies.svg",
+    category: "Note Takers",
+  },
   // Customer Success integrations
   gainsight: {
     id: "gainsight",
@@ -343,6 +352,7 @@ export function getIntegrationLogoPath(type: string): string {
     GRANOLA: "granola",
     NOTION: "notion",
     GAINSIGHT: "gainsight",
+    FIREFLIES: "fireflies",
   };
 
   const integrationId = typeMap[type.toUpperCase()] || type.toLowerCase();
@@ -394,6 +404,7 @@ export function getBackendIntegrationType(integrationId: string): string {
     slack_workspace: "SLACK_WORKSPACE",
     slack_personal: "SLACK_PERSONAL",
     gainsight: "GAINSIGHT",
+    fireflies: "FIREFLIES",
   };
 
   return idMap[integrationId.toLowerCase()] || integrationId.toUpperCase();
@@ -439,6 +450,7 @@ export function getFrontendIntegrationId(backendType: string): string {
     SLACK_WORKSPACE: "slack_workspace",
     SLACK_PERSONAL: "slack_personal",
     GAINSIGHT: "gainsight",
+    FIREFLIES: "fireflies",
   };
 
   return typeMap[backendType.toUpperCase()] || backendType.toLowerCase();
@@ -482,6 +494,7 @@ export function getIntegrationDisplayName(typeOrProvider: string): string {
     GMAIL: "gmail",
     GRANOLA: "granola",
     NOTION: "notion",
+    FIREFLIES: "fireflies",
   };
 
   const integrationId =
@@ -540,6 +553,7 @@ export const INTEGRATION_ACCESS_MODES: Record<string, AccessLevel[]> = {
   pylon: ["user"],
   granola: ["user"],
   notion: ["tenant"],
+  fireflies: ["tenant"],
 };
 
 /**
