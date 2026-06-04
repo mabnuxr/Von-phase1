@@ -75,4 +75,5 @@ export interface FileArtifact {
   mimeType: string;
   isPending?: boolean;
   pdfPreview?: { id: string; fileName: string };
+  sendState?: { sent_at: string; result: Record<string, unknown> } | null;
 }

@@ -581,6 +581,7 @@ function transformMessagesForV2(
                 pdfPreview: pdfPreview
                   ? { id: pdfPreview.id, fileName: pdfPreview.fileName }
                   : undefined,
+                sendState: a.sendState ?? null,
               };
             }),
           };
