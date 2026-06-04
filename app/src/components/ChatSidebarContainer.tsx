@@ -585,7 +585,6 @@ export function ChatSidebarContainer({
         label: s.conversation.title?.trim() || "Untitled chat",
         type: ItemType.Chat,
         isOwner: false,
-        isSystemManaged: true,
       })),
     );
   }, [fetchSharedEnabled, sharedConversationsPages]);
@@ -649,7 +648,7 @@ export function ChatSidebarContainer({
         onSignOutClick={onLogoutClick}
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
-        settingsDisabledReason="View-only users can't access settings."
+        settingsDisabledReason="Settings aren't available for View Only users."
         isDashboardsEnabled={true}
         dashboards={dashboards}
         selectedDashboardId={dashboardId}

@@ -272,7 +272,7 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
 
         {hasViewOnlyConflict && (
           <p className="mt-1 text-[11px] text-red-600">
-            Editor access won't apply to highlighted View Only recipients.
+            Please remove the highlighted users since they have View Only roles.
           </p>
         )}
 
@@ -386,23 +386,18 @@ export const AddPeopleView: React.FC<AddPeopleViewProps> = ({
             >
               Cancel
             </button>
-            <Tooltip
-              content="Remove View Only recipients or switch the role to Viewer to share."
-              enabled={hasViewOnlyConflict}
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSubmit}
+              className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
+                canSubmit
+                  ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }`}
             >
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!canSubmit}
-                className={`rounded-lg px-4 py-2 text-[12.5px] font-medium ${
-                  canSubmit
-                    ? "bg-gray-900 text-white hover:bg-gray-800 cursor-pointer"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                {isSubmitting ? "Sharing…" : "Share"}
-              </button>
-            </Tooltip>
+              {isSubmitting ? "Sharing…" : "Share"}
+            </button>
           </>
         )}
       </div>

@@ -18,6 +18,7 @@ import {
   ScopeDataByOwnership,
 } from "./components";
 import { AddPeopleView } from "./AddPeopleView";
+import { ROLES } from "../../../../constants/roles";
 import type {
   DashboardRoleV2,
   DashboardScopeV2,
@@ -731,9 +732,13 @@ const DefaultView: React.FC<DefaultViewProps> = ({
                     <PerRowRoleMenu
                       current={current}
                       options={["editor", "viewer"]}
-                      // Viewer caller cannot promote to editor — the editor
-                      // option renders as "capped".
-                      allowEditor={canManageEditorGrants}
+                      // Editor option is capped when the caller can't promote
+                      // (viewer caller) OR when the recipient is a View Only
+                      // user (granting Editor wouldn't take effect anyway).
+                      allowEditor={
+                        canManageEditorGrants &&
+                        p.tenantRole !== ROLES.VIEW_ONLY
+                      }
                       onSelect={(next) => onGrantUpdate(p.userId, next)}
                       onRemove={
                         p.userId === currentUserId
