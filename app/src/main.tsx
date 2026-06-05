@@ -10,6 +10,7 @@ import { QueryProvider } from "./providers/QueryProvider";
 import { LaunchDarklyProvider } from "./providers/LaunchDarklyProvider";
 import { KnockGuidesProvider } from "./providers/KnockGuidesProvider";
 import { ToastProvider } from "./contexts/ToastContext";
+import { Analytics } from "@vercel/analytics/react";
 import { initSentry } from "./lib/sentry";
 import { initDatadog } from "./lib/datadog";
 import { initPosthog, posthog } from "./lib/posthog";
@@ -45,5 +46,6 @@ createRoot(document.getElementById("root")!).render(
     ) : (
       <ErrorBoundary>{AppWithProviders}</ErrorBoundary>
     )}
+    <Analytics />
   </StrictMode>,
 );
