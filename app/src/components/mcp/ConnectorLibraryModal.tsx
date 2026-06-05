@@ -7,7 +7,9 @@ import {
   PlugsIcon,
   ArrowSquareOutIcon,
   CaretDownIcon,
+  PlusIcon,
 } from "@phosphor-icons/react";
+import { TEAMS } from "../../mocks/prototypeData";
 import { Banner } from "@vonlabs/design-components";
 import {
   useAppCatalogInfinite,
@@ -170,27 +172,6 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
     );
   }, [catalog, selectedCategory, search, textMatch]);
 
-  if (detailEntry) {
-    if (detailEntry.catalog_type === "mcp") {
-      return (
-        <MCPDetailView
-          entry={detailEntry}
-          isAdmin={isAdmin}
-          onBack={() => setDetailEntry(null)}
-          onClose={onClose}
-        />
-      );
-    }
-    return (
-      <NativeDetailView
-        entry={detailEntry}
-        isAdmin={isAdmin}
-        onBack={() => setDetailEntry(null)}
-        onClose={onClose}
-      />
-    );
-  }
-
   return (
     <>
       {/* Backdrop */}
@@ -204,12 +185,20 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
         >
           {/* Header */}
           <div className="px-6 pt-5 pb-4 border-b border-gray-200 shrink-0">
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex items-center justify-between">
+              {detailEntry ? (
+                <button
+                  onClick={() => setDetailEntry(null)}
+                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
+                >
+                  <CaretLeftIcon size={14} weight="bold" />
+                  Back
+                </button>
+              ) : (
                 <h2 className="text-lg font-semibold text-gray-900">
                   Manage Integrations
                 </h2>
-              </div>
+              )}
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600 cursor-pointer p-1"
@@ -221,6 +210,10 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
 
           {/* Body */}
           <div className="flex flex-1 min-h-0">
+            {detailEntry ? (
+              <ModalIntegrationDetail entry={detailEntry} />
+            ) : (
+            <>
             {/* Left: Category sidebar */}
             <div className="w-48 border-r border-gray-200 py-3 overflow-y-auto shrink-0">
               <button
@@ -298,10 +291,205 @@ export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
                 )}
               </div>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
     </>
+  );
+}
+
+/* ─── Modal Integration Detail ─── */
+function ModalIntegrationDetail({ entry }: { entry: AppCatalogEntry }) {
+  const [scope, setScope] = useState<"workspace" | "personal" | "team">("workspace");
+  const [teamConnection, setTeamConnection] = useState<"shared" | "individual">("shared");
+  const [scopedTeams, setScopedTeams] = useState([
+    TEAMS.enterpriseSales.name,
+    TEAMS.customerSuccess.name,
+  ]);
+
+  const logoUrl =
+    entry.logo_url ??
+    (entry.catalog_type === "native_integration" && entry.integration_type
+      ? getIntegrationLogoPath(entry.integration_type)
+      : null);
+
+  const authLabel =
+    entry.auth_type === "oauth2" ? "OAuth" :
+    entry.auth_type === "api_key" ? "API Key" : "Token";
+  const typeLabel = entry.integration_type ?? "Read";
+  const subtitle = [entry.category_name, typeLabel, authLabel].filter(Boolean).join(" · ");
+
+  const scopeDescriptions: Record<"workspace" | "personal" | "team", string> = {
+    workspace: "Admin connects once — everyone in the workspace can use it.",
+    personal: "Each user connects their own account — access is per-user.",
+    team: "Scoped to the teams you pick — hidden from everyone else.",
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-5">
+      {/* App header */}
+      <div className="flex items-start justify-between mb-5">
+        <div className="flex items-center gap-4">
+          <div
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden shrink-0 border border-gray-100 ${!logoUrl ? "bg-gray-100" : ""}`}
+          >
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="w-14 h-14 object-contain p-1" />
+            ) : (
+              <PlugsIcon size={24} className="text-gray-400" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{entry.name}</h2>
+            <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+          </div>
+        </div>
+        <button className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer shrink-0">
+          Enable
+        </button>
+      </div>
+
+      {/* Description */}
+      <div className="space-y-2 mb-6">
+        <p className="text-sm text-gray-700 leading-relaxed">
+          {entry.description || entry.short_description || "Connect this integration to bring data into Von."}
+        </p>
+        <p className="text-xs text-gray-400 leading-relaxed">
+          Only use connectors from developers you trust. Von can&apos;t verify that third-party tools work as intended or won&apos;t change.
+        </p>
+      </div>
+
+      {/* SET AS */}
+      <div className="space-y-4 mb-6">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Set as</p>
+
+        {/* Segmented toggle */}
+        <div className="inline-flex items-center rounded-xl border border-gray-200 bg-gray-50 p-0.5 gap-0.5">
+          {(["workspace", "personal", "team"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setScope(s)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
+                scope === s
+                  ? "bg-white text-gray-900 shadow-xs border border-gray-200"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <p className="text-sm text-gray-600 leading-relaxed">{scopeDescriptions[scope]}</p>
+
+        {scope === "team" && (
+          <div className="space-y-4 pt-1">
+            {/* Scoped teams box */}
+            <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4 space-y-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                Scoped to teams
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                {scopedTeams.map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 border border-violet-200 text-xs font-medium text-violet-700"
+                  >
+                    {name}
+                    <button
+                      onClick={() => setScopedTeams((prev) => prev.filter((t) => t !== name))}
+                      className="text-violet-400 hover:text-violet-600 transition-colors cursor-pointer"
+                    >
+                      <XIcon size={11} weight="bold" />
+                    </button>
+                  </span>
+                ))}
+                <button className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+                  <PlusIcon size={12} weight="bold" />
+                  Add team
+                </button>
+              </div>
+            </div>
+
+            {/* Radio buttons */}
+            <div className="space-y-4">
+              {(
+                [
+                  { id: "shared",     label: "Shared connection",       desc: "One person connects on behalf of the team — all scoped members use it." },
+                  { id: "individual", label: "Each member connects own", desc: "Every scoped user must connect their own account before use." },
+                ] as const
+              ).map((opt) => (
+                <label
+                  key={opt.id}
+                  onClick={() => setTeamConnection(opt.id)}
+                  className="flex items-start gap-3 cursor-pointer group"
+                >
+                  <div className="mt-0.5 flex-shrink-0">
+                    <div
+                      className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        teamConnection === opt.id
+                          ? "border-gray-900 bg-gray-900"
+                          : "border-gray-300 group-hover:border-gray-400"
+                      }`}
+                    >
+                      {teamConnection === opt.id && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{opt.label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{opt.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-gray-100 mb-6" />
+
+      {/* Details */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
+          Details
+        </p>
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+              Integration type
+            </p>
+            <p className="text-sm text-gray-800">{typeLabel}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+              Authentication
+            </p>
+            <p className="text-sm text-gray-800">{authLabel}</p>
+          </div>
+          {entry.docs_url && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
+                More info
+              </p>
+              <a
+                href={entry.docs_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-gray-700 hover:text-gray-900 transition-colors"
+              >
+                Documentation
+                <ArrowSquareOutIcon size={13} className="text-gray-400" />
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

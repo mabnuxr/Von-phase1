@@ -1,8 +1,8 @@
 {
-  "name": "revenue-os-frontend",
+  "name": "von-phase1",
   "version": "0.0.0",
   "private": true,
-  "description": "Revenue OS Frontend Monorepo",
+  "description": "Von Phase 1 Prototype — RBAC, Groups, Sharing, Memory",
   "workspaces": [
     "app",
     "design-components"

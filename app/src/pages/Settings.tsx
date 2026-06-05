@@ -7,11 +7,14 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationsPanel } from "../components/IntegrationsPanel";
+import { IntegrationDetail } from "../components/prototype/IntegrationDetail";
 import {
   GitCommitIcon,
   UsersIcon,
   BrainIcon,
   ChartBarIcon,
+  UsersFourIcon,
+  LockSimpleIcon,
 } from "@phosphor-icons/react";
 import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
@@ -24,6 +27,7 @@ import { VonAiFieldsDefaultTab } from "../components/tabs/VonAiFieldsDefaultTab"
 import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
 import { VonAiFieldDefaultPreviewPane } from "../components/VonAiFieldDefaultPreviewPane";
 import type { DefaultAiFieldDefinition } from "../types/vonAiFields";
+import salesforceLogo from "../assets/salesforce.svg";
 import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
 import { AddTenantMembersPane } from "../components/AddTenantMembersPane";
 import { EditTenantMemberPane } from "../components/EditTenantMemberPane";
@@ -36,6 +40,7 @@ const TAB_LABELS: Record<string, string> = {
   integrations: "Integrations",
   memory: "Memory",
   "memory-org": "Org Memory",
+  "memory-team": "Team Memory",
   "memory-user": "User Memory",
   "custom-iq": "AI Fields",
   "custom-iq-default": "Default Fields",
@@ -139,8 +144,12 @@ const Settings = () => {
     trackSettingsPageView();
   }, [trackSettingsPageView]);
 
-  // Update URL when tab changes
+  // Update URL when tab changes — RBAC pages live at their own routes
   const handleTabChange = (tabId: string) => {
+    if (tabId === "people") { navigate("/settings/people"); return; }
+    if (tabId === "teams") { navigate("/settings/teams"); return; }
+    if (tabId === "permissions") { navigate("/settings/permissions"); return; }
+    if (tabId === "memory-team") { navigate("/settings/memory/team"); return; }
     setSelectedSettingId(tabId);
     setDetailFieldId(null);
     navigate(`/settings?tab=${tabId}`, { replace: true });
@@ -149,6 +158,7 @@ const Settings = () => {
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sfDetailOpen, setSfDetailOpen] = useState(false);
 
   // Get current user context for preferences
   const tenantId = user?.tenantId;
@@ -246,14 +256,13 @@ const Settings = () => {
     : undefined;
 
   const settingsItems = {
-    integrations: [
+    integrations: [],
+    configurations: [
       {
         id: "integrations",
         label: "Integrations",
         icon: <GitCommitIcon size={20} weight="regular" />,
       },
-    ],
-    configurations: [
       // Memory splits into Org/User children.
       {
         id: "memory",
@@ -261,6 +270,7 @@ const Settings = () => {
         icon: <BrainIcon size={20} weight="regular" />,
         children: [
           { id: "memory-org", label: "Org Memory" },
+          { id: "memory-team", label: "Team Memory" },
           { id: "memory-user", label: "User Memory" },
         ],
       },
@@ -280,9 +290,19 @@ const Settings = () => {
     ],
     team: [
       {
-        id: "team",
-        label: "Manage Team",
+        id: "people",
+        label: "People",
         icon: <UsersIcon size={20} weight="regular" />,
+      },
+      {
+        id: "teams",
+        label: "Teams",
+        icon: <UsersFourIcon size={20} weight="regular" />,
+      },
+      {
+        id: "permissions",
+        label: "Permissions",
+        icon: <LockSimpleIcon size={20} weight="regular" />,
       },
     ],
     ...(isUsageMetricsEnabled
@@ -301,9 +321,39 @@ const Settings = () => {
   const renderContent = () => {
     switch (selectedSettingId) {
       case "integrations":
-        return <IntegrationsPanel />;
-      case "team":
-        return <ManageUsersTab />;
+        if (sfDetailOpen) {
+          return <IntegrationDetail onBack={() => setSfDetailOpen(false)} />;
+        }
+        return (
+          <div className="flex flex-col h-full">
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">Integrations</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Connect your tools to bring data into Von</p>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                {/* Salesforce — clickable */}
+                <button
+                  onClick={() => setSfDetailOpen(true)}
+                  className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group"
+                >
+                  <div className="w-10 h-10 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
+                    <img src={salesforceLogo} alt="Salesforce" className="w-full h-full object-contain p-0.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900">Salesforce</p>
+                    <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
+                  </div>
+                  <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">
+                    Configure →
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      case "team": // legacy — no longer in nav
+        return null;
       case "memory-org":
         return <OrgContextTabV2 view="org" />;
       case "memory-user":

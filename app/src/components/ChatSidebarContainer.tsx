@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { ChatSidebar, ItemType } from "@vonlabs/design-components";
-import type { ApprovalState, SidebarItem } from "@vonlabs/design-components";
+import type { ApprovalState, SidebarItem, DashboardSidebarItem } from "@vonlabs/design-components";
 import { ManageFoldersModal } from "./Analytics/ManageFoldersModal";
 import { FolderItemType, toFolderItemType } from "../types/chatSidebar";
 import { useAppShell } from "../hooks/useAppShell";
@@ -21,6 +21,7 @@ import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
+import { PROTOTYPE_SIDEBAR_ITEMS, PROTOTYPE_CHAT_IDS } from "./prototype/prototypeItems";
 import { report } from "../lib/analytics/tracker";
 
 /** Overlay animated titles onto sidebar items. */
@@ -160,6 +161,18 @@ export function ChatSidebarContainer({
     unfiledConversations,
   } = useChatSidebar();
 
+  const allDashboards = useMemo<DashboardSidebarItem[]>(() => [
+    {
+      id: "q2-pipeline-review",
+      label: "Q2 Pipeline Review",
+      state: "published",
+      visibility: "org",
+      isOwner: true,
+      href: "/dashboard/q2-pipeline-review",
+    },
+    ...dashboards,
+  ], [dashboards]);
+
   const { channel: userChannel } = useUserPusherChannel({
     tenantId: user?.tenantId,
     userId: user?.id,
@@ -203,7 +216,7 @@ export function ChatSidebarContainer({
     [folderItems, animatedTitles],
   );
   const decoratedItems = useMemo(
-    () => applyApprovalStates(animatedItems, approvalStates),
+    () => [...PROTOTYPE_SIDEBAR_ITEMS, ...applyApprovalStates(animatedItems, approvalStates)],
     [animatedItems, approvalStates],
   );
   const decoratedFolderItems = useMemo(
@@ -220,6 +233,10 @@ export function ChatSidebarContainer({
 
   const handleChatClick = useCallback(
     (conversationId: string) => {
+      if (PROTOTYPE_CHAT_IDS.has(conversationId)) {
+        navigate(`/prototype/${conversationId}`);
+        return;
+      }
       const isInFolder = Object.values(folderItems).some((items) =>
         items.some((item) => item.id === conversationId),
       );
@@ -322,6 +339,7 @@ export function ChatSidebarContainer({
 
   const handleDeleteItem = useCallback(
     async (id: string) => {
+      if (PROTOTYPE_CHAT_IDS.has(id)) return;
       const chatName = chatLabelById.get(id) ?? "";
       const location = getChatLocation(id);
       try {
@@ -369,6 +387,7 @@ export function ChatSidebarContainer({
 
   const handleRenameItem = useCallback(
     async (id: string, newName: string) => {
+      if (PROTOTYPE_CHAT_IDS.has(id)) return;
       const oldName = chatLabelById.get(id) ?? "";
       const location = getChatLocation(id);
       try {
@@ -650,7 +669,7 @@ export function ChatSidebarContainer({
         onHelpDocsClick={onHelpDocsClick}
         settingsDisabledReason="Settings aren't available for View Only users."
         isDashboardsEnabled={true}
-        dashboards={dashboards}
+        dashboards={allDashboards}
         selectedDashboardId={dashboardId}
         hasMoreDashboards={hasNextDashboardPage}
         onLoadMoreDashboards={fetchNextDashboardPage}
@@ -733,7 +752,7 @@ export function ChatSidebarContainer({
         onSettingsClick={onSettingsClick}
         onHelpDocsClick={onHelpDocsClick}
         isNewChatActive={isNewChatActive}
-        dashboards={dashboards}
+        dashboards={allDashboards}
         selectedDashboardId={dashboardId}
         hasMoreDashboards={hasNextDashboardPage}
         onLoadMoreDashboards={fetchNextDashboardPage}

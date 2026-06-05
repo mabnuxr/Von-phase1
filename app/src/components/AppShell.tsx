@@ -31,8 +31,8 @@ import { report } from "../lib/analytics/tracker";
 export function AppShell() {
   const navigate = useGuardedNavigate();
   const queryClient = useQueryClient();
-  const { conversationId } = useParams<{ conversationId?: string }>();
-  const currentConversationId = conversationId ?? null;
+  const { conversationId, scenarioId } = useParams<{ conversationId?: string; scenarioId?: string }>();
+  const currentConversationId = conversationId ?? scenarioId ?? null;
 
   const { showToast } = useToast();
 

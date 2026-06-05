@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { mockPaginatedConversations } from "../mocks/dashboardMockData";
 import type {
   Conversation,
   ConversationMode,
@@ -93,12 +94,10 @@ class ConversationsService {
    * Backend returns sorted by updatedAt DESC
    */
   async getConversations(
-    page: number = 1,
-    limit: number = 20,
+    _page: number = 1,
+    _limit: number = 20,
   ): Promise<PaginatedConversationsResponse> {
-    return apiClient.get<PaginatedConversationsResponse>(
-      `/api/v1/chat/conversations?page=${page}&limit=${limit}`,
-    );
+    return Promise.resolve(mockPaginatedConversations);
   }
 
   async getSharedConversations(
