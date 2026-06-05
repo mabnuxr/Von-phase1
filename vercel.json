@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build:all",
+  "buildCommand": "npm run build:design && npm run build --workspace=app",
   "outputDirectory": "app/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
