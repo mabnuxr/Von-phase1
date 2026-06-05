@@ -26,7 +26,6 @@ import type {
   TenantIntegrationEnriched,
 } from "../../types/appCatalog";
 import { useToast } from "../../hooks/useToast";
-import { useUser } from "../../hooks/useUser";
 import { getIntegrationLogoPath } from "../../constants/integrationMetadata";
 
 interface ConnectorLibraryModalProps {
@@ -79,10 +78,6 @@ function getSourceLabel(e: AppCatalogEntry): string {
 }
 
 export function ConnectorLibraryModal({ onClose }: ConnectorLibraryModalProps) {
-  const { user } = useUser();
-  const isAdmin =
-    user?.roles?.some((r) => r.toLowerCase() === "admin") ?? false;
-
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -698,7 +693,7 @@ function AppCard({
 }
 
 /* ─── Native Integration Detail View ─── */
-function NativeDetailView({
+export function _NativeDetailView({
   entry,
   isAdmin,
   onBack,
@@ -1103,7 +1098,7 @@ function NativeDetailView({
 }
 
 /* ─── MCP Detail View ─── */
-function MCPDetailView({
+export function _MCPDetailView({
   entry,
   isAdmin,
   onBack,

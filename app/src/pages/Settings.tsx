@@ -6,7 +6,6 @@ import { useAuthCheck } from "../hooks/useAuthCheck";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
-import { IntegrationsPanel } from "../components/IntegrationsPanel";
 import { IntegrationDetail } from "../components/prototype/IntegrationDetail";
 import {
   GitCommitIcon,
@@ -18,7 +17,6 @@ import {
 } from "@phosphor-icons/react";
 import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
-import { ManageUsersTab } from "../components/tabs/ManageUsersTab";
 import { OrgContextTabV2 } from "../components/tabs/OrgContextTabV2";
 import { UsageTab } from "../components/tabs/UsageTab";
 import { FieldDetailPane } from "../components/FieldDetailPane";

@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build --workspace=app",
+  "buildCommand": "npm run build:all",
   "outputDirectory": "app/dist",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

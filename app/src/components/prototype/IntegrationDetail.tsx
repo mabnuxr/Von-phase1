@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { ArrowLeftIcon, CaretDownIcon, XIcon, PlusIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, XIcon, PlusIcon, ArrowSquareOutIcon } from "@phosphor-icons/react";
 import salesforceLogo from "../../assets/salesforce.svg";
 import { TEAMS } from "../../mocks/prototypeData";
 

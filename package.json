@@ -12,7 +12,7 @@
     "dev:design": "npm run storybook --workspace=design-components",
     "build:design": "npm run build:lib --workspace=design-components",
     "build:app": "npm run build --workspace=app",
-    "build:all": "npm run build --workspace=app",
+    "build:all": "npm run build:design && npm run build:app",
     "setup": "npm install && npm run build:design",
     "lint:all": "npm run lint --workspaces --if-present",
     "format:all": "npm run format --workspaces --if-present",
