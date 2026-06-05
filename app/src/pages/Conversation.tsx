@@ -38,7 +38,6 @@ import { useShareStatus } from "../hooks/useShareStatus";
 import { useToast } from "../hooks/useToast";
 import { ChatV1Container } from "../components/ChatV1Container";
 import { ChatSession } from "../components/chat/ChatSession";
-import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { useCurrentConversation } from "../hooks/useCurrentConversation";
 import { MESSAGES_PAGE_LIMIT } from "../config/constants";
@@ -247,14 +246,7 @@ const Conversation = () => {
       shouldShakeBanner={shouldShakeSubscriptionBanner}
       onShakeComplete={() => setShouldShakeSubscriptionBanner(false)}
     />
-  ) : (
-    <SalesforceConnectionBanner
-      isSalesforceReady={isSalesforceReady}
-      isLoading={isSalesforceLoading}
-      shouldShakeBanner={shouldShakeBanner}
-      onShakeComplete={() => setShouldShakeBanner(false)}
-    />
-  );
+  ) : null;
 
   // --- Shared container props ---
   const sharedContainerProps = {

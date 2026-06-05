@@ -41,7 +41,6 @@ import { useChatDraft, useRestoreUnsentInput } from "../hooks/useChatDraft";
 import { useCommandsPanel } from "../hooks/useCommandsPanel";
 import { useTenantMembers } from "../hooks/useTenantMembers";
 import { useDashboardList } from "../hooks/useDashboardList";
-import { SalesforceConnectionBanner } from "../components/SalesforceConnectionBanner";
 import { SubscriptionInactiveBanner } from "../components/SubscriptionInactiveBanner";
 import { config } from "../config";
 import { reportRenderTiming } from "../lib/datadog";
@@ -411,14 +410,7 @@ const NewConversation = () => {
       shouldShakeBanner={shouldShakeSubscriptionBanner}
       onShakeComplete={() => setShouldShakeSubscriptionBanner(false)}
     />
-  ) : (
-    <SalesforceConnectionBanner
-      isSalesforceReady={isSalesforceReady}
-      isLoading={isSalesforceLoading}
-      shouldShakeBanner={shouldShakeBanner}
-      onShakeComplete={() => setShouldShakeBanner(false)}
-    />
-  );
+  ) : null;
 
   return (
     <Profiler id="new-conversation" onRender={reportRenderTiming}>
