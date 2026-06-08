@@ -71,6 +71,7 @@
     "@tiptap/pm": "^3.15.3",
     "@tiptap/react": "^3.15.3",
     "@tiptap/starter-kit": "^3.15.3",
+    "@tiptap/suggestion": "^3.15.3",
     "date-fns": "^4.1.0",
     "docx": "^9.5.3",
     "docx-preview": "^0.3.7",
