@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { LockSimpleIcon, UsersIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { EyeIcon } from "../components/icons";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import { SettingsPageLayout } from "../components/settings/SettingsPageLayout";
+import { peopleMock } from "../mocks/peopleMock";
 
 interface RoleRowProps {
   icon: React.ReactNode;
@@ -35,6 +37,7 @@ function RoleRow({ icon, name, subtitle, onClick }: RoleRowProps) {
 export default function Permissions() {
   useAuthCheck();
   const navigate = useNavigate();
+  const memberCount = peopleMock.length;
 
   return (
     <SettingsLayout activeId="permissions">
@@ -44,7 +47,7 @@ export default function Permissions() {
         badge={{ text: "Admin-only" }}
       >
         {/* Stat line */}
-        <p className="text-xs text-gray-400 -mt-2 mb-6">2 roles · 1 member</p>
+        <p className="text-xs text-gray-400 -mt-2 mb-6">3 roles · {memberCount} members</p>
 
         {/* Roles section */}
         <div>
@@ -63,6 +66,12 @@ export default function Permissions() {
               name="Member"
               subtitle="Standard access · 0 people"
               onClick={() => navigate("/settings/permissions/member")}
+            />
+            <RoleRow
+              icon={<EyeIcon className="w-[15px] h-[15px] text-gray-600" />}
+              name="View Only"
+              subtitle="Read-only access · 2 people"
+              onClick={() => navigate("/settings/permissions/view-only")}
             />
           </div>
         </div>

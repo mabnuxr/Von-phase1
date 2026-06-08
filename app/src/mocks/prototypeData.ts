@@ -27,8 +27,8 @@ export const WORKSPACE_MEMBERS = [
   { id: 'u4', name: 'Priya Nair', email: 'priya.nair@meridiantech.com', role: 'Member', sfRole: ROLES.AE, isActive: true, joinedDate: 'May 5, 2026' },
   { id: 'u5', name: 'Devon Park', email: 'devon.park@meridiantech.com', role: 'Member', sfRole: ROLES.AE, isActive: true, joinedDate: 'May 5, 2026' },
   { id: 'u6', name: 'Alicia Romero', email: 'alicia.romero@meridiantech.com', role: 'Member', sfRole: ROLES.SDR, isActive: true, joinedDate: 'May 7, 2026' },
-  { id: 'u7', name: 'James Okafor', email: 'james.okafor@meridiantech.com', role: 'Member', sfRole: ROLES.CSM, isActive: true, joinedDate: 'May 7, 2026' },
-  { id: 'u8', name: 'Mira Chen', email: 'mira.chen@meridiantech.com', role: 'Member', sfRole: ROLES.SC, isActive: true, joinedDate: 'May 10, 2026' },
+  { id: 'u7', name: 'James Okafor', email: 'james.okafor@meridiantech.com', role: 'View Only', sfRole: ROLES.CSM, isActive: true, joinedDate: 'May 7, 2026' },
+  { id: 'u8', name: 'Mira Chen', email: 'mira.chen@meridiantech.com', role: 'View Only', sfRole: ROLES.SC, isActive: true, joinedDate: 'May 10, 2026' },
 ]
 
 // Sam Whitfield's direct reports (for reporting line sharing scenario)

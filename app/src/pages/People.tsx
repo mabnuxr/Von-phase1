@@ -40,6 +40,13 @@ function RoleBadge({ role }: { role: Person["role"] }) {
       </span>
     );
   }
+  if (role === "View Only") {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 border border-gray-200 text-gray-400">
+        View Only
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-white border border-gray-300 text-gray-600">
       Member

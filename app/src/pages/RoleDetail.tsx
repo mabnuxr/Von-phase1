@@ -141,6 +141,17 @@ const MEMBER_PERMISSIONS = new Set([
   "share.manage_own", "share.general_access.set", "usage.view_own",
 ]);
 
+const VIEW_ONLY_PERMISSIONS = new Set([
+  "app.use",
+  "chat.read_shared",
+  "dashboard.read_shared",
+  "artifact.read",
+  "memory.user.read",
+  "group.view",
+  "group.be_assigned",
+  "usage.view_own",
+]);
+
 const ALL_KEYS = new Set(
   PERMISSION_GROUPS.flatMap((g) => g.permissions.map((p) => p.key)),
 );
@@ -153,11 +164,12 @@ export default function RoleDetail() {
   const { role } = useParams<{ role: string }>();
 
   const isAdmin = role === "admin";
-  const roleName = isAdmin ? "Admin" : "Member";
-  const grantedKeys = isAdmin ? ALL_KEYS : MEMBER_PERMISSIONS;
+  const isViewOnly = role === "view-only";
+  const roleName = isAdmin ? "Admin" : isViewOnly ? "View Only" : "Member";
+  const grantedKeys = isAdmin ? ALL_KEYS : isViewOnly ? VIEW_ONLY_PERMISSIONS : MEMBER_PERMISSIONS;
   const totalCount = ALL_KEYS.size;
   const grantedCount = [...ALL_KEYS].filter((k) => grantedKeys.has(k)).length;
-  const personCount = isAdmin ? 1 : 0;
+  const personCount = isAdmin ? 1 : isViewOnly ? 2 : 0;
 
   return (
     <SettingsLayout activeId="permissions">

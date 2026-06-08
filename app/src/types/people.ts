@@ -1,4 +1,4 @@
-export type PersonRole = "Admin" | "Member";
+export type PersonRole = "Admin" | "Member" | "View Only";
 export type PersonStatus = "Active" | "Invite sent";
 
 export interface Person {
