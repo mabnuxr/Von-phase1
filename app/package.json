@@ -16,6 +16,7 @@
     "test:coverage": "npx vitest run --coverage"
   },
   "dependencies": {
+    "@crayonai/react-core": "^0.7.7",
     "@crayonai/react-ui": "^0.9.5",
     "@datadog/browser-rum": "^6.27.0",
     "@knocklabs/react": "^0.11.22",
