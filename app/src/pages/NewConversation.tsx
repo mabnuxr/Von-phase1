@@ -182,7 +182,7 @@ const NewConversation = () => {
   const {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
-    isLoading: isSalesforceLoading,
+    isLoading: _isSalesforceLoading,
   } = useSalesforceConnection();
 
   const isSalesforceReady = isSalesforceConnected && isSalesforceAuthenticated;
@@ -372,7 +372,7 @@ const NewConversation = () => {
       }
     : undefined;
 
-  const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
+  const [_shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
 

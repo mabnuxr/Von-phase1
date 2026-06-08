@@ -97,7 +97,7 @@ const Conversation = () => {
   const {
     isConnected: isSalesforceConnected,
     isAuthenticated: isSalesforceAuthenticated,
-    isLoading: isSalesforceLoading,
+    isLoading: _isSalesforceLoading,
     integration: salesforceIntegration,
   } = useSalesforceConnection();
 
@@ -148,7 +148,7 @@ const Conversation = () => {
   const isAgentV2 = currentConversation?.agentVersion === "v2";
 
   // --- UI State ---
-  const [shouldShakeBanner, setShouldShakeBanner] = useState(false);
+  const [_shouldShakeBanner, setShouldShakeBanner] = useState(false);
   const [shouldShakeSubscriptionBanner, setShouldShakeSubscriptionBanner] =
     useState(false);
 
