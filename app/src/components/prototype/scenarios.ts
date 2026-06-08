@@ -10,7 +10,6 @@ import {
   BULK_PROVISION,
   TEAMS,
   ARTIFACTS,
-  INTEGRATION,
 } from "../../mocks/prototypeData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
