@@ -10,7 +10,6 @@ import {
   BULK_PROVISION,
   TEAMS,
   ARTIFACTS,
-  INTEGRATION,
 } from "../../mocks/prototypeData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,7 +86,6 @@ const promoteTarget = member("u3"); // Marcus Webb
 const shareUser = member("u4"); // Priya Nair
 
 // Scope: total Salesforce users minus Enterprise Sales memberCount
-const scopeLostAccess = 179 - es.memberCount; // 172
 
 // ─── Scenarios ────────────────────────────────────────────────────────────────
 
@@ -519,42 +517,6 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
 
-  {
-    id: "scope-integration",
-    label: "Scope an integration",
-    group: "sharing",
-    messages: [
-      {
-        role: "user",
-        text: `I want the ${INTEGRATION.name} integration to only be accessible to the ${es.name} team, not the whole workspace.`,
-      },
-      {
-        role: "assistant",
-        text: `Right now the ${INTEGRATION.name} integration is available to all workspace members. I'll scope it to **${es.name}** only. Members outside the team won't be able to query ${INTEGRATION.name} data through Von.`,
-        card: {
-          variant: "summary",
-          summaryLines: [
-            { text: `${INTEGRATION.name} access restricted to ${es.name} (${es.memberCount} members)`, tone: "success" },
-            { text: `${scopeLostAccess} Salesforce users outside this team will not have Von access to ${INTEGRATION.name}`, tone: "warning" },
-            { text: "Admins retain access regardless of team membership", tone: "neutral" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Apply the restriction.",
-      },
-      {
-        role: "assistant",
-        text: `Done. The ${INTEGRATION.name} integration is now scoped to **${es.name}**. Others will see a 'Not available' message if they try to use it.`,
-        card: {
-          variant: "status",
-          statusMessage: `${INTEGRATION.name} scoped to ${es.name}`,
-          statusTone: "success",
-        },
-      },
-    ],
-  },
 ];
 
 export const SCENARIO_GROUPS = [

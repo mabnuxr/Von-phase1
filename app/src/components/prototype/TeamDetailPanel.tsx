@@ -390,7 +390,7 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
 
   if (inline) {
     return (
-      <div className="w-[560px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
         {panelContent}
       </div>
     );
@@ -409,7 +409,7 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
       />
       {/* Panel */}
       <div
-        className={`fixed top-0 right-0 bottom-0 z-50 w-[560px] bg-white shadow-xl border-l border-gray-200 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 bottom-0 z-50 w-[480px] bg-white shadow-xl border-l border-gray-200 flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

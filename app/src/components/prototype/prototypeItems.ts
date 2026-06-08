@@ -14,7 +14,6 @@ export const PROTOTYPE_CHAT_IDS = new Set([
   "prototype-share-with-user",
   "prototype-share-with-group",
   "prototype-share-with-reporting-line",
-  "prototype-scope-integration",
 ]);
 
 export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
@@ -30,5 +29,4 @@ export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "prototype-share-with-user",           label: "Share with a user",                    type: ItemType.Chat },
   { id: "prototype-share-with-group",          label: "Share with a team",                   type: ItemType.Chat },
   { id: "prototype-share-with-reporting-line", label: "Share with reporting line",            type: ItemType.Chat },
-  { id: "prototype-scope-integration",         label: "Scope an integration",                 type: ItemType.Chat },
 ];
