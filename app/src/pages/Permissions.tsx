@@ -9,11 +9,12 @@ import { peopleMock } from "../mocks/peopleMock";
 interface RoleRowProps {
   icon: React.ReactNode;
   name: string;
-  subtitle: string;
+  description: string;
+  count: number;
   onClick: () => void;
 }
 
-function RoleRow({ icon, name, subtitle, onClick }: RoleRowProps) {
+function RoleRow({ icon, name, description, count, onClick }: RoleRowProps) {
   return (
     <button
       onClick={onClick}
@@ -24,7 +25,13 @@ function RoleRow({ icon, name, subtitle, onClick }: RoleRowProps) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-gray-900">{name}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-xs text-gray-500">{description}</span>
+          <span className="flex items-center gap-1 text-xs text-gray-400">
+            <UsersIcon size={11} weight="regular" />
+            {count}
+          </span>
+        </div>
       </div>
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200 mr-2 flex-shrink-0">
         System role
@@ -37,7 +44,10 @@ function RoleRow({ icon, name, subtitle, onClick }: RoleRowProps) {
 export default function Permissions() {
   useAuthCheck();
   const navigate = useNavigate();
-  const memberCount = peopleMock.length;
+
+  const adminCount = peopleMock.filter((p) => p.role === "Admin").length;
+  const memberCount = peopleMock.filter((p) => p.role === "Member").length;
+  const viewOnlyCount = peopleMock.filter((p) => p.role === "View Only").length;
 
   return (
     <SettingsLayout activeId="permissions">
@@ -46,9 +56,6 @@ export default function Permissions() {
         subtitle="A read-only map of who can do what. All changes happen in chat."
         badge={{ text: "Admin-only" }}
       >
-        {/* Stat line */}
-        <p className="text-xs text-gray-400 -mt-2 mb-6">3 roles · {memberCount} members</p>
-
         {/* Roles section */}
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
@@ -58,19 +65,22 @@ export default function Permissions() {
             <RoleRow
               icon={<LockSimpleIcon size={15} className="text-gray-600" weight="regular" />}
               name="Admin"
-              subtitle="Full workspace access · 1 person"
+              description="Full workspace access"
+              count={adminCount}
               onClick={() => navigate("/settings/permissions/admin")}
             />
             <RoleRow
               icon={<UsersIcon size={15} className="text-gray-600" weight="regular" />}
               name="Member"
-              subtitle="Standard access · 0 people"
+              description="Standard access"
+              count={memberCount}
               onClick={() => navigate("/settings/permissions/member")}
             />
             <RoleRow
               icon={<EyeIcon className="w-[15px] h-[15px] text-gray-600" />}
               name="View Only"
-              subtitle="Read-only access · 2 people"
+              description="Read-only access"
+              count={viewOnlyCount}
               onClick={() => navigate("/settings/permissions/view-only")}
             />
           </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { UsersIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { UsersIcon, DotsThreeIcon, MagnifyingGlassIcon, CaretDownIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import {
@@ -57,7 +57,7 @@ function RowMenu() {
     <div ref={ref} className="relative flex justify-end">
       <button
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer text-gray-500"
+        className="p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer text-gray-500"
       >
         <DotsThreeIcon size={16} weight="bold" />
       </button>
@@ -121,32 +121,66 @@ function personTeams(name: string): string[] {
 
 function PopulatedTable() {
   const [tab, setTab] = useState<"Active" | "Pending">("Active");
+  const [roleFilter, setRoleFilter] = useState("All");
+  const [search, setSearch] = useState("");
 
   const activeCount = peopleMock.filter((p) => p.status === "Active").length;
   const pendingCount = peopleMock.filter((p) => p.status === "Invite sent").length;
   const visible = peopleMock.filter((p) =>
     tab === "Active" ? p.status === "Active" : p.status === "Invite sent"
+  ).filter((p) =>
+    roleFilter === "All" || p.role === roleFilter
+  ).filter((p) =>
+    search === "" || p.name.toLowerCase().includes(search.toLowerCase()) || p.email.toLowerCase().includes(search.toLowerCase())
   );
-
-  const tabClass = (t: typeof tab) =>
-    t === tab
-      ? "text-gray-900 font-medium border-b-2 border-gray-900 pb-2"
-      : "text-gray-400 hover:text-gray-600 pb-2 cursor-pointer";
 
   return (
     <>
-      <p className="text-xs text-gray-400 -mt-2 mb-4">
-        {peopleMock.length} members · {activeCount} active · {pendingCount} pending
-      </p>
+      {/* Controls row: pill tabs left, filters right */}
+      <div className="flex items-center justify-between mb-4">
+        {/* Pill tab switcher */}
+        <div className="flex items-center bg-gray-100 rounded-lg p-0.5 gap-0.5">
+          {(["Active", "Pending"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                tab === t
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {t} <span className={tab === t ? "text-gray-400" : "text-gray-400"}>({t === "Active" ? activeCount : pendingCount})</span>
+            </button>
+          ))}
+        </div>
 
-      {/* Tabs */}
-      <div className="flex gap-6 border-b border-gray-200 mb-4">
-        <button className={tabClass("Active")} onClick={() => setTab("Active")}>
-          Active <span className="text-gray-400 font-normal">({activeCount})</span>
-        </button>
-        <button className={tabClass("Pending")} onClick={() => setTab("Pending")}>
-          Pending <span className="text-gray-400 font-normal">({pendingCount})</span>
-        </button>
+        {/* Right: role filter + search */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="appearance-none pl-2.5 pr-7 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer focus:outline-none"
+            >
+              <option value="All">Role: All</option>
+              <option value="Admin">Admin</option>
+              <option value="Member">Member</option>
+              <option value="View Only">View Only</option>
+            </select>
+            <CaretDownIcon size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+            <MagnifyingGlassIcon size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-7 pr-3 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:border-gray-400 transition-colors w-44 placeholder:text-gray-400"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -242,22 +276,23 @@ export default function People() {
             <button className={settingsPrimaryBtn}>Add people</button>
           </div>
         }
-        footer="Authoring is chat-only for bulk operations — use chat to provision from Salesforce or add in bulk."
       >
         {isPopulated ? (
           <PopulatedTable />
         ) : (
-          <SettingsEmptyState
-            icon={<UsersIcon size={20} className="text-gray-400" weight="regular" />}
-            heading="No members yet"
-            subtext="Add people by email or upload a CSV to get started"
-            actions={
-              <>
-                <button className={settingsPrimaryBtn}>Invite by email</button>
-                <button className={settingsSecondaryBtn}>Upload CSV</button>
-              </>
-            }
-          />
+          <div className="bg-gray-50 rounded-2xl border border-gray-100 w-full">
+            <SettingsEmptyState
+              icon={<UsersIcon size={20} className="text-gray-400" weight="regular" />}
+              heading="No members yet"
+              subtext="Add people by email or upload a CSV to get started"
+              actions={
+                <>
+                  <button className={settingsPrimaryBtn}>Invite by email</button>
+                  <button className={settingsSecondaryBtn}>Upload CSV</button>
+                </>
+              }
+            />
+          </div>
         )}
       </SettingsPageLayout>
     </SettingsLayout>

@@ -227,13 +227,50 @@ function StatusCard({ message, tone }: Omit<StatusCardProps, "variant">) {
   );
 }
 
+// ─── Bulk summary variant ─────────────────────────────────────────────────────
+
+export interface BulkSummaryCardProps {
+  variant: "bulk-summary";
+  stats: Array<{ text: string; dot: "green" | "amber" }>;
+  flagged: Array<{ email: string; reason: string }>;
+}
+
+function BulkSummaryCard({ stats, flagged }: Omit<BulkSummaryCardProps, "variant">) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-xs max-w-sm w-full overflow-hidden">
+      <div className="p-4 space-y-2">
+        {stats.map((s, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${s.dot === "green" ? "bg-green-500" : "bg-amber-400"}`} />
+            <span className="text-xs text-gray-700">{s.text}</span>
+          </div>
+        ))}
+      </div>
+      {flagged.length > 0 && (
+        <div className="border-t border-amber-100 bg-amber-50/60 px-4 py-3 space-y-2">
+          {flagged.map((f, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 bg-amber-400" />
+              <span className="text-xs text-gray-600 leading-relaxed">
+                <span className="font-medium text-gray-700">{f.email}</span>
+                {" — "}{f.reason}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Union export ─────────────────────────────────────────────────────────────
 
 export type ChatCardProps =
   | ApprovalCardProps
   | SummaryCardProps
   | DiffCardProps
-  | StatusCardProps;
+  | StatusCardProps
+  | BulkSummaryCardProps;
 
 export function ChatCard(props: ChatCardProps) {
   switch (props.variant) {
@@ -245,5 +282,7 @@ export function ChatCard(props: ChatCardProps) {
       return <DiffCard title={props.title} items={props.items} />;
     case "status":
       return <StatusCard message={props.message} tone={props.tone} />;
+    case "bulk-summary":
+      return <BulkSummaryCard stats={props.stats} flagged={props.flagged} />;
   }
 }

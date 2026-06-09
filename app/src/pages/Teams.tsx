@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { UsersIcon, SparkleIcon, UsersFourIcon, DotsThreeIcon } from "@phosphor-icons/react";
+import { UsersIcon, SparkleIcon, UsersFourIcon, DotsThreeIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import {
@@ -106,12 +106,27 @@ function toTeamDetailData(team: TeamRow): TeamDetailData {
 
 function PopulatedTable() {
   const [selectedTeam, setSelectedTeam] = useState<TeamRow | null>(null);
+  const [search, setSearch] = useState("");
+
+  const visible = teamsMock.filter((t) =>
+    search === "" || t.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <>
-      <p className="text-xs text-gray-400 -mt-2 mb-6">
-        {teamsMock.length} teams · {teamsMock.reduce((s, t) => s + t.memberCount, 0)} total members
-      </p>
+      {/* Search bar */}
+      <div className="mb-4">
+        <div className="relative w-64">
+          <MagnifyingGlassIcon size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search teams"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-7 pr-3 py-1.5 text-xs text-gray-700 bg-white border border-gray-200 rounded-lg hover:border-gray-300 focus:outline-none focus:border-gray-400 transition-colors w-full placeholder:text-gray-400"
+          />
+        </div>
+      </div>
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -129,7 +144,7 @@ function PopulatedTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {teamsMock.map((team) => (
+            {visible.map((team) => (
               <tr
                 key={team.id}
                 onClick={() => setSelectedTeam(team)}
@@ -218,16 +233,18 @@ export default function Teams() {
         {isPopulated ? (
           <PopulatedTable />
         ) : (
-          <SettingsEmptyState
-            icon={<UsersIcon size={20} className="text-gray-400" weight="regular" />}
-            heading="No teams yet"
-            subtext="Teams are created through Von — connect Salesforce or describe your org structure in chat"
-            actions={
-              <button className={settingsPrimaryBtn}>
-                Create a team in chat
-              </button>
-            }
-          />
+          <div className="bg-gray-50 rounded-2xl border border-gray-100 w-full">
+            <SettingsEmptyState
+              icon={<UsersIcon size={20} className="text-gray-400" weight="regular" />}
+              heading="No teams yet"
+              subtext="Teams are created through Von — connect Salesforce or describe your org structure in chat"
+              actions={
+                <button className={settingsPrimaryBtn}>
+                  Create a team in chat
+                </button>
+              }
+            />
+          </div>
         )}
       </SettingsPageLayout>
     </SettingsLayout>

@@ -16,6 +16,7 @@ import {
   StarIcon,
   CheckIcon,
 } from "@phosphor-icons/react";
+import { StatusTag } from "./StatusTag";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,8 @@ export interface TeamDetailPanelProps {
   defaultFilterExpanded?: boolean;
   /** Called when "Commit & next" is clicked */
   onCommit?: () => void;
+  /** Override the inspect-mode CTA button label */
+  inspectCtaLabel?: string;
 }
 
 // ─── Avatar color hash ────────────────────────────────────────────────────────
@@ -222,7 +225,7 @@ function MemberRow({ member, onRemove }: { member: TeamMember; onRemove?: () => 
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persistentClose, statusOverride, defaultFilterExpanded, onCommit }: TeamDetailPanelProps) {
+export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persistentClose, statusOverride, defaultFilterExpanded, onCommit, inspectCtaLabel }: TeamDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "activity">("overview");
   const [memberSearch, setMemberSearch] = useState("");
   const [members, setMembers] = useState<TeamMember[]>(team.members);
@@ -237,19 +240,11 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
 
   const isReview = mode === "review";
 
-  // Resolve status badge from override or mode
-  const statusDot =
-    statusOverride === "draft"   ? "bg-amber-400" :
-    statusOverride === "active"  ? "bg-green-500" :
-    isReview                     ? "bg-blue-500"  : "bg-green-500";
+  // Resolve status label from override or mode
   const statusText =
     statusOverride === "draft"   ? "Draft" :
     statusOverride === "active"  ? "Active" :
     isReview                     ? "In Review" : "Active";
-  const statusColor =
-    statusOverride === "draft"   ? "text-amber-600" :
-    statusOverride === "active"  ? "text-green-600" :
-    isReview                     ? "text-blue-600"  : "text-green-600";
 
   const panelContent = (
     <>
@@ -263,9 +258,8 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
             {/* Name + status */}
             <div className="min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">{team.name}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot}`} />
-                <span className={`text-xs font-medium ${statusColor}`}>{statusText}</span>
+              <div className="flex items-center mt-0.5">
+                <StatusTag status={statusText} />
               </div>
             </div>
           </div>
@@ -372,7 +366,7 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
             <div className="flex items-center">
               <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                 <SparkleIcon size={13} weight="fill" className="text-violet-500" />
-                Edit via chat
+                {inspectCtaLabel ?? "Edit via chat"}
               </button>
             </div>
           )}

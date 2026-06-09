@@ -30,7 +30,7 @@ function teamMembers(ids: string[]) {
 export type MessageRole = "user" | "assistant";
 
 export interface ChatCardSpec {
-  variant: "approval" | "summary" | "diff" | "status" | "team";
+  variant: "approval" | "summary" | "diff" | "status" | "team" | "ask-input" | "bulk-summary";
   title?: string;
   approvalItems?: Array<{ name: string; email: string; role: "Admin" | "Member" }>;
   summaryLines?: Array<{ text: string; tone: "success" | "warning" | "neutral" }>;
@@ -41,6 +41,13 @@ export interface ChatCardSpec {
   teamName?: string;
   teamMemberCount?: number;
   teamStatus?: string;
+  // "ask-input" variant
+  askQuestion?: string;
+  askPrimary?: string;
+  askSecondary?: string;
+  // "bulk-summary" variant
+  bulkStats?: Array<{ text: string; dot: "green" | "amber" }>;
+  bulkFlagged?: Array<{ email: string; reason: string }>;
 }
 
 export interface ScenarioMessage {
@@ -74,6 +81,14 @@ const sfTarget = sfUser("sf2"); // Marie Dalsgaard
 // Promote-to-admin target
 const promoteTarget = member("u3"); // Marcus Webb
 
+// Demote-admin target
+const demoteTarget = member("u1"); // Sam Whitfield (Admin)
+
+// Multiple provisioning targets
+const multiUser1 = sfUser("sf2"); // Marie Dalsgaard
+const multiUser2 = sfUser("sf3"); // Elise Allan
+const multiUser3 = sfUser("sf4"); // Victoria Reyes
+
 // Scope: total Salesforce users minus Enterprise Sales memberCount
 
 // ─── Scenarios ────────────────────────────────────────────────────────────────
@@ -93,6 +108,12 @@ export const SCENARIOS: Scenario[] = [
       {
         role: "assistant",
         text: `I found ${es.memberCount} people matching that criteria. I've opened a draft on the right. Does the filter look right, or do you want to adjust it?`,
+        card: {
+          variant: "team",
+          teamName: es.name,
+          teamMemberCount: es.memberCount,
+          teamStatus: "Draft",
+        },
       },
       {
         role: "user",
@@ -231,26 +252,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         role: "assistant",
-        text: `I'll promote ${promoteTarget.name} to Team Admin of **${es.name}**. As a Team Admin they'll be able to manage team membership and see team-scoped memory.`,
-        card: {
-          variant: "diff",
-          diffItems: [
-            { name: promoteTarget.name, email: promoteTarget.email, changeType: "changed" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Yes, do it.",
-      },
-      {
-        role: "assistant",
-        text: `${promoteTarget.name} is now a Team Admin of **${es.name}**.`,
-        card: {
-          variant: "status",
-          statusMessage: `${promoteTarget.name} promoted to Team Admin`,
-          statusTone: "success",
-        },
+        text: `I found **${promoteTarget.name}** in **${es.name}**. Here's what will change:`,
       },
     ],
   },
@@ -266,26 +268,7 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         role: "assistant",
-        text: `I'll remove ${esAdmin.name}'s Team Admin role in **${es.name}**. They'll remain a member of the team.`,
-        card: {
-          variant: "diff",
-          diffItems: [
-            { name: esAdmin.name, email: esAdmin.email, changeType: "changed" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Confirm.",
-      },
-      {
-        role: "assistant",
-        text: `Done. ${esAdmin.name} is now a regular member of **${es.name}**.`,
-        card: {
-          variant: "status",
-          statusMessage: `${esAdmin.name}'s Team Admin role removed`,
-          statusTone: "success",
-        },
+        text: `I found **${esAdmin.name}** in **${es.name}**. Here's what will change:`,
       },
     ],
   },
@@ -303,26 +286,27 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         role: "assistant",
-        text: `I'll invite **${newUser.email}** with the Member role. ${newUser.name} will receive an email to set up their account.`,
-        card: {
-          variant: "approval",
-          approvalItems: [
-            { name: newUser.name, email: newUser.email, role: "Member" },
-          ],
-        },
+        text: `I found **${newUser.name}** in Salesforce. I'll invite them with the Member role.`,
       },
+    ],
+  },
+
+  {
+    id: "multiple-provisioning",
+    label: "Multiple provisioning",
+    group: "provisioning",
+    messages: [
       {
         role: "user",
-        text: "Send it.",
+        text: `Can you provision ${multiUser1.name}, ${multiUser2.name}, and ${multiUser3.name} as Members?`,
       },
       {
         role: "assistant",
-        text: `Invitation sent to **${newUser.email}**.`,
-        card: {
-          variant: "status",
-          statusMessage: `Invitation sent to ${newUser.name} · Member role`,
-          statusTone: "success",
-        },
+        text: `I found all three in Salesforce. Let me check their workspace status before we proceed.`,
+      },
+      {
+        role: "assistant",
+        text: `Here's what I found — none of them are in Von yet. Ready to invite all three as Members:`,
       },
     ],
   },
@@ -338,30 +322,19 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         role: "assistant",
-        text: "I've parsed the CSV. Here's a summary before I proceed:",
+        text: "I've parsed the CSV. Here's a summary:",
         card: {
-          variant: "summary",
-          summaryLines: [
-            { text: `${BULK_PROVISION.totalParsed} users parsed from CSV`, tone: "success" },
-            { text: `${BULK_PROVISION.flagged} rows flagged — review below`, tone: "warning" },
-            { text: `${BULK_PROVISION.valid} users ready to provision as Member`, tone: "success" },
-            { text: `${BULK_PROVISION.flaggedReasons[0].email}: ${BULK_PROVISION.flaggedReasons[0].issue}`, tone: "warning" },
-            { text: `${BULK_PROVISION.flaggedReasons[1].email}: ${BULK_PROVISION.flaggedReasons[1].issue}`, tone: "warning" },
-            { text: `${BULK_PROVISION.flaggedReasons[2].email}: ${BULK_PROVISION.flaggedReasons[2].issue}`, tone: "warning" },
+          variant: "bulk-summary",
+          bulkStats: [
+            { text: `${BULK_PROVISION.totalParsed} users parsed from CSV`, dot: "green" },
+            { text: `${BULK_PROVISION.valid} users ready to provision as Member`, dot: "green" },
+            { text: `${BULK_PROVISION.flagged} rows flagged`, dot: "amber" },
           ],
-        },
-      },
-      {
-        role: "user",
-        text: `Proceed with the ${BULK_PROVISION.valid}.`,
-      },
-      {
-        role: "assistant",
-        text: `Done. ${BULK_PROVISION.valid} invitations sent. The ${BULK_PROVISION.flagged} flagged rows were skipped.`,
-        card: {
-          variant: "status",
-          statusMessage: `${BULK_PROVISION.valid} invitations sent · ${BULK_PROVISION.flagged} rows skipped`,
-          statusTone: "success",
+          bulkFlagged: [
+            { email: BULK_PROVISION.flaggedReasons[0].email, reason: "Duplicate email, already exists in workspace" },
+            { email: BULK_PROVISION.flaggedReasons[1].email, reason: "Missing role, will default to Member" },
+            { email: BULK_PROVISION.flaggedReasons[2].email, reason: "Invalid email format" },
+          ],
         },
       },
     ],
@@ -369,7 +342,7 @@ export const SCENARIOS: Scenario[] = [
 
   {
     id: "promote-to-admin",
-    label: "Promote to Admin",
+    label: "Promote user to admin",
     group: "provisioning",
     messages: [
       {
@@ -378,26 +351,23 @@ export const SCENARIOS: Scenario[] = [
       },
       {
         role: "assistant",
-        text: `I'll promote ${promoteTarget.name} from Member to Admin. Admins have full workspace access including billing, all settings, and the ability to manage other members.`,
-        card: {
-          variant: "diff",
-          diffItems: [
-            { name: promoteTarget.name, email: promoteTarget.email, changeType: "changed" },
-          ],
-        },
+        text: `I found **${promoteTarget.name}** in your workspace. Here's what will change:`,
       },
+    ],
+  },
+
+  {
+    id: "demote-to-member",
+    label: "Demote admin to member",
+    group: "provisioning",
+    messages: [
       {
         role: "user",
-        text: "Yes, promote them.",
+        text: `Demote ${demoteTarget.name} to Member.`,
       },
       {
         role: "assistant",
-        text: `${promoteTarget.name} is now an **Admin**. They can manage workspace settings, billing, and other members.`,
-        card: {
-          variant: "status",
-          statusMessage: `${promoteTarget.name} promoted to Admin`,
-          statusTone: "success",
-        },
+        text: `I found **${demoteTarget.name}** in your workspace. Here's what will change:`,
       },
     ],
   },

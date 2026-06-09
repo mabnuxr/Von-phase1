@@ -7,6 +7,7 @@ import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { AvatarMenu } from "../components/AvatarMenu";
 import { SettingsSidebar } from "../components/SettingsSidebar";
 import { IntegrationDetail } from "../components/prototype/IntegrationDetail";
+import { ManageIntegrationsModal } from "../components/prototype/ManageIntegrationsModal";
 import {
   GitCommitIcon,
   UsersIcon,
@@ -14,6 +15,7 @@ import {
   ChartBarIcon,
   UsersFourIcon,
   LockSimpleIcon,
+  GearIcon,
 } from "@phosphor-icons/react";
 import { AiFieldIcon } from "../components/icons/AiFieldIcon";
 import { authService } from "../services";
@@ -26,6 +28,8 @@ import { VonAiFieldDetailPane } from "../components/VonAiFieldDetailPane";
 import { VonAiFieldDefaultPreviewPane } from "../components/VonAiFieldDefaultPreviewPane";
 import type { DefaultAiFieldDefinition } from "../types/vonAiFields";
 import salesforceLogo from "../assets/salesforce.svg";
+import gongLogo from "../assets/gong.svg";
+import slackLogo from "../assets/slack.svg";
 import { AIFieldRunHistory } from "../components/ai-fields/AIFieldRunHistory";
 import { AddTenantMembersPane } from "../components/AddTenantMembersPane";
 import { EditTenantMemberPane } from "../components/EditTenantMemberPane";
@@ -157,6 +161,7 @@ const Settings = () => {
   const [avatarRect, setAvatarRect] = useState<DOMRect | undefined>();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [sfDetailOpen, setSfDetailOpen] = useState(false);
+  const [manageIntegrationsOpen, setManageIntegrationsOpen] = useState(false);
 
   // Get current user context for preferences
   const tenantId = user?.tenantId;
@@ -323,32 +328,89 @@ const Settings = () => {
           return <IntegrationDetail onBack={() => setSfDetailOpen(false)} />;
         }
         return (
-          <div className="flex flex-col h-full">
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-              <h2 className="text-xl font-semibold text-gray-900">Integrations</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Connect your tools to bring data into Von</p>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                {/* Salesforce — clickable */}
+          <>
+            <ManageIntegrationsModal
+              isOpen={manageIntegrationsOpen}
+              onClose={() => setManageIntegrationsOpen(false)}
+            />
+            <div className="flex flex-col h-full">
+              <div className="px-6 pt-6 pb-4 flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Integrations</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Connect your tools to bring data into Von</p>
+                </div>
                 <button
-                  onClick={() => setSfDetailOpen(true)}
-                  className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group"
+                  onClick={() => setManageIntegrationsOpen(true)}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <div className="w-10 h-10 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
-                    <img src={salesforceLogo} alt="Salesforce" className="w-full h-full object-contain p-0.5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900">Salesforce</p>
-                    <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
-                  </div>
-                  <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">
-                    Configure →
-                  </span>
+                  <GearIcon size={14} />
+                  Manage Integrations
                 </button>
               </div>
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
+                  {/* Salesforce */}
+                  <button
+                    onClick={() => setSfDetailOpen(true)}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group"
+                  >
+                    <div className="w-10 h-10 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
+                      <img src={salesforceLogo} alt="Salesforce" className="w-full h-full object-contain p-0.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Salesforce</p>
+                      <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                  </button>
+                  {/* Google Calendar */}
+                  <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
+                    <div className="w-10 h-10 rounded-lg border border-gray-100 flex-shrink-0 bg-blue-50 flex items-center justify-center text-sm font-bold text-blue-600">
+                      G
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Google Calendar</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Calendar · Read · OAuth</p>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                  </button>
+                  {/* Gong */}
+                  <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
+                    <div className="w-10 h-10 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
+                      <img src={gongLogo} alt="Gong" className="w-full h-full object-contain p-0.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Gong</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Call Recording · Read · OAuth</p>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                  </button>
+                  {/* Slack */}
+                  <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
+                    <div className="w-10 h-10 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0 bg-white">
+                      <img src={slackLogo} alt="Slack" className="w-full h-full object-contain p-0.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">Slack</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Communication · Read &amp; Write · OAuth</p>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                  </button>
+                  {/* HubSpot */}
+                  <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
+                    <div className="w-10 h-10 rounded-lg border border-gray-100 flex-shrink-0 bg-orange-50 flex items-center justify-center text-sm font-bold text-orange-600">
+                      H
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900">HubSpot</p>
+                      <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
+                    </div>
+                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         );
       case "team": // legacy — no longer in nav
         return null;

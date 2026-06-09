@@ -2,6 +2,7 @@ import { X } from "@phosphor-icons/react";
 
 export interface QuickAction {
   label: string;
+  icon?: React.ReactNode;
   variant: "primary" | "secondary" | "danger";
   onClick: () => void;
 }
@@ -109,8 +110,9 @@ export function AskUserInput({ title, items, actions, isVisible }: AskUserInputP
           {/* Actions */}
           <div className="pt-3 flex justify-end gap-2">
             {actions.map((action, i) => (
-              <button key={i} onClick={action.onClick} className={BTN[action.variant]}>
+              <button key={i} onClick={action.onClick} className={`${BTN[action.variant]} inline-flex items-center gap-1.5`}>
                 {action.label}
+                {action.icon}
               </button>
             ))}
           </div>
