@@ -5,7 +5,6 @@
 
 import {
   WORKSPACE_MEMBERS,
-  SAM_DIRECT_REPORTS,
   SALESFORCE_ONLY_USERS,
   BULK_PROVISION,
   TEAMS,
@@ -64,10 +63,6 @@ const es = TEAMS.enterpriseSales;
 const esAdmin = member(es.teamAdmin!); // Elena Vasquez
 const esMembers = teamMembers(es.members); // the 5 explicitly listed
 
-// Reporting-line members (Sam's 5 direct reports)
-const reportingLineMembers = teamMembers(SAM_DIRECT_REPORTS);
-const reportingLineCount = SAM_DIRECT_REPORTS.length; // 5
-
 // Individual provisioning target
 const newUser = sfUser("sf1"); // Kevin Thornton
 
@@ -81,9 +76,6 @@ const sfTarget = sfUser("sf2"); // Marie Dalsgaard
 
 // Promote-to-admin target
 const promoteTarget = member("u3"); // Marcus Webb
-
-// Share targets
-const shareUser = member("u4"); // Priya Nair
 
 // Scope: total Salesforce users minus Enterprise Sales memberCount
 
@@ -406,123 +398,11 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
 
-  // ── Sharing ───────────────────────────────────────────────────────────────────
-
-  {
-    id: "share-with-user",
-    label: "Share with a user",
-    group: "sharing",
-    messages: [
-      {
-        role: "user",
-        text: `Share my ${ARTIFACTS.dashboard.name} with ${shareUser.name}. Read-only.`,
-      },
-      {
-        role: "assistant",
-        text: `I'll share **${ARTIFACTS.dashboard.name}** with ${shareUser.name} as read-only. They'll be able to view and continue the conversation but not re-share it.`,
-        card: {
-          variant: "approval",
-          approvalItems: [
-            { name: shareUser.name, email: shareUser.email, role: "Member" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Share it.",
-      },
-      {
-        role: "assistant",
-        text: `**${ARTIFACTS.dashboard.name}** shared with ${shareUser.name}. They'll see it in their Shared Chats sidebar.`,
-        card: {
-          variant: "status",
-          statusMessage: `Shared with ${shareUser.name} · Read-only`,
-          statusTone: "success",
-        },
-      },
-    ],
-  },
-
-  {
-    id: "share-with-group",
-    label: "Share with a team",
-    group: "sharing",
-    messages: [
-      {
-        role: "user",
-        text: `Share my ${ARTIFACTS.command.name} with the ${es.name} team.`,
-      },
-      {
-        role: "assistant",
-        text: `I'll share **${ARTIFACTS.command.name}** with all ${es.memberCount} members of **${es.name}**. Each member will see it in their Shared Chats sidebar and can run it.`,
-        card: {
-          variant: "summary",
-          summaryLines: [
-            { text: `Shared with ${es.name} (${es.memberCount} members)`, tone: "success" },
-            { text: "Members can view and run the command", tone: "neutral" },
-            { text: "Admins can manage sharing permissions", tone: "neutral" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Share it.",
-      },
-      {
-        role: "assistant",
-        text: `**${ARTIFACTS.command.name}** shared with the ${es.name} team.`,
-        card: {
-          variant: "status",
-          statusMessage: `Shared with ${es.name} · ${es.memberCount} members`,
-          statusTone: "success",
-        },
-      },
-    ],
-  },
-
-  {
-    id: "share-with-reporting-line",
-    label: "Share with reporting line",
-    group: "sharing",
-    messages: [
-      {
-        role: "user",
-        text: `Share the ${ARTIFACTS.dashboard.name} with everyone who reports to Sam Whitfield.`,
-      },
-      {
-        role: "assistant",
-        text: `Sam Whitfield has ${reportingLineCount} direct reports in your Salesforce hierarchy. I'll share **${ARTIFACTS.dashboard.name}** with all of them:`,
-        card: {
-          variant: "approval",
-          approvalItems: reportingLineMembers.map((m) => ({
-            name: m.name,
-            email: m.email,
-            role: "Member" as const,
-          })),
-        },
-      },
-      {
-        role: "user",
-        text: `Share with all ${reportingLineCount}.`,
-      },
-      {
-        role: "assistant",
-        text: `**${ARTIFACTS.dashboard.name}** shared with Sam Whitfield's reporting line (${reportingLineCount} people).`,
-        card: {
-          variant: "status",
-          statusMessage: `Shared with reporting line · ${reportingLineCount} members`,
-          statusTone: "success",
-        },
-      },
-    ],
-  },
-
 ];
 
 export const SCENARIO_GROUPS = [
   { id: "groups", label: "Groups" },
   { id: "provisioning", label: "Provisioning" },
-  { id: "sharing", label: "Sharing" },
 ] as const;
 
 export function getScenario(id: string): Scenario | undefined {

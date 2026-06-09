@@ -11,9 +11,6 @@ export const PROTOTYPE_CHAT_IDS = new Set([
   "prototype-individual-provisioning",
   "prototype-bulk-provisioning",
   "prototype-promote-to-admin",
-  "prototype-share-with-user",
-  "prototype-share-with-group",
-  "prototype-share-with-reporting-line",
 ]);
 
 export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
@@ -26,7 +23,4 @@ export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "prototype-individual-provisioning",   label: "Individual provisioning",              type: ItemType.Chat },
   { id: "prototype-bulk-provisioning",         label: "Bulk provisioning",                    type: ItemType.Chat },
   { id: "prototype-promote-to-admin",          label: "Promote to Admin",                     type: ItemType.Chat },
-  { id: "prototype-share-with-user",           label: "Share with a user",                    type: ItemType.Chat },
-  { id: "prototype-share-with-group",          label: "Share with a team",                   type: ItemType.Chat },
-  { id: "prototype-share-with-reporting-line", label: "Share with reporting line",            type: ItemType.Chat },
 ];
