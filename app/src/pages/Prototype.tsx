@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { SparkleIcon, FlaskIcon, UsersFourIcon } from "@phosphor-icons/react";
 import { ChatCard } from "../components/prototype/ChatCard";
+import { QuickActionBar } from "../components/prototype/QuickActionBar";
 import { TeamDetailPanel, type TeamDetailData } from "../components/prototype/TeamDetailPanel";
 import { SCENARIOS, getScenario, type ScenarioMessage } from "../components/prototype/scenarios";
 import { WORKSPACE_MEMBERS, TEAMS } from "../mocks/prototypeData";
@@ -155,11 +156,12 @@ function renderText(text: string): React.ReactNode {
 
 // ─── Chat pane ────────────────────────────────────────────────────────────────
 
-function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen }: {
+function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen, bottomSlot }: {
   scenario: NonNullable<ReturnType<typeof getScenario>>;
   className?: string;
   onTeamCardClick?: () => void;
   isPanelOpen?: boolean;
+  bottomSlot?: React.ReactNode;
 }) {
   return (
     <div className={`flex flex-col overflow-hidden ${className}`}>
@@ -182,13 +184,15 @@ function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen }: {
         )}
       </div>
 
-      {/* Fake input */}
-      <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-          <span className="flex-1 text-sm text-gray-400">Message Von…</span>
-          <SparkleIcon size={16} className="text-gray-300" weight="fill" />
+      {/* Fake input or custom bottom slot */}
+      {bottomSlot ?? (
+        <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+            <span className="flex-1 text-sm text-gray-400">Message Von…</span>
+            <SparkleIcon size={16} className="text-gray-300" weight="fill" />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -274,6 +278,36 @@ function InspectGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typ
   );
 }
 
+// ─── Add-users-to-group layout (chat + QuickActionBar confirmation) ───────────
+
+function AddUsersToGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const t1 = WORKSPACE_MEMBERS.find((u) => u.id === "u6")!;
+  const t2 = WORKSPACE_MEMBERS.find((u) => u.id === "u7")!;
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+      <ChatPane
+        scenario={scenario}
+        className="flex-1"
+        bottomSlot={
+          <QuickActionBar
+            isVisible={true}
+            title="Add to Enterprise Sales?"
+            items={[
+              { label: t1.name, sublabel: t1.email },
+              { label: t2.name, sublabel: t2.email },
+            ]}
+            actions={[
+              { label: "Add to team", variant: "primary", onClick: () => {} },
+              { label: "Cancel", variant: "secondary", onClick: () => {} },
+            ]}
+          />
+        }
+      />
+    </div>
+  );
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -315,6 +349,10 @@ export default function Prototype() {
 
   if (scenario.id === "inspect-group") {
     return <InspectGroupLayout scenario={scenario} />;
+  }
+
+  if (scenario.id === "add-users-to-group") {
+    return <AddUsersToGroupLayout scenario={scenario} />;
   }
 
   // All other scenarios: single-column chat

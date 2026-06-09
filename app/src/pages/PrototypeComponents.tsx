@@ -196,15 +196,18 @@ export default function PrototypeComponents() {
         {/* ── QuickActionBar ───────────────────────────────────────────── */}
         <Divider label="QuickActionBar" />
 
-        <Section label="isVisible = true (action pills)">
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden py-3">
+        <Section label="isVisible = true (confirmation card)">
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden pb-3">
             <QuickActionBar
               isVisible={true}
-              helperText="Review opens the full list in a panel — nothing is provisioned yet"
+              title="Add to Enterprise Sales?"
+              items={[
+                { label: "Alicia Romero", sublabel: "alicia.romero@meridiantech.com" },
+                { label: "James Okafor", sublabel: "james.okafor@meridiantech.com" },
+              ]}
               actions={[
-                { label: "Review & approve", variant: "primary", onClick: () => {} },
-                { label: "Edit in chat", variant: "secondary", onClick: () => {} },
-                { label: "Discard all", variant: "danger", onClick: () => {} },
+                { label: "Add to team", variant: "primary", onClick: () => {} },
+                { label: "Cancel", variant: "secondary", onClick: () => {} },
               ]}
             />
           </div>
@@ -214,6 +217,7 @@ export default function PrototypeComponents() {
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden py-3">
             <QuickActionBar
               isVisible={false}
+              title=""
               actions={[]}
             />
           </div>
@@ -225,14 +229,18 @@ export default function PrototypeComponents() {
               onClick={() => setQaVisible((v) => !v)}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              Toggle (currently: {qaVisible ? "pills" : "disabled input"})
+              Toggle (currently: {qaVisible ? "card" : "disabled input"})
             </button>
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden py-3">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden pb-3">
               <QuickActionBar
                 isVisible={qaVisible}
-                helperText={qaVisible ? "Choose an action to continue" : undefined}
+                title="Provision 49 Salesforce users?"
+                items={[
+                  { label: "49 invitations will be sent", sublabel: "Defaults to Member role" },
+                  { label: "3 rows skipped", sublabel: "Duplicate or invalid — review in chat" },
+                ]}
                 actions={[
-                  { label: "Confirm changes", variant: "primary", onClick: () => {} },
+                  { label: "Confirm", variant: "primary", onClick: () => {} },
                   { label: "Go back", variant: "secondary", onClick: () => {} },
                 ]}
               />

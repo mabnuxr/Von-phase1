@@ -1,8 +1,3 @@
-/**
- * QuickActionBar — replaces the chat input with a row of action pills.
- * When isVisible=false renders a disabled input bar placeholder instead.
- */
-
 export interface QuickAction {
   label: string;
   variant: "primary" | "secondary" | "danger";
@@ -10,60 +5,84 @@ export interface QuickAction {
 }
 
 export interface QuickActionBarProps {
+  title: string;
+  items?: Array<{ label: string; sublabel?: string }>;
   actions: QuickAction[];
   isVisible: boolean;
-  helperText?: string;
 }
 
-const PILL_STYLES: Record<QuickAction["variant"], string> = {
-  primary:   "bg-gray-900 text-white border border-gray-900 hover:bg-gray-800",
-  secondary: "bg-white text-gray-800 border border-gray-300 hover:bg-gray-50",
-  danger:    "bg-white text-red-600 border border-red-300 hover:bg-red-50",
+const BTN: Record<QuickAction["variant"], string> = {
+  primary:   "bg-gray-900 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer",
+  secondary: "border border-gray-200 text-gray-700 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer",
+  danger:    "border border-red-200 text-red-600 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer",
 };
 
-export function QuickActionBar({ actions, isVisible, helperText }: QuickActionBarProps) {
+function DisabledInput() {
+  return (
+    <div className="rounded-[17px] p-px bg-gray-200">
+      <div className="flex flex-col bg-gray-50 rounded-[15px]">
+        <div className="px-4 py-3">
+          <span className="text-sm text-gray-400">Tell Von what to configure...</span>
+        </div>
+        <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
+          <div className="w-7 h-7 rounded-full bg-gray-200" />
+          <div className="w-7 h-7 rounded-full bg-gray-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function QuickActionBar({ title, items, actions, isVisible }: QuickActionBarProps) {
   if (!isVisible) {
     return (
-      <div className="bg-white antialiased font-sf px-2">
+      <div className="bg-white px-2">
         <div className="max-w-4xl mx-auto w-full">
-          {/* Disabled input bar */}
-          <div className="rounded-[17px] p-px bg-gray-200">
-            <div className="flex flex-col bg-gray-50 rounded-[15px]">
-              <div className="px-4 py-3">
-                <span className="text-sm text-gray-400">Tell Von what to configure...</span>
-              </div>
-              <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
-                {/* Placeholder for attachment button */}
-                <div className="w-7 h-7 rounded-full bg-gray-200" />
-                {/* Placeholder for send button */}
-                <div className="w-7 h-7 rounded-full bg-gray-200" />
-              </div>
-            </div>
-          </div>
+          <DisabledInput />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white antialiased font-sf px-2">
-      <div className="max-w-4xl mx-auto w-full flex flex-col items-center gap-2 pb-3">
-        {/* Helper text */}
-        {helperText && (
-          <p className="text-xs text-gray-400 text-center px-4">{helperText}</p>
-        )}
+    <div className="bg-white px-4">
+      <div className="max-w-4xl mx-auto w-full">
+        {/* Confirmation card */}
+        <div className="bg-white border border-gray-200 border-b-0 rounded-t-2xl shadow-md">
+          {/* Title */}
+          <p className="text-sm font-semibold text-gray-900 px-4 pt-4">{title}</p>
 
-        {/* Action pills */}
-        <div className="flex items-center gap-2 flex-wrap justify-center">
-          {actions.map((action, i) => (
-            <button
-              key={i}
-              onClick={action.onClick}
-              className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${PILL_STYLES[action.variant]}`}
-            >
-              {action.label}
-            </button>
-          ))}
+          {/* Items */}
+          {items && items.length > 0 && (
+            <div className="px-4 py-2">
+              {items.map((item, i) => (
+                <div key={i}>
+                  {i > 0 && <div className="h-px bg-gray-100" />}
+                  <div className="py-2">
+                    <p className="text-sm text-gray-800">{item.label}</p>
+                    {item.sublabel && (
+                      <p className="text-xs text-gray-400 mt-0.5">{item.sublabel}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="px-4 pb-4 pt-3 flex justify-end gap-2">
+            {actions.map((action, i) => (
+              <button key={i} onClick={action.onClick} className={BTN[action.variant]}>
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Attached input bar */}
+        <div className="border-x border-b border-gray-200 rounded-b-2xl bg-gray-50 flex items-center justify-between px-4 py-2.5">
+          <span className="text-sm text-gray-400">Tell Von what to configure...</span>
+          <div className="w-6 h-6 rounded-full bg-gray-200 flex-shrink-0" />
         </div>
       </div>
     </div>
