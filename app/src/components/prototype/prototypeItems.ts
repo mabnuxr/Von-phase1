@@ -3,6 +3,7 @@ import type { SidebarItem } from "@vonlabs/design-components";
 
 export const PROTOTYPE_CHAT_IDS = new Set([
   "prototype-create-group",
+  "prototype-create-group-guided",
   "prototype-inspect-group",
   "prototype-add-users-to-group",
   "prototype-add-non-workspace-users",
@@ -15,6 +16,7 @@ export const PROTOTYPE_CHAT_IDS = new Set([
 
 export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "prototype-create-group",              label: "Create a team",                       type: ItemType.Chat },
+  { id: "prototype-create-group-guided",       label: "Create a team (guided)",               type: ItemType.Chat },
   { id: "prototype-inspect-group",             label: "Inspect a team",                      type: ItemType.Chat },
   { id: "prototype-add-users-to-group",        label: "Add users to a team",                   type: ItemType.Chat },
   { id: "prototype-add-non-workspace-users",   label: "Add non-workspace users to a team",     type: ItemType.Chat },

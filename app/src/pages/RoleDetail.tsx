@@ -207,19 +207,20 @@ export default function RoleDetail() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {PERMISSION_GROUPS.map((group) => (
-                <>
-                  <tr key={`divider-${group.label}`} className="bg-gray-50/80">
-                    <td
-                      colSpan={3}
-                      className="px-6 py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest"
-                    >
-                      {group.label}
-                    </td>
-                  </tr>
-                  {group.permissions.map((perm) => {
-                    const granted = grantedKeys.has(perm.key);
-                    return (
+              {PERMISSION_GROUPS.map((group) => {
+                const grantedPerms = group.permissions.filter((p) => grantedKeys.has(p.key));
+                if (grantedPerms.length === 0) return null;
+                return (
+                  <>
+                    <tr key={`divider-${group.label}`} className="bg-gray-50/80">
+                      <td
+                        colSpan={3}
+                        className="px-6 py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest"
+                      >
+                        {group.label}
+                      </td>
+                    </tr>
+                    {grantedPerms.map((perm) => (
                       <tr key={perm.key} className="hover:bg-gray-50/50 transition-colors">
                         <td className="px-6 py-3 whitespace-nowrap">
                           <code className="text-xs font-mono text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
@@ -230,17 +231,13 @@ export default function RoleDetail() {
                           {perm.description}
                         </td>
                         <td className="px-6 py-3">
-                          {granted ? (
-                            <CheckIcon size={15} weight="bold" className="text-gray-900" />
-                          ) : (
-                            <span className="text-gray-300 text-sm">—</span>
-                          )}
+                          <CheckIcon size={15} weight="bold" className="text-gray-900" />
                         </td>
                       </tr>
-                    );
-                  })}
-                </>
-              ))}
+                    ))}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         </div>

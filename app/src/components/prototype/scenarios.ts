@@ -100,15 +100,45 @@ export const SCENARIOS: Scenario[] = [
         role: "user",
         text: "Looks right. Create it.",
       },
+    ],
+  },
+
+  {
+    id: "create-group-guided",
+    label: "Create a team (guided)",
+    group: "groups",
+    messages: [
+      {
+        role: "user",
+        text: "I want to create a new team.",
+      },
       {
         role: "assistant",
-        text: `Done. ${es.name} team created with ${es.memberCount} members.`,
-        card: {
-          variant: "team",
-          teamName: es.name,
-          teamMemberCount: es.memberCount,
-          teamStatus: "Active",
-        },
+        text: "Sure. What would you like to call it?",
+      },
+      {
+        role: "user",
+        text: "Enterprise Sales.",
+      },
+      {
+        role: "assistant",
+        text: "Got it. Who should be in this team? I can filter by Salesforce role, or you can describe the criteria in your own words.",
+      },
+      {
+        role: "user",
+        text: "All AEs and AE Managers who are active.",
+      },
+      {
+        role: "assistant",
+        text: `I found ${es.memberCount} people matching that — all active AEs and AE Managers. I've opened a draft on the right. Does the filter look right?`,
+      },
+      {
+        role: "user",
+        text: "Looks right. Create it.",
+      },
+      {
+        role: "assistant",
+        text: `Looks good. Take a look at the draft on the right — you can review the members and filter before committing. Hit **Create team** when you're ready.`,
       },
     ],
   },
@@ -151,30 +181,6 @@ export const SCENARIOS: Scenario[] = [
       {
         role: "user",
         text: `Add ${addTarget1.name} and ${addTarget2.name} to the ${es.name} team.`,
-      },
-      {
-        role: "assistant",
-        text: `I'll add both to **${es.name}**. They're already workspace members, so no invitation needed. Here's the change:`,
-        card: {
-          variant: "diff",
-          diffItems: [
-            { name: addTarget1.name, email: addTarget1.email, changeType: "added" },
-            { name: addTarget2.name, email: addTarget2.email, changeType: "added" },
-          ],
-        },
-      },
-      {
-        role: "user",
-        text: "Apply it.",
-      },
-      {
-        role: "assistant",
-        text: `Done. ${addTarget1.name} and ${addTarget2.name} are now members of **${es.name}**. The team now has ${addedCount} members.`,
-        card: {
-          variant: "status",
-          statusMessage: `2 members added · ${es.name} now has ${addedCount} members`,
-          statusTone: "success",
-        },
       },
     ],
   },

@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { ChatCard } from "../components/prototype/ChatCard";
 import { RightPanel } from "../components/prototype/RightPanel";
-import { QuickActionBar } from "../components/prototype/QuickActionBar";
+import { AskUserInput as QuickActionBar } from "../components/prototype/QuickActionBar";
 import { TeamDetailPanel, type TeamDetailData } from "../components/prototype/TeamDetailPanel";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────

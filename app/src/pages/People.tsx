@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { UsersIcon } from "@phosphor-icons/react";
+import { useState, useRef, useEffect } from "react";
+import { UsersIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import {
@@ -9,48 +9,75 @@ import {
   settingsSecondaryBtn,
 } from "../components/settings/SettingsPageLayout";
 import { peopleMock } from "../mocks/peopleMock";
+import { teamsMock } from "../mocks/teamsMock";
 import type { Person } from "../types/people";
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: Person["status"] }) {
-  if (status === "Active") {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-        <span className="text-sm text-gray-700">Active</span>
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-      <span className="text-sm text-gray-400">Invite sent</span>
-    </span>
-  );
-}
 
 // ─── Role badge ───────────────────────────────────────────────────────────────
 
 function RoleBadge({ role }: { role: Person["role"] }) {
   if (role === "Admin") {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-900 text-white">
+      <span className="inline-flex items-center bg-gray-900 text-white text-xs font-medium px-2 py-0.5 rounded-md">
         Admin
       </span>
     );
   }
   if (role === "View Only") {
     return (
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 border border-gray-200 text-gray-400">
+      <span className="inline-flex items-center bg-gray-100 text-gray-400 text-xs font-medium px-2 py-0.5 rounded-md border border-gray-200">
         View Only
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-white border border-gray-300 text-gray-600">
+    <span className="inline-flex items-center bg-white text-gray-600 text-xs font-medium px-2 py-0.5 rounded-md border border-gray-300">
       Member
     </span>
+  );
+}
+
+// ─── Row three-dot menu ───────────────────────────────────────────────────────
+
+function RowMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex justify-end">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer text-gray-500"
+      >
+        <DotsThreeIcon size={16} weight="bold" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 w-40">
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+          >
+            View details
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 cursor-pointer"
+          >
+            Remove member
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -84,22 +111,49 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
+// ─── Team pills helper ────────────────────────────────────────────────────────
+
+function personTeams(name: string): string[] {
+  return teamsMock.filter((t) => t.admins.includes(name)).map((t) => t.name);
+}
+
 // ─── Populated table ──────────────────────────────────────────────────────────
 
 function PopulatedTable() {
+  const [tab, setTab] = useState<"Active" | "Pending">("Active");
+
   const activeCount = peopleMock.filter((p) => p.status === "Active").length;
   const pendingCount = peopleMock.filter((p) => p.status === "Invite sent").length;
+  const visible = peopleMock.filter((p) =>
+    tab === "Active" ? p.status === "Active" : p.status === "Invite sent"
+  );
+
+  const tabClass = (t: typeof tab) =>
+    t === tab
+      ? "text-gray-900 font-medium border-b-2 border-gray-900 pb-2"
+      : "text-gray-400 hover:text-gray-600 pb-2 cursor-pointer";
 
   return (
     <>
-      <p className="text-xs text-gray-400 -mt-2 mb-6">
+      <p className="text-xs text-gray-400 -mt-2 mb-4">
         {peopleMock.length} members · {activeCount} active · {pendingCount} pending
       </p>
+
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-gray-200 mb-4">
+        <button className={tabClass("Active")} onClick={() => setTab("Active")}>
+          Active <span className="text-gray-400 font-normal">({activeCount})</span>
+        </button>
+        <button className={tabClass("Pending")} onClick={() => setTab("Pending")}>
+          Pending <span className="text-gray-400 font-normal">({pendingCount})</span>
+        </button>
+      </div>
+
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {["Name", "Role", "Status", "Reports to", "Joined"].map((col) => (
+              {["Name", "Role", "Teams", "Reports to", "Joined"].map((col) => (
                 <th
                   key={col}
                   scope="col"
@@ -108,34 +162,51 @@ function PopulatedTable() {
                   {col}
                 </th>
               ))}
+              <th scope="col" className="w-10" />
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
-            {peopleMock.map((person) => (
-              <tr key={person.id} className="hover:bg-gray-50/60 transition-colors">
-                <td className="px-6 py-3.5 whitespace-nowrap">
-                  <div className="flex items-center gap-2.5">
-                    <Avatar name={person.name} />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{person.name}</p>
-                      <p className="text-xs text-gray-400">{person.email}</p>
+            {visible.map((person) => {
+              const teams = personTeams(person.name);
+              return (
+                <tr key={person.id} className="group hover:bg-gray-50/60 transition-colors">
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={person.name} />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{person.name}</p>
+                        <p className="text-xs text-gray-400">{person.email}</p>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-3.5 whitespace-nowrap">
-                  <RoleBadge role={person.role} />
-                </td>
-                <td className="px-6 py-3.5 whitespace-nowrap">
-                  <StatusBadge status={person.status} />
-                </td>
-                <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-500">
-                  {person.reportsTo ?? <span className="text-gray-300">—</span>}
-                </td>
-                <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-400">
-                  {person.joined}
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    <RoleBadge role={person.role} />
+                  </td>
+                  <td className="px-6 py-3.5">
+                    {teams.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {teams.map((t) => (
+                          <span key={t} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-md">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-300 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-500">
+                    {person.reportsTo ?? <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-400">
+                    {person.joined}
+                  </td>
+                  <td className="pr-3 py-3.5 whitespace-nowrap w-10">
+                    <RowMenu />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

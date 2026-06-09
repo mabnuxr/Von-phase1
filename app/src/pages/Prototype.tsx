@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { SparkleIcon, FlaskIcon, UsersFourIcon } from "@phosphor-icons/react";
 import { ChatCard } from "../components/prototype/ChatCard";
-import { QuickActionBar } from "../components/prototype/QuickActionBar";
+import { AskUserInput } from "../components/prototype/QuickActionBar";
 import { TeamDetailPanel, type TeamDetailData } from "../components/prototype/TeamDetailPanel";
 import { SCENARIOS, getScenario, type ScenarioMessage } from "../components/prototype/scenarios";
 import { WORKSPACE_MEMBERS, TEAMS } from "../mocks/prototypeData";
@@ -230,19 +230,47 @@ const ENTERPRISE_SALES_INSPECT_TEAM = buildEsTeamData("Created by Von · Updated
 
 function CreateGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
   const [panelStatus, setPanelStatus] = useState<"draft" | "active">("draft");
+  const [panelMode, setPanelMode] = useState<"review" | "inspect">("review");
+  const [messages, setMessages] = useState(scenario.messages);
+
+  const handleCommit = () => {
+    setPanelStatus("active");
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant" as const,
+        text: `${es.name} created — Role is AE, Is Active equals True — ${es.memberCount} members added.`,
+        card: {
+          variant: "team" as const,
+          teamName: es.name,
+          teamMemberCount: es.memberCount,
+          teamStatus: "Active",
+        },
+      },
+    ]);
+  };
+
+  const handleTeamCardClick = () => {
+    setPanelMode((v) => (v === "inspect" ? "review" : "inspect"));
+  };
 
   return (
     <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
-      <ChatPane scenario={scenario} className="flex-1 min-w-0 border-r border-gray-100" isPanelOpen={true} />
+      <ChatPane
+        scenario={{ ...scenario, messages }}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        isPanelOpen={panelMode === "inspect"}
+        onTeamCardClick={panelStatus === "active" ? handleTeamCardClick : undefined}
+      />
       <TeamDetailPanel
         inline
         isOpen
         onClose={() => {}}
-        mode="review"
-        team={ENTERPRISE_SALES_TEAM}
+        mode={panelMode}
+        team={panelMode === "inspect" ? ENTERPRISE_SALES_INSPECT_TEAM : ENTERPRISE_SALES_TEAM}
         statusOverride={panelStatus}
         defaultFilterExpanded
-        onCommit={() => setPanelStatus("active")}
+        onCommit={handleCommit}
       />
     </div>
   );
@@ -278,32 +306,88 @@ function InspectGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typ
   );
 }
 
-// ─── Add-users-to-group layout (chat + QuickActionBar confirmation) ───────────
+// ─── Add-users-to-group layout (chat + AskUserInput confirmation) ────────────
 
 function AddUsersToGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+
   const t1 = WORKSPACE_MEMBERS.find((u) => u.id === "u6")!;
   const t2 = WORKSPACE_MEMBERS.find((u) => u.id === "u7")!;
+  const addedCount = es.memberCount + 2;
+
+  const displayScenario = confirmed
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          {
+            role: "assistant" as const,
+            text: `Done. ${t1.name} and ${t2.name} are now members of **${es.name}**. The team now has ${addedCount} members.`,
+            card: {
+              variant: "team" as const,
+              teamName: es.name,
+              teamMemberCount: addedCount,
+              teamStatus: "Active",
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  const confirmedTeamData: import("../components/prototype/TeamDetailPanel").TeamDetailData = {
+    name: es.name,
+    description: es.description,
+    filterConditions: es.filterConditions,
+    members: [...es.members, "u6", "u7"].map((id) => {
+      const u = WORKSPACE_MEMBERS.find((m) => m.id === id)!;
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        sfRole: u.sfRole,
+        isTeamAdmin: u.id === es.teamAdmin,
+        joinSource: (es.members.includes(id) ? "Salesforce sync" : "AI-created") as "Salesforce sync" | "AI-created",
+      };
+    }),
+    suggestedAdmin: esAdminMember.name,
+    provenance: "Created by Von · Updated Jun 2, 2026",
+  };
 
   return (
-    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
       <ChatPane
-        scenario={scenario}
-        className="flex-1"
+        scenario={displayScenario}
+        className="flex-1 min-w-0"
+        onTeamCardClick={confirmed ? () => setPanelOpen((v) => !v) : undefined}
+        isPanelOpen={panelOpen}
         bottomSlot={
-          <QuickActionBar
-            isVisible={true}
-            title="Add to Enterprise Sales?"
-            items={[
-              { label: t1.name, sublabel: t1.email },
-              { label: t2.name, sublabel: t2.email },
-            ]}
-            actions={[
-              { label: "Add to team", variant: "primary", onClick: () => {} },
-              { label: "Cancel", variant: "secondary", onClick: () => {} },
-            ]}
-          />
+          !confirmed ? (
+            <AskUserInput
+              isVisible={true}
+              title={`Add to ${es.name}?`}
+              items={[
+                { label: t1.name, sublabel: t1.email },
+                { label: t2.name, sublabel: t2.email },
+              ]}
+              actions={[
+                { label: "Add to team", variant: "primary", onClick: () => setConfirmed(true) },
+                { label: "Cancel", variant: "secondary", onClick: () => {} },
+              ]}
+            />
+          ) : undefined
         }
       />
+      {confirmed && panelOpen && (
+        <TeamDetailPanel
+          inline
+          persistentClose
+          isOpen
+          onClose={() => setPanelOpen(false)}
+          mode="inspect"
+          team={confirmedTeamData}
+        />
+      )}
     </div>
   );
 }
@@ -343,7 +427,7 @@ export default function Prototype() {
     );
   }
 
-  if (scenario.id === "create-group") {
+  if (scenario.id === "create-group" || scenario.id === "create-group-guided") {
     return <CreateGroupLayout scenario={scenario} />;
   }
 
