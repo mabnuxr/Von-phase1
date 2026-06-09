@@ -8,7 +8,6 @@ import {
   SALESFORCE_ONLY_USERS,
   BULK_PROVISION,
   TEAMS,
-  ARTIFACTS,
 } from "../../mocks/prototypeData";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
