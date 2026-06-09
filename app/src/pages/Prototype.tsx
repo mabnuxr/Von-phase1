@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { SparkleIcon, FlaskIcon, UsersFourIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { SparkleIcon, FlaskIcon, UsersFourIcon } from "@phosphor-icons/react";
 import { ChatCard } from "../components/prototype/ChatCard";
 import { TeamDetailPanel, type TeamDetailData } from "../components/prototype/TeamDetailPanel";
 import { SCENARIOS, getScenario, type ScenarioMessage } from "../components/prototype/scenarios";
@@ -26,16 +26,17 @@ function UserAvatar() {
 
 // ─── Team card (clickable, appears inline in chat) ────────────────────────────
 
-function TeamCard({ name, memberCount, status, onClick }: {
+function TeamCard({ name, memberCount, status, isOpen, onClick }: {
   name: string;
   memberCount: number;
   status: string;
+  isOpen: boolean;
   onClick: () => void;
 }) {
   return (
-    <button
+    <div
       onClick={onClick}
-      className="flex items-center gap-3 w-full max-w-sm text-left border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer group"
+      className="flex items-center gap-3 w-full max-w-sm text-left border border-gray-200 rounded-xl px-4 py-3 hover:bg-gray-50 hover:border-gray-300 transition-all cursor-pointer"
     >
       <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
         <UsersFourIcon size={17} className="text-violet-600" weight="fill" />
@@ -44,16 +45,22 @@ function TeamCard({ name, memberCount, status, onClick }: {
         <p className="text-sm font-semibold text-gray-900">{name}</p>
         <p className="text-xs text-gray-400 mt-0.5">{memberCount} members · {status}</p>
       </div>
-      <CaretRightIcon size={14} className="text-gray-300 group-hover:text-gray-500 flex-shrink-0 transition-colors" />
-    </button>
+      <button
+        onClick={(e) => { e.stopPropagation(); onClick(); }}
+        className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 flex-shrink-0"
+      >
+        {isOpen ? "Hide" : "Show"}
+      </button>
+    </div>
   );
 }
 
 // ─── Message bubbles ──────────────────────────────────────────────────────────
 
-function AssistantBubble({ message, onTeamCardClick }: {
+function AssistantBubble({ message, onTeamCardClick, isPanelOpen }: {
   message: ScenarioMessage;
   onTeamCardClick?: () => void;
+  isPanelOpen?: boolean;
 }) {
   return (
     <div className="flex items-start gap-3">
@@ -63,7 +70,7 @@ function AssistantBubble({ message, onTeamCardClick }: {
           {renderText(message.text)}
         </div>
         {message.card && (
-          <InlineCard card={message.card} onTeamCardClick={onTeamCardClick} />
+          <InlineCard card={message.card} onTeamCardClick={onTeamCardClick} isPanelOpen={isPanelOpen} />
         )}
       </div>
     </div>
@@ -83,9 +90,10 @@ function UserBubble({ message }: { message: ScenarioMessage }) {
 
 // ─── Inline card renderer ─────────────────────────────────────────────────────
 
-function InlineCard({ card, onTeamCardClick }: {
+function InlineCard({ card, onTeamCardClick, isPanelOpen }: {
   card: NonNullable<ScenarioMessage["card"]>;
   onTeamCardClick?: () => void;
+  isPanelOpen?: boolean;
 }) {
   const title = card.title ?? "";
   if (card.variant === "approval" && card.approvalItems) {
@@ -120,6 +128,7 @@ function InlineCard({ card, onTeamCardClick }: {
         name={card.teamName}
         memberCount={card.teamMemberCount ?? 0}
         status={card.teamStatus ?? "Active"}
+        isOpen={isPanelOpen ?? false}
         onClick={onTeamCardClick ?? (() => {})}
       />
     );
@@ -146,10 +155,11 @@ function renderText(text: string): React.ReactNode {
 
 // ─── Chat pane ────────────────────────────────────────────────────────────────
 
-function ChatPane({ scenario, className = "", onTeamCardClick }: {
+function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen }: {
   scenario: NonNullable<ReturnType<typeof getScenario>>;
   className?: string;
   onTeamCardClick?: () => void;
+  isPanelOpen?: boolean;
 }) {
   return (
     <div className={`flex flex-col overflow-hidden ${className}`}>
@@ -165,7 +175,7 @@ function ChatPane({ scenario, className = "", onTeamCardClick }: {
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
         {scenario.messages.map((msg, i) =>
           msg.role === "assistant" ? (
-            <AssistantBubble key={i} message={msg} onTeamCardClick={onTeamCardClick} />
+            <AssistantBubble key={i} message={msg} onTeamCardClick={onTeamCardClick} isPanelOpen={isPanelOpen} />
           ) : (
             <UserBubble key={i} message={msg} />
           ),
@@ -219,7 +229,7 @@ function CreateGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<type
 
   return (
     <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
-      <ChatPane scenario={scenario} className="flex-1 min-w-0 border-r border-gray-100" />
+      <ChatPane scenario={scenario} className="flex-1 min-w-0 border-r border-gray-100" isPanelOpen={true} />
       <TeamDetailPanel
         inline
         isOpen
@@ -245,7 +255,8 @@ function InspectGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<typ
       <ChatPane
         scenario={scenario}
         className="flex-1 min-w-0"
-        onTeamCardClick={() => setPanelOpen(true)}
+        onTeamCardClick={() => setPanelOpen((v) => !v)}
+        isPanelOpen={panelOpen}
       />
 
       {/* Persistent panel — 480px fixed (set by TeamDetailPanel itself) */}
