@@ -104,9 +104,10 @@ export const SCENARIOS: Scenario[] = [
         role: "assistant",
         text: `Done. ${es.name} team created with ${es.memberCount} members.`,
         card: {
-          variant: "status",
-          statusMessage: `${es.name} created · ${es.memberCount} members`,
-          statusTone: "success",
+          variant: "team",
+          teamName: es.name,
+          teamMemberCount: es.memberCount,
+          teamStatus: "Active",
         },
       },
     ],
