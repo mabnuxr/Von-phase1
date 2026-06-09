@@ -69,7 +69,7 @@ export function SettingsLayout({ activeId, children }: SettingsLayoutProps) {
       },
       {
         id: "permissions",
-        label: "Permissions",
+        label: "Roles & Permissions",
         icon: <LockSimpleIcon size={20} weight="regular" />,
       },
     ],

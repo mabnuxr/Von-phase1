@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { UsersIcon, SparkleIcon, UsersFourIcon } from "@phosphor-icons/react";
+import { useState, useRef, useEffect } from "react";
+import { UsersIcon, SparkleIcon, UsersFourIcon, DotsThreeIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import {
@@ -13,18 +13,48 @@ import {
   type TeamDetailData,
 } from "../components/prototype/TeamDetailPanel";
 
-// ─── Source badge ─────────────────────────────────────────────────────────────
+// ─── Row three-dot menu ───────────────────────────────────────────────────────
 
-function SourceBadge({ source }: { source: TeamRow["source"] }) {
-  const map = {
-    "Salesforce sync": "bg-blue-50 text-blue-600 border-blue-200",
-    "AI-created": "bg-violet-50 text-violet-600 border-violet-200",
-    Manual: "bg-gray-100 text-gray-600 border-gray-200",
-  } as const;
+function RowMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [open]);
+
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium border ${map[source]}`}>
-      {source}
-    </span>
+    <div ref={ref} className="relative flex justify-end">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer text-gray-500"
+      >
+        <DotsThreeIcon size={16} weight="bold" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 w-40">
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
+          >
+            Edit via chat
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-50 cursor-pointer"
+          >
+            Delete team
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -86,7 +116,7 @@ function PopulatedTable() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              {["Team", "Members", "Source", "Admins", "Updated"].map((col) => (
+              {["Team", "Members", "Admins", "Updated"].map((col) => (
                 <th
                   key={col}
                   scope="col"
@@ -95,6 +125,7 @@ function PopulatedTable() {
                   {col}
                 </th>
               ))}
+              <th scope="col" className="w-10" />
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-100">
@@ -102,7 +133,7 @@ function PopulatedTable() {
               <tr
                 key={team.id}
                 onClick={() => setSelectedTeam(team)}
-                className="hover:bg-gray-50/60 transition-colors cursor-pointer"
+                className="group hover:bg-gray-50/60 transition-colors cursor-pointer"
               >
                 <td className="px-6 py-3.5 whitespace-nowrap">
                   <div className="flex items-center gap-2.5">
@@ -118,14 +149,14 @@ function PopulatedTable() {
                 <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-600">
                   {team.memberCount}
                 </td>
-                <td className="px-6 py-3.5 whitespace-nowrap">
-                  <SourceBadge source={team.source} />
-                </td>
                 <td className="px-6 py-3.5">
                   <AdminList admins={team.admins} />
                 </td>
                 <td className="px-6 py-3.5 whitespace-nowrap text-sm text-gray-400">
                   {team.updatedAt}
+                </td>
+                <td className="pr-3 py-3.5 whitespace-nowrap w-10">
+                  <RowMenu />
                 </td>
               </tr>
             ))}

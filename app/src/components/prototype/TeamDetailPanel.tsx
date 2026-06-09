@@ -351,12 +351,6 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
         <div className="flex-shrink-0 border-t border-gray-200 px-5 py-3.5">
           {isReview ? (
             <div className="flex items-center gap-2">
-              {/* Edit via chat */}
-              <button className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-                <SparkleIcon size={13} weight="fill" className="text-violet-500" />
-                Edit via chat
-              </button>
-              {/* Spacer */}
               <div className="flex-1" />
               {/* Cancel */}
               <button
