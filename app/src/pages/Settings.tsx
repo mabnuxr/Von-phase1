@@ -361,7 +361,7 @@ const Settings = () => {
                       <p className="text-sm font-semibold text-gray-900">Salesforce</p>
                       <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
                     </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>Connect</button>
                   </button>
                   {/* Google Calendar */}
                   <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
@@ -372,7 +372,7 @@ const Settings = () => {
                       <p className="text-sm font-semibold text-gray-900">Google Calendar</p>
                       <p className="text-xs text-gray-400 mt-0.5">Calendar · Read · OAuth</p>
                     </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>Connect</button>
                   </button>
                   {/* Gong */}
                   <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
@@ -383,7 +383,7 @@ const Settings = () => {
                       <p className="text-sm font-semibold text-gray-900">Gong</p>
                       <p className="text-xs text-gray-400 mt-0.5">Call Recording · Read · OAuth</p>
                     </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>Connect</button>
                   </button>
                   {/* Slack */}
                   <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
@@ -394,7 +394,7 @@ const Settings = () => {
                       <p className="text-sm font-semibold text-gray-900">Slack</p>
                       <p className="text-xs text-gray-400 mt-0.5">Communication · Read &amp; Write · OAuth</p>
                     </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>Connect</button>
                   </button>
                   {/* HubSpot */}
                   <button className="w-full flex items-center gap-4 px-4 py-4 bg-white hover:bg-gray-50 transition-colors cursor-pointer text-left group">
@@ -405,7 +405,7 @@ const Settings = () => {
                       <p className="text-sm font-semibold text-gray-900">HubSpot</p>
                       <p className="text-xs text-gray-400 mt-0.5">CRM · Read &amp; Write · OAuth</p>
                     </div>
-                    <span className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0">Configure →</span>
+                    <button className="px-3 py-1.5 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer flex-shrink-0" onClick={(e) => e.stopPropagation()}>Connect</button>
                   </button>
                 </div>
               </div>
