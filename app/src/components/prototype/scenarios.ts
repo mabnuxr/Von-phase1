@@ -68,8 +68,6 @@ const newUser = sfUser("sf1"); // Kevin Thornton
 // Add-to-group targets (workspace members not in Enterprise Sales)
 const addTarget1 = member("u6"); // Alicia Romero (SDR)
 const addTarget2 = member("u7"); // James Okafor (CSM)
-const addedCount = es.memberCount + 2; // 9
-
 // Non-workspace add target
 const sfTarget = sfUser("sf2"); // Marie Dalsgaard
 
