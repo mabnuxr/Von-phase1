@@ -1317,7 +1317,7 @@ function BulkReviewContentV23({
   const allShownChecked = checked.size === V2_SHOWN_USERS.length;
 
   function toggleAll() {
-    setChecked((prev) =>
+    setChecked((_prev) =>
       allShownChecked ? new Set() : new Set(V2_SHOWN_USERS.map((u) => u.id)),
     );
   }
@@ -1473,7 +1473,7 @@ function BulkV2CardV23({
   onSend: (n: number) => void;
   onCancel: () => void;
   onExpand: () => void;
-  cardRef: React.RefObject<HTMLDivElement>;
+  cardRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
