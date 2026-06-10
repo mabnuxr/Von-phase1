@@ -254,6 +254,9 @@ export interface ChatSidebarProps {
   onCreateFolderAndMoveDashboard?: (dashboardId: string, newFolderName: string) => void;
   /** Currently-selected conversation/dashboard ID — used by in-folder dashboard rows. */
   selectedDashboardIdInFolders?: string;
+  /** Optional React node rendered inside the Chats section, before the items list.
+   *  Use to inject prototype accordion sections or other custom content. */
+  chatsSectionPrependSlot?: React.ReactNode;
 }
 
 // ============================================================================
@@ -682,6 +685,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   isLoadingMoreDashboards,
   onMoveDashboardToFolder,
   onCreateFolderAndMoveDashboard,
+  chatsSectionPrependSlot,
 }) => {
   // Reveal shortcut chips on the New Chat / Search buttons while the
   // platform's mod key (⌘ on Mac, Ctrl elsewhere) is held — even without
@@ -1066,6 +1070,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     ) : (
                       <SectionHeader label={chatsSectionLabel} />
                     )}
+                    {chatsSectionPrependSlot}
                     {rootItems.length > 0 ? (
                       <div>
                         {rootItems.map((item) => (

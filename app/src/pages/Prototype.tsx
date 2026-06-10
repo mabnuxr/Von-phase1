@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon } from "@phosphor-icons/react";
+import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon, MagnifyingGlassIcon, ArrowUpRightIcon } from "@phosphor-icons/react";
 import { SendHorizontal } from "lucide-react";
 import vonLogomark from "../assets/von-logomark.svg";
 import { AskUserInput } from "../components/prototype/QuickActionBar";
@@ -911,6 +911,969 @@ function DemoteToMemberLayout({ scenario }: { scenario: NonNullable<ReturnType<t
   );
 }
 
+// ─── Bulk provisioning v2.2 ───────────────────────────────────────────────────
+
+const V2_SHOWN_USERS = [
+  { id: 1,  name: "Alex Turner",    email: "alex.turner@meridiantech.com" },
+  { id: 2,  name: "Brianna Cole",   email: "brianna.cole@meridiantech.com" },
+  { id: 3,  name: "Carlos Mendez",  email: "carlos.mendez@meridiantech.com" },
+  { id: 4,  name: "Diana Foster",   email: "diana.foster@meridiantech.com" },
+  { id: 5,  name: "Ethan Brooks",   email: "ethan.brooks@meridiantech.com" },
+  { id: 6,  name: "Fiona Walsh",    email: "fiona.walsh@meridiantech.com" },
+  { id: 7,  name: "Gabriel Santos", email: "gabriel.santos@meridiantech.com" },
+  { id: 8,  name: "Hannah Kim",     email: "hannah.kim@meridiantech.com" },
+  { id: 9,  name: "Ivan Petrov",    email: "ivan.petrov@meridiantech.com" },
+  { id: 10, name: "Jasmine Reed",   email: "jasmine.reed@meridiantech.com" },
+  { id: 11, name: "Kai Nakamura",   email: "kai.nakamura@meridiantech.com" },
+  { id: 12, name: "Leila Hassan",   email: "leila.hassan@meridiantech.com" },
+];
+
+const V2_FLAGGED = [
+  { email: "jordan.lee@meridiantech.com", reason: "Duplicate email, already exists in workspace" },
+  { email: "priya.shah@meridiantech.com", reason: "Missing role, will default to Member" },
+  { email: "s.park@@meridiantech",        reason: "Invalid email format" },
+];
+
+const V2_HIDDEN_COUNT = 37;
+
+function v2AvatarColor(name: string) {
+  const COLORS = [
+    "bg-violet-100 text-violet-700", "bg-blue-100 text-blue-700",
+    "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
+    "bg-rose-100 text-rose-700", "bg-cyan-100 text-cyan-700",
+    "bg-orange-100 text-orange-700", "bg-indigo-100 text-indigo-700",
+  ];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+
+function v2Initials(name: string) {
+  const parts = name.trim().split(" ");
+  return (parts.length >= 2 ? parts[0][0] + parts[parts.length - 1][0] : name.slice(0, 2)).toUpperCase();
+}
+
+function BulkV2InlineCard({
+  isExiting,
+  onSend,
+  onCancel,
+}: {
+  isExiting: boolean;
+  onSend: (count: number) => void;
+  onCancel: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const [checked, setChecked] = useState(new Set(V2_SHOWN_USERS.map((u) => u.id)));
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const q = search.trim().toLowerCase();
+  const visibleUsers = q
+    ? V2_SHOWN_USERS.filter(
+        (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+      )
+    : V2_SHOWN_USERS;
+
+  const totalSelected = checked.size + V2_HIDDEN_COUNT;
+  const allShownChecked = checked.size === V2_SHOWN_USERS.length;
+
+  function toggleAll() {
+    setChecked(allShownChecked ? new Set() : new Set(V2_SHOWN_USERS.map((u) => u.id)));
+  }
+  function toggle(id: number) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  const cardStyle: React.CSSProperties = {
+    transformOrigin: "bottom center",
+    transform: (!mounted || isExiting) ? "scale(0.88)" : "scale(1)",
+    opacity: (!mounted || isExiting) ? 0 : 1,
+    transition: isExiting
+      ? "transform 200ms ease, opacity 200ms ease"
+      : "transform 350ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 300ms ease",
+  };
+
+  return (
+    <div
+      style={{
+        ...cardStyle,
+        backgroundColor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* Title */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <p className="text-sm font-semibold text-gray-900">Send 49 invites as Member?</p>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+          <XIcon size={14} weight="bold" />
+        </button>
+      </div>
+
+      {/* Stat cards */}
+      <div className="flex gap-3 px-5 pb-4">
+        <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-gray-800 leading-none">52</p>
+          <p className="text-xs text-gray-400 mt-1.5">parsed</p>
+        </div>
+        <div className="flex-1 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-green-700 leading-none">49</p>
+          <p className="text-xs text-green-600 mt-1.5">ready</p>
+        </div>
+        <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-amber-600 leading-none">3</p>
+          <p className="text-xs text-amber-500 mt-1.5">flagged</p>
+        </div>
+      </div>
+
+      {/* Flagged section */}
+      <div className="mx-5 mb-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2.5 space-y-1.5">
+        {V2_FLAGGED.map((f, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+            <span className="text-xs text-gray-600 leading-relaxed">
+              <span className="font-medium text-gray-700">{f.email}</span>
+              {" — "}{f.reason}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-100 mx-5 mb-3" />
+
+      {/* Search bar */}
+      <div className="relative px-5 mb-2">
+        <MagnifyingGlassIcon
+          size={14}
+          className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email…"
+          className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all bg-white placeholder-gray-400"
+        />
+      </div>
+
+      {/* Select-all */}
+      <div className="flex items-center gap-3 px-5 py-1.5">
+        <input
+          type="checkbox"
+          checked={allShownChecked}
+          onChange={toggleAll}
+          className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+        />
+        <span className="text-xs text-gray-500 select-none">Select all</span>
+        {checked.size < V2_SHOWN_USERS.length && (
+          <span className="text-xs text-gray-400">{checked.size} of {V2_SHOWN_USERS.length} shown selected</span>
+        )}
+      </div>
+
+      {/* Scrollable user list */}
+      <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
+        {visibleUsers.map((user) => (
+          <label
+            key={user.id}
+            className="flex items-center gap-3 px-5 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={checked.has(user.id)}
+              onChange={() => toggle(user.id)}
+              className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+            />
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(user.name)}`}>
+              {v2Initials(user.name)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+          </label>
+        ))}
+        {visibleUsers.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-4">No results</p>
+        )}
+        {/* +37 more — only show when not searching */}
+        {!q && (
+          <div className="flex items-center gap-3 px-5 py-2">
+            <div className="w-3.5 h-3.5 flex-shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-500 flex-shrink-0">
+              +{V2_HIDDEN_COUNT}
+            </div>
+            <p className="text-xs text-gray-400">+{V2_HIDDEN_COUNT} more · Member role</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-4 border-t border-gray-100 mt-1">
+        <span className="text-xs text-gray-500">
+          {totalSelected} invite{totalSelected !== 1 ? "s" : ""} selected
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3.5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSend(totalSelected)}
+            disabled={totalSelected === 0}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Send {totalSelected} invite{totalSelected !== 1 ? "s" : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Workspace members panel (used by v2.1) ───────────────────────────────────
+
+const PANEL_MEMBERS = [
+  { id: 1, name: "Sarah Chen",    initials: "SC", role: "Admin"   },
+  { id: 2, name: "Marcus Webb",   initials: "MW", role: "Member"  },
+  { id: 3, name: "Priya Nair",    initials: "PN", role: "Member"  },
+  { id: 4, name: "James O'Brien", initials: "JO", role: "Member"  },
+  { id: 5, name: "Alicia Romero", initials: "AR", role: "Member"  },
+  { id: 6, name: "Derek Santos",  initials: "DS", role: "Member"  },
+];
+
+const PANEL_AVATAR_COLORS = [
+  "bg-violet-100 text-violet-700", "bg-blue-100 text-blue-700",
+  "bg-emerald-100 text-emerald-700", "bg-amber-100 text-amber-700",
+  "bg-rose-100 text-rose-700", "bg-cyan-100 text-cyan-700",
+];
+
+function WorkspaceMembersPanel() {
+  return (
+    <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <span className="text-sm font-bold text-gray-500">MT</span>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Meridian Technologies</p>
+          <p className="text-xs text-gray-400 mt-0.5">Workspace</p>
+        </div>
+      </div>
+
+      <div className="h-px bg-gray-100 flex-shrink-0" />
+
+      {/* Member list */}
+      <div className="flex-1 overflow-y-auto px-5 py-3 space-y-0.5">
+        {PANEL_MEMBERS.map((m, i) => (
+          <div key={m.id} className="flex items-center gap-2.5 py-2">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${PANEL_AVATAR_COLORS[i % PANEL_AVATAR_COLORS.length]}`}>
+              {m.initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{m.name}</p>
+            </div>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium flex-shrink-0 ${
+              m.role === "Admin"
+                ? "bg-gray-900 text-white"
+                : "bg-white border border-gray-200 text-gray-600"
+            }`}>
+              {m.role}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex-shrink-0 border-t border-gray-100 px-5 py-3">
+        <p className="text-xs text-gray-400">{PANEL_MEMBERS.length} current members</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Bulk provisioning v2.1 layout (same card as v2.2 + workspace panel) ─────
+
+function BulkProvisioningV21Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const navigate = useNavigate();
+  const [confirmed, setConfirmed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
+
+  const handleSend = (count: number) => {
+    setSentCount(count);
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setConfirmed(true);
+    }, 200);
+  };
+
+  const handleCancel = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setConfirmed(true);
+    }, 200);
+  };
+
+  const displayScenario = confirmed
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          { role: "user" as const, text: `Send ${sentCount} invites.` },
+          {
+            role: "assistant" as const,
+            text: `Done. ${sentCount} invitations sent.`,
+            card: {
+              variant: "status" as const,
+              statusMessage: `${sentCount} invitations sent · Member role · 3 rows skipped`,
+              statusTone: "success" as const,
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  const goToPeopleExtra = confirmed ? (
+    <div className="ml-10 mt-1">
+      <button
+        onClick={() => navigate("/settings/people")}
+        className="text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        Go to People page →
+      </button>
+    </div>
+  ) : null;
+
+  // Panel dims while confirmation card is active
+  const panelDimmed = !confirmed;
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
+      {/* Chat pane */}
+      <ChatPane
+        scenario={displayScenario}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        extraContent={goToPeopleExtra}
+        bottomSlot={
+          !confirmed || exiting ? (
+            <div className="px-4 pb-4 pt-1">
+              <div className="w-full max-w-full mx-auto">
+                <BulkV2InlineCard
+                  isExiting={exiting}
+                  onSend={handleSend}
+                  onCancel={handleCancel}
+                />
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {/* Right panel — dims when card is active */}
+      <div className={`transition-opacity duration-300 ${panelDimmed ? "opacity-25 pointer-events-none select-none" : "opacity-100"}`}>
+        <WorkspaceMembersPanel />
+      </div>
+    </div>
+  );
+}
+
+// ─── Bulk provisioning v2.3 — FLIP card → panel morph ────────────────────────
+
+// Shared inner review content used by both the inline card and the post-morph panel.
+function BulkReviewContentV23({
+  checked, setChecked, search, setSearch,
+  onSend, onCancel, flexList,
+}: {
+  checked: Set<number>;
+  setChecked: (fn: (prev: Set<number>) => Set<number>) => void;
+  search: string;
+  setSearch: (v: string) => void;
+  onSend: (n: number) => void;
+  onCancel: () => void;
+  flexList: boolean; // true = panel mode (flex-1 list), false = card mode (200px max-h list)
+}) {
+  const q = search.trim().toLowerCase();
+  const visibleUsers = q
+    ? V2_SHOWN_USERS.filter(
+        (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+      )
+    : V2_SHOWN_USERS;
+  const totalSelected = checked.size + V2_HIDDEN_COUNT;
+  const allShownChecked = checked.size === V2_SHOWN_USERS.length;
+
+  function toggleAll() {
+    setChecked((prev) =>
+      allShownChecked ? new Set() : new Set(V2_SHOWN_USERS.map((u) => u.id)),
+    );
+  }
+  function toggle(id: number) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <>
+      {/* Stat cards */}
+      <div className="flex gap-3 px-5 pb-4">
+        <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-gray-800 leading-none">52</p>
+          <p className="text-xs text-gray-400 mt-1.5">parsed</p>
+        </div>
+        <div className="flex-1 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-green-700 leading-none">49</p>
+          <p className="text-xs text-green-600 mt-1.5">ready</p>
+        </div>
+        <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-amber-600 leading-none">3</p>
+          <p className="text-xs text-amber-500 mt-1.5">flagged</p>
+        </div>
+      </div>
+
+      {/* Flagged section */}
+      <div className="mx-5 mb-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2.5 space-y-1.5">
+        {V2_FLAGGED.map((f, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+            <span className="text-xs text-gray-600 leading-relaxed">
+              <span className="font-medium text-gray-700">{f.email}</span>
+              {" — "}{f.reason}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-100 mx-5 mb-3" />
+
+      {/* Search bar */}
+      <div className="relative px-5 mb-2">
+        <MagnifyingGlassIcon
+          size={14}
+          className="absolute left-8 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email…"
+          className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all bg-white placeholder-gray-400"
+        />
+      </div>
+
+      {/* Select-all */}
+      <div className="flex items-center gap-3 px-5 py-1.5">
+        <input
+          type="checkbox"
+          checked={allShownChecked}
+          onChange={toggleAll}
+          className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+        />
+        <span className="text-xs text-gray-500 select-none">Select all</span>
+        {checked.size < V2_SHOWN_USERS.length && (
+          <span className="text-xs text-gray-400">
+            {checked.size} of {V2_SHOWN_USERS.length} shown selected
+          </span>
+        )}
+      </div>
+
+      {/* User list */}
+      <div
+        className={flexList ? "flex-1 overflow-y-auto" : "overflow-y-auto"}
+        style={flexList ? {} : { maxHeight: "200px" }}
+      >
+        {visibleUsers.map((user) => (
+          <label
+            key={user.id}
+            className="flex items-center gap-3 px-5 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={checked.has(user.id)}
+              onChange={() => toggle(user.id)}
+              className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+            />
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(user.name)}`}
+            >
+              {v2Initials(user.name)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+          </label>
+        ))}
+        {visibleUsers.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-4">No results</p>
+        )}
+        {!q && (
+          <div className="flex items-center gap-3 px-5 py-2">
+            <div className="w-3.5 h-3.5 flex-shrink-0" />
+            <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-500 flex-shrink-0">
+              +{V2_HIDDEN_COUNT}
+            </div>
+            <p className="text-xs text-gray-400">+{V2_HIDDEN_COUNT} more · Member role</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-4 border-t border-gray-100 mt-1 flex-shrink-0">
+        <span className="text-xs text-gray-500">
+          {totalSelected} invite{totalSelected !== 1 ? "s" : ""} selected
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3.5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSend(totalSelected)}
+            disabled={totalSelected === 0}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Send {totalSelected} invite{totalSelected !== 1 ? "s" : ""}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Inline card with ↗ expand button
+function BulkV2CardV23({
+  checked, setChecked, search, setSearch,
+  isExiting, onSend, onCancel, onExpand, cardRef,
+}: {
+  checked: Set<number>;
+  setChecked: (fn: (prev: Set<number>) => Set<number>) => void;
+  search: string;
+  setSearch: (v: string) => void;
+  isExiting: boolean;
+  onSend: (n: number) => void;
+  onCancel: () => void;
+  onExpand: () => void;
+  cardRef: React.RefObject<HTMLDivElement>;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const totalSelected = checked.size + V2_HIDDEN_COUNT;
+
+  return (
+    <div
+      ref={cardRef}
+      style={{
+        transformOrigin: "bottom center",
+        transform: !mounted || isExiting ? "scale(0.88)" : "scale(1)",
+        opacity: !mounted || isExiting ? 0 : 1,
+        transition: isExiting
+          ? "transform 200ms ease, opacity 200ms ease"
+          : "transform 350ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 300ms ease",
+        backgroundColor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <p className="text-sm font-semibold text-gray-900">
+          Send {totalSelected} invites as Member?
+        </p>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onExpand}
+            title="Expand to panel"
+            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-0.5 rounded"
+          >
+            <ArrowUpRightIcon size={14} weight="bold" />
+          </button>
+          <button
+            onClick={onCancel}
+            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-0.5"
+          >
+            <XIcon size={14} weight="bold" />
+          </button>
+        </div>
+      </div>
+
+      <BulkReviewContentV23
+        checked={checked}
+        setChecked={setChecked}
+        search={search}
+        setSearch={setSearch}
+        onSend={onSend}
+        onCancel={onCancel}
+        flexList={false}
+      />
+    </div>
+  );
+}
+
+// Panel view shown after the morph completes
+function BulkV2PanelV23({
+  checked, setChecked, search, setSearch, onSend, onCancel,
+}: {
+  checked: Set<number>;
+  setChecked: (fn: (prev: Set<number>) => Set<number>) => void;
+  search: string;
+  setSearch: (v: string) => void;
+  onSend: (n: number) => void;
+  onCancel: () => void;
+}) {
+  const totalSelected = checked.size + V2_HIDDEN_COUNT;
+  return (
+    <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 px-5 pt-4 pb-3">
+        <p className="text-sm font-semibold text-gray-900">Review invites</p>
+        <p className="text-xs text-gray-400 mt-0.5">{totalSelected} people · Member role</p>
+      </div>
+      <div className="h-px bg-gray-100 flex-shrink-0" />
+      <BulkReviewContentV23
+        checked={checked}
+        setChecked={setChecked}
+        search={search}
+        setSearch={setSearch}
+        onSend={onSend}
+        onCancel={onCancel}
+        flexList={true}
+      />
+    </div>
+  );
+}
+
+// Layout: same as v2.1 but card has ↗ button that triggers FLIP morph into panel
+type V23Phase = "card" | "morphing" | "morphed";
+
+function BulkProvisioningV23Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const navigate = useNavigate();
+  const [phase, setPhase] = useState<V23Phase>("card");
+  const [confirmed, setConfirmed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
+
+  // Lifted — preserved through morph so checkbox state survives the transition
+  const [checked, setChecked] = useState<Set<number>>(
+    () => new Set(V2_SHOWN_USERS.map((u) => u.id)),
+  );
+  const [search, setSearch] = useState("");
+
+  // FLIP refs
+  const cardRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Flying overlay styles (set during morphing phase)
+  const [flyStyles, setFlyStyles] = useState<React.CSSProperties>({});
+  const morphStyleRef = useRef<HTMLStyleElement | null>(null);
+
+  // ↗ click — FLIP technique
+  const handleExpand = useCallback(() => {
+    if (!cardRef.current || !panelRef.current) return;
+
+    // First: card's current viewport rect
+    const cardRect = cardRef.current.getBoundingClientRect();
+    // Last: panel's viewport rect (destination)
+    const panelRect = panelRef.current.getBoundingClientRect();
+
+    // Invert deltas (card position relative to panel position)
+    const dx = cardRect.left - panelRect.left;
+    const dy = cardRect.top - panelRect.top;
+
+    // Inject a unique @keyframes rule with all animated values baked in.
+    // This lets us control transform, width, border-radius, box-shadow together
+    // and include the 0.97 scale dip at the midpoint.
+    if (morphStyleRef.current) morphStyleRef.current.remove();
+    const animName = `v23flip_${Date.now()}`;
+    const midWidth = ((cardRect.width + panelRect.width) / 2).toFixed(1);
+    const midDx = (dx * 0.4).toFixed(1);
+    const midDy = (dy * 0.4).toFixed(1);
+    const styleEl = document.createElement("style");
+    styleEl.textContent = `
+      @keyframes ${animName} {
+        0% {
+          transform: translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(1);
+          width: ${cardRect.width.toFixed(1)}px;
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+        }
+        45% {
+          transform: translate(${midDx}px, ${midDy}px) scale(0.97);
+          width: ${midWidth}px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        100% {
+          transform: translate(0px, 0px) scale(1);
+          width: ${panelRect.width.toFixed(1)}px;
+          border-radius: 0px;
+          box-shadow: none;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+    morphStyleRef.current = styleEl;
+
+    // Set flying element at Last (panel) position; keyframe 0% visually places it at First (card).
+    setFlyStyles({
+      position: "fixed",
+      top: panelRect.top,
+      left: panelRect.left,
+      height: cardRect.height,
+      overflow: "hidden",
+      zIndex: 100,
+      backgroundColor: "#ffffff",
+      border: "1px solid #e5e7eb",
+      // Keyframe handles width, transform, border-radius, box-shadow
+      animation: `${animName} 500ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards`,
+    });
+
+    setPhase("morphing");
+
+    // Morph complete → switch to panel view
+    setTimeout(() => {
+      setPhase("morphed");
+      if (morphStyleRef.current) {
+        morphStyleRef.current.remove();
+        morphStyleRef.current = null;
+      }
+    }, 550);
+  }, []);
+
+  const handleSend = (count: number) => {
+    setSentCount(count);
+    if (phase === "morphed") {
+      setConfirmed(true);
+    } else {
+      setExiting(true);
+      setTimeout(() => { setExiting(false); setConfirmed(true); }, 200);
+    }
+  };
+
+  const handleCancel = () => {
+    if (phase === "morphed") {
+      setConfirmed(true);
+    } else {
+      setExiting(true);
+      setTimeout(() => { setExiting(false); setConfirmed(true); }, 200);
+    }
+  };
+
+  const displayScenario = confirmed
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          { role: "user" as const, text: `Send ${sentCount} invites.` },
+          {
+            role: "assistant" as const,
+            text: `Done. ${sentCount} invitations sent.`,
+            card: {
+              variant: "status" as const,
+              statusMessage: `${sentCount} invitations sent · Member role · 3 rows skipped`,
+              statusTone: "success" as const,
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  const goToPeopleExtra = confirmed ? (
+    <div className="ml-10 mt-1">
+      <button
+        onClick={() => navigate("/settings/people")}
+        className="text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        Go to People page →
+      </button>
+    </div>
+  ) : null;
+
+  // Background panel dims while card is showing; invisible during morph (flying overlay covers it)
+  const panelDimmed = phase === "card" && !confirmed;
+  const panelHidden = phase === "morphing";
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
+      {/* Chat pane */}
+      <ChatPane
+        scenario={displayScenario}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        extraContent={goToPeopleExtra}
+        bottomSlot={
+          phase === "card" && (!confirmed || exiting) ? (
+            <div className="px-4 pb-4 pt-1">
+              <div className="w-full max-w-full mx-auto">
+                <BulkV2CardV23
+                  cardRef={cardRef}
+                  checked={checked}
+                  setChecked={setChecked}
+                  search={search}
+                  setSearch={setSearch}
+                  isExiting={exiting}
+                  onSend={handleSend}
+                  onCancel={handleCancel}
+                  onExpand={handleExpand}
+                />
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {/* Right panel — ref here for FLIP coordinate capture */}
+      <div
+        ref={panelRef}
+        className="w-[480px] flex-shrink-0 h-full"
+        style={{ visibility: panelHidden ? "hidden" : "visible" }}
+      >
+        {phase === "morphed" && !confirmed ? (
+          <BulkV2PanelV23
+            checked={checked}
+            setChecked={setChecked}
+            search={search}
+            setSearch={setSearch}
+            onSend={handleSend}
+            onCancel={handleCancel}
+          />
+        ) : (
+          <div
+            className={`w-full h-full transition-opacity duration-300 ${
+              panelDimmed ? "opacity-25 pointer-events-none select-none" : "opacity-100"
+            }`}
+          >
+            <WorkspaceMembersPanel />
+          </div>
+        )}
+      </div>
+
+      {/* FLIP flying overlay — rendered during morph, position: fixed so it escapes overflow */}
+      {phase === "morphing" && (
+        <div style={flyStyles} className="flex flex-col">
+          {/* Title bar (non-interactive during flight) */}
+          <div className="flex items-center justify-between px-5 pt-4 pb-3 flex-shrink-0">
+            <p className="text-sm font-semibold text-gray-900">
+              Send {checked.size + V2_HIDDEN_COUNT} invites as Member?
+            </p>
+          </div>
+          <BulkReviewContentV23
+            checked={checked}
+            setChecked={setChecked}
+            search={search}
+            setSearch={setSearch}
+            onSend={() => {}}
+            onCancel={() => {}}
+            flexList={false}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function BulkProvisioningV2Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const navigate = useNavigate();
+  const [confirmed, setConfirmed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
+
+  const handleSend = (count: number) => {
+    setSentCount(count);
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setConfirmed(true);
+    }, 200);
+  };
+
+  const handleCancel = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setConfirmed(true); // collapse the card; treat as dismissed
+    }, 200);
+  };
+
+  const displayScenario = confirmed
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          { role: "user" as const, text: `Send ${sentCount} invites.` },
+          {
+            role: "assistant" as const,
+            text: `Done. ${sentCount} invitations sent.`,
+            card: {
+              variant: "status" as const,
+              statusMessage: `${sentCount} invitations sent · Member role · 3 rows skipped`,
+              statusTone: "success" as const,
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  const goToPeopleExtra = confirmed ? (
+    <div className="ml-10 mt-1">
+      <button
+        onClick={() => navigate("/settings/people")}
+        className="text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        Go to People page →
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+      <ChatPane
+        scenario={displayScenario}
+        className="flex-1"
+        extraContent={goToPeopleExtra}
+        bottomSlot={
+          !confirmed || exiting ? (
+            <div className="px-4 pb-4 pt-1">
+              <div className="w-full max-w-4xl mx-auto" style={{ minWidth: "800px" }}>
+                <BulkV2InlineCard
+                  isExiting={exiting}
+                  onSend={handleSend}
+                  onCancel={handleCancel}
+                />
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
+    </div>
+  );
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -984,6 +1947,18 @@ export default function Prototype() {
 
   if (scenario.id === "remove-group-admin") {
     return <RemoveTeamAdminLayout scenario={scenario} />;
+  }
+
+  if (scenario.id === "bulk-provisioning-v2.1") {
+    return <BulkProvisioningV21Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "bulk-provisioning-v2.3") {
+    return <BulkProvisioningV23Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "bulk-provisioning-v2.2") {
+    return <BulkProvisioningV2Layout scenario={scenario} />;
   }
 
   // All other scenarios: single-column chat

@@ -1,22 +1,7 @@
 import { ItemType } from "@vonlabs/design-components";
 import type { SidebarItem } from "@vonlabs/design-components";
 
-export const PROTOTYPE_CHAT_IDS = new Set([
-  "prototype-individual-provisioning",
-  "prototype-multiple-provisioning",
-  "prototype-bulk-provisioning",
-  "prototype-create-group",
-  "prototype-create-group-guided",
-  "prototype-inspect-group",
-  "prototype-add-users-to-group",
-  "prototype-add-non-workspace-users",
-  "prototype-promote-to-admin",
-  "prototype-demote-to-member",
-  "prototype-make-group-admin",
-  "prototype-remove-group-admin",
-]);
-
-export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
+export const PROTOTYPE_V1_ITEMS: SidebarItem[] = [
   { id: "prototype-individual-provisioning",   label: "Individual provisioning",              type: ItemType.Chat },
   { id: "prototype-multiple-provisioning",     label: "Multiple provisioning",                type: ItemType.Chat },
   { id: "prototype-bulk-provisioning",         label: "Bulk provisioning",                    type: ItemType.Chat },
@@ -30,3 +15,18 @@ export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [
   { id: "prototype-make-group-admin",          label: "Make Team Admin",                      type: ItemType.Chat },
   { id: "prototype-remove-group-admin",        label: "Remove Team Admin",                    type: ItemType.Chat },
 ];
+
+export const PROTOTYPE_V2_ITEMS: SidebarItem[] = [
+  { id: "prototype-bulk-provisioning-v2.1", label: "Bulk provisioning v2.1", type: ItemType.Chat },
+  { id: "prototype-bulk-provisioning-v2.2", label: "Bulk provisioning v2.2", type: ItemType.Chat },
+  { id: "prototype-bulk-provisioning-v2.3", label: "Bulk provisioning v2.3", type: ItemType.Chat },
+];
+
+export const PROTOTYPE_CHAT_IDS = new Set([
+  ...PROTOTYPE_V1_ITEMS.map((i) => i.id),
+  ...PROTOTYPE_V2_ITEMS.map((i) => i.id),
+]);
+
+/** Keep for legacy callers that expect a flat list — now empty since the
+ *  accordion injects items directly into the sidebar slot. */
+export const PROTOTYPE_SIDEBAR_ITEMS: SidebarItem[] = [];

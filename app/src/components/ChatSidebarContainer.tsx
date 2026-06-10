@@ -21,7 +21,8 @@ import { useSidebarDashboardDelete } from "../hooks/useSidebarDashboardDelete";
 import { getUserInitials, getDisplayName } from "../lib/userUtils";
 import { useGuardedNavigate } from "../providers/NavigationGuard";
 import type { User } from "../services";
-import { PROTOTYPE_SIDEBAR_ITEMS, PROTOTYPE_CHAT_IDS } from "./prototype/prototypeItems";
+import { PROTOTYPE_CHAT_IDS } from "./prototype/prototypeItems";
+import { PrototypeChatAccordion } from "./prototype/PrototypeChatAccordion";
 import { report } from "../lib/analytics/tracker";
 
 /** Overlay animated titles onto sidebar items. */
@@ -216,7 +217,7 @@ export function ChatSidebarContainer({
     [folderItems, animatedTitles],
   );
   const decoratedItems = useMemo(
-    () => [...PROTOTYPE_SIDEBAR_ITEMS, ...applyApprovalStates(animatedItems, approvalStates)],
+    () => applyApprovalStates(animatedItems, approvalStates),
     [animatedItems, approvalStates],
   );
   const decoratedFolderItems = useMemo(
@@ -727,6 +728,14 @@ export function ChatSidebarContainer({
         hasMoreChats={isSharedMode ? !!hasNextSharedPage : hasNextPage}
         onLoadMoreChats={isSharedMode ? fetchNextSharedPage : fetchNextPage}
         chatsSectionLabel={isSharedMode ? "Shared Chats" : "Chats"}
+        chatsSectionPrependSlot={
+          !isSharedMode ? (
+            <PrototypeChatAccordion
+              selectedItemId={currentConversationId || undefined}
+              onItemClick={handleChatClick}
+            />
+          ) : undefined
+        }
         chatsEmptyMessage={
           isSharedMode ? "No chats have been shared with you yet." : undefined
         }

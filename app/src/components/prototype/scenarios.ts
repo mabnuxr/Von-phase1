@@ -357,6 +357,54 @@ export const SCENARIOS: Scenario[] = [
   },
 
   {
+    id: "bulk-provisioning-v2.1",
+    label: "Bulk provisioning v2.1",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Here's a CSV of 52 users from Salesforce. Provision them all as Members.",
+      },
+      {
+        role: "assistant",
+        text: "I've parsed the CSV. 49 users are ready to provision as Members. 3 rows were flagged. Review below before I send.",
+      },
+    ],
+  },
+
+  {
+    id: "bulk-provisioning-v2.3",
+    label: "Bulk provisioning v2.3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Here's a CSV of 52 users from Salesforce. Provision them all as Members.",
+      },
+      {
+        role: "assistant",
+        text: "I've parsed the CSV. 49 users are ready to provision as Members. 3 rows were flagged. Review below before I send.",
+      },
+    ],
+  },
+
+  {
+    id: "bulk-provisioning-v2.2",
+    label: "Bulk provisioning v2.2",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Here's a CSV of 52 users from Salesforce. Provision them all as Members.",
+      },
+      {
+        role: "assistant",
+        text: "I've parsed the CSV. 49 users are ready to provision as Members. 3 rows were flagged. Review below before I send.",
+      },
+    ],
+  },
+
+  {
     id: "demote-to-member",
     label: "Demote admin to member",
     group: "provisioning",
