@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon, MagnifyingGlassIcon, ArrowUpRightIcon } from "@phosphor-icons/react";
+import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon, MagnifyingGlassIcon, ArrowUpRightIcon, StarIcon, CheckIcon } from "@phosphor-icons/react";
 import { SendHorizontal } from "lucide-react";
 import vonLogomark from "../assets/von-logomark.svg";
 import { AskUserInput } from "../components/prototype/QuickActionBar";
 import { ChatCard } from "../components/prototype/ChatCard";
 import { StatusTag } from "../components/prototype/StatusTag";
+import { WhosIncludedFilter } from "../components/prototype/WhosIncludedFilter";
+import { VonComposerBar } from "../components/prototype/VonComposerBar";
 import { TeamDetailPanel, type TeamDetailData } from "../components/prototype/TeamDetailPanel";
 import { ReviewInvitesPanel } from "../components/prototype/ReviewInvitesPanel";
 import { SCENARIOS, getScenario, type ScenarioMessage } from "../components/prototype/scenarios";
@@ -189,6 +191,25 @@ function renderText(text: string): React.ReactNode {
 
 // ─── Chat pane ────────────────────────────────────────────────────────────────
 
+/** The standard (non-interactive) "Message Von…" composer used across all chat
+ *  scenarios. Shared so card layouts can render it beneath an inline card. */
+/**
+ * Bottom-of-chat composer for regular scenarios. Wraps the shared
+ * {@link VonComposerBar} with the standard divider + padding.
+ *
+ * `bare` returns just the composer with no outer padding/divider — callers that
+ * place it beneath an inline card supply their own width-matched, centered
+ * wrapper so the input aligns with the card and sits flush below it.
+ */
+function MessageVonInput({ bare = false }: { bare?: boolean }) {
+  if (bare) return <VonComposerBar />;
+  return (
+    <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100">
+      <VonComposerBar />
+    </div>
+  );
+}
+
 function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen, bottomSlot, extraContent }: {
   scenario: NonNullable<ReturnType<typeof getScenario>>;
   className?: string;
@@ -220,14 +241,7 @@ function ChatPane({ scenario, className = "", onTeamCardClick, isPanelOpen, bott
       </div>
 
       {/* Fake input or custom bottom slot */}
-      {bottomSlot ?? (
-        <div className="flex-shrink-0 px-5 py-4 border-t border-gray-100">
-          <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-            <span className="flex-1 text-sm text-gray-400">Message Von…</span>
-            <SparkleIcon size={16} className="text-gray-300" weight="fill" />
-          </div>
-        </div>
-      )}
+      {bottomSlot ?? <MessageVonInput />}
     </div>
   );
 }
@@ -299,7 +313,6 @@ function CreateGroupLayout({ scenario }: { scenario: NonNullable<ReturnType<type
         mode={panelMode}
         team={panelMode === "inspect" ? ENTERPRISE_SALES_INSPECT_TEAM : ENTERPRISE_SALES_TEAM}
         statusOverride={panelStatus}
-        defaultFilterExpanded
         onCommit={handleCommit}
         inspectCtaLabel="Edit with Von"
       />
@@ -740,17 +753,7 @@ function RoleChangeConfirmCard({
           </div>
         </div>
 
-        <div className="rounded-[17px] p-px bg-gray-200">
-          <div className="flex flex-col bg-white rounded-[15px]">
-            <div className="px-4 py-3">
-              <span className="text-sm text-gray-500">Tell Von what to configure...</span>
-            </div>
-            <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-            </div>
-          </div>
-        </div>
+        <VonComposerBar />
       </div>
     </div>
   );
@@ -1858,13 +1861,16 @@ function BulkProvisioningV2Layout({ scenario }: { scenario: NonNullable<ReturnTy
         extraContent={goToPeopleExtra}
         bottomSlot={
           !confirmed || exiting ? (
-            <div className="px-4 pb-4 pt-1">
+            <div className="flex-shrink-0 px-4 pb-4 pt-1">
               <div className="w-full max-w-4xl mx-auto" style={{ minWidth: "800px" }}>
                 <BulkV2InlineCard
                   isExiting={exiting}
                   onSend={handleSend}
                   onCancel={handleCancel}
                 />
+                <div className="mt-2">
+                  <MessageVonInput bare />
+                </div>
               </div>
             </div>
           ) : undefined
@@ -1873,6 +1879,654 @@ function BulkProvisioningV2Layout({ scenario }: { scenario: NonNullable<ReturnTy
     </div>
   );
 }
+
+// ─── Create a team v2.1 — centered create card ───────────────────────────────
+
+const CREATE_TEAM_V21_FILTER = [
+  { field: "Role",      operator: "is",     value: "AE"   },
+  { field: "Is Active", operator: "equals", value: "True" },
+];
+
+const CREATE_TEAM_V21_MEMBERS = [
+  { id: 1, initials: "EV", name: "Elena Vasquez",   email: "elena.vasquez@meridiantech.com",   isTeamAdmin: true  },
+  { id: 2, initials: "MW", name: "Marcus Webb",     email: "marcus.webb@meridiantech.com",     isTeamAdmin: false },
+  { id: 3, initials: "PN", name: "Priya Nair",      email: "priya.nair@meridiantech.com",      isTeamAdmin: false },
+  { id: 4, initials: "DP", name: "Devon Park",      email: "devon.park@meridiantech.com",      isTeamAdmin: false },
+  { id: 5, initials: "MC", name: "Mira Chen",       email: "mira.chen@meridiantech.com",       isTeamAdmin: false },
+  { id: 6, initials: "JR", name: "James Rodriguez", email: "james.rodriguez@meridiantech.com", isTeamAdmin: false },
+  { id: 7, initials: "AL", name: "Aisha Lee",       email: "aisha.lee@meridiantech.com",       isTeamAdmin: false },
+];
+
+function CreateTeamV21Card({
+  isExiting,
+  onCreate,
+  onCancel,
+}: {
+  isExiting: boolean;
+  onCreate: () => void;
+  onCancel: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const q = search.trim().toLowerCase();
+  const visibleMembers = q
+    ? CREATE_TEAM_V21_MEMBERS.filter(
+        (m) => m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q),
+      )
+    : CREATE_TEAM_V21_MEMBERS;
+
+  return (
+    <div
+      style={{
+        transformOrigin: "bottom center",
+        transform: !mounted || isExiting ? "scale(0.88)" : "scale(1)",
+        opacity: !mounted || isExiting ? 0 : 1,
+        transition: isExiting
+          ? "transform 200ms ease, opacity 200ms ease"
+          : "transform 350ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 300ms ease",
+        backgroundColor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+      }}
+    >
+      {/* Title bar */}
+      <div className="flex items-center justify-between px-5 pt-4 pb-3">
+        <p className="text-sm font-semibold text-gray-900">Create Enterprise Sales?</p>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+          <XIcon size={14} weight="bold" />
+        </button>
+      </div>
+
+      {/* Team info */}
+      <div className="px-5 pb-4 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+          <UsersFourIcon size={20} className="text-violet-600" weight="fill" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-base font-semibold text-gray-900">Enterprise Sales</p>
+          <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
+            Senior AEs and Solutions Consultants working enterprise accounts.
+          </p>
+        </div>
+      </div>
+
+      {/* Who's included */}
+      <div className="px-5 pb-5">
+        <WhosIncludedFilter conditions={CREATE_TEAM_V21_FILTER} />
+      </div>
+
+      {/* Members */}
+      <div className="px-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Members</span>
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">
+            {CREATE_TEAM_V21_MEMBERS.length}
+          </span>
+        </div>
+
+        {/* Search */}
+        <div className="relative mb-2">
+          <MagnifyingGlassIcon
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+          />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search members..."
+            className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all bg-white placeholder-gray-400"
+          />
+        </div>
+
+        {/* List */}
+        <div className="overflow-y-auto" style={{ maxHeight: "224px" }}>
+          {visibleMembers.map((m) => (
+            <div key={m.id} className="flex items-center gap-2.5 py-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(m.name)}`}>
+                {m.initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{m.name}</p>
+                <p className="text-xs text-gray-400 truncate">{m.email}</p>
+              </div>
+              {m.isTeamAdmin && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-200 flex-shrink-0">
+                  <StarIcon size={10} weight="fill" />
+                  Team Admin
+                </span>
+              )}
+            </div>
+          ))}
+          {visibleMembers.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">No members match your search</p>
+          )}
+        </div>
+
+        {/* Synced footer note */}
+        <p className="text-[11px] text-gray-400 flex items-center gap-1.5 pt-2 pb-1">
+          <SparkleIcon size={11} weight="fill" className="text-gray-300" />
+          Synced from Salesforce
+        </p>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-5 pt-3 pb-4 border-t border-gray-100 mt-2">
+        <span className="text-xs text-gray-500">{CREATE_TEAM_V21_MEMBERS.length} members</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3.5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onCreate}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            <CheckIcon size={13} weight="bold" />
+            Create team
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CreateTeamV21Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const navigate = useNavigate();
+  const [created, setCreated] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
+  const handleCreate = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setCreated(true);
+    }, 200);
+  };
+
+  const handleCancel = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setDismissed(true);
+    }, 200);
+  };
+
+  const cardGone = created || dismissed;
+
+  const displayScenario = created
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          { role: "user" as const, text: "Create it." },
+          {
+            role: "assistant" as const,
+            text: "Enterprise Sales created — Role is AE, Is Active equals True — 7 members added.",
+            card: {
+              variant: "status" as const,
+              statusMessage: "Enterprise Sales · Active · 7 members",
+              statusTone: "success" as const,
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  const viewTeamExtra = created ? (
+    <div className="ml-10 mt-1">
+      <button
+        onClick={() => navigate("/settings/people")}
+        className="text-xs font-medium text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors cursor-pointer"
+      >
+        View team →
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-col">
+      <ChatPane
+        scenario={displayScenario}
+        className="flex-1"
+        extraContent={viewTeamExtra}
+        bottomSlot={
+          !cardGone || exiting ? (
+            <div className="flex-shrink-0 px-4 pb-4 pt-1">
+              <div className="w-full max-w-4xl mx-auto" style={{ minWidth: "800px" }}>
+                <CreateTeamV21Card
+                  isExiting={exiting}
+                  onCreate={handleCreate}
+                  onCancel={handleCancel}
+                />
+                <div className="mt-2">
+                  <MessageVonInput bare />
+                </div>
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
+    </div>
+  );
+}
+
+// ─── Role-change v2 scenarios (card + user inspect panel + dimming) ──────────
+
+/** Member reads as a quiet-but-present badge; elevated roles (Admin / Team
+ *  Admin) are solid black. */
+function roleBadgeStyle(role: string): string {
+  return role === "Member"
+    ? "bg-gray-100 border border-gray-300 text-gray-700"
+    : "bg-gray-900 text-white";
+}
+
+interface RoleChangeV2Config {
+  user: { initials: string; name: string; email: string; avatarClass: string };
+  panel: {
+    teamName: string;
+    joined: string;
+    addedBy: string;
+    source: string;
+    roleBefore: string;
+    roleAfter: string;
+    teamAdminBefore: boolean;
+    teamAdminAfter: boolean;
+  };
+  card: {
+    title: string;
+    fromRole: string;
+    toRole: string;
+    teamName?: string; // appended as "· {teamName}" on the role-change line
+    context: string;
+  };
+  confirm: { userText: string; agentText: string; statusMessage: string };
+}
+
+function UserInspectPanel({
+  dimmed,
+  initials,
+  name,
+  email,
+  avatarClass,
+  role,
+  teamName,
+  teamAdmin,
+  joined,
+  addedBy,
+  source,
+}: {
+  dimmed: boolean;
+  initials: string;
+  name: string;
+  email: string;
+  avatarClass: string;
+  role: string;
+  teamName: string;
+  teamAdmin: boolean;
+  joined: string;
+  addedBy: string;
+  source: string;
+}) {
+  return (
+    <div
+      className={`w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden ${
+        dimmed ? "pointer-events-none select-none" : ""
+      }`}
+    >
+      {/* Header — dims less (70%) so the user's identity stays readable */}
+      <div
+        className={`flex items-center gap-3 px-5 pt-4 pb-3 flex-shrink-0 transition-opacity duration-300 ${
+          dimmed ? "opacity-70" : "opacity-100"
+        }`}
+      >
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${avatarClass}`}>
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{name}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{email}</p>
+        </div>
+      </div>
+
+      <div className={`h-px bg-gray-100 flex-shrink-0 transition-opacity duration-300 ${dimmed ? "opacity-25" : "opacity-100"}`} />
+
+      {/* Body — dims to 25% */}
+      <div
+        className={`flex-1 overflow-y-auto px-5 py-4 space-y-5 transition-opacity duration-300 ${
+          dimmed ? "opacity-25" : "opacity-100"
+        }`}
+      >
+        {/* Role */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Role</p>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium transition-colors duration-300 ${roleBadgeStyle(role)}`}>
+            {role}
+          </span>
+        </div>
+
+        {/* Teams */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Teams</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-gray-50 border border-gray-200/70 text-gray-700">
+              <UsersFourIcon size={12} className="text-gray-400" weight="fill" />
+              {teamName}
+            </span>
+            {teamAdmin && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-200">
+                <StarIcon size={10} weight="fill" />
+                Team Admin
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Joined */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Joined</p>
+          <p className="text-sm text-gray-700">{joined}</p>
+        </div>
+
+        {/* Added by */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Added by</p>
+          <p className="text-sm text-gray-700">{addedBy}</p>
+        </div>
+
+        {/* Source */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Source</p>
+          <p className="text-sm text-gray-700">{source}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoleChangeV2Card({
+  isExiting,
+  title,
+  initials,
+  name,
+  email,
+  fromRole,
+  toRole,
+  teamName,
+  context,
+  onConfirm,
+  onCancel,
+}: {
+  isExiting: boolean;
+  title: string;
+  initials: string;
+  name: string;
+  email: string;
+  fromRole: string;
+  toRole: string;
+  teamName?: string;
+  context: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  return (
+    <div
+      style={{
+        transformOrigin: "bottom center",
+        transform: !mounted || isExiting ? "scale(0.88)" : "scale(1)",
+        opacity: !mounted || isExiting ? 0 : 1,
+        transition: isExiting
+          ? "transform 200ms ease, opacity 200ms ease"
+          : "transform 350ms cubic-bezier(0.34, 1.4, 0.64, 1), opacity 300ms ease",
+        backgroundColor: "#ffffff",
+        border: "1px solid #e5e7eb",
+        borderRadius: "16px",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)",
+        padding: "16px 20px",
+      }}
+    >
+      {/* Title */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
+          <XIcon size={14} weight="bold" />
+        </button>
+      </div>
+
+      {/* User row */}
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 text-[11px] font-semibold text-gray-600">
+          {initials}
+        </div>
+        <div>
+          <p className="text-sm text-gray-800">{name}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{email}</p>
+        </div>
+      </div>
+
+      {/* Role change */}
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${roleBadgeStyle(fromRole)}`}>
+          {fromRole}
+        </span>
+        <span className="text-gray-400 text-xs">→</span>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${roleBadgeStyle(toRole)}`}>
+          {toRole}
+        </span>
+        {teamName && <span className="text-xs text-gray-400">· {teamName}</span>}
+      </div>
+
+      {/* Context */}
+      <p className="text-xs text-gray-400 mb-4 leading-relaxed">{context}</p>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-200 -mx-5 mb-3" />
+
+      {/* Actions — v2 button styling (rectangular black primary) */}
+      <div className="flex justify-end items-center gap-2">
+        <button
+          onClick={onCancel}
+          className="px-3.5 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RoleChangeV2Layout({
+  scenario,
+  config,
+}: {
+  scenario: NonNullable<ReturnType<typeof getScenario>>;
+  config: RoleChangeV2Config;
+}) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [exiting, setExiting] = useState(false);
+
+  const handleConfirm = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setConfirmed(true);
+    }, 200);
+  };
+
+  const handleCancel = () => {
+    setExiting(true);
+    setTimeout(() => {
+      setExiting(false);
+      setDismissed(true);
+    }, 200);
+  };
+
+  const cardGone = confirmed || dismissed;
+
+  const displayScenario = confirmed
+    ? {
+        ...scenario,
+        messages: [
+          ...scenario.messages,
+          { role: "user" as const, text: config.confirm.userText },
+          {
+            role: "assistant" as const,
+            text: config.confirm.agentText,
+            card: {
+              variant: "status" as const,
+              statusMessage: config.confirm.statusMessage,
+              statusTone: "success" as const,
+            },
+          },
+        ],
+      }
+    : scenario;
+
+  // Panel dims while the card is active; un-dims (and role/team-admin flip) on confirm
+  const panelDimmed = !cardGone;
+  const role = confirmed ? config.panel.roleAfter : config.panel.roleBefore;
+  const teamAdmin = confirmed ? config.panel.teamAdminAfter : config.panel.teamAdminBefore;
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
+      {/* Chat pane */}
+      <ChatPane
+        scenario={displayScenario}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        bottomSlot={
+          !cardGone || exiting ? (
+            <div className="flex-shrink-0 px-4 pb-4 pt-1">
+              <div className="w-full max-w-4xl mx-auto" style={{ minWidth: "800px" }}>
+                <RoleChangeV2Card
+                  isExiting={exiting}
+                  title={config.card.title}
+                  initials={config.user.initials}
+                  name={config.user.name}
+                  email={config.user.email}
+                  fromRole={config.card.fromRole}
+                  toRole={config.card.toRole}
+                  teamName={config.card.teamName}
+                  context={config.card.context}
+                  onConfirm={handleConfirm}
+                  onCancel={handleCancel}
+                />
+                <div className="mt-2">
+                  <MessageVonInput bare />
+                </div>
+              </div>
+            </div>
+          ) : undefined
+        }
+      />
+
+      {/* Right panel — header stays at 70%, body dims to 25% while card is active */}
+      <UserInspectPanel
+        dimmed={panelDimmed}
+        initials={config.user.initials}
+        name={config.user.name}
+        email={config.user.email}
+        avatarClass={config.user.avatarClass}
+        role={role}
+        teamName={config.panel.teamName}
+        teamAdmin={teamAdmin}
+        joined={config.panel.joined}
+        addedBy={config.panel.addedBy}
+        source={config.panel.source}
+      />
+    </div>
+  );
+}
+
+const PROMOTE_V2_CONFIG: RoleChangeV2Config = {
+  user: { initials: "MW", name: "Marcus Webb", email: "marcus.webb@meridiantech.com", avatarClass: "bg-blue-100 text-blue-700" },
+  panel: {
+    teamName: "Enterprise Sales", joined: "Mar 5, 2024", addedBy: "Sarah Chen", source: "Manual",
+    roleBefore: "Member", roleAfter: "Admin", teamAdminBefore: false, teamAdminAfter: false,
+  },
+  card: {
+    title: "Promote to Admin?", fromRole: "Member", toRole: "Admin",
+    context: "Admins have full workspace access including billing, settings, and member management.",
+  },
+  confirm: {
+    userText: "Yes, promote them.",
+    agentText: "Marcus Webb is now an Admin. They can manage workspace settings, billing, and other members.",
+    statusMessage: "Marcus Webb promoted to Admin",
+  },
+};
+
+const DEMOTE_V2_CONFIG: RoleChangeV2Config = {
+  user: { initials: "SW", name: "Sam Whitfield", email: "sam.whitfield@meridiantech.com", avatarClass: "bg-emerald-100 text-emerald-700" },
+  panel: {
+    teamName: "Revenue Leadership", joined: "Jan 3, 2024", addedBy: "Sarah Chen", source: "Manual",
+    roleBefore: "Admin", roleAfter: "Member", teamAdminBefore: false, teamAdminAfter: false,
+  },
+  card: {
+    title: "Demote to Member?", fromRole: "Admin", toRole: "Member",
+    context: "They'll lose access to billing, workspace settings, and the ability to manage other members.",
+  },
+  confirm: {
+    userText: "Yes, demote them.",
+    agentText: "Sam Whitfield is now a Member. They no longer have access to billing, workspace settings, or member management.",
+    statusMessage: "Sam Whitfield demoted to Member",
+  },
+};
+
+const MAKE_TEAM_ADMIN_V2_CONFIG: RoleChangeV2Config = {
+  user: { initials: "MW", name: "Marcus Webb", email: "marcus.webb@meridiantech.com", avatarClass: "bg-blue-100 text-blue-700" },
+  panel: {
+    teamName: "Enterprise Sales", joined: "Mar 5, 2024", addedBy: "Sarah Chen", source: "Manual",
+    roleBefore: "Member", roleAfter: "Member", teamAdminBefore: false, teamAdminAfter: true,
+  },
+  card: {
+    title: "Make Team Admin of Enterprise Sales?", fromRole: "Member", toRole: "Team Admin", teamName: "Enterprise Sales",
+    context: "Team Admins can manage team membership and see team-scoped memory.",
+  },
+  confirm: {
+    userText: "Yes, do it.",
+    agentText: "Marcus Webb is now a Team Admin of Enterprise Sales. They can manage team membership and see team-scoped memory.",
+    statusMessage: "Marcus Webb promoted to Team Admin of Enterprise Sales",
+  },
+};
+
+const REMOVE_TEAM_ADMIN_V2_CONFIG: RoleChangeV2Config = {
+  user: { initials: "EV", name: "Elena Vasquez", email: "elena.vasquez@meridiantech.com", avatarClass: "bg-violet-100 text-violet-700" },
+  panel: {
+    teamName: "Enterprise Sales", joined: "Jan 3, 2024", addedBy: "Salesforce sync", source: "Salesforce",
+    roleBefore: "Member", roleAfter: "Member", teamAdminBefore: true, teamAdminAfter: false,
+  },
+  card: {
+    title: "Remove Team Admin from Enterprise Sales?", fromRole: "Team Admin", toRole: "Member", teamName: "Enterprise Sales",
+    context: "They'll remain a member of Enterprise Sales but lose team admin privileges.",
+  },
+  confirm: {
+    userText: "Confirm.",
+    agentText: "Elena Vasquez is no longer a Team Admin of Enterprise Sales. She remains a member of the team.",
+    statusMessage: "Elena Vasquez's Team Admin role removed",
+  },
+};
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
@@ -1959,6 +2613,26 @@ export default function Prototype() {
 
   if (scenario.id === "bulk-provisioning-v2.2") {
     return <BulkProvisioningV2Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "create-team-v2.1") {
+    return <CreateTeamV21Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "promote-to-admin-v2") {
+    return <RoleChangeV2Layout scenario={scenario} config={PROMOTE_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "demote-to-member-v2") {
+    return <RoleChangeV2Layout scenario={scenario} config={DEMOTE_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "make-team-admin-v2") {
+    return <RoleChangeV2Layout scenario={scenario} config={MAKE_TEAM_ADMIN_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "remove-team-admin-v2") {
+    return <RoleChangeV2Layout scenario={scenario} config={REMOVE_TEAM_ADMIN_V2_CONFIG} />;
   }
 
   // All other scenarios: single-column chat

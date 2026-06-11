@@ -20,6 +20,11 @@ export const PROTOTYPE_V2_ITEMS: SidebarItem[] = [
   { id: "prototype-bulk-provisioning-v2.1", label: "Bulk provisioning v2.1", type: ItemType.Chat },
   { id: "prototype-bulk-provisioning-v2.2", label: "Bulk provisioning v2.2", type: ItemType.Chat },
   { id: "prototype-bulk-provisioning-v2.3", label: "Bulk provisioning v2.3", type: ItemType.Chat },
+  { id: "prototype-create-team-v2.1",       label: "Create a team v2.1",     type: ItemType.Chat },
+  { id: "prototype-promote-to-admin-v2",    label: "Promote user to admin v2", type: ItemType.Chat },
+  { id: "prototype-demote-to-member-v2",    label: "Demote admin to member v2", type: ItemType.Chat },
+  { id: "prototype-make-team-admin-v2",     label: "Make Team Admin v2",       type: ItemType.Chat },
+  { id: "prototype-remove-team-admin-v2",   label: "Remove Team Admin v2",     type: ItemType.Chat },
 ];
 
 export const PROTOTYPE_CHAT_IDS = new Set([

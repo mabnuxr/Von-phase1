@@ -1,4 +1,5 @@
 import { X } from "@phosphor-icons/react";
+import { VonComposerBar } from "./VonComposerBar";
 
 export interface QuickAction {
   label: string;
@@ -26,28 +27,12 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
-function DisabledInput() {
-  return (
-    <div className="rounded-[17px] p-px bg-gray-200">
-      <div className="flex flex-col bg-gray-50 rounded-[15px]">
-        <div className="px-4 py-3">
-          <span className="text-sm text-gray-400">Tell Von what to configure...</span>
-        </div>
-        <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
-          <div className="w-7 h-7 rounded-full bg-gray-200" />
-          <div className="w-7 h-7 rounded-full bg-gray-200" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function AskUserInput({ title, items, actions, isVisible }: AskUserInputProps) {
   if (!isVisible) {
     return (
       <div className="px-2">
         <div className="max-w-4xl mx-auto w-full">
-          <DisabledInput />
+          <VonComposerBar />
         </div>
       </div>
     );
@@ -119,17 +104,7 @@ export function AskUserInput({ title, items, actions, isVisible }: AskUserInputP
         </div>
 
         {/* Input bar — active */}
-        <div className="rounded-[17px] p-px bg-gray-200">
-          <div className="flex flex-col bg-white rounded-[15px]">
-            <div className="px-4 py-3">
-              <span className="text-sm text-gray-500">Tell Von what to configure...</span>
-            </div>
-            <div className="flex items-center justify-between px-3 pb-2.5 pt-1">
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-              <div className="w-7 h-7 rounded-full bg-gray-200" />
-            </div>
-          </div>
-        </div>
+        <VonComposerBar />
       </div>
     </div>
   );

@@ -9,14 +9,11 @@ import {
   UsersFourIcon,
   SparkleIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  CaretDownIcon,
-  CaretRightIcon,
-  LockSimpleIcon,
   StarIcon,
   CheckIcon,
 } from "@phosphor-icons/react";
 import { StatusTag } from "./StatusTag";
+import { WhosIncludedFilter } from "./WhosIncludedFilter";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,8 +52,6 @@ export interface TeamDetailPanelProps {
   persistentClose?: boolean;
   /** Override the status badge label/color — used by prototype scenarios */
   statusOverride?: "draft" | "active";
-  /** Start the filter block expanded */
-  defaultFilterExpanded?: boolean;
   /** Called when "Commit & next" is clicked */
   onCommit?: () => void;
   /** Override the inspect-mode CTA button label */
@@ -126,62 +121,6 @@ function SectionLabel({ label, count }: { label: string; count?: number }) {
   );
 }
 
-function FilterBlock({ conditions, initialExpanded = false }: { conditions: FilterCondition[]; initialExpanded?: boolean }) {
-  const [expanded, setExpanded] = useState(initialExpanded);
-
-  return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
-      {/* Header row */}
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-2.5 px-3.5 py-3 hover:bg-gray-50 transition-colors cursor-pointer text-left"
-      >
-        {expanded
-          ? <CaretDownIcon size={13} className="text-gray-400 flex-shrink-0" />
-          : <CaretRightIcon size={13} className="text-gray-400 flex-shrink-0" />
-        }
-        <FunnelIcon size={14} className="text-gray-500 flex-shrink-0" />
-        <span className="flex-1 text-sm text-gray-700 font-medium">
-          Member identification filter
-        </span>
-        <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
-          {conditions.length} condition{conditions.length !== 1 ? "s" : ""}
-        </span>
-        <span className="flex items-center gap-1 text-[11px] text-gray-400 ml-2">
-          <LockSimpleIcon size={11} />
-          read-only
-        </span>
-      </button>
-
-      {/* Expanded conditions */}
-      {expanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-gray-100 space-y-2">
-          {conditions.map((c, i) => (
-            <div key={i}>
-              {i > 0 && (
-                <div className="flex items-center gap-2 my-2">
-                  <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">AND</span>
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
-              )}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
-                  {c.field}
-                </span>
-                <span className="text-xs text-gray-500">{c.operator}</span>
-                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                  {c.value}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function MemberRow({ member, onRemove }: { member: TeamMember; onRemove?: () => void }) {
   const color = avatarColor(member.name);
 
@@ -225,7 +164,7 @@ function MemberRow({ member, onRemove }: { member: TeamMember; onRemove?: () => 
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persistentClose, statusOverride, defaultFilterExpanded, onCommit, inspectCtaLabel }: TeamDetailPanelProps) {
+export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persistentClose, statusOverride, onCommit, inspectCtaLabel }: TeamDetailPanelProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "activity">("overview");
   const [memberSearch, setMemberSearch] = useState("");
   const [members, setMembers] = useState<TeamMember[]>(team.members);
@@ -287,11 +226,9 @@ export function TeamDetailPanel({ isOpen, onClose, mode, team, inline, persisten
                 <p className="text-sm text-gray-600 leading-relaxed">{team.description}</p>
               </div>
 
-              {/* Member identification filter */}
-              <div>
-                <SectionLabel label="Member identification filter" />
-                <FilterBlock conditions={team.filterConditions} initialExpanded={defaultFilterExpanded} />
-              </div>
+              {/* Who's included */}
+              <WhosIncludedFilter conditions={team.filterConditions} />
+
 
               {/* Members */}
               <div>
