@@ -9,6 +9,8 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "Jan 3, 2024",
     reportsTo: null,
+    addedBy: "Workspace owner",
+    source: "Manual",
   },
   {
     id: "2",
@@ -18,6 +20,8 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "Jan 3, 2024",
     reportsTo: null,
+    addedBy: "Sarah Chen",
+    source: "Manual",
   },
   {
     id: "3",
@@ -27,6 +31,8 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "Feb 12, 2024",
     reportsTo: "Sarah Chen",
+    addedBy: "Sarah Chen",
+    source: "Salesforce sync",
   },
   {
     id: "4",
@@ -36,6 +42,8 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "Mar 5, 2024",
     reportsTo: "Marcus Williams",
+    addedBy: "Marcus Williams",
+    source: "Salesforce sync",
   },
   {
     id: "5",
@@ -45,6 +53,8 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "Apr 18, 2024",
     reportsTo: "Sarah Chen",
+    addedBy: "Sarah Chen",
+    source: "Manual",
   },
   {
     id: "6",
@@ -54,6 +64,8 @@ export const peopleMock: Person[] = [
     status: "Invite sent",
     joined: "—",
     reportsTo: null,
+    addedBy: "Sarah Chen",
+    source: "Manual",
   },
   {
     id: "7",
@@ -63,6 +75,8 @@ export const peopleMock: Person[] = [
     status: "Invite sent",
     joined: "—",
     reportsTo: null,
+    addedBy: "Marcus Williams",
+    source: "Manual",
   },
   {
     id: "8",
@@ -72,5 +86,7 @@ export const peopleMock: Person[] = [
     status: "Active",
     joined: "May 29, 2024",
     reportsTo: "Marcus Williams",
+    addedBy: "Marcus Williams",
+    source: "Salesforce sync",
   },
 ];

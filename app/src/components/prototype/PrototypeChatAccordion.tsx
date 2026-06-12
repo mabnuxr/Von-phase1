@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CaretRightIcon } from "@phosphor-icons/react";
-import { PROTOTYPE_V1_ITEMS, PROTOTYPE_V2_ITEMS } from "./prototypeItems";
+import { PROTOTYPE_V1_ITEMS, PROTOTYPE_V2_ITEMS, PROTOTYPE_V3_ITEMS } from "./prototypeItems";
 
 interface PrototypeChatAccordionProps {
   selectedItemId?: string;
@@ -69,6 +69,12 @@ export function PrototypeChatAccordion({ selectedItemId, onItemClick }: Prototyp
       <AccordionSection
         label="Chat v2"
         items={PROTOTYPE_V2_ITEMS}
+        selectedItemId={selectedItemId}
+        onItemClick={onItemClick}
+      />
+      <AccordionSection
+        label="Chat v3"
+        items={PROTOTYPE_V3_ITEMS}
         selectedItemId={selectedItemId}
         onItemClick={onItemClick}
       />

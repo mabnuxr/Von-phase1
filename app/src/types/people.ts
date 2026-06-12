@@ -1,6 +1,8 @@
 export type PersonRole = "Admin" | "Member" | "View Only";
 export type PersonStatus = "Active" | "Invite sent";
 
+export type PersonSource = "Manual" | "Salesforce sync";
+
 export interface Person {
   id: string;
   name: string;
@@ -9,4 +11,6 @@ export interface Person {
   status: PersonStatus;
   joined: string;
   reportsTo: string | null;
+  addedBy: string;
+  source: PersonSource;
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { UsersIcon, SparkleIcon, UsersFourIcon, DotsThreeIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
@@ -196,6 +197,7 @@ function PopulatedTable() {
 
 export default function Teams() {
   useAuthCheck();
+  const navigate = useNavigate();
   const [isPopulated, setIsPopulated] = useState(false);
 
   return (
@@ -239,7 +241,10 @@ export default function Teams() {
               heading="No teams yet"
               subtext="Teams are created through Von — connect Salesforce or describe your org structure in chat"
               actions={
-                <button className={settingsPrimaryBtn}>
+                <button
+                  className={settingsPrimaryBtn}
+                  onClick={() => navigate("/prototype/prototype-create-team-v2.1")}
+                >
                   Create a team in chat
                 </button>
               }

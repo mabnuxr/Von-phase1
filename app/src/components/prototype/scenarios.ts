@@ -484,6 +484,120 @@ export const SCENARIOS: Scenario[] = [
     ],
   },
 
+  // ── Chat v3 (turn-level confirmation cards) ─────────────────────────────────
+
+  {
+    id: "bulk-provisioning-v3",
+    label: "Bulk provisioning v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Here's a CSV of 52 users from Salesforce. Provision them all as Members.",
+      },
+      {
+        role: "assistant",
+        text: "I've parsed the CSV. 49 users are ready to provision as Members. 3 rows were flagged. Review below before I send.",
+      },
+    ],
+  },
+
+  {
+    id: "bulk-provisioning-v3.1",
+    label: "Bulk provisioning v3.1",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Here's a CSV of 52 users from Salesforce. Provision them all as Members.",
+      },
+      {
+        role: "assistant",
+        text: "I've parsed the CSV. 49 users are ready to provision as Members. 3 rows were flagged. Review below before I send.",
+      },
+    ],
+  },
+
+  {
+    id: "create-team-v3",
+    label: "Create a team v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Create a team called Enterprise Sales. It should include all AEs and AE Managers.",
+      },
+      {
+        role: "assistant",
+        text: "I found 7 people matching that criteria. Here's what I'll create:",
+      },
+    ],
+  },
+
+  {
+    id: "promote-to-admin-v3",
+    label: "Promote user to admin v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Promote Marcus Webb to Admin.",
+      },
+      {
+        role: "assistant",
+        text: "I found **Marcus Webb** in your workspace. Here's what will change:",
+      },
+    ],
+  },
+
+  {
+    id: "demote-to-member-v3",
+    label: "Demote admin to member v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Demote Sam Whitfield to Member.",
+      },
+      {
+        role: "assistant",
+        text: "I found **Sam Whitfield** in your workspace. Here's what will change:",
+      },
+    ],
+  },
+
+  {
+    id: "make-team-admin-v3",
+    label: "Make Team Admin v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Make Marcus Webb a Team Admin of Enterprise Sales.",
+      },
+      {
+        role: "assistant",
+        text: "I found **Marcus Webb** in **Enterprise Sales**. Here's what will change:",
+      },
+    ],
+  },
+
+  {
+    id: "remove-team-admin-v3",
+    label: "Remove Team Admin v3",
+    group: "provisioning",
+    messages: [
+      {
+        role: "user",
+        text: "Remove Elena Vasquez as Team Admin of Enterprise Sales. Keep her as a member.",
+      },
+      {
+        role: "assistant",
+        text: "Found **Elena Vasquez** in **Enterprise Sales**. Here's what will change:",
+      },
+    ],
+  },
+
   {
     id: "demote-to-member",
     label: "Demote admin to member",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon, MagnifyingGlassIcon, ArrowUpRightIcon, StarIcon, CheckIcon } from "@phosphor-icons/react";
+import { SparkleIcon, FlaskIcon, UsersFourIcon, XIcon, MagnifyingGlassIcon, ArrowUpRightIcon, StarIcon, CheckIcon, CheckCircleIcon, CaretUpDownIcon } from "@phosphor-icons/react";
 import { SendHorizontal } from "lucide-react";
 import vonLogomark from "../assets/von-logomark.svg";
 import { AskUserInput } from "../components/prototype/QuickActionBar";
@@ -1162,18 +1162,26 @@ const PANEL_AVATAR_COLORS = [
   "bg-rose-100 text-rose-700", "bg-cyan-100 text-cyan-700",
 ];
 
-function WorkspaceMembersPanel() {
+function WorkspaceMembersPanel({ invitedCount, simpleHeader }: { invitedCount?: number; simpleHeader?: boolean }) {
   return (
     <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-4 pb-3 flex-shrink-0">
         <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-sm font-bold text-gray-500">MT</span>
+          {simpleHeader ? (
+            <UsersFourIcon size={18} className="text-gray-500" weight="fill" />
+          ) : (
+            <span className="text-sm font-bold text-gray-500">MT</span>
+          )}
         </div>
-        <div>
-          <p className="text-sm font-semibold text-gray-900">Meridian Technologies</p>
-          <p className="text-xs text-gray-400 mt-0.5">Workspace</p>
-        </div>
+        {simpleHeader ? (
+          <p className="text-sm font-semibold text-gray-900">People in this workspace</p>
+        ) : (
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Meridian Technologies</p>
+            <p className="text-xs text-gray-400 mt-0.5">Workspace</p>
+          </div>
+        )}
       </div>
 
       <div className="h-px bg-gray-100 flex-shrink-0" />
@@ -1201,7 +1209,12 @@ function WorkspaceMembersPanel() {
 
       {/* Footer */}
       <div className="flex-shrink-0 border-t border-gray-100 px-5 py-3">
-        <p className="text-xs text-gray-400">{PANEL_MEMBERS.length} current members</p>
+        <p className="text-xs text-gray-400">
+          {PANEL_MEMBERS.length} current members
+          {invitedCount ? (
+            <span className="text-green-600 font-medium"> · +{invitedCount} invited</span>
+          ) : null}
+        </p>
       </div>
     </div>
   );
@@ -2165,6 +2178,7 @@ function UserInspectPanel({
   joined,
   addedBy,
   source,
+  pendingChange,
 }: {
   dimmed: boolean;
   initials: string;
@@ -2177,6 +2191,7 @@ function UserInspectPanel({
   joined: string;
   addedBy: string;
   source: string;
+  pendingChange?: { fromRole: string; toRole: string; teamName?: string };
 }) {
   return (
     <div
@@ -2207,6 +2222,23 @@ function UserInspectPanel({
           dimmed ? "opacity-25" : "opacity-100"
         }`}
       >
+        {/* Pending change (shown when reviewing a v3 turn card) */}
+        {pendingChange && (
+          <div className="rounded-lg border border-violet-200 bg-violet-50 px-3 py-2.5">
+            <p className="text-[11px] font-semibold text-violet-500 uppercase tracking-widest mb-1.5">Pending change</p>
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${roleBadgeStyle(pendingChange.fromRole)}`}>
+                {pendingChange.fromRole}
+              </span>
+              <span className="text-gray-400 text-xs">→</span>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${roleBadgeStyle(pendingChange.toRole)}`}>
+                {pendingChange.toRole}
+              </span>
+              {pendingChange.teamName && <span className="text-xs text-gray-400">· {pendingChange.teamName}</span>}
+            </div>
+          </div>
+        )}
+
         {/* Role */}
         <div>
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Role</p>
@@ -2528,6 +2560,568 @@ const REMOVE_TEAM_ADMIN_V2_CONFIG: RoleChangeV2Config = {
   },
 };
 
+// ─── Chat v3 — turn-level confirmation cards (inline in thread) ──────────────
+
+/** Compact confirmation card embedded inline in the agent's turn. Not a
+ *  floating overlay — sits in the conversation, chat stays interactive. */
+function V3TurnCard({
+  title,
+  summary,
+  ctaLabel,
+  reviewing,
+  onConfirm,
+  onCancel,
+  onExpand,
+}: {
+  title: string;
+  summary: string;
+  ctaLabel: string;
+  reviewing: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  onExpand: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm px-4 py-3">
+      {/* Title + expand / close */}
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <div className="flex items-center gap-0.5 flex-shrink-0 -mr-1">
+          <button
+            onClick={onExpand}
+            title="Expand to panel"
+            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded hover:bg-gray-100"
+          >
+            <ArrowUpRightIcon size={13} weight="bold" />
+          </button>
+          <button
+            onClick={onCancel}
+            title="Dismiss"
+            className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded hover:bg-gray-100"
+          >
+            <XIcon size={13} weight="bold" />
+          </button>
+        </div>
+      </div>
+
+      {/* Summary line, or reviewing state */}
+      {reviewing ? (
+        <button
+          onClick={onExpand}
+          className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-violet-600 hover:text-violet-700 cursor-pointer"
+        >
+          Reviewing in panel →
+        </button>
+      ) : (
+        <p className="mt-1 text-xs text-gray-500">{summary}</p>
+      )}
+
+      {/* Actions */}
+      <div className="flex justify-end items-center gap-2 mt-3">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-3.5 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+        >
+          {ctaLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Minimal inline confirmation line the turn card collapses into after confirm. */
+function V3ConfirmedLine({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-2 py-0.5">
+      <CheckCircleIcon size={16} weight="fill" className="text-green-500 flex-shrink-0" />
+      <span className="text-sm text-gray-700">{text}</span>
+    </div>
+  );
+}
+
+/** Shared v3 layout: inline turn card + always-open (undimmed) right panel +
+ *  full composer. `renderPanel` supplies the object/detail view per flow. */
+function V3Layout({
+  scenario,
+  title,
+  summary,
+  cta,
+  confirmedText,
+  renderPanel,
+}: {
+  scenario: NonNullable<ReturnType<typeof getScenario>>;
+  title: string;
+  summary: string;
+  cta: string;
+  confirmedText: string;
+  renderPanel: (state: { confirmed: boolean; reviewing: boolean }) => React.ReactNode;
+}) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+
+  const handleConfirm = () => {
+    setConfirmed(true);
+    setReviewing(false);
+  };
+  const handleCancel = () => {
+    setDismissed(true);
+    setReviewing(false);
+  };
+
+  const turnContent = confirmed ? (
+    <div className="ml-10">
+      <V3ConfirmedLine text={confirmedText} />
+    </div>
+  ) : dismissed ? null : (
+    <div className="ml-10">
+      <V3TurnCard
+        title={title}
+        summary={summary}
+        ctaLabel={cta}
+        reviewing={reviewing}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+        onExpand={() => setReviewing(true)}
+      />
+    </div>
+  );
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
+      <ChatPane
+        scenario={scenario}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        extraContent={turnContent}
+        bottomSlot={<MessageVonInput />}
+      />
+      {renderPanel({ confirmed, reviewing })}
+    </div>
+  );
+}
+
+// Bulk provisioning v3 — invite review detail panel (shown on ↗ expand)
+function BulkInviteReviewPanel() {
+  return (
+    <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 flex-shrink-0">
+        <p className="text-sm font-semibold text-gray-900">Review invites</p>
+        <p className="text-xs text-gray-400 mt-0.5">52 parsed · 49 ready · 3 flagged</p>
+      </div>
+      <div className="h-px bg-gray-100 flex-shrink-0" />
+
+      {/* Stat cards */}
+      <div className="flex gap-3 px-5 py-4 flex-shrink-0">
+        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-xl font-bold text-gray-800 leading-none">52</p>
+          <p className="text-[11px] text-gray-400 mt-1">parsed</p>
+        </div>
+        <div className="flex-1 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-xl font-bold text-green-700 leading-none">49</p>
+          <p className="text-[11px] text-green-600 mt-1">ready</p>
+        </div>
+        <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 text-center">
+          <p className="text-xl font-bold text-amber-600 leading-none">3</p>
+          <p className="text-[11px] text-amber-500 mt-1">flagged</p>
+        </div>
+      </div>
+
+      <div className="h-px bg-gray-100 mx-5 flex-shrink-0" />
+
+      {/* Invitee list */}
+      <div className="flex-1 overflow-y-auto px-5 py-3">
+        {V2_SHOWN_USERS.map((u) => (
+          <div key={u.id} className="flex items-center gap-2.5 py-2">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(u.name)}`}>
+              {v2Initials(u.name)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{u.name}</p>
+              <p className="text-xs text-gray-400 truncate">{u.email}</p>
+            </div>
+          </div>
+        ))}
+        <div className="flex items-center gap-2.5 py-2">
+          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-500 flex-shrink-0">
+            +{V2_HIDDEN_COUNT}
+          </div>
+          <p className="text-xs text-gray-400">+{V2_HIDDEN_COUNT} more · Member role</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Create a team v3 — team draft panel (Enterprise Sales)
+function TeamDraftPanel({ created, expanded }: { created: boolean; expanded: boolean }) {
+  return (
+    <div className="w-[480px] flex-shrink-0 h-full bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-5 pt-4 pb-3 flex-shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+          <UsersFourIcon size={18} className="text-violet-600" weight="fill" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">Enterprise Sales</p>
+          <div className="flex items-center mt-0.5">
+            <StatusTag status={created ? "Active" : "Draft"} />
+          </div>
+        </div>
+      </div>
+
+      <div className="h-px bg-gray-100 flex-shrink-0" />
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Description */}
+        <div>
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">Description</p>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            Senior AEs and Solutions Consultants working enterprise accounts.
+          </p>
+        </div>
+
+        {/* Who's included */}
+        <WhosIncludedFilter conditions={CREATE_TEAM_V21_FILTER} />
+
+        {/* Members */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Members</span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500">
+              {CREATE_TEAM_V21_MEMBERS.length}
+            </span>
+          </div>
+          {expanded ? (
+            <div className="space-y-0.5">
+              {CREATE_TEAM_V21_MEMBERS.map((m) => (
+                <div key={m.id} className="flex items-center gap-2.5 py-1.5">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(m.name)}`}>
+                    {m.initials}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{m.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                  </div>
+                  {m.isTeamAdmin && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-600 border border-blue-200 flex-shrink-0">
+                      <StarIcon size={10} weight="fill" />
+                      Team Admin
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              {CREATE_TEAM_V21_MEMBERS.length} people matched · Elena Vasquez is Team Admin
+            </p>
+          )}
+        </div>
+
+        {/* Provenance */}
+        <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
+          <SparkleIcon size={11} weight="fill" className="text-gray-300" />
+          Synced from Salesforce
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BulkProvisioningV3Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  return (
+    <V3Layout
+      scenario={scenario}
+      title="Send 49 invites as Member?"
+      summary="49 invites selected"
+      cta="Send 49 invites"
+      confirmedText="49 invitations sent · Member role"
+      renderPanel={({ confirmed, reviewing }) =>
+        reviewing && !confirmed ? (
+          <BulkInviteReviewPanel />
+        ) : (
+          <WorkspaceMembersPanel simpleHeader invitedCount={confirmed ? 49 : undefined} />
+        )
+      }
+    />
+  );
+}
+
+// Bulk provisioning v3.1 — compact card that expands IN PLACE (no panel swap)
+function BulkV31InlineCard({
+  onSend,
+  onCancel,
+}: {
+  onSend: (count: number) => void;
+  onCancel: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [checked, setChecked] = useState(new Set(V2_SHOWN_USERS.map((u) => u.id)));
+  const [search, setSearch] = useState("");
+
+  const q = search.trim().toLowerCase();
+  const visibleUsers = q
+    ? V2_SHOWN_USERS.filter(
+        (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+      )
+    : V2_SHOWN_USERS;
+
+  const totalSelected = checked.size + V2_HIDDEN_COUNT;
+  const allShownChecked = checked.size === V2_SHOWN_USERS.length;
+
+  function toggleAll() {
+    setChecked(allShownChecked ? new Set() : new Set(V2_SHOWN_USERS.map((u) => u.id)));
+  }
+  function toggle(id: number) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      {/* Title */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2.5">
+        <p className="text-sm font-semibold text-gray-900">Send 49 invites as Member?</p>
+        <button onClick={onCancel} title="Dismiss" className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer p-1 rounded hover:bg-gray-100">
+          <XIcon size={13} weight="bold" />
+        </button>
+      </div>
+
+      {/* Expandable detail — animates height in place */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateRows: expanded ? "1fr" : "0fr",
+          transition: "grid-template-rows 300ms ease",
+        }}
+      >
+        <div className="overflow-hidden">
+          {/* Stat cards */}
+          <div className="flex gap-3 px-4 pb-3">
+            <div className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-gray-800 leading-none">52</p>
+              <p className="text-xs text-gray-400 mt-1.5">parsed</p>
+            </div>
+            <div className="flex-1 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-green-700 leading-none">49</p>
+              <p className="text-xs text-green-600 mt-1.5">ready</p>
+            </div>
+            <div className="flex-1 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-center">
+              <p className="text-2xl font-bold text-amber-600 leading-none">3</p>
+              <p className="text-xs text-amber-500 mt-1.5">flagged</p>
+            </div>
+          </div>
+
+          {/* Flagged section */}
+          <div className="mx-4 mb-3 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2.5 space-y-1.5">
+            {V2_FLAGGED.map((f, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+                <span className="text-xs text-gray-600 leading-relaxed">
+                  <span className="font-medium text-gray-700">{f.email}</span>
+                  {" — "}{f.reason}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-gray-100 mx-4 mb-3" />
+
+          {/* Search bar */}
+          <div className="relative px-4 mb-2">
+            <MagnifyingGlassIcon
+              size={14}
+              className="absolute left-7 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or email…"
+              className="w-full pl-8 pr-3 py-2 text-sm text-gray-900 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-200 focus:border-gray-300 transition-all bg-white placeholder-gray-400"
+            />
+          </div>
+
+          {/* Select-all */}
+          <div className="flex items-center gap-3 px-4 py-1.5">
+            <input
+              type="checkbox"
+              checked={allShownChecked}
+              onChange={toggleAll}
+              className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+            />
+            <span className="text-xs text-gray-500 select-none">Select all</span>
+            {checked.size < V2_SHOWN_USERS.length && (
+              <span className="text-xs text-gray-400">{checked.size} of {V2_SHOWN_USERS.length} shown selected</span>
+            )}
+          </div>
+
+          {/* Scrollable user list */}
+          <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
+            {visibleUsers.map((user) => (
+              <label
+                key={user.id}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked.has(user.id)}
+                  onChange={() => toggle(user.id)}
+                  className="w-3.5 h-3.5 rounded accent-gray-900 cursor-pointer flex-shrink-0"
+                />
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold flex-shrink-0 ${v2AvatarColor(user.name)}`}>
+                  {v2Initials(user.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                </div>
+              </label>
+            ))}
+            {visibleUsers.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-4">No results</p>
+            )}
+            {!q && (
+              <div className="flex items-center gap-3 px-4 py-2">
+                <div className="w-3.5 h-3.5 flex-shrink-0" />
+                <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-500 flex-shrink-0">
+                  +{V2_HIDDEN_COUNT}
+                </div>
+                <p className="text-xs text-gray-400">+{V2_HIDDEN_COUNT} more · Member role</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer — pinned; chevron + live count left, actions right */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-t border-gray-100">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          title={expanded ? "Collapse" : "Expand"}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+        >
+          <CaretUpDownIcon size={14} weight="bold" className="text-gray-400" />
+          <span>{totalSelected} invite{totalSelected !== 1 ? "s" : ""} selected</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onSend(totalSelected)}
+            disabled={totalSelected === 0}
+            className="px-3.5 py-1.5 text-xs font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Send {totalSelected} invite{totalSelected !== 1 ? "s" : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkProvisioningV31Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [sentCount, setSentCount] = useState(0);
+
+  const handleSend = (count: number) => {
+    setSentCount(count);
+    setConfirmed(true);
+  };
+
+  const turnContent = confirmed ? (
+    <div className="ml-10">
+      <V3ConfirmedLine text={`${sentCount} invitations sent · Member role`} />
+    </div>
+  ) : dismissed ? null : (
+    <div className="ml-10">
+      <BulkV31InlineCard onSend={handleSend} onCancel={() => setDismissed(true)} />
+    </div>
+  );
+
+  return (
+    <div className="flex-1 h-full bg-white rounded-lg border border-gray-200 shadow-xs overflow-hidden flex flex-row">
+      <ChatPane
+        scenario={scenario}
+        className="flex-1 min-w-0 border-r border-gray-100"
+        extraContent={turnContent}
+        bottomSlot={<MessageVonInput />}
+      />
+      <WorkspaceMembersPanel simpleHeader invitedCount={confirmed ? sentCount : undefined} />
+    </div>
+  );
+}
+
+function CreateTeamV3Layout({ scenario }: { scenario: NonNullable<ReturnType<typeof getScenario>> }) {
+  return (
+    <V3Layout
+      scenario={scenario}
+      title="Create Enterprise Sales?"
+      summary="7 members · Role is AE"
+      cta="Create team"
+      confirmedText="Enterprise Sales created · 7 members"
+      renderPanel={({ confirmed, reviewing }) => (
+        <TeamDraftPanel created={confirmed} expanded={reviewing && !confirmed} />
+      )}
+    />
+  );
+}
+
+function RoleChangeV3Layout({
+  scenario,
+  config,
+}: {
+  scenario: NonNullable<ReturnType<typeof getScenario>>;
+  config: RoleChangeV2Config;
+}) {
+  return (
+    <V3Layout
+      scenario={scenario}
+      title={config.card.title}
+      summary={`${config.user.name} · ${config.card.fromRole} → ${config.card.toRole}`}
+      cta="Confirm"
+      confirmedText={config.confirm.statusMessage}
+      renderPanel={({ confirmed, reviewing }) => (
+        <UserInspectPanel
+          dimmed={false}
+          initials={config.user.initials}
+          name={config.user.name}
+          email={config.user.email}
+          avatarClass={config.user.avatarClass}
+          role={confirmed ? config.panel.roleAfter : config.panel.roleBefore}
+          teamName={config.panel.teamName}
+          teamAdmin={confirmed ? config.panel.teamAdminAfter : config.panel.teamAdminBefore}
+          joined={config.panel.joined}
+          addedBy={config.panel.addedBy}
+          source={config.panel.source}
+          pendingChange={
+            reviewing && !confirmed
+              ? { fromRole: config.card.fromRole, toRole: config.card.toRole, teamName: config.card.teamName }
+              : undefined
+          }
+        />
+      )}
+    />
+  );
+}
+
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function EmptyState() {
@@ -2633,6 +3227,34 @@ export default function Prototype() {
 
   if (scenario.id === "remove-team-admin-v2") {
     return <RoleChangeV2Layout scenario={scenario} config={REMOVE_TEAM_ADMIN_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "bulk-provisioning-v3") {
+    return <BulkProvisioningV3Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "bulk-provisioning-v3.1") {
+    return <BulkProvisioningV31Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "create-team-v3") {
+    return <CreateTeamV3Layout scenario={scenario} />;
+  }
+
+  if (scenario.id === "promote-to-admin-v3") {
+    return <RoleChangeV3Layout scenario={scenario} config={PROMOTE_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "demote-to-member-v3") {
+    return <RoleChangeV3Layout scenario={scenario} config={DEMOTE_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "make-team-admin-v3") {
+    return <RoleChangeV3Layout scenario={scenario} config={MAKE_TEAM_ADMIN_V2_CONFIG} />;
+  }
+
+  if (scenario.id === "remove-team-admin-v3") {
+    return <RoleChangeV3Layout scenario={scenario} config={REMOVE_TEAM_ADMIN_V2_CONFIG} />;
   }
 
   // All other scenarios: single-column chat

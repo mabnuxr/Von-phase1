@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { UsersIcon, DotsThreeIcon, MagnifyingGlassIcon, CaretDownIcon } from "@phosphor-icons/react";
+import { useNavigate } from "react-router-dom";
+import { UsersIcon, DotsThreeIcon, MagnifyingGlassIcon, CaretDownIcon, XIcon, UsersFourIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useAuthCheck } from "../hooks/useAuthCheck";
 import { SettingsLayout } from "../components/SettingsLayout";
 import {
@@ -117,12 +118,119 @@ function personTeams(name: string): string[] {
   return teamsMock.filter((t) => t.admins.includes(name)).map((t) => t.name);
 }
 
+// ─── User inspect panel (480px right overlay, v2 panel style) ─────────────────
+
+function PanelSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function PersonInspectPanel({ person, onClose }: { person: Person; onClose: () => void }) {
+  const navigate = useNavigate();
+  const teams = personTeams(person.name);
+
+  // Close on Escape
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <>
+      {/* Backdrop — click outside to close */}
+      <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="fixed top-0 right-0 bottom-0 z-50 w-[480px] bg-white border-l border-gray-200 shadow-xl flex flex-col">
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 pt-4 pb-3 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${avatarColor(person.name)}`}>
+              {initials(person.name)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{person.name}</p>
+              <p className="text-xs text-gray-400 truncate mt-0.5">{person.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors cursor-pointer flex-shrink-0 ml-2"
+          >
+            <XIcon size={15} weight="bold" />
+          </button>
+        </div>
+
+        <div className="h-px bg-gray-100 flex-shrink-0" />
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          <PanelSection label="Role">
+            <RoleBadge role={person.role} />
+          </PanelSection>
+
+          <PanelSection label="Teams">
+            {teams.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {teams.map((t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-gray-50 border border-gray-200/70 text-gray-700"
+                  >
+                    <UsersFourIcon size={12} className="text-gray-400" weight="fill" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">No teams</p>
+            )}
+          </PanelSection>
+
+          <PanelSection label="Joined">
+            <p className="text-sm text-gray-700">
+              {person.status === "Invite sent" ? "Pending acceptance" : person.joined}
+            </p>
+          </PanelSection>
+
+          <PanelSection label="Added by">
+            <p className="text-sm text-gray-700">{person.addedBy}</p>
+          </PanelSection>
+
+          <PanelSection label="Source">
+            <p className="text-sm text-gray-700">{person.source}</p>
+          </PanelSection>
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t border-gray-200 px-5 py-3.5">
+          <button
+            onClick={() => navigate("/chat/new")}
+            className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <SparkleIcon size={14} weight="fill" className="text-violet-500" />
+            Edit with Von
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Populated table ──────────────────────────────────────────────────────────
 
 function PopulatedTable() {
   const [tab, setTab] = useState<"Active" | "Pending">("Active");
   const [roleFilter, setRoleFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Person | null>(null);
 
   const activeCount = peopleMock.filter((p) => p.status === "Active").length;
   const pendingCount = peopleMock.filter((p) => p.status === "Invite sent").length;
@@ -203,7 +311,11 @@ function PopulatedTable() {
             {visible.map((person) => {
               const teams = personTeams(person.name);
               return (
-                <tr key={person.id} className="group hover:bg-gray-50/60 transition-colors">
+                <tr
+                  key={person.id}
+                  onClick={() => setSelected(person)}
+                  className="group hover:bg-gray-50/60 transition-colors cursor-pointer"
+                >
                   <td className="px-6 py-3.5 whitespace-nowrap">
                     <div className="flex items-center gap-2.5">
                       <Avatar name={person.name} />
@@ -244,6 +356,11 @@ function PopulatedTable() {
           </tbody>
         </table>
       </div>
+
+      {/* User inspect panel */}
+      {selected && (
+        <PersonInspectPanel person={selected} onClose={() => setSelected(null)} />
+      )}
     </>
   );
 }
@@ -252,6 +369,7 @@ function PopulatedTable() {
 
 export default function People() {
   useAuthCheck();
+  const navigate = useNavigate();
   const [isPopulated, setIsPopulated] = useState(false);
 
   return (
@@ -287,8 +405,18 @@ export default function People() {
               subtext="Add people by email or upload a CSV to get started"
               actions={
                 <>
-                  <button className={settingsPrimaryBtn}>Invite by email</button>
-                  <button className={settingsSecondaryBtn}>Upload CSV</button>
+                  <button
+                    className={settingsPrimaryBtn}
+                    onClick={() => navigate("/prototype/prototype-individual-provisioning")}
+                  >
+                    Invite by email
+                  </button>
+                  <button
+                    className={settingsSecondaryBtn}
+                    onClick={() => navigate("/prototype/prototype-bulk-provisioning-v2.1")}
+                  >
+                    Upload CSV
+                  </button>
                 </>
               }
             />
